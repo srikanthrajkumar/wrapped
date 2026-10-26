@@ -1,0 +1,10 @@
+# Claude Code: commit .claude/skills, keep personal settings and local state out
+.claude/settings.local.json
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
