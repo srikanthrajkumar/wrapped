@@ -1,7 +1,7 @@
 # Skills Router — Carnatic Wrapped
 
 Which agent skill drives which step of development, what is approved, and what is deliberately excluded.
-Every phase of work should start by checking this table. If a step has no skill listed, use the project-local rules (see §5) and plain judgment — do not reach for an unvetted skill.
+Every phase of work should start by checking this table. The constitution (`.specify/memory/constitution.md`) outranks it. If a step has no skill listed, use the project-local rules (see §5) and plain judgment — do not reach for an unvetted skill.
 
 Vetted 2026-10-26 (stars / pushed dates via `gh api`, SKILL.md content read in full; nothing executed).
 Re-vet before adding anything: install counts on skills.sh are **bundle-inflated** and not a quality signal (see §6).
@@ -12,7 +12,7 @@ Re-vet before adding anything: install counts on skills.sh are **bundle-inflated
 
 | # | Step | Primary skill | Supporting | Artifact (in repo) |
 |---|------|---------------|-----------|-------------------|
-| 0 | Sharpen the idea | gstack `/office-hours` | mattpocock `grilling` | copy the design doc from `~/.gstack/projects/` into `docs/design/` (gstack stores it outside the repo) |
+| 0 | Sharpen the idea | gstack `/office-hours` | mattpocock `grilling` | `docs/designs/` (office-hours dual-writes it; cross-session copy in `~/.gstack/projects/`) |
 | 1 | Constitution | spec-kit `/speckit-constitution` | — | `.specify/memory/constitution.md` |
 | 2 | Domain language | mattpocock `domain-modeling` | `grilling` | `GLOSSARY.md` (kriti vs item, artist vs role, sabha vs venue, concert vs lecdem…) |
 | 3 | Requirements / spec | spec-kit `/speckit-specify` → `/speckit-clarify` | `mobile-native` (phone constraints), `accessibility` | `specs/NNN-*/spec.md` |
@@ -21,8 +21,8 @@ Re-vet before adding anything: install counts on skills.sh are **bundle-inflated
 | 4b | Plan review | gstack `/plan-eng-review`, `/plan-design-review`, `/plan-ceo-review` | `/plan-devex-review` (optional) | review notes → fold back into plan |
 | 5 | Frontend design | gstack `/design-consultation` → `/design-shotgun` → `/design-html` | `frontend-design` plugin, `mobile-native`, `shadcn` | `DESIGN.md`, mockups |
 | 6 | Tasks | spec-kit `/speckit-tasks` → `/speckit-analyze` (consistency gate) | — | `tasks.md` |
-| 7 | Build | spec-kit `/speckit-implement` | mattpocock `tdd` (+ `codebase-design`), stack skills, `vercel-react-best-practices`, `shadcn` | code + tests |
-| 8 | Tests | mattpocock `tdd` | `vitest`, `playwright-best-practices` (offline + service-worker refs) | test suites |
+| 7 | Build | spec-kit `/speckit-implement` | `codebase-design`, `tdd` (optional), stack skills, `vercel-react-best-practices`, `shadcn` | code + tests |
+| 8 | Tests (required on data-loss paths, judgment elsewhere; constitution IV) | stack test skills | `tdd` (optional), `vitest`, `playwright-best-practices` (offline + service-worker refs) | test suites |
 | 9 | Code review | gstack `/review` | `web-design-guidelines` (code-level UI rules), `accessibility` | — |
 | 10 | Visual / functional QA | gstack `/design-review`, `/qa` | gstack `/benchmark` (perf budgets) | — |
 | 11 | Security | gstack `/cso` | `better-auth-security-best-practices` / `supabase` RLS traps (if chosen) | — |
@@ -78,7 +78,7 @@ npx skills add addyosmani/web-quality-skills@accessibility
 |---|---|---|
 | **github/spec-kit** | Only candidate that writes durable constitution / spec / plan / tasks into the repo, with a cross-artifact `analyze` gate. `--no-model-invocation` makes its skills user-invoked only, so they never fight gstack for a request. | Official GitHub, 143K★, v1.2.3 (2026-10-22) |
 | **mattpocock `grilling`, `domain-modeling`** | Short (~350–500 words), sharp. Forces precise domain language and a strict test for when an ADR is warranted — exactly "right incremental decisions". | 304K★, pushed 2026-10-22 |
-| **mattpocock `tdd`** (+ `codebase-design`, which it calls) | Best TDD guidance read: agreed seams, vertical slices, anti-tautology rules, ~570 words. Compensates for spec-kit's **tests-optional default** (also overridden in the constitution). | same |
+| **mattpocock `tdd`** (+ `codebase-design`, which it calls) | Best TDD guidance read: agreed seams, vertical slices, anti-tautology rules, ~570 words. Optional: the constitution (IV) does not mandate test-first; use it where a test-first loop helps. | same |
 | **emilkowalski `mobile-native`** | Concrete web-on-phone fixes: 16px inputs (no zoom), `dvh`, safe areas, tap delay, sticky hover, PWA status bar; insists on real-device testing. | 49.8K★, pushed 2026-10-11 |
 | **supabase-postgres-best-practices** | ~30 wrong-vs-right SQL rule files (indexes, pooling, upsert, pagination). Explicitly applies to any Postgres — the catalog is PG17 regardless of host. | Official Supabase |
 | **vercel-react-best-practices** | 70 impact-ranked rules (waterfalls, bundle size, re-renders), lazily loaded. ~10 rules are Next-server-only; ignore them if not on Next. | Official Vercel, 33K★ |
