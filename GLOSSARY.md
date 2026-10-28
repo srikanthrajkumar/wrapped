@@ -51,6 +51,10 @@ _Avoid_: song, kriti (as a general word)
 **Kriti**:
 One form of Composition, alongside varnam, thillana, javali and the others. It is never the general word for a Composition.
 
+**Pallavi author**:
+The person who wrote the pallavi of an RTP, often the performer. When known, they count as a Composer in the Wrapped.
+_Avoid_: RTP composer
+
 **Tani avartanam**:
 The percussion solo in a Concert, played after an Item and in that Item's tala. It belongs to the Item it follows, but is not itself an Item.
 _Avoid_: tani (in writing), percussion solo
@@ -80,7 +84,7 @@ A value the rasika doesn't know, entered as "?". It counts in the Wrapped as its
 _Avoid_: blank, missing, n/a
 
 **Not applicable**:
-A field that has no value for this Item, such as the composer of an RTP. It counts nowhere and is never Unknown.
+A field that has no value for this Item, such as the tala of a viruttam. It counts nowhere and is never Unknown.
 _Avoid_: "-", "?", none
 
 **Guess**:
