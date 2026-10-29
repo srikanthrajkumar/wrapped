@@ -11,7 +11,7 @@ snapshot, the search index, sabhas, artists and planned events.
   a planned event, creating an event, adding people and items, editing, reordering and deleting.
 - Every save MUST be one local transaction that writes the record and its outbox entry, then
   returns. No spinner appears on any save.
-- A network error MUST NOT block the UI, discard input or send the user to a sign-in screen.
+- A network error MUST NOT block the UI, discard input or send the rasika to a sign-in screen.
   Sign-in is needed only to restore onto an empty device.
 - Sync runs whenever signal and the app are both present: on start, on reconnect, on return to the
   app and after each write. Background sync is not assumed.
@@ -38,13 +38,13 @@ re-attended.
 
 ### III. The Catalog Suggests; the Rasika Decides
 
-The catalog is a strong reference, not proof of provenance. What the user heard in the hall is
+The catalog is a strong reference, not proof of provenance. What the rasika heard in the hall is
 the truth of the log.
 
 - Picking a composition fills in raga, tala, composer, language and topic as a suggestion. Every
   filled-in field MUST be editable on the spot, in one or two taps, with no warning or
   confirmation. A kriti sung in a raga other than the catalog's is logged as sung.
-- The Wrapped counts what the user logged, not what the catalog says. An edited field is never
+- The Wrapped counts what the rasika logged, not what the catalog says. An edited field is never
   silently reset by a later catalog update.
 - "?" and free text MUST be accepted on every field. Unresolved values are kept as typed, count
   in the Wrapped as their own bucket, and can be resolved later.
@@ -106,7 +106,7 @@ Rationale: in a hall, the app competes with a paper notebook. Every dependency s
 
 ### VI. Deliberate, Simple Decisions
 
-- Decisions are made one at a time, by the user, with the options and trade-offs stated. Plan
+- Decisions are made one at a time, by the Maintainer, with the options and trade-offs stated. Plan
   questions MUST NOT be auto-decided.
 - A hard-to-reverse decision (storage engine, sync model, auth, hosting, catalog key scheme, data
   shape) MUST be recorded as an ADR in `docs/adr/` before code depends on it.
@@ -115,7 +115,7 @@ Rationale: in a hall, the app competes with a paper notebook. Every dependency s
 - Build what this season needs (YAGNI). The deadline cuts scope along the design doc's cut line.
   It never cuts the data-loss tests or the principles above.
 
-Rationale: the user values the right incremental decisions over speed of delivery. A record of
+Rationale: the Maintainer values the right incremental decisions over speed of delivery. A record of
 why makes each decision reviewable later.
 
 ## Boundaries and Constraints
@@ -129,13 +129,24 @@ why makes each decision reviewable later.
   edit or own either.
 - **Project-owned reference data:** composer dates and the subject-to-topic roll-up live in this
   repository, keyed by catalog natural keys.
-- **Users:** one user and one writing device this season. Every record carries an owner, so
-  friends can be added later without a data migration.
+- **Users:** the app is open to any rasika, from the 2026-27 season. Each rasika has their own
+  account and season, and one writing device at a time. The Maintainer runs the app and curates
+  the shared lists; the Maintainer is not a kind of rasika and has no access to a rasika's
+  season beyond what this section allows.
 - **Privacy and security:**
-  - The season log is personal data. The API MUST authenticate every request.
+  - Every rasika's season is personal data, private to that rasika. The API MUST authenticate
+    every request and MUST let a rasika read or change only their own season.
+  - Each use of a rasika's data beyond their own log needs its own explicit consent, asked with
+    nothing pre-selected and changeable at any time. Today that means two uses: sharing
+    hand-created entries with the Maintainer, and inclusion in aggregate season reports.
+  - Anything shown to the Maintainer or published in a report MUST NOT identify a rasika.
+  - A rasika can ask for deletion. Their identity is then erased. Their season is kept,
+    unlinked, only if they consented to season reports; otherwise it is erased too.
+  - Practices around consent and erasure MUST follow India's Digital Personal Data Protection
+    Act 2023, and are checked before public launch.
   - A lost device's session MUST be revocable.
   - Secrets MUST NOT be committed.
-  - Share cards contain only what the user chooses to post.
+  - Share cards contain only what the rasika chooses to post.
 
 ## Development Workflow and Quality Gates
 
@@ -168,7 +179,7 @@ This constitution supersedes the "Non-negotiables" section of `CLAUDE.md` and an
 practice. When a spec, plan or task conflicts with it, the constitution wins until it is amended.
 
 - **Amendments:** proposed in writing with the reason and the affected principles, approved by the
-  user, and recorded with a Sync Impact Report. Dependent artifacts (specs, plans, CLAUDE.md,
+  Maintainer, and recorded with a Sync Impact Report. Dependent artifacts (specs, plans, CLAUDE.md,
   `docs/skills-router.md`) are updated in the same change.
 - **Versioning:** semantic.
   - MAJOR: a principle is removed or redefined.
@@ -180,4 +191,4 @@ practice. When a spec, plan or task conflicts with it, the constitution wins unt
   - `/review` checks each change against Principles I–V.
   - Runtime guidance for agents lives in `CLAUDE.md` and `docs/skills-router.md`.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-27 | **Last Amended**: 2026-10-27
+**Version**: 1.1.0 | **Ratified**: 2026-10-27 | **Last Amended**: 2026-10-29

@@ -43,7 +43,7 @@ Carnatic Wrapped replaces the note, the paper and the spreadsheet with one phone
 
 Agreed during the session (P4 revised after the second opinion):
 
-1. **This season is the deadline; scope bends to fit.** Logging on the phone by ~1 Dec; Wrapped share cards from the same data before the season ends. Single user this season.
+1. **This season is the deadline; scope bends to fit.** Logging on the phone by ~1 Dec; Wrapped share cards from the same data before the season ends. Single user this season. *(Superseded 2026-10-29: the app is open to any rasika from 1 Dec; see specs/001-season-logger/spec.md Clarifications and constitution v1.1.0.)*
 2. **The spreadsheet is the spec of record, not the June doc.** Capture: event (date, sabha, concert | lecdem), artists with roles and each artist's clothing colour, items in order (composition, raga, tala, composer, language, topic). No durations or segments in v1.
 3. **Canonical entities, with "not sure" first-class.** Pick from the catalog so variants never split a count. "?" or free text is always allowed, kept as typed, and resolvable later; unresolved items still count.
 4. **The schedule is an input, owned by the logger project.** This project defines the schedule format now and consumes the feed when it exists. A hand-built personal plan ("my plan": the concerts you intend to attend, entered ahead of time) guarantees pre-loaded logging whether or not the feed arrives.
