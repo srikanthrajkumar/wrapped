@@ -378,8 +378,10 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
 - **FR-039**: Last season's spreadsheet MUST import through the same matching the app uses. The
   import reports, separately, how many Items matched a Composition, were "?", were special forms
   with no Composition, or stayed Unresolved, out of all 193 Items.
-- **FR-040**: Imported 2024-25 data MUST be used only as a reference for testing matching and
-  Cards. It MUST never appear in the rasika's log, lists or Wrapped.
+- **FR-040**: Imported 2024-25 Events and Items MUST be used only as a reference for testing
+  matching and Cards, and MUST never appear in the rasika's log or Wrapped. Names and dates
+  from the sheet MAY seed the shared lists and the project-kept tables (FR-005, Composer
+  dates).
 - **FR-041**: An RTP MUST have an optional pallavi author, blank by default. When filled, it
   counts as a Composer in the composer Cards and timeline; when blank, the composer is Not
   applicable.
@@ -393,7 +395,8 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
   that rasika has agreed to share them, and only as the entry itself with a
   count of rasikas, never with the rasika's identity or other log details.
 - **FR-043**: The Maintainer MUST be able to promote a shared entry: an Artist or Sabha into the
-  shared lists, or an Event into the Schedule.
+  shared lists. For a hand-typed Event, the Maintainer adds it to the Schedule in the logger
+  project, then links each rasika's matching Event to that Schedule entry.
 - **FR-044**: When an entry is promoted, each rasika's matching entry MUST link to the shared
   one on next sync. Appearances follow, text as typed and Overrides are kept, and an Event the
   rasika edited or attended is never overwritten.

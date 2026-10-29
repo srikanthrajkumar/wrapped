@@ -12,8 +12,9 @@ Postgres ([ADR 0001](../../docs/adr/0001-supabase-for-sign-in-and-server-store.m
 
 A local-first PWA. The phone holds the whole working season in IndexedDB (via Dexie), the
 catalog snapshot in memory, and a search index. Every save is one local transaction that writes
-the record and its outbox entry. When the app is open with signal, the outbox is pushed to a
-thin HTTP API over Postgres, and server changes are pulled by cursor. The Wrapped and its Cards
+the record and its outbox entry. When the app is open with signal, the outbox is pushed to
+Supabase (Postgres functions or Edge Functions, ADR 0001), and server changes are pulled by
+cursor. The Wrapped and its Cards
 are computed on the phone from the log. The catalog arrives from the logger project as a
 content-hashed snapshot built into each deploy. See [research.md](research.md) for the evidence
 behind each choice.
@@ -48,6 +49,9 @@ Maintainer's end-of-season report, reading Postgres read-only.
 **Testing**: Vitest for units and the store; Playwright for end-to-end runs in offline mode
 (`context.setOffline`); a real installed PWA on the primary test device before each release.
 Both tools are named in `docs/skills-router.md`.
+
+**Static hosting**: pending, task T052. The PWA's static files need a host before the
+phone-only fallback can ship; ADR 0001 covers sign-in and the database only.
 
 **Target Platform**: current iOS Safari and Android Chrome, installed to the home screen. The
 primary test device is still to be named by the Maintainer.
@@ -109,7 +113,8 @@ app/                         # the PWA (Vite + React)
 │   ├── store/               # the one storage module: Dexie schema, outbox, sync client, export
 │   ├── catalog/             # snapshot loader, transliteration fold, uFuzzy search, upgrade remap
 │   ├── reference/           # composer-dates.json, topics.json (project-kept)
-│   ├── screens/             # Plan, Event, Item, Lecdem, Tidy, Wrapped, Settings
+│   ├── screens/             # Plan, Event (Concert and Lecdem), Item, Tidy, Wrapped, Settings,
+│   │                        # SignIn, Consent, SchedulePicker, admin/Review
 │   ├── wrapped/             # aggregations and Cards (Cards load in the second download)
 │   └── sw.ts                # service worker: two-phase precache, prompt-to-update
 ├── tests/                   # Vitest
@@ -125,7 +130,9 @@ shared/                      # TypeScript types for records and sync payloads, u
 
 tools/
 ├── import-2024-25/          # reference import through the app's matching (FR-039, FR-040)
-└── golden-set/              # ~100 variant spellings for SC-010
+├── golden-set/              # ~100 variant spellings for SC-010
+├── reference-seed/          # shared lists, composer dates, topics, forms from last season's sheet
+└── size-budget/             # fails the build above 2 MB first install or 3 MB second download
 ```
 
 **Structure Decision**: the phone app (`app`), the Supabase project (`supabase`) and a shared

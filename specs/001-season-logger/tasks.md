@@ -39,10 +39,10 @@ quality gates).
 - [ ] T002 Scaffold the PWA with Vite, React 19 and TypeScript; add runtime dependencies `react@19`, `react-dom@19`, `wouter@3.13`, `dexie@4.4.x` (pin a version at or after 4.4.7), `dexie-react-hooks`, `@leeoniya/ufuzzy@1.0.x` in `app/package.json`, `app/vite.config.ts`, `app/index.html`, `app/src/main.tsx`
 - [ ] T003 [P] Create the shared types package with `shared/package.json`, `shared/tsconfig.json` and an empty barrel `shared/src/index.ts`
 - [ ] T004 [P] Configure ESLint (flat config) and Prettier for all workspaces in `eslint.config.js`, `.prettierrc`
-- [ ] T005 [P] Configure Vitest with `fake-indexeddb` loaded in a setup file in `app/vitest.config.ts`, `app/tests/setup.ts`
+- [ ] T005 [P] Configure Vitest as a root workspace covering `app` and `tools`, with `fake-indexeddb` loaded in the app's setup file, and add `tsx` as a dev dependency for TypeScript scripts in `tools/`, in `vitest.workspace.ts`, `app/vitest.config.ts`, `app/tests/setup.ts`
 - [ ] T006 [P] Configure Playwright with a phone viewport (iPhone 13) and `vite preview` as the web server in `app/playwright.config.ts`
 - [ ] T007 Write the size-budget check: brotli-compress every file in the first-phase precache list and fail above 2 MB, and every second-phase file and fail above a further 3 MB (constitution V, SC-009), in `tools/size-budget/check.mjs`
-- [ ] T008 Add the root `check` script running typecheck, lint, Vitest, Playwright and `tools/size-budget/check.mjs` in that order, as quickstart.md describes, in `package.json`
+- [ ] T008 Add the root `check` script running typecheck, lint, Vitest, Playwright and `tools/size-budget/check.mjs` in that order, as quickstart.md describes, in `package.json`. Also run `tools/size-budget/check.mjs` at the end of the app's `build` script, so every build fails when a budget is exceeded (constitution V), in `app/package.json`
 - [ ] T009 [P] Install the router's contingent skill `npx skills add antfu/skills@vitest -a claude-code -y --copy` after reading its SKILL.md, and record it in §2 of `docs/skills-router.md`
 
 ---
@@ -91,7 +91,8 @@ shell, and the design system. Every story builds on these.
 - [ ] T028 Write the reference seeding script in `tools/reference-seed/seed.py`, reading `docs/reference/wrapped-2024-25.xlsx` and run with `uv run --with openpyxl python -I`. It outputs:
   - `app/src/reference/shared-lists.seed.json`: the 11 Sabhas and the Artists in the sheet (FR-005);
   - `app/src/reference/composer-dates.json`: the 56 Composers from the Timelines sheet, keyed by composer `name_key` from the snapshot, with `born`, `died` and `approx`;
-  - `app/src/reference/topics.json`: Subject → Topic from the Topic column.
+  - `app/src/reference/topics.json`: Subject → Topic from the Topic column;
+  - `app/src/reference/forms.json`: the project-kept non-composition forms (RTP, viruttam, slokam, medley) that `form` uses when an Item has no Composition (data-model.md, Item).
 
   Names that don't match a catalog key are listed for the Maintainer, not guessed
 - [ ] T029 Produce `DESIGN.md` with `/design-consultation` (pipeline step 6 in docs/skills-router.md), including the 12-colour swatch palette and phone-width layouts for Plan, Event, Item, Wrapped and Settings
@@ -142,7 +143,7 @@ Colours, 8 Items, one Tani avartanam, notes), force-close, reopen, and find ever
 - [ ] T040 [P] [US1] Build the Colour picker in `app/src/screens/components/ColourPicker.tsx`: the 12 swatches plus "?", and an optional second colour
 - [ ] T041 [US1] Build the Event screen in `app/src/screens/EventScreen.tsx`: date, start time, Sabha, kind, note, the Appearances list with Role and Colours, and the running order with move up, move down and delete
 - [ ] T042 [US1] Build the Item editor in `app/src/screens/ItemEditor.tsx`: Composition search, every field through FieldInput, the ragamalika raga list, tala with Nadai, the RTP pallavi author, and the Tani avartanam section with its Nadai and note
-- [ ] T043 [US1] Write the 2024-25 reference import in `tools/import-2024-25/import.ts`, reading the sheet with `read-excel-file` (dev dependency). It matches every Item through `app/src/catalog/match.ts` (FR-039) and reports, out of 193, how many matched a Composition, were "?", were special forms with no Composition, or stayed Unresolved (SC-005). It writes `app/tests/fixtures/reference-2024-25.json` as a test fixture only, never into a rasika's log, lists or Wrapped (FR-040)
+- [ ] T043 [US1] Write the 2024-25 reference import in `tools/import-2024-25/import.ts`, reading the sheet with `read-excel-file` (dev dependency) and run with `tsx`. It matches every Item through `app/src/catalog/match.ts` (FR-039) and reports, out of 193, how many matched a Composition, were "?", were special forms with no Composition, or stayed Unresolved (SC-005). It writes `app/tests/fixtures/reference-2024-25.json` as a test fixture only, never into a rasika's log, lists or Wrapped (FR-040)
 - [ ] T044 [US1] Implement the catalog upgrade in `app/src/catalog/upgrade.ts`, run on the launch where the rasika accepts a new version (FR-038). In one transaction it:
   - rewrites merged keys on every Item `FieldValue` and `compositionKey`;
   - turns retired keys into `unresolved` with `text` kept;
@@ -169,6 +170,7 @@ find every record in the file.
 - [ ] T049 [US2] Add an Export action reachable from every screen that holds data, offering the file through `navigator.share({ files })` with a download fallback (FR-019), in `app/src/screens/components/ExportAction.tsx`
 - [ ] T050 [P] [US2] Show the unsynced count (outbox length, FR-016) and the "ready for offline" state on every screen in `app/src/screens/components/SyncStatus.tsx`
 - [ ] T051 [P] [US2] Build the Settings screen with storage-persisted state, Export, and the app and catalog versions in `app/src/screens/SettingsScreen.tsx`
+- [ ] T052 [US2] The Maintainer decides where the PWA's static files are hosted, needed before the phone-only fallback can ship (ADR 0001 covers sign-in and the database, not the static site; research.md notes free static hosting on Cloudflare Workers Static Assets). Record it in `docs/adr/0006-static-hosting.md`
 
 **Checkpoint**: logging plus export can ship alone if the server is late.
 
@@ -182,20 +184,20 @@ Event without typing date, Sabha or billed Artists.
 **Independent Test**: enter 10 Plan entries. In airplane mode on one of those dates, open a
 planned Concert and log it without typing date, Sabha or any billed Artist.
 
-- [ ] T052 [P] [US3] Implement Plan actions in `app/src/store/plan.ts`:
+- [ ] T053 [P] [US3] Implement Plan actions in `app/src/store/plan.ts`:
   - **create a Plan entry** with date, start time, Sabha, kind, billed Artists in Roles and a Lecdem title (FR-024). It is saved as an Event with `status` `planned` and `source` `plan`, and Appearances with `billed` true;
   - **open for logging**: sets `attended` and `touched`;
   - **mark Missed**: Missed Events no longer show as upcoming (FR-026)
-- [ ] T053 [US3] Build the Plan (home) screen in `app/src/screens/PlanScreen.tsx`: upcoming Planned Events by date and time, today first; add a Plan entry; mark Missed; open a planned Event straight into the Event screen with everything filled in (SC-004)
-- [ ] T054 [US3] Get the logger project's agreement on contracts/schedule-feed.md, which is "proposed": who assigns `id`s, whether Lecdems are included, and where the file is published. Update the contract's status in `specs/001-season-logger/contracts/schedule-feed.md`
-- [ ] T055 [US3] Implement applying a Schedule version in `app/src/store/schedule.ts`:
+- [ ] T054 [US3] Build the Plan (home) screen in `app/src/screens/PlanScreen.tsx`: upcoming Planned Events by date and time, today first; add a Plan entry; mark Missed; open a planned Event straight into the Event screen with everything filled in (SC-004)
+- [ ] T055 [US3] Get the logger project's agreement on contracts/schedule-feed.md, which is "proposed": who assigns `id`s, whether Lecdems are included, and where the file is published. Update the contract's status in `specs/001-season-logger/contracts/schedule-feed.md`
+- [ ] T056 [US3] Implement applying a Schedule version in `app/src/store/schedule.ts`:
   - `touched` false: "copy the new date, time, Sabha and billed Artists; set `cancelled`";
   - `touched` true: "change nothing; set `scheduleChanged` so the hint shows";
   - "Either way, record `scheduleVersionSeen`" (FR-027);
   - match Sabha and billed names to shared or own entries by name or Alias
-- [ ] T056 [P] [US3] **(required: an overwrite would corrupt the season)** Schedule protection test in `app/tests/store/schedule-apply.test.ts`: an edited or Attended Event is never changed and gets the hint; an untouched Planned Event updates; a cancellation marks only untouched Events
-- [ ] T057 [US3] Fetch the Schedule when online with `ETag`, storing entries locally, from a configurable URL (a static file until the server serves `GET /v1/schedule/{season}`), in `app/src/store/schedule-fetch.ts`
-- [ ] T058 [US3] Build the Schedule picker that adds entries to the Plan with `source` `schedule`, and show "schedule changed" and "cancelled" on Plan entries, in `app/src/screens/SchedulePicker.tsx` and `app/src/screens/PlanScreen.tsx`
+- [ ] T057 [P] [US3] **(required: an overwrite would corrupt the season)** Schedule protection test in `app/tests/store/schedule-apply.test.ts`: an edited or Attended Event is never changed and gets the hint; an untouched Planned Event updates; a cancellation marks only untouched Events
+- [ ] T058 [US3] Fetch the Schedule when online with `ETag`, storing entries locally, from a configurable URL (a static file until the server serves `GET /v1/schedule/{season}`), in `app/src/store/schedule-fetch.ts`
+- [ ] T059 [US3] Build the Schedule picker that adds entries to the Plan with `source` `schedule`, and show "schedule changed" and "cancelled" on Plan entries, in `app/src/screens/SchedulePicker.tsx` and `app/src/screens/PlanScreen.tsx`
 
 **Checkpoint**: P3 works from hand-entered Plan entries alone (FR-025); the Schedule adds to it
 when the feed exists.
@@ -210,8 +212,8 @@ Items and notes.
 **Independent Test**: log a Lecdem offline with 2 presenters, one of whom performed at an
 earlier Concert, and confirm both Appearances belong to the same Artist.
 
-- [ ] T059 [US4] Enforce the Lecdem rules in `app/src/store/events.ts` and `app/src/store/people.ts`: a `title` is required, and "A Lecdem has at most 3 Appearances with role `presenter`" (FR-013)
-- [ ] T060 [US4] Add the Lecdem mode to the Event screen in `app/src/screens/EventScreen.tsx`: title, up to 3 presenters through ArtistPicker, optional Colours, optional Items, note
+- [ ] T060 [US4] Enforce the Lecdem rules in `app/src/store/events.ts` and `app/src/store/people.ts`: a `title` is required, and "A Lecdem has at most 3 Appearances with role `presenter`" (FR-013)
+- [ ] T061 [US4] Add the Lecdem mode to the Event screen in `app/src/screens/EventScreen.tsx`: title, up to 3 presenters through ArtistPicker, optional Colours, optional Items, note
 
 **Checkpoint**: Concerts and Lecdems both log offline.
 
@@ -227,28 +229,28 @@ timeline are due by 20 December.
 composer timeline as Cards offline and share one. The reference data never shows in the
 rasika's own Wrapped.
 
-- [ ] T061 [US5] The Maintainer decides the card renderer (Satori + resvg-wasm, Takumi, or Canvas 2D; research.md, "Share-card rendering"). Record the decision in `specs/001-season-logger/research.md`, with an ADR in `docs/adr/` if it carries lock-in. This blocks T066
-- [ ] T062 [P] [US5] Suggest a Wrapped range covering the rasika's Attended Events, adjustable at both ends (FR-029), in `app/src/wrapped/range.ts`
-- [ ] T063 [US5] Implement the aggregations in `app/src/wrapped/aggregate.ts`:
+- [ ] T062 [US5] The Maintainer decides the card renderer (Satori + resvg-wasm, Takumi, or Canvas 2D; research.md, "Share-card rendering"). Record the decision in `specs/001-season-logger/research.md`, with an ADR in `docs/adr/` if it carries lock-in. This blocks T067
+- [ ] T063 [P] [US5] Suggest a Wrapped range covering the rasika's Attended Events, adjustable at both ends (FR-029), in `app/src/wrapped/range.ts`
+- [ ] T064 [US5] Implement the aggregations in `app/src/wrapped/aggregate.ts`:
   - count only Attended Events within the range;
   - Linked ragas count together through the current snapshot's `groupKey`, each name kept;
   - Unknown counts as "?"; Not applicable counts nowhere; Guesses and Overrides count as their values; Unresolved counts under its text (FR-030);
   - each Raga of a ragamalika counts once for that Item;
   - merged Artists and Links are resolved;
   - a filled pallavi author counts as a Composer
-- [ ] T064 [US5] **(required, catalog updates)** Aggregation test in `app/tests/wrapped/aggregate.test.ts`: with Items logged under v1, loading v2 (Pantuvarali linked to Kamavardhini) changes the top-ragas result; plus "?" buckets, Not applicable, Guess and Override counting
-- [ ] T065 [P] [US5] Reference reproduction test in `app/tests/wrapped/reference-cards.test.ts`: from `app/tests/fixtures/reference-2024-25.json`, colour counts match the sheet (white 23, red 15, blue 15), and the composer timeline matches the Timelines sheet (SC-012)
-- [ ] T066 [US5] Implement rendering a Card to a 1080×1920 PNG offline with the chosen renderer, bundling the Tamil and Devanagari Noto fonts in the phase-2 cache within the 3 MB budget, in `app/src/wrapped/render.ts`
-- [ ] T067 [P] [US5] Build the Colours Card, counting both colours of a two-tone outfit, in `app/src/wrapped/cards/ColoursCard.tsx`
-- [ ] T068 [P] [US5] Build the top-Ragas Card, with Linked ragas counted together, own name prominent and sibling small, in `app/src/wrapped/cards/TopRagasCard.tsx`
-- [ ] T069 [P] [US5] Build the Composer timeline Card from `app/src/reference/composer-dates.json`, with an "undated" band for Composers without dates (FR-033), in `app/src/wrapped/cards/ComposerTimelineCard.tsx`
-- [ ] T070 [US5] Share a Card through `navigator.share({ files })`, offline included, with a download fallback (FR-032), in `app/src/wrapped/share.ts`
-- [ ] T071 [US5] Build the Wrapped screen in `app/src/screens/WrappedScreen.tsx`: the range picker and Cards, updating within 1 second of a save (SC-011)
-- [ ] T072 [P] [US5] (stretch, in this order per FR-031) Build the season fabric cover Card in `app/src/wrapped/cards/FabricCoverCard.tsx`
-- [ ] T073 [P] [US5] (stretch) Build the Topics Card, rolling Subjects up through `app/src/reference/topics.json` and showing unmapped Subjects under their own name (FR-034), in `app/src/wrapped/cards/TopicsCard.tsx`
-- [ ] T074 [P] [US5] (stretch) Build the most-seen Artists and Accompanists Card in `app/src/wrapped/cards/ArtistsCard.tsx`
-- [ ] T075 [P] [US5] (stretch) Build the Sabhas Card in `app/src/wrapped/cards/SabhasCard.tsx`
-- [ ] T076 [P] [US5] (stretch) Build the firsts and rarities Card, using a Raga's share of the catalog, in `app/src/wrapped/cards/RaritiesCard.tsx`
+- [ ] T065 [US5] **(required, catalog updates)** Aggregation test in `app/tests/wrapped/aggregate.test.ts`: with Items logged under v1, loading v2 (Pantuvarali linked to Kamavardhini) changes the top-ragas result; plus "?" buckets, Not applicable, Guess and Override counting
+- [ ] T066 [P] [US5] Reference reproduction test in `app/tests/wrapped/reference-cards.test.ts`: from `app/tests/fixtures/reference-2024-25.json`, colour counts match the sheet (white 23, red 15, blue 15), and the composer timeline matches the Timelines sheet (SC-012)
+- [ ] T067 [US5] Implement rendering a Card to a 1080×1920 PNG offline with the chosen renderer, bundling the Tamil and Devanagari Noto fonts in the phase-2 cache within the 3 MB budget, in `app/src/wrapped/render.ts`
+- [ ] T068 [P] [US5] Build the Colours Card, counting both colours of a two-tone outfit, in `app/src/wrapped/cards/ColoursCard.tsx`
+- [ ] T069 [P] [US5] Build the top-Ragas Card, with Linked ragas counted together, own name prominent and sibling small, in `app/src/wrapped/cards/TopRagasCard.tsx`
+- [ ] T070 [P] [US5] Build the Composer timeline Card from `app/src/reference/composer-dates.json`, with an "undated" band for Composers without dates (FR-033), in `app/src/wrapped/cards/ComposerTimelineCard.tsx`
+- [ ] T071 [US5] Share a Card through `navigator.share({ files })`, offline included, with a download fallback (FR-032), in `app/src/wrapped/share.ts`
+- [ ] T072 [US5] Build the Wrapped screen in `app/src/screens/WrappedScreen.tsx`: the range picker and Cards, updating within 1 second of a save (SC-011)
+- [ ] T073 [P] [US5] (stretch, in this order per FR-031) Build the season fabric cover Card in `app/src/wrapped/cards/FabricCoverCard.tsx`
+- [ ] T074 [P] [US5] (stretch) Build the Topics Card, rolling Subjects up through `app/src/reference/topics.json` and showing unmapped Subjects under their own name (FR-034), in `app/src/wrapped/cards/TopicsCard.tsx`
+- [ ] T075 [P] [US5] (stretch) Build the most-seen Artists and Accompanists Card in `app/src/wrapped/cards/ArtistsCard.tsx`
+- [ ] T076 [P] [US5] (stretch) Build the Sabhas Card in `app/src/wrapped/cards/SabhasCard.tsx`
+- [ ] T077 [P] [US5] (stretch) Build the firsts and rarities Card, using a Raga's share of the catalog, in `app/src/wrapped/cards/RaritiesCard.tsx`
 
 **Checkpoint**: the three Cards due by 20 December render and share offline.
 
@@ -261,9 +263,9 @@ rasika's own Wrapped.
 **Independent Test**: create two Artists who are the same person and one Unresolved raga.
 Merge the Artists, match the raga, and confirm all Appearances and the Wrapped update.
 
-- [ ] T077 [P] [US6] Implement matching and confirming in `app/src/store/resolve.ts`. Matching an Unresolved text to a catalog key rewrites `state` and `key` on every Item field whose `text` matches, each as its own outbox change (FR-035). Confirming a Guess clears its flag
-- [ ] T078 [P] [US6] Implement merging in `app/src/store/merge.ts`. Merging two Artists or Sabhas sets `mergedIntoId` on the merged-away record and adds its name to the survivor's `aliases` (FR-036); Appearances are not rewritten
-- [ ] T079 [US6] Build the Tidy screen in `app/src/screens/TidyScreen.tsx`: Unresolved values and Guesses grouped by text with counts, matching through catalog search, and merging duplicate Artists and Sabhas
+- [ ] T078 [P] [US6] Implement matching and confirming in `app/src/store/resolve.ts`. Matching an Unresolved text to a catalog key rewrites `state` and `key` on every Item field whose `text` matches, each as its own outbox change (FR-035). Confirming a Guess clears its flag
+- [ ] T079 [P] [US6] Implement merging in `app/src/store/merge.ts`. Merging two Artists or Sabhas sets `mergedIntoId` on the merged-away record and adds its name to the survivor's `aliases` (FR-036); Appearances are not rewritten
+- [ ] T080 [US6] Build the Tidy screen in `app/src/screens/TidyScreen.tsx`: Unresolved values and Guesses grouped by text with counts, matching through catalog search, and merging duplicate Artists and Sabhas
 
 **Checkpoint**: every phone-only story is done. The server work starts next.
 
@@ -281,71 +283,72 @@ confirm the full season is back before logging resumes.
 
 ### Setup for the server
 
-- [ ] T080 [US2] Install the Supabase CLI, run `supabase init`, and configure Google sign-in for the local stack, with secrets in `supabase/.env` only (never committed), in `supabase/config.toml`
-- [ ] T081 [P] [US2] Install the router's contingent skill `npx skills add supabase/agent-skills@supabase -a claude-code -y --copy` after reading its SKILL.md, and record it in §2 of `docs/skills-router.md`
-- [ ] T082 [US2] The Maintainer decides whether push and pull run as Postgres functions or as Edge Functions (ADR 0001, "Still open"). Record it in `docs/adr/0001-supabase-for-sign-in-and-server-store.md`
+- [ ] T081 [US2] Install the Supabase CLI, run `supabase init`, and configure Google sign-in for the local stack, with secrets in `supabase/.env` only (never committed), in `supabase/config.toml`
+- [ ] T082 [P] [US2] Install the router's contingent skill `npx skills add supabase/agent-skills@supabase -a claude-code -y --copy` after reading its SKILL.md, and record it in §2 of `docs/skills-router.md`
+- [ ] T083 [US2] The Maintainer decides whether push and pull run as Postgres functions or as Edge Functions (ADR 0001, "Still open"). The decision includes how errors map to the contract's responses (401, `409 not_writer`, `rejected` codes), since Postgres functions return them through Supabase's API, not as hand-written HTTP. Record it in `docs/adr/0001-supabase-for-sign-in-and-server-store.md`
 
 ### Required tests for the server
 
-- [ ] T083 [P] [US2] **(required)** Sync tests against the local stack in `supabase/tests/sync.test.ts`:
+- [ ] T084 [P] [US2] **(required)** Sync tests against the local stack in `supabase/tests/sync.test.ts`:
   - the same push sent twice stores each op once (FR-015);
   - an offline delete and a reorder come back identical on pull;
   - a pull from an empty cursor returns the full season;
   - a non-writer device gets `409 not_writer`
-- [ ] T084 [P] [US2] **(required, privacy)** Row-level security tests in `supabase/tests/privacy.test.ts`: rasika A cannot read or write rasika B's rows through any table or function, and a pushed row for another rasika is rejected `foreign_rasika` (SC-015)
-- [ ] T085 [P] [US2] **(required)** Sync client tests in `app/tests/store/sync-client.test.ts`: a 401 and a network error both leave the outbox and local data intact; a 409 stops pushing and keeps the outbox; rejected ops are kept locally and listed as needing attention
+- [ ] T085 [P] [US2] **(required, privacy)** Row-level security tests in `supabase/tests/privacy.test.ts`: rasika A cannot read or write rasika B's rows through any table or function, and a pushed row for another rasika is rejected `foreign_rasika` (SC-015)
+- [ ] T086 [P] [US2] **(required)** Sync client tests in `app/tests/store/sync-client.test.ts`: a 401 and a network error both leave the outbox and local data intact; a 409 stops pushing and keeps the outbox; rejected ops are kept locally and listed as needing attention
 
 ### Implementation for the server
 
 Use the `supabase-postgres-best-practices` skill for every migration.
 
-- [ ] T086 [US2] Write the accounts migration in `supabase/migrations/0001_accounts.sql`:
+- [ ] T087 [US2] Write the accounts migration in `supabase/migrations/0001_accounts.sql`:
   - `rasika`: `id`, `auth_user_id`, `email`, `name`, `share_additions` and `season_reports` ("Null until answered; nothing pre-selected"), `writer_device_id`, `created_at`, `deidentified_at`;
   - append-only `consent_event`;
   - `device`;
   - `processed_op` with a primary key on (`rasika_id`, `op_id`);
   - a trigger creating the Rasika row on the first Supabase Auth sign-in;
   - row-level security on every table
-- [ ] T087 [US2] Write the season migration in `supabase/migrations/0002_season.sql`: tables for events, appearances, items, artists and sabhas with the data-model.md columns plus `rasika_id`, `seq` (bigint from one shared sequence) and `received_at`; indexes on (`rasika_id`, `seq`); row-level security limited to `(select auth.uid())`'s own rows
-- [ ] T088 [US2] Write the shared migration in `supabase/migrations/0003_shared.sql`: `shared_artist` and `shared_sabha` with `list_version`, `link`, and a `maintainer` allowlist table; plus `supabase/seed.sql` loading `app/src/reference/shared-lists.seed.json`
-- [ ] T089 [US2] Implement push in the place chosen in T082, in `supabase/migrations/0004_sync.sql` or `supabase/functions/sync/`. Per contracts/sync-api.md:
+- [ ] T088 [US2] Write the season migration in `supabase/migrations/0002_season.sql`: tables for events, appearances, items, artists and sabhas with the data-model.md columns plus `rasika_id`, `seq` (bigint from one shared sequence) and `received_at`; indexes on (`rasika_id`, `seq`); row-level security limited to `(select auth.uid())`'s own rows
+- [ ] T089 [US2] Write the shared migration in `supabase/migrations/0003_shared.sql`: `shared_artist` and `shared_sabha` with `list_version`, `link`, and a `maintainer` allowlist table; plus `supabase/seed.sql` loading `app/src/reference/shared-lists.seed.json`
+- [ ] T090 [US2] Implement push in the place chosen in T083, in `supabase/migrations/0004_sync.sql` or `supabase/functions/sync/`. Per contracts/sync-api.md:
   - at most 200 ops, applied in order in one transaction under a per-rasika advisory lock;
   - writer check returning `409 not_writer`;
   - a repeated `opId` is acknowledged without reapplying;
   - an upsert replaces the row and stamps a new `seq`; a delete sets `deletedAt` and stamps a new `seq`;
   - invalid ops are recorded as processed and returned in `rejected` with a specific code
-- [ ] T090 [US2] Implement pull alongside push. The two-part cursor holds the rasika's own rows and Links by `seq`, and the shared lists by `list_version`. Pages are capped at `limit=500` with `more`; an empty cursor returns everything
-- [ ] T091 [US2] Implement the account operations: `GET /v1/me` (including `deletionContact`), `PUT /v1/me/consent` (each change appends a `consent_event`), and `POST /v1/devices/claim` (makes this device the writer, FR-022), in the same place as push
-- [ ] T092 [US2] Implement de-identification for a deletion request in `supabase/migrations/0005_deletion.sql`, following data-model.md "Deletion". In one transaction:
+- [ ] T091 [US2] Implement pull alongside push. The two-part cursor holds the rasika's own rows and Links by `seq`, and the shared lists by `list_version`. Pages are capped at `limit=500` with `more`; an empty cursor returns everything
+- [ ] T092 [US2] Implement the account operations: `GET /v1/me` (including `deletionContact`), `PUT /v1/me/consent` (each change appends a `consent_event`), and `POST /v1/devices/claim` (makes this device the writer, FR-022), in the same place as push
+- [ ] T093 [US2] Implement de-identification for a deletion request in `supabase/migrations/0005_deletion.sql`, following data-model.md "Deletion". In one transaction:
   - delete the Supabase Auth user;
   - null `authUserId`, `email` and `name`, set `deidentifiedAt`, delete devices;
   - null every `note`;
-  - if `seasonReports` is not true, delete the season (FR-047)
-- [ ] T093 [US2] Implement sign-in on the phone in `app/src/store/auth.ts`:
+  - if `seasonReports` is not true, delete the season (FR-047);
+  - keep the `consent_event` rows, which point only at the opaque rasika id, for at least one year (DPDP Rules; data-model.md, "Consent event")
+- [ ] T094 [US2] Implement sign-in on the phone in `app/src/store/auth.ts`:
   - supabase-js with Google `signInWithOAuth`;
   - the app keeps its own cached identity in `meta`;
   - a token is requested only when syncing; logging never checks the session (ADR 0001);
   - a 401 or an ended session shows a non-blocking "sign in again" prompt;
   - no inactivity timeout and no "single session per user"
-- [ ] T094 [US2] Implement the sync loop in `app/src/store/sync.ts`:
+- [ ] T095 [US2] Implement the sync loop in `app/src/store/sync.ts`:
   - single-flight, triggered on start, `online`, `visibilitychange` to visible, and after each save (FR-014);
   - push FIFO batches of up to 200 with exponential backoff and jitter on 5xx or network errors;
   - handle 401, 409 and `rejected` as in the contract;
   - pull until `more` is false, applying each page in one transaction, then storing the cursor
-- [ ] T095 [US2] Implement restore in `app/src/store/restore.ts`. On an empty store after sign-in: claim the device, push any local outbox, then pull from an empty cursor before the logging screen shows the season (FR-017). With no signal, logging works on the empty phone and restore runs when signal returns (FR-018)
-- [ ] T096 [US2] **(required)** End-to-end restore test against the local stack in `app/e2e/restore.spec.ts`, using a password test user enabled only in the local config:
+- [ ] T096 [US2] Implement restore in `app/src/store/restore.ts`. On an empty store after sign-in: claim the device, push any local outbox, then pull from an empty cursor before the logging screen shows the season (FR-017). With no signal, logging works on the empty phone and restore runs when signal returns (FR-018)
+- [ ] T097 [US2] **(required)** End-to-end restore test against the local stack in `app/e2e/restore.spec.ts`, using a password test user enabled only in the local config:
   - sync a season;
   - clear storage;
   - offline, log one Item;
   - go online and sign in;
   - assert the new Item is kept and the full season returns, Unresolved values included (SC-003)
-- [ ] T097 [US2] Build sign-up and consent in `app/src/screens/SignInScreen.tsx` and `app/src/screens/ConsentScreen.tsx`. Ask two separate explicit yes/no questions with nothing pre-selected: sharing hand-created entries with the Maintainer (FR-042), and inclusion in season reports with a one-line reason (FR-049)
-- [ ] T098 [US2] Extend Settings in `app/src/screens/SettingsScreen.tsx`:
+- [ ] T098 [US2] Build sign-up and consent in `app/src/screens/SignInScreen.tsx` and `app/src/screens/ConsentScreen.tsx`. Ask two separate explicit yes/no questions with nothing pre-selected: sharing hand-created entries with the Maintainer (FR-042), and inclusion in season reports with a one-line reason (FR-049). Sign-up is offered, never required: a rasika who hasn't signed up can log fully, and their changes wait in the outbox until they sign in (constitution I, FR-018)
+- [ ] T099 [US2] Extend Settings in `app/src/screens/SettingsScreen.tsx`:
   - both consents, changeable at any time, with turning one off taking effect from then on;
   - "Sign out other devices" (Supabase `others` scope, FR-021);
   - the deletion contact (FR-046);
   - sign-in state
-- [ ] T099 [US2] Show the "not the writer" state when a push returns 409: stop pushing, keep the unsynced changes, and offer Export (FR-022, Edge Cases "Second device"), in `app/src/screens/components/SyncStatus.tsx`
+- [ ] T100 [US2] Show the "not the writer" state when a push returns 409: stop pushing, keep the unsynced changes, and offer Export (FR-022, Edge Cases "Second device"), in `app/src/screens/components/SyncStatus.tsx`
 
 **Checkpoint**: the season survives a wiped phone. Sign-up, consent and privacy are in place.
 
@@ -360,14 +363,14 @@ and promotes them. Each rasika's own entry then links to the shared one.
 Maintainer promotes it. Both rasikas' Appearances now point to the shared Artist with their
 text kept, and a third rasika is offered him from the start.
 
-- [ ] T100 [US7] Write the promotion migration in `supabase/migrations/0006_promotion.sql`:
+- [ ] T101 [US7] Write the promotion migration in `supabase/migrations/0006_promotion.sql`:
   - **candidates view**: own Artists, Sabhas and hand-typed Events from rasikas whose `share_additions` is true, grouped by folded name, "only as the entry itself with a count of rasikas, never with the rasika's identity or other log details" (FR-042);
   - **create shared entry**: adds a shared Artist or Sabha and bumps `list_version` under the shared-lists lock;
-  - **promote**: writes a Link for each matching own record of consenting rasikas (FR-044);
+  - **promote**: writes a Link for each matching own record of consenting rasikas (FR-044). For an Event, `sharedId` is the id of the Schedule entry the Maintainer added in the logger project (FR-043); this project never writes to the Schedule;
   - all three are callable only by the `maintainer` allowlist
-- [ ] T101 [P] [US7] **(required, privacy)** Promotion tests in `supabase/tests/promotion.test.ts`: two consenting rasikas' entries appear with count 2; a non-consenting rasika's never appear; after promotion both pulls include Links; a new rasika's pull includes the shared Artist (SC-016)
-- [ ] T102 [US7] Check, and fix where needed, that pulled Links make Appearances follow the shared Artist without rewriting them, and that an Event Link sets `scheduleEntryId` without overwriting a `touched` Event (FR-044), in `app/src/store/queries.ts` and `app/src/store/sync.ts`
-- [ ] T103 [US7] Build the Maintainer review screen at `/admin`, visible only to the allowlisted user, in `app/src/screens/admin/ReviewScreen.tsx`: candidates with rasika counts, create a shared entry, promote
+- [ ] T102 [P] [US7] **(required, privacy)** Promotion tests in `supabase/tests/promotion.test.ts`: two consenting rasikas' entries appear with count 2; a non-consenting rasika's never appear; after promotion both pulls include Links; a new rasika's pull includes the shared Artist (SC-016)
+- [ ] T103 [US7] Check, and fix where needed, that pulled Links make Appearances follow the shared Artist without rewriting them, and that an Event Link sets `scheduleEntryId` without overwriting a `touched` Event (FR-044), in `app/src/store/queries.ts` and `app/src/store/sync.ts`
+- [ ] T104 [US7] Build the Maintainer review screen at `/admin`, visible only to the allowlisted user, in `app/src/screens/admin/ReviewScreen.tsx`: candidates with rasika counts, create a shared entry, promote
 
 **Checkpoint**: every user story works. Sign-up with promotion is ready for 1 December.
 
@@ -375,8 +378,7 @@ text kept, and a third rasika is offered him from the start.
 
 ## Phase 11: Polish, launch and cross-cutting concerns
 
-- [ ] T104 [P] (stretch) Spreadsheet export shaped like last season's sheet (Main, Lecdems, Colours, Compositions) with write-excel-file, lazy-loaded from the phase-2 cache, in `app/src/store/export-xlsx.ts`
-- [ ] T105 The Maintainer decides where the PWA's static files are hosted (ADR 0001 covers sign-in and the database, not the static site; research.md notes free static hosting on Cloudflare Workers Static Assets). Record it in `docs/adr/0006-static-hosting.md`
+- [ ] T105 [P] (stretch) Spreadsheet export shaped like last season's sheet (Main, Lecdems, Colours, Compositions) with write-excel-file, lazy-loaded from the phase-2 cache, in `app/src/store/export-xlsx.ts`
 - [ ] T106 [P] Run `/review` on the full change set and fix its findings
 - [ ] T107 [P] Run `/cso` on the row-level security, the functions and the Maintainer allowlist, and fix its findings
 - [ ] T108 [P] Run the `accessibility` and `web-design-guidelines` skills on `app/src/screens/` (target size, focus not obscured, `inputmode`, no mobile `autoFocus`) and fix the findings
@@ -389,6 +391,7 @@ text kept, and a third rasika is offered him from the start.
 
   Record the results in `specs/001-season-logger/research.md`
 - [ ] T112 Run every scenario in `specs/001-season-logger/quickstart.md` and record the results there
+- [ ] T113 Create the read-only view for season reports in `supabase/migrations/0007_report_view.sql`. It includes only seasons whose `season_reports` is true, has no rasika id, name, email or notes, and is the only thing the end-of-season DuckDB report reads (FR-048)
 
 ---
 
@@ -402,24 +405,25 @@ text kept, and a third rasika is offered him from the start.
   - T022 and later catalog tasks can use the T021 fixtures until the real snapshot exists.
   - T028 needs the real snapshot to key composer dates.
 - **US1 (Phase 3)**: after Foundational.
-- **US2 part 1 (Phase 4)**: after Foundational; it exports whatever exists.
-- **US3 (Phase 5)**: after US1, since it opens planned Events into the Event screen. T055 to
-  T058 wait on T054, the logger project's agreement.
+- **US2 part 1 (Phase 4)**: after Foundational; it exports whatever exists. T052 (static
+  hosting) must be decided before the phone-only fallback ships.
+- **US3 (Phase 5)**: after US1, since it opens planned Events into the Event screen. T056 to
+  T059 wait on T055, the logger project's agreement.
 - **US4 (Phase 6)**: after US1, since it extends the Event screen.
-- **US5 (Phase 7)**: after US1. T066 waits on T061, the card renderer decision.
+- **US5 (Phase 7)**: after US1. T067 waits on T062, the card renderer decision.
 - **US6 (Phase 8)**: after US1.
-- **US2 part 2 (Phase 9)**: after US1 and US2 part 1, built last by choice (ADR 0001). T089 to
-  T091 wait on T082.
+- **US2 part 2 (Phase 9)**: after US1 and US2 part 1, built last by choice (ADR 0001). T090 to
+  T092 wait on T083.
 - **US7 (Phase 10)**: after Phase 9, because it needs the server.
 - **Polish (Phase 11)**: T109 before rasikas sign up; T110 before public launch.
 
 ### Maintainer decisions inside the task list
 
 - T029: the design system.
-- T054: the schedule feed, with the logger project.
-- T061: the card renderer.
-- T082: where push and pull run.
-- T105: static hosting.
+- T052: static hosting.
+- T055: the schedule feed, with the logger project.
+- T062: the card renderer.
+- T083: where push and pull run.
 
 None of these is decided by the implementer (constitution VI).
 
@@ -454,17 +458,17 @@ Task: "T040 Colour picker in app/src/screens/components/ColourPicker.tsx"
 ## Parallel Example: User Story 5
 
 ```text
-Task: "T067 Colours Card in app/src/wrapped/cards/ColoursCard.tsx"
-Task: "T068 Top-Ragas Card in app/src/wrapped/cards/TopRagasCard.tsx"
-Task: "T069 Composer timeline Card in app/src/wrapped/cards/ComposerTimelineCard.tsx"
+Task: "T068 Colours Card in app/src/wrapped/cards/ColoursCard.tsx"
+Task: "T069 Top-Ragas Card in app/src/wrapped/cards/TopRagasCard.tsx"
+Task: "T070 Composer timeline Card in app/src/wrapped/cards/ComposerTimelineCard.tsx"
 ```
 
 ## Parallel Example: Server (Phase 9)
 
 ```text
-Task: "T083 Sync tests in supabase/tests/sync.test.ts"
-Task: "T084 Row-level security tests in supabase/tests/privacy.test.ts"
-Task: "T085 Sync client tests in app/tests/store/sync-client.test.ts"
+Task: "T084 Sync tests in supabase/tests/sync.test.ts"
+Task: "T085 Row-level security tests in supabase/tests/privacy.test.ts"
+Task: "T086 Sync client tests in app/tests/store/sync-client.test.ts"
 ```
 
 ---
@@ -493,7 +497,7 @@ Open sign-up on 1 December needs Phases 9 and 10 by then (spec Clarifications). 
 deadline. If November runs short, the cut line in the design doc applies:
 
 - Cards and Tidy (Phases 7 and 8) move after the server;
-- the Schedule feed (T054 to T058), xlsx export (T104) and the stretch Cards drop first.
+- the Schedule feed (T055 to T059), xlsx export (T105) and the stretch Cards drop first.
 
 The required tests are never cut (constitution VI).
 
