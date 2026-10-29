@@ -44,6 +44,7 @@ required automated tests (constitution IV).
 | 13 | Promotion | Two consenting rasikas create "Anirudh Athreya"; a third does not consent. Maintainer promotes | Both consenting rasikas' Appearances link to the shared Artist; the third's entry never appears in review; a new rasika is offered him | SC-016, FR-042 to FR-044 |
 | 14 | Second device | Sign in on device B, then sync from device A | A is told it is not the writer and keeps its unsynced changes for export | FR-022 |
 | 15 | Long offline | Set the session clock 30 days ahead with no network, then reconnect | Still signed in; sync resumes | FR-020 |
+| 16 | First launch | Install online on a fresh phone. Then switch to airplane mode and log | Sign-in and both consent questions come before logging; after that, no sign-in prompt blocks logging offline | FR-050 |
 
 ## On the device, before each release
 

@@ -342,7 +342,7 @@ Use the `supabase-postgres-best-practices` skill for every migration.
   - offline, log one Item;
   - go online and sign in;
   - assert the new Item is kept and the full season returns, Unresolved values included (SC-003)
-- [ ] T098 [US2] Build sign-up and consent in `app/src/screens/SignInScreen.tsx` and `app/src/screens/ConsentScreen.tsx`. Ask two separate explicit yes/no questions with nothing pre-selected: sharing hand-created entries with the Maintainer (FR-042), and inclusion in season reports with a one-line reason (FR-049). Sign-up is offered, never required: a rasika who hasn't signed up can log fully, and their changes wait in the outbox until they sign in (constitution I, FR-018)
+- [ ] T098 [US2] Build sign-up and consent in `app/src/screens/SignInScreen.tsx` and `app/src/screens/ConsentScreen.tsx`. Ask two separate explicit yes/no questions with nothing pre-selected: sharing hand-created entries with the Maintainer (FR-042), and inclusion in season reports with a one-line reason (FR-049). Sign-up is required once, at first launch, before logging (FR-050). After that, logging never waits on sign-in: an ended session shows only a non-blocking prompt, and an emptied phone with no signal still logs and asks for sign-in when signal returns (FR-018). If the phone-only fallback ships before the server, first launch skips sign-in and the outbox waits until the server is live
 - [ ] T099 [US2] Extend Settings in `app/src/screens/SettingsScreen.tsx`:
   - both consents, changeable at any time, with turning one off taking effect from then on;
   - "Sign out other devices" (Supabase `others` scope, FR-021);

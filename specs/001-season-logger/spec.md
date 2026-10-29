@@ -33,6 +33,12 @@ Interpreted as: specify version 1 of Carnatic Wrapped as approved in
   in season reports? → A: Yes. Two separate yes/no questions at sign-up, one for sharing added
   names and one for season reports, each changeable in settings.
 
+### Session 2026-10-29
+
+- Q: Should a rasika be able to log before signing up? → A: No. Sign-in is required once, at
+  first launch, when the rasika is online anyway to install the app, so that nothing logged
+  exists only on the phone. After that, logging never waits on sign-in or the network.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Log a Concert in the hall with no signal (Priority: P1)
@@ -417,6 +423,11 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
 - **FR-049**: At sign-up the app MUST ask, as a separate explicit yes/no with nothing
   pre-selected and a one-line reason, whether the rasika's season may be included, unlinked from
   them, in season reports. The choice MUST be changeable in settings at any time.
+- **FR-050**: On first launch, the app MUST ask the rasika to sign in with Google and answer
+  both consent questions (FR-042, FR-049) before logging. After that first sign-in, logging MUST
+  never wait on sign-in: an ended session or a network error shows only a non-blocking "sign in
+  again" prompt (FR-020). An emptied phone with no signal still logs, and asks for sign-in when
+  signal returns (FR-018).
 
 ### Key Entities *(include if feature involves data)*
 
