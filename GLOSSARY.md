@@ -8,6 +8,14 @@ The language of logging the Carnatic concerts and lecdems one rasika attends in 
 The person who attends Events and keeps the log.
 _Avoid_: user, listener, audience member
 
+**Maintainer**:
+The person who runs the app and curates the Shared lists. Not a kind of Rasika.
+_Avoid_: admin, moderator, operator
+
+**Shared lists**:
+The Artists and Sabhas every Rasika starts from, curated by the Maintainer. A Rasika's own hand-created entries link to them once promoted.
+_Avoid_: seed list, master list, directory
+
 ### Events
 
 **Event**:

@@ -11,6 +11,28 @@ Interpreted as: specify version 1 of Carnatic Wrapped as approved in
 `docs/designs/carnatic-wrapped.md`, using the terms in `GLOSSARY.md`. What to build *with* is a
 `/speckit-plan` question and is deliberately left out of this spec.
 
+## Clarifications
+
+### Session 2026-10-28
+
+- Q: This season, will anyone other than you log in the app? → A: Open to any rasika this season
+  (option C). Each rasika has their own account and season; the Maintainer (the person running
+  the app) sees, with consent, the names and Events rasikas add, and promotes them into the
+  shared lists.
+- Q: Should sharing hand-typed names with the Maintainer be on by default or off by default? →
+  A: Asked once at sign-up as an explicit yes/no with no default, changeable in settings.
+  Sign-up is with a Google account, and the rasika's name is stored.
+- Q: Do other rasikas need to be able to sign up by 1 December? → A: Yes, open to everyone on
+  1 December alongside logging, including consent and the Maintainer's review and promotion.
+- Q: Can a rasika delete their account, and what happens to their data? → A: No self-serve
+  deletion this season. The app shows a contact for deletion requests. On request, the
+  Maintainer erases the rasika's name and Google account and keeps the season, no longer linked
+  to anyone, for aggregate reports such as a State of Margazhi report (if the rasika said yes
+  to season reports; see the next answer).
+- Q: Should sign-up ask separately for permission to use a rasika's season, unlinked from them,
+  in season reports? → A: Yes. Two separate yes/no questions at sign-up, one for sharing added
+  names and one for season reports, each changeable in settings.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Log a Concert in the hall with no signal (Priority: P1)
@@ -192,6 +214,36 @@ Merge the Artists, match the raga, and confirm all Appearances and the Wrapped u
 
 ---
 
+### User Story 7 - Promote what rasikas had to type (Priority: P7)
+
+The Maintainer sees which Artists, Sabhas and Events rasikas had to create by hand because the
+shared lists or the Schedule lacked them. For example, several rasikas each typed "Anirudh
+Athreya". The Maintainer adds the entry to the shared list, or adds the Event to the Schedule.
+Each rasika's own entry then links to the shared one, and their logs keep everything they
+typed or changed.
+
+**Why this priority**: with any rasika able to sign up, gaps in the starting lists turn into
+typing for everyone. Promotion closes a gap once for all. It never blocks logging, which works
+with hand-typed entries throughout.
+
+**Independent Test**: as two consenting rasikas, each create an Artist "Anirudh Athreya" at a
+Concert. As the Maintainer, promote it. Confirm both rasikas' Appearances now point to the
+shared Artist, their text as typed is kept, and a third rasika is offered him from the start.
+
+**Acceptance Scenarios**:
+
+1. **Given** rasikas who agreed to share their additions, **When** the Maintainer opens the
+   review list, **Then** it shows each hand-created Artist, Sabha and Event with how many
+   rasikas created it, and no other personal detail.
+2. **Given** a promoted Artist, **When** a rasika's app next syncs, **Then** their own matching
+   Artist links to the shared one, and all its Appearances follow.
+3. **Given** a rasika's hand-typed Event that the Maintainer adds to the Schedule, **When** it
+   syncs, **Then** the Event links to the Schedule entry and is not overwritten.
+4. **Given** a rasika who did not agree to share, **When** the Maintainer reviews, **Then**
+   nothing from that rasika appears.
+
+---
+
 ### Edge Cases
 
 - **Catalog update during the season.** A new catalog version arrives that merges or retires a
@@ -202,7 +254,10 @@ Merge the Artists, match the raga, and confirm all Appearances and the Wrapped u
 - **Partly downloaded app.** The first-install download (app, catalog, search) is enough to
   log. Cards and spreadsheet export need the second download. "Ready for offline" appears only
   when both are present for the current catalog version.
-- **Second device.** One device writes this season. Signing in on a new device makes it the
+- **Two rasikas, same new name.** Each rasika's hand-created entry stays theirs until the
+  Maintainer promotes a shared one. Promotion links both. It never merges two rasikas' data
+  into one log.
+- **Second device.** Each rasika has one writing device at a time. Signing in on a new device makes it the
   writer. A former writer that tries to sync is told it is no longer the writer, and keeps its
   unsynced changes for export.
 - **Undated reference Events.** Every Concert in last season's sheet has no date. In the
@@ -238,8 +293,8 @@ Merge the Artists, match the raga, and confirm all Appearances and the Wrapped u
   accompaniment, presenter) and a Colour (one primary from a fixed palette plus an optional
   second).
 - **FR-005**: Artists and Sabhas MUST be picked from earlier entries as the rasika types. A new
-  name creates a new Artist or Sabha. The lists start seeded with the 11 Sabhas and the Artists
-  in last season's sheet.
+  name creates a new Artist or Sabha that belongs to that rasika. Every rasika starts from the
+  shared lists, first seeded with the 11 Sabhas and the Artists in last season's sheet.
 - **FR-006**: The rasika MUST be able to add Items to a Concert or Lecdem in running order, and
   reorder or delete them.
 - **FR-007**: Picking a Composition MUST fill in its raga, tala, composer, language and subject
@@ -270,8 +325,10 @@ Merge the Artists, match the raga, and confirm all Appearances and the Wrapped u
   Export in the shape of last season's spreadsheet SHOULD be available (stretch).
 - **FR-020**: The rasika MUST stay signed in through at least 30 days without network, and a
   network error MUST never sign them out.
-- **FR-021**: The server MUST let only the signed-in rasika read or change their season. A lost phone's sign-in MUST be revocable from another device.
-- **FR-022**: The app MUST allow only one writing device at a time. The device most recently signed in is the
+- **FR-021**: Any rasika MUST be able to create an account by signing in with Google. The
+  account stores the rasika's name. The server MUST let only the signed-in rasika read or change
+  their own season. A lost phone's sign-in MUST be revocable from another device.
+- **FR-022**: The app MUST allow each rasika only one writing device at a time. The device most recently signed in is the
   writer, and others are told so when they try to sync.
 - **FR-023**: On first run the app MUST ask the phone to keep its storage persistently.
 
@@ -327,13 +384,49 @@ Merge the Artists, match the raga, and confirm all Appearances and the Wrapped u
   counts as a Composer in the composer Cards and timeline; when blank, the composer is Not
   applicable.
 
+**Promotion (P7)**
+
+- **FR-042**: At sign-up the app MUST ask each rasika, as an explicit yes/no with nothing
+  pre-selected, whether to share their hand-created entries with the Maintainer. The choice MUST
+  be changeable in settings at any time, and turning it off stops sharing from then on. A
+  rasika's hand-created Artists, Sabhas and Events MUST be visible to the Maintainer only while
+  that rasika has agreed to share them, and only as the entry itself with a
+  count of rasikas, never with the rasika's identity or other log details.
+- **FR-043**: The Maintainer MUST be able to promote a shared entry: an Artist or Sabha into the
+  shared lists, or an Event into the Schedule.
+- **FR-044**: When an entry is promoted, each rasika's matching entry MUST link to the shared
+  one on next sync. Appearances follow, text as typed and Overrides are kept, and an Event the
+  rasika edited or attended is never overwritten.
+- **FR-045**: Shared lists MUST be versioned, and a rasika's app picks up a new version on the
+  next sync without any action.
+
+**Accounts and deletion**
+
+- **FR-046**: The app MUST show, in settings, a contact the rasika can message to request
+  deletion. There is no self-serve account deletion this season.
+- **FR-047**: On a deletion request, the Maintainer MUST be able to erase the rasika's name and
+  Google account so their season can no longer be linked to them. The season is then kept,
+  unlinked, only for aggregate reports, and only if they said yes to season reports; otherwise
+  it is erased too.
+- **FR-048**: Aggregate reports (e.g. a State of Margazhi report) MUST NOT identify any rasika,
+  and MUST include only seasons whose rasika said yes to season reports (FR-049). A deleted
+  rasika's season is kept under the same rule (FR-047).
+- **FR-049**: At sign-up the app MUST ask, as a separate explicit yes/no with nothing
+  pre-selected and a one-line reason, whether the rasika's season may be included, unlinked from
+  them, in season reports. The choice MUST be changeable in settings at any time.
+
 ### Key Entities *(include if feature involves data)*
 
 - **Event**: a Concert or Lecdem the rasika planned or attended. Has date, start time, Sabha,
   kind, status (Planned, Attended, Missed), source (Schedule, Plan, created on the spot), note.
   A Lecdem also has a title.
-- **Sabha**: the organisation putting on an Event. Has a name and aliases.
-- **Artist**: one person across the season. Has a name and aliases.
+- **Sabha**: the organisation putting on an Event. Shared or a rasika's own, like an Artist. Has
+  a name and aliases.
+- **Rasika**: one account, signed in with Google, with their own season. Has a name and two
+  yes/no answers: sharing hand-created entries, and inclusion in season reports.
+- **Maintainer**: the person who runs the app and curates the shared lists. Not a rasika role.
+- **Artist**: one person across the season. Either shared (from the shared lists) or a rasika's
+  own, hand-created, until promoted. Has a name and aliases.
 - **Appearance**: one Artist in one Role at one Event, with a Colour.
 - **Item**: one piece at an Event, with a position in the running order. Refers to a Composition
   (optional), and has Ragas in order, tala with Nadai, composer, language, subject and note. Each
@@ -346,6 +439,8 @@ Merge the Artists, match the raga, and confirm all Appearances and the Wrapped u
   from last season's Timelines sheet (56 Composers).
 - **Topic roll-up** (project-kept): Subject to Topic, seeded from last season's Topic column.
 - **Schedule entry** (from the logger project): a published upcoming Event.
+- **Shared lists**: the versioned Artists and Sabhas every rasika starts from, curated by the
+  Maintainer. They may later come from the logger project's artist catalog.
 - **Wrapped range and Card**: the dates a Wrapped covers, and one shareable image from it. Both
   are derived and never stored as the record.
 
@@ -366,6 +461,10 @@ Merge the Artists, match the raga, and confirm all Appearances and the Wrapped u
 - **SC-005**: Of last season's 193 Items, at least 90% resolve to a Composition, a deliberate
   "?" or a special form without manual cleanup. The three rates are reported separately; the
   target is confirmed once first measured.
+- **SC-015**: Any rasika can sign up with Google, answer both consent questions and log a
+  Concert, and no rasika can see another's season.
+- **SC-016**: An Artist created by hand by two consenting rasikas can be promoted by the
+  Maintainer and is offered to a new rasika from the start.
 
 **Speed and size (mid-range phone, app installed)**
 
@@ -391,16 +490,16 @@ Merge the Artists, match the raga, and confirm all Appearances and the Wrapped u
 
 ## Assumptions
 
-- One rasika and one writing device this season. Friends are a later chapter, and the data must
-  not prevent them.
+- Any rasika can sign up this season, and each has one writing device at a time. Every rasika's
+  season is private to them.
 - The phone runs a current iOS Safari or Android Chrome, and the app is used installed on the
   home screen. The primary test device will be named by the rasika.
 - The logger project supplies the catalog as versions and, possibly, a Schedule. If no Schedule
   arrives this season, P3 works from hand-entered Plan entries alone.
-- Artists are entered by the rasika this season. Reconciling them with a future artist catalog
-  from the logger project is out of scope.
-- The sign-in method is chosen in `/speckit-plan`. It must need signal only once per device and
-  allow revocation (FR-020 to FR-022).
+- Until the logger project has an artist catalog, the Maintainer curates the shared Artist and
+  Sabha lists. Moving them into the logger's catalog later is out of scope for this spec.
+- Sign-in is with Google. It needs signal once per device, must not expire offline, and must
+  allow revocation (FR-020 to FR-022). How sessions are kept is chosen in `/speckit-plan`.
 - If the server is not ready by 1 December, logging ships phone-only with export, and changes
   upload once the server exists (cut line in the design doc).
 - Durations, segments (alapana, niraval, swaram) and hall names are not recorded in version 1.
