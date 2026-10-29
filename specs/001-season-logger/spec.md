@@ -78,7 +78,7 @@ detail intact.
    **Then** the Artist is offered, and choosing them creates a new Appearance for the same
    person.
 7. **Given** an RTP, **When** the rasika logs it, **Then** it is an Item with no Composition,
-   one or more Ragas in order, a tala and Nadai, the language and topic of its pallavi, and an
+   one or more Ragas in order, a tala and Nadai, the language and subject of its pallavi, and an
    optional pallavi author.
 
 ---

@@ -11,8 +11,8 @@ snapshot, the search index, sabhas, artists and planned events.
   a planned event, creating an event, adding people and items, editing, reordering and deleting.
 - Every save MUST be one local transaction that writes the record and its outbox entry, then
   returns. No spinner appears on any save.
-- A network error MUST NOT block the UI, discard input or send the rasika to a sign-in screen.
-  Sign-in is needed only to restore onto an empty device.
+- Sign-in happens once, at first launch. After that, a network error or an ended session MUST
+  NOT block the UI or logging, discard input or send the rasika to a sign-in screen.
 - Sync runs whenever signal and the app are both present: on start, on reconnect, on return to the
   app and after each write. Background sync is not assumed.
 
@@ -41,7 +41,7 @@ re-attended.
 The catalog is a strong reference, not proof of provenance. What the rasika heard in the hall is
 the truth of the log.
 
-- Picking a composition fills in raga, tala, composer, language and topic as a suggestion. Every
+- Picking a composition fills in raga, tala, composer, language and subject as a suggestion. Every
   filled-in field MUST be editable on the spot, in one or two taps, with no warning or
   confirmation. A kriti sung in a raga other than the catalog's is logged as sung.
 - The Wrapped counts what the rasika logged, not what the catalog says. An edited field is never
@@ -191,4 +191,4 @@ practice. When a spec, plan or task conflicts with it, the constitution wins unt
   - `/review` checks each change against Principles I–V.
   - Runtime guidance for agents lives in `CLAUDE.md` and `docs/skills-router.md`.
 
-**Version**: 1.1.0 | **Ratified**: 2026-10-27 | **Last Amended**: 2026-10-29
+**Version**: 1.2.0 | **Ratified**: 2026-10-27 | **Last Amended**: 2026-10-29
