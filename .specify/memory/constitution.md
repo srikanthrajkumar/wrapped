@@ -42,11 +42,11 @@ The catalog is a strong reference, not proof of provenance. What the rasika hear
 the truth of the log.
 
 - Picking a composition fills in raga, tala, composer, language and subject as a suggestion. Every
-  filled-in field MUST be editable on the spot, in one or two taps, with no warning or
+  filled-in Detail MUST be editable on the spot, in one or two taps, with no warning or
   confirmation. A kriti sung in a raga other than the catalog's is logged as sung.
-- The Wrapped counts what the rasika logged, not what the catalog says. An edited field is never
+- The Wrapped counts what the rasika logged, not what the catalog says. An edited Detail is never
   silently reset by a later catalog update.
-- "?" and free text MUST be accepted on every field. Unresolved values are kept as typed, count
+- "?" and free text MUST be accepted on every Detail. Unresolved values are kept as typed, count
   in the Wrapped as their own bucket, and can be resolved later.
 - Editing a logged item never edits the catalog. The catalog belongs to the logger project.
 - Linked raga names (e.g. Pantuvarali and Kamavardhini) are never merged and never treated as
@@ -191,4 +191,4 @@ practice. When a spec, plan or task conflicts with it, the constitution wins unt
   - `/review` checks each change against Principles I–V.
   - Runtime guidance for agents lives in `CLAUDE.md` and `docs/skills-router.md`.
 
-**Version**: 1.2.0 | **Ratified**: 2026-10-27 | **Last Amended**: 2026-10-29
+**Version**: 1.2.1 | **Ratified**: 2026-10-27 | **Last Amended**: 2026-10-30
