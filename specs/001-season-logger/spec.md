@@ -41,6 +41,14 @@ Interpreted as: specify version 1 of Carnatic Wrapped as approved in
   first launch, when the rasika is online anyway to install the app, so that nothing logged
   exists only on the phone. After that, logging never waits on sign-in or the network.
 
+### Session 2026-10-30
+
+- Q: Are alapana, tanam, niraval and kalpana swaram recorded? → A: Yes. They are Details of
+  the Item, like its Composition and Raga. The app records which ones were heard and shows them
+  in the usual concert order; the order heard is not stored. An improvised Detail can have its
+  own Raga when it differs from the Item's. How they are entered is designed when the Item
+  editor is built, and they stay out of the main logging path.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Log a Concert in the hall with no signal (Priority: P1)
@@ -523,7 +531,9 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
   allow revocation (FR-020 to FR-022). How sessions are kept is chosen in `/speckit-plan`.
 - If the server is not ready by 1 December, logging ships phone-only with export, and changes
   upload once the server exists (cut line in the design doc).
-- Durations, segments (alapana, niraval, swaram) and hall names are not recorded in version 1.
+- Durations and hall names are not recorded in version 1. Improvised Details (alapana, tanam,
+  niraval, kalpana swaram) are recorded as heard, with their own Raga when it differs; their
+  entry is designed with the Item editor (Clarifications 2026-10-30).
 - Dance, harikatha and other Event kinds are out of scope this season.
 - The golden set of spellings is built by the developer from last season's sheet and reviewed
   by the rasika.

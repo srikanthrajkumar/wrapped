@@ -52,6 +52,10 @@ _Avoid_: skipped, cancelled (a cancellation is the Sabha's, not the rasika's)
 One piece performed at an Event, in its place in the running order. An Item may perform a Composition or be improvised, such as an RTP.
 _Avoid_: song, piece, number, track
 
+**Detail**:
+Any fact the rasika records about an Item: its Composition, Raga, Tala, Nadai, Composer, language, Subject and form, and the improvised parts heard, such as the alapana, tanam, niraval, kalpana swaram and Tani avartanam.
+_Avoid_: field, attribute, property
+
 **Composition**:
 A work in the catalog, with its own raga, tala, composer, language and subject as the catalog records them. The same Composition can be performed as an Item in a different raga.
 _Avoid_: song, kriti (as a general word)
@@ -92,7 +96,7 @@ A value the rasika doesn't know, entered as "?". It counts in the Wrapped as its
 _Avoid_: blank, missing, n/a
 
 **Not applicable**:
-A field that has no value for this Item, such as the tala of a viruttam. It counts nowhere and is never Unknown.
+A Detail that has no value for this Item, such as the tala of a viruttam. It counts nowhere and is never Unknown.
 _Avoid_: "-", "?", none
 
 **Guess**:
