@@ -72,7 +72,7 @@ The percussion solo in a Concert, played after an Item and in that Item's tala. 
 _Avoid_: tani (in writing), percussion solo
 
 **Nadai**:
-The subdivision of the beat that a tala is played in: tisra, chatusra, khanda, misra or sankeerna. Both an Item and a Tani avartanam have a Nadai.
+The subdivision of the beat that a Tala is played in: tisra, chatusra, khanda, misra or sankeerna. It qualifies the Tala of an Item, as in "Adi (khanda nadai)", and the Tani avartanam.
 _Avoid_: gati
 
 ### Ragas

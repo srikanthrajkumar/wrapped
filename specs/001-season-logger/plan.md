@@ -1049,11 +1049,13 @@ and bind the screen tasks.
   - **Next:** upcoming Planned Events, grouped by day.
   - **Season so far:** Attended Events, newest first, each with its Item count, and one line
     linking to the Wrapped.
-- **DD3 Event screen (D3, approved):** in concert order.
+- **DD3 Event screen (D3, approved; order revised by the information priorities):** in concert
+  order.
   1. A one-line header: Sabha · date · start time, tapped to edit. The kind is set at creation.
-  2. **Stage:** one row per Appearance: role, name, Colour chips.
-  3. **Running order:** numbered rows, each showing the title, then Raga · Composer. A Tani
+  2. **Running order:** numbered rows, each showing the title, then Raga · Composer. A Tani
      avartanam shows as a badge on the row it followed.
+  3. **Stage:** one row per Appearance: role and name. Colours are optional and can be added at
+     any time; they never come before logging an Item (Information priorities, 2026-10-30).
   4. A fixed, full-width "Add Item" button at the bottom, at least 56px tall.
   5. The note, last.
 - **DD4 Item editor (D4, approved):**
@@ -1084,6 +1086,32 @@ and bind the screen tasks.
   only shows it. Editing it sets `touched` (FR-027) but leaves it Planned. An explicit "Start
   logging" marks it Attended and opens it for logging. FR-026, data-model.md, T055 and T056 say
   so.
+
+### Information priorities (decided 2026-10-30)
+
+What matters most, in plain terms, independent of how it is drawn.
+
+**Inside one Item**
+1. **First:** Raga and Composition.
+2. **Second:** Composer, and Tala with its Nadai, as in "Adi (khanda nadai)". Nadai belongs to
+   the Tala or to the Tani avartanam; it is never a Detail on its own.
+3. **Third:** Language and Subject.
+4. **Tucked away until wanted:** the Tani avartanam (with its own Nadai) and the improvised
+   Details.
+
+**During a concert**
+1. **First:** the running order of Items.
+2. **Second:** who is on stage.
+3. **Third:** the concert's own facts (Sabha, date, time), already known from the plan.
+4. **Last:** Colours. They can be added at any time, before, during or after, and never stand
+   between the rasika and logging the next Item.
+5. **Quiet unless something is wrong:** whether the concert is saved and backed up.
+
+**Across the season**
+1. **Top level:** the season log (planned and attended concerts), then the Wrapped.
+2. **One step away:** tidying (unmatched values, Guesses, duplicates), settings and export, and
+   sync details.
+3. **Out of sight until needed:** the Maintainer's review and the schedule picker.
 
 ### Deferred design findings (for the frontend work, T030)
 

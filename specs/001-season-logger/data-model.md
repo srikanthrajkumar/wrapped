@@ -96,7 +96,7 @@ A Lecdem has at most 3 Appearances with role `presenter` (FR-013).
 | `form` | DetailValue | Catalog form, or a project-kept non-composition form (RTP, viruttam, slokam, medley) |
 | `ragas` | DetailValue[] | Ordered. One for most Items; several for ragamalika and RTP (FR-009) |
 | `tala` | DetailValue | |
-| `nadai` | DetailValue | Keys: `tisra`, `chatusra`, `khanda`, `misra`, `sankeerna` |
+| `nadai` | DetailValue | Keys: `tisra`, `chatusra`, `khanda`, `misra`, `sankeerna`. Qualifies the `tala` and is shown with it, as in "Adi (khanda nadai)" |
 | `composer` | DetailValue | For an RTP: `na`, unless `pallaviAuthor` is filled |
 | `pallaviAuthor` | DetailValue \| null | RTP only; when filled, counts as a Composer (FR-041) |
 | `language` | DetailValue | |
