@@ -6,7 +6,10 @@ below are written as HTTP paths. When the server is built, each becomes a Postgr
 called through Supabase's API or an Edge Function; the bodies, responses and rules stay as
 written. Records and field names are in [data-model.md](../data-model.md).
 
-Every call carries the Supabase access token (`Authorization: Bearer <token>`). The rasika is
+Every call carries the Supabase access token (`Authorization: Bearer <token>`) and the app's
+version (`X-App-Version`). Below the server's minimum supported version, every call answers
+`426 update_required`; the phone keeps logging and its outbox and asks the rasika to update
+(eng review D14). The rasika is
 the token's user (`auth.uid()`), never a field in the body. Row-level security on every rasika
 table limits reads and writes to that rasika's own rows.
 
@@ -39,8 +42,8 @@ table limits reads and writes to that rasika's own rows.
 {
   "deviceId": "0193…",
   "ops": [
-    { "opId": "0193…", "table": "items", "op": "upsert", "row": { "id": "0193…", "eventId": "…", "position": 3, "…": "…" } },
-    { "opId": "0193…", "table": "items", "op": "delete", "row": { "id": "0193…", "deletedAt": "2026-12-14T17:02:11Z" } }
+    { "opId": "0193…", "table": "items", "baseSeq": 0, "row": { "id": "0193…", "eventId": "…", "position": 3, "deletedAt": null, "…": "…" } },
+    { "opId": "0193…", "table": "items", "baseSeq": 4182, "row": { "id": "0193…", "eventId": "…", "position": 4, "deletedAt": "2026-12-14T17:02:11Z", "…": "…" } }
   ]
 }
 ```
@@ -49,20 +52,24 @@ table limits reads and writes to that rasika's own rows.
 - Tables a phone may push: `events`, `appearances`, `items`, `artists`, `sabhas`.
 - The server applies ops in order, in one transaction holding a per-rasika advisory lock:
   - an `opId` already in Processed op is acknowledged again and not reapplied (FR-015);
-  - an `upsert` replaces the row and stamps a new `seq`;
-  - a `delete` sets `deletedAt` and stamps a new `seq`, keeping the row as a tombstone.
+  - each op is an upsert of the full row: it replaces the row and stamps a new `seq`. A delete
+    is the full row with `deletedAt` set, kept as a tombstone (outside voice 8);
+  - an upsert whose `id` already belongs to another rasika is rejected `foreign_rasika`;
+  - an op whose `baseSeq` differs from the record's current `seq` (0 for a new record) is
+    rejected `conflict`, so no push silently overwrites a newer version (eng review D11).
 
 Responses:
 
 | Status | Body | Phone does |
 |---|---|---|
-| `200` | `{ "acked": [opId], "rejected": [{ "opId", "code", "message" }] }` | Removes acked and rejected ops from the outbox. Keeps rejected records locally and lists them in "needs attention" |
+| `200` | `{ "acked": [{ "opId", "seq" }], "rejected": [{ "opId", "code", "message" }] }` | Removes acked and rejected ops from the outbox. Keeps rejected records locally, lists them in "needs attention", and keeps counting them as unsynced until fixed or discarded |
 | `401` | | Keeps the outbox; shows the sign-in prompt |
-| `409` | `{ "code": "not_writer", "writerDeviceId" }` | Stops pushing, keeps the outbox, tells the rasika and offers export (Edge Cases, "Second device") |
+| `409` | `{ "code": "not_writer", "writerDeviceId" }` | Stops pushing, keeps the outbox, tells the rasika and offers export or "Make this the writing device again", which claims the device and resumes pushing (Edge Cases, "Second device") |
 | `5xx` or network error | | Retries with exponential backoff and jitter |
 
 A rejected op is recorded as processed so it is never retried in a loop, and its `code` is
-specific (`foreign_rasika`, `missing_event`, `invalid_field_value`, …). A rejected op is
+specific (`foreign_rasika`, `missing_event`, `conflict`, …). A `conflict` is shown with "keep
+mine" (re-push with the new `baseSeq`) and "keep the server's" (drop the op and pull). A rejected op is
 reported, never dropped quietly.
 
 ## Pull
@@ -89,6 +96,8 @@ reported, never dropped quietly.
   - the shared lists, by `listVersion`, written only under a single shared-lists lock.
   Neither can skip a row committed late by another transaction.
 - The phone applies a page in one local transaction, then stores the new cursor.
+- A pulled row is skipped while the phone still has a pending outbox op for that record: the
+  local row is newer, because only this device writes. It reaches the server with its op.
 
 ## Sync order on the phone
 

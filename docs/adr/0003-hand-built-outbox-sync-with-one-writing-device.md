@@ -28,7 +28,7 @@ Decided 2026-10-29 with the design doc's approach; the one-writer rule is in the
 
 - **Idempotency**: the outbox entry's id is the idempotency key. The server records each one,
   so a retried push never duplicates.
-- **Ids and deletes**: records get UUIDv7 ids on the phone. Deletes are tombstones that sync
+- **Ids and deletes**: records get UUID ids on the phone (`crypto.randomUUID()`). Deletes are tombstones that sync
   like any write. Item order is an explicit integer `position`, renumbered in one transaction.
 - **Restore** pushes the outbox before pulling, so a restore never discards a local write.
 - **Two cursors in pull**: the rasika's own rows by a server sequence, written under a
@@ -38,8 +38,10 @@ Decided 2026-10-29 with the design doc's approach; the one-writer rule is in the
   writes a Link and never edits the rasika's own row (ADR 0005). That keeps last-write-wins
   safe.
 - **Former writers**: a device that is no longer the writer gets "not the writer", stops
-  pushing, and keeps its unsynced changes for export. This season has no import, so those
-  changes reach the server only by hand.
+  pushing, and can export or take writing back and push its queue (eng review D6). Each op
+  carries the server version it was based on; a newer version on the server rejects it as a
+  conflict for the rasika to resolve, so taking writing back never silently overwrites the
+  other device's edits (eng review D11).
 - **Unsent changes**: the outbox length is the unsynced count the rasika sees. Changes made
   since the last sync are lost if the phone's storage is cleared before signal returns. The
   spec accepts that limit.

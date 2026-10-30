@@ -23,7 +23,9 @@ Interpreted as: specify version 1 of Carnatic Wrapped as approved in
   A: Asked once at sign-up as an explicit yes/no with no default, changeable in settings.
   Sign-up is with a Google account, and the rasika's name is stored.
 - Q: Do other rasikas need to be able to sign up by 1 December? → A: Yes, open to everyone on
-  1 December alongside logging, including consent and the Maintainer's review and promotion.
+  1 December alongside logging, including consent. The Maintainer's review and promotion follow
+  by 15 December (amended 2026-10-30 by the eng review, D13: promotion needs logged entries
+  first, and consented entries wait for review).
 - Q: Can a rasika delete their account, and what happens to their data? → A: No self-serve
   deletion this season. The app shows a contact for deletion requests. On request, the
   Maintainer erases the rasika's name and Google account and keeps the season, no longer linked
@@ -478,7 +480,7 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
 - **SC-015**: Any rasika can sign up with Google, answer both consent questions and log a
   Concert, and no rasika can see another's season.
 - **SC-016**: An Artist created by hand by two consenting rasikas can be promoted by the
-  Maintainer and is offered to a new rasika from the start.
+  Maintainer and is offered to a new rasika from the start. Due by 15 December, not 1 December (eng review D13).
 
 **Speed and size (mid-range phone, app installed)**
 

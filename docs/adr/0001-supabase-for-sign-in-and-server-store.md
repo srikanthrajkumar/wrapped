@@ -24,9 +24,10 @@ as the seasons. Decided 2026-10-29; evidence in `specs/001-season-logger/researc
 
 ## Consequences
 
-- **The server is built last.** The phone app, its outbox and export come first and run alone,
-  as in the design doc's fallback. The sync logic and sign-in are the final pieces before
-  deploy.
+- **The server is deployed last.** The phone app, its outbox and export come first and run
+  alone, as in the design doc's fallback. The server is then built and tested locally, after
+  Plan and Lecdem and before Cards and Tidy, so sign-up is ready by 1 December (eng review
+  D12). Deploying it is the final step.
 - **Free until deploy.** Development uses a local Supabase (the Supabase CLI on Docker), which
   costs nothing and never pauses. A hosted free project is fine for a throwaway check, but free
   projects pause after a week idle and have no automatic backups. So the season's database moves
@@ -44,4 +45,6 @@ as the seasons. Decided 2026-10-29; evidence in `specs/001-season-logger/researc
 - **Still open, decided when the server is built:** whether push and pull run as Postgres
   functions called through Supabase's API or as Supabase Edge Functions. Either way they follow
   `contracts/sync-api.md`.
-- **Not yet tested:** Google sign-in from an installed iOS PWA.
+- **Not yet tested:** Google sign-in from an installed iOS PWA. A Phase 1 spike on the primary
+  iPhone tests Google's sign-in button with `signInWithIdToken`; if it fails, sign-in uses
+  Supabase's email one-time code instead (eng review D3).

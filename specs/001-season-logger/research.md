@@ -99,7 +99,8 @@ compressed by us. All others cite the source. Decisions are made one at a time b
 
 - **Decision**: Google sign-in through Supabase Auth; the server store is Supabase Postgres
   (Maintainer, 2026-10-29). Recorded in `docs/adr/0001-supabase-for-sign-in-and-server-store.md`.
-- **Timing**: the server is built last. Development runs on a local Supabase (CLI on Docker)
+- **Timing**: the server is built locally after Plan and Lecdem and deployed last (eng review
+  D12). Development runs on a local Supabase (CLI on Docker)
   at no cost; the season's database moves to Pro in Mumbai before rasikas sign up.
 - **Still open**: push and pull as Postgres functions or as Edge Functions, decided when the
   server is built.

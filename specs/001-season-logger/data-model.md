@@ -6,14 +6,16 @@ project-kept tables are read-only on both.
 
 ## Conventions
 
-- **Ids**: every rasika-owned record has a client-generated UUIDv7 `id`, created on the phone
-  (constitution II). The server never invents ids for rasika records.
+- **Ids**: every rasika-owned record has a client-generated UUID `id` from `crypto.randomUUID()`,
+  created on the phone (constitution II). The server never invents ids for rasika records.
 - **Tombstones**: a delete sets `deletedAt` and syncs like any other write. The phone hides
   tombstoned rows; the server keeps them so a restore replays the delete.
 - **Last write wins per record**: each rasika has one writing device (FR-022), so two writers
   never edit the same record. A push replaces the whole row.
 - **Server bookkeeping** (server only): `rasikaId`, `seq` (bigint from one Postgres sequence,
-  set on every insert or update, used as the pull cursor) and `receivedAt`.
+  set on every insert or update, used as the pull cursor), `deletedAt`, `receivedAt` and the parent
+  id. The record itself is stored as one `data` jsonb column, exactly as the phone sent it; its
+  fields are defined only in `app/src/model/records.ts` (eng review D7).
 - **Catalog references** use natural keys, never logger row ids (constitution III; design doc
   "Stable references"): `kriti_id` for a Composition, the canonical raga name for a Raga, the
   composer `name_key`, and the tala, language, subject and form names.
@@ -111,6 +113,7 @@ current catalog snapshot (design doc, "Stable references").
 |---|---|---|
 | `id` | uuid | |
 | `name` | string | As typed |
+| `nameKey` | string | The name folded as in search (`app/src/catalog/fold.ts`); groups promotion candidates |
 | `aliases` | string[] | Names merged into this one (FR-036) |
 | `mergedIntoId` | uuid \| null | Set on the merged-away record. Readers follow it |
 | timestamps | | as Event |
@@ -152,7 +155,7 @@ shared Artist id, role), `title`, `cancelled`. Not rasika-owned.
 
 | Table | Purpose |
 |---|---|
-| `outbox` | `opId` (uuid, the idempotency key), `table`, `recordId`, `op` (`upsert` \| `delete`), `row`, `queuedAt`. Written in the same transaction as the record (constitution I). Its length is the unsynced count (FR-016) |
+| `outbox` | `opId` (uuid, the idempotency key), `table`, `recordId`, `row` (a delete is the full row with `deletedAt` set), `baseSeq` (the last server `seq` known for the record; eng review D11),  `queuedAt`, `firstSentAt` (null until the first push attempt, so D8 knows the entry may already be stored). Written in the same transaction as the record (constitution I). A record has at most one never-sent entry: a save replaces its row in place; an entry sent at least once is never changed (eng review D8). Its length is the unsynced count, which therefore counts records with unsent changes (FR-016) |
 | `meta` | Key/value: `deviceId`, `pullCursor`, `catalogVersion`, `sharedListsVersion`, consent answers, cached identity, "ready for offline" flags |
 
 ### Dexie indexes (draft)
@@ -167,7 +170,7 @@ links:         id, [ownTable+ownId]
 sharedArtists: id, name
 sharedSabhas:  id, name
 schedule:      id, date
-outbox:        ++seq, opId
+outbox:        ++seq, opId, recordId
 meta:          key
 ```
 
@@ -216,10 +219,15 @@ On request, in one transaction:
 
 1. Delete the Supabase Auth user, which ends its sessions. Null `authUserId`, `email` and
    `name`, set `deidentifiedAt`, and delete devices.
-2. Null every `note` on the rasika's Events and Items, because free text can identify them.
+2. Null every `note` on the rasika's Events and Items, including each Item's `tani.note`,
+   because free text can identify them.
 3. If `seasonReports` is not true, delete the rasika's season as well.
 
 ## Validation rules
+
+The phone enforces all of these before saving. The server stores each record as sent (eng
+review D7) and checks only the record's id, its owner and its parent Event; rules that span
+several rows, such as unique positions, are the phone's (eng review R6).
 
 - An Item's `eventId` must point to an Event that is not deleted.
 - `position` is unique among an Event's live Items after each transaction.
