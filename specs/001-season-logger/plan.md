@@ -47,14 +47,15 @@ free projects pause after a week idle and have no automatic backups. DuckDB only
 Maintainer's end-of-season report, reading Postgres read-only.
 
 **Testing**: Vitest for units and the store; Playwright for end-to-end runs in offline mode
-(`context.setOffline`); a real installed PWA on the primary test device before each release.
+(`context.setOffline`); a real installed PWA on the iPhone 16 and the Redmi Note 5 before each release.
 Both tools are named in `docs/skills-router.md`.
 
 **Static hosting**: pending, task T052. The PWA's static files need a host before the
 phone-only fallback can ship; ADR 0001 covers sign-in and the database only.
 
-**Target Platform**: current iOS Safari and Android Chrome, installed to the home screen. The
-primary test device is still to be named by the Maintainer.
+**Target Platform**: current iOS Safari and Android Chrome, installed to the home screen or in a
+browser tab. Test phones: iPhone 16 (primary) and Redmi Note 5 (Android; speed budgets judged on
+it as the slowest phone).
 
 **Project Type**: web application: a PWA and an HTTP API.
 

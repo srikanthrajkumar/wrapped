@@ -11,7 +11,7 @@ the tasks. Record shapes are in [data-model.md](data-model.md) and the
   last, so scenarios 2 to 4 and 12 to 15 run once it exists. Before then, the outbox only
   queues.
 - A catalog snapshot exported by the logger project, copied to `app/public/catalog/`.
-- The primary test device, with the app installed to the home screen.
+- The test phones, an iPhone 16 (primary) and a Redmi Note 5 (where the speed budgets are judged), with the app installed to the home screen.
 
 ## Automated checks (every change)
 

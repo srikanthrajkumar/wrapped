@@ -45,7 +45,7 @@ quality gates).
 - [ ] T007 Write the size-budget check: brotli-compress every file in the first-phase precache list and fail above 2 MB, and every second-phase file and fail above a further 3 MB (constitution V, SC-009), in `tools/size-budget/check.mjs`
 - [ ] T008 Add the root `check` script running typecheck, lint, Vitest, Playwright and `tools/size-budget/check.mjs` in that order, as quickstart.md describes, in `package.json`. Also run `tools/size-budget/check.mjs` at the end of the app's `build` script, so every build fails when a budget is exceeded (constitution V), in `app/package.json`
 - [ ] T009 [P] Install the router's contingent skill `npx skills add antfu/skills@vitest -a claude-code -y --copy` after reading its SKILL.md, and record it in §2 of `docs/skills-router.md`
-- [ ] T010 Spike Google sign-in on the primary iPhone with the app installed to the home screen: Google's sign-in button with `supabase.auth.signInWithIdToken`, against a free throwaway Supabase project and a temporary HTTPS address. Record whether sign-in completes inside the installed app in `specs/001-season-logger/research.md` before Phase 3. If it fails, T077 uses Supabase's email one-time code instead (eng review D3). If the email code is needed: Supabase's built-in email sender is rate-limited and may send only to project members, so open sign-up would need a custom SMTP provider, and FR-021 and FR-047 (which assume a Google account and Google's name) would need a spec amendment with a name-entry step; both are decided then (outside voice 4)
+- [ ] T010 Spike Google sign-in on the iPhone 16 (primary test phone) with the app installed to the home screen: Google's sign-in button with `supabase.auth.signInWithIdToken`, against a free throwaway Supabase project and a temporary HTTPS address. Record whether sign-in completes inside the installed app in `specs/001-season-logger/research.md` before Phase 3. If it fails, T077 uses Supabase's email one-time code instead (eng review D3). If the email code is needed: Supabase's built-in email sender is rate-limited and may send only to project members, so open sign-up would need a custom SMTP provider, and FR-021 and FR-047 (which assume a Google account and Google's name) would need a spec amendment with a name-entry step; both are decided then (outside voice 4)
 
 ---
 
@@ -100,7 +100,7 @@ shell, and the design system. Every story builds on these.
 - [ ] T030 Produce `DESIGN.md` with `/design-consultation` (pipeline step 6 in docs/skills-router.md), including the 12-colour swatch palette and phone-width layouts for Plan, Event, Item, Wrapped and Settings
 - [ ] T031 Apply the mobile-native base rules in `app/src/styles/base.css`: 16px inputs, `dvh`, safe-area insets, no tap highlight, no sticky hover, and `touch-action` on controls
 - [ ] T032 Set up wouter routes for Plan (home), Event, Item, Tidy, Wrapped, Settings and `/admin`, opening to the home screen with no network wait, in `app/src/App.tsx` and `app/src/main.tsx`
-- [ ] T033 At the end of Phase 2, on the primary phone with the app installed, measure cold start to the home screen in airplane mode and search p95 over the full catalog, and record both in `specs/001-season-logger/research.md`. If either misses its budget (1.5 s, 50 ms), decide the fix then from the numbers; T113 still re-measures before release (eng review D10)
+- [ ] T033 At the end of Phase 2, on the Redmi Note 5 (where the budgets are judged) and the iPhone 16, with the app installed, measure cold start to the home screen in airplane mode and search p95 over the full catalog, and record both in `specs/001-season-logger/research.md`. If either misses its budget (1.5 s, 50 ms), decide the fix then from the numbers; T113 still re-measures before release (eng review D10)
 
 **Checkpoint**: foundation ready. Saves are atomic and offline, the catalog loads and searches,
 and the shell installs.
@@ -399,7 +399,7 @@ Merge the Artists, match the raga, and confirm all Appearances and the Wrapped u
 - [ ] T110 [P] Run the `accessibility` and `web-design-guidelines` skills on `app/src/screens/` (target size, focus not obscured, `inputmode`, no mobile `autoFocus`) and fix the findings
 - [ ] T111 Create the Supabase Pro project in Mumbai, set up Google OAuth credentials, and apply `supabase/migrations/` and `supabase/seed.sql` before rasikas sign up (ADR 0001). Record the project ref, but no secrets, in `docs/adr/0001-supabase-for-sign-in-and-server-store.md`
 - [ ] T112 Get the DPDP legal check of consent, withdrawal, erasure and the one-year log retention before public launch (constitution, Privacy), and record the outcome in `specs/001-season-logger/research.md`
-- [ ] T113 On the primary test device, installed to the home screen, measure:
+- [ ] T113 On the Redmi Note 5 (budgets) and the iPhone 16 (sign-in), installed to the home screen, measure:
   - cold start to the logging screen in airplane mode under 1.5 s (SC-006);
   - save under 100 ms with no indicator (SC-008);
   - Google sign-in from the installed iOS PWA works (ADR 0001, "Not yet tested").
@@ -414,13 +414,13 @@ Merge the Artists, match the raga, and confirm all Appearances and the Wrapped u
 
 ### Phase dependencies
 
-- **Setup (Phase 1)**: none. T010 (the iPhone sign-in spike) needs the primary iPhone named
-  (spec Assumptions) and must finish before Phase 3.
+- **Setup (Phase 1)**: none. T010 (the iPhone sign-in spike) runs on the iPhone 16 and must finish
+  before Phase 3.
 - **Foundational (Phase 2)**: depends on Setup and blocks every story.
   - T020 and T021 are in the logger repo, and T021 needs T020.
   - T023 and later catalog tasks can use the T022 fixtures until the real snapshot exists.
   - T029 needs the real snapshot to key composer dates.
-  - T033 (on-device timing) needs the primary phone and the real snapshot.
+  - T033 (on-device timing) needs the Redmi Note 5, the iPhone 16 and the real snapshot.
 - **US1 (Phase 3)**: after Foundational.
 - **US2 part 1 (Phase 4)**: after Foundational; it exports whatever exists. T054 (static
   hosting) must be decided before the phone-only fallback ships.

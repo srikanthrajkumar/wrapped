@@ -499,7 +499,7 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
   target is confirmed once first measured.
 - **SC-015**: Any rasika can sign up with Google, answer both consent questions and log a
   Concert, and no rasika can see another's season.
-**Speed and size (mid-range phone, app installed)**
+**Speed and size (judged on the Redmi Note 5, app installed)**
 
 - **SC-006**: Opening the app to the logging screen in airplane mode takes under 1.5 seconds.
 - **SC-007**: Search results appear within 50 ms of a keystroke for 95% of searches, offline.
@@ -532,7 +532,8 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
   season is private to them.
 - The phone runs a current iOS Safari or Android Chrome. Installing to the home screen is
   recommended, with a banner, but not required: the app also works fully in a browser tab (eng
-  review D15). The primary test device will be named by the rasika.
+  review D15). The test phones are an iPhone 16 (primary; iPhone and Safari behavior) and a
+  Redmi Note 5 (Android, and the slowest phone, on which the speed budgets are judged).
 - The logger project supplies the catalog as versions and, possibly, a Schedule. If no Schedule
   arrives this season, P3 works from hand-entered Plan entries alone.
 - Until the logger project has an artist catalog, the Maintainer curates the shared Artist and
