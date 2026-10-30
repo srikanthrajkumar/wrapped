@@ -38,7 +38,7 @@ Interpreted as: specify version 1 of Carnatic Wrapped as approved in
 ### Session 2026-10-29
 
 - Q: Should a rasika be able to log before signing up? → A: No. Sign-in is required once, at
-  first launch, when the rasika is online anyway to install the app, so that nothing logged
+  first launch, when the rasika is online anyway to open the app, so that nothing logged
   exists only on the phone. After that, logging never waits on sign-in or the network.
 
 ### Session 2026-10-30
@@ -73,13 +73,13 @@ detail intact.
 
 1. **Given** the app is installed and the phone is in airplane mode, **When** the rasika opens
    it, **Then** the logging screen appears with no error and no waiting.
-2. **Given** a new Concert, **When** the rasika types "sahana" or "saahana" in the raga field,
+2. **Given** a new Concert, **When** the rasika types "sahana" or "saahana" while entering the Raga,
    **Then** the same Raga is offered. Spelling variants of Compositions and Composers behave the
    same way.
 3. **Given** a picked Composition whose catalog raga is Todi, **When** the rasika changes the
    raga to Dhanyasi, **Then** the Item is saved in Dhanyasi without a warning, and the Wrapped
    counts Dhanyasi.
-4. **Given** any field on an Item, **When** the rasika enters "?", marks the value not sure, or
+4. **Given** any Detail of an Item, **When** the rasika enters "?", marks the value not sure, or
    types text the catalog doesn't know, **Then** the Item saves with that value kept exactly as
    entered.
 5. **Given** a Concert with 8 Items, **When** the rasika reorders two and deletes one, **Then**
@@ -201,7 +201,7 @@ in the rasika's own Wrapped.
    it suggests a range covering them, and the rasika can change either end.
 3. **Given** Items in Pantuvarali and in Kamavardhini, **When** the top-ragas Card is shown,
    **Then** they count together as Linked ragas, and each name stays visible.
-4. **Given** Items with Unknown values, **When** a Card counts that field, **Then** they appear
+4. **Given** Items with Unknown values, **When** a Card counts that Detail, **Then** they appear
    as a "?" bucket. Not applicable values appear nowhere, and Guesses count as their value.
 5. **Given** a Composer with no known dates, **When** the composer-timeline Card is drawn,
    **Then** that Composer appears in an "undated" band.
@@ -273,9 +273,11 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
 - **Two rasikas, same new name.** Each rasika's hand-created entry stays theirs until the
   Maintainer promotes a shared one. Promotion links both. It never merges two rasikas' data
   into one log.
-- **Second device.** Each rasika has one writing device at a time. Signing in on a new device makes it the
-  writer. A former writer that tries to sync is told it is no longer the writer, and keeps its
-  unsynced changes for export.
+- **Second device.** Each rasika has one writing device at a time. Signing in on a new device
+  makes it the writer. A former writer that tries to sync is told it is no longer the writer. It
+  keeps its unsynced changes and can export them or take writing back. Taking writing back sends
+  them; a record changed meanwhile on the other device appears as a conflict for the rasika to
+  resolve: keep mine, or keep the other device's.
 - **Browser tab, then installed.** A rasika can use the app fully in a phone browser tab, and
   sees a banner suggesting they add it to the Home Screen. On iPhone the installed app has
   separate storage, so after installing they sign in again and restore brings the season back;
@@ -288,7 +290,7 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
   in the top-ragas Card.
 - **A performer's own Composition** (e.g. Akkarai Sornalatha's "Gananatham Smarami", sung at her
   own Concert). The Composer and the Artist are different entries and are not linked.
-- **"Mix of 3 Compositions"** or similar medleys. Logged as one Item with free text; its fields
+- **"Mix of 3 Compositions"** or similar medleys. Logged as one Item with free text; its Details
   are Not applicable.
 - **Phone storage cleared mid-Concert.** Unsynced entries since the last sync are lost. The
   unsynced count is how the rasika knows the risk. This is an accepted limit, mitigated by
@@ -318,8 +320,8 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
 - **FR-006**: The rasika MUST be able to add Items to a Concert or Lecdem in running order, and
   reorder or delete them.
 - **FR-007**: Picking a Composition MUST fill in its raga, tala, composer, language and subject
-  from the catalog. Each field MUST stay editable in one or two taps with no confirmation.
-- **FR-008**: Every Item field MUST accept a catalog value, "?" (Unknown), Not applicable, a
+  from the catalog. Each Detail MUST stay editable in one or two taps with no confirmation.
+- **FR-008**: Every Detail of an Item MUST accept a catalog value, "?" (Unknown), Not applicable, a
   value marked not sure (Guess), or free text (Unresolved), and keep it exactly as entered.
 - **FR-009**: An Item MUST be able to have several Ragas in order (ragamalika, RTP) and a tala
   with Nadai.
@@ -329,6 +331,10 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
 - **FR-012**: Search MUST find Compositions, Ragas and Composers across common transliteration
   variants (Thyagaraja / Tyagaraja, Sahana / Saahana) and the catalog's known Aliases.
 - **FR-013**: A Lecdem MUST have a title and up to 3 presenters, and MAY have Items.
+- **FR-051**: The rasika MUST be able to record which improvised Details were heard in an Item
+  (alapana, tanam, niraval, kalpana swaram), each with its own Raga when it differs from the
+  Item's. They are shown in the usual concert order and stay out of the main logging path; how
+  they are entered is designed with the Item editor (Clarifications 2026-10-30).
 
 **Keeping the season safe (P2)**
 
@@ -336,7 +342,7 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
   start, on reconnect, on returning to the app and after each save.
 - **FR-015**: A change received twice MUST be stored once. Deletes and reorders MUST reach the
   server.
-- **FR-016**: The app MUST show the number of changes not yet on the server.
+- **FR-016**: The app MUST show how many records have changes not yet on the server.
 - **FR-017**: On an empty phone, the app MUST offer sign-in and then restore the full season,
   uploading any local entries first.
 - **FR-018**: On an empty phone with no signal, logging MUST still work. Restore MUST run when
@@ -348,8 +354,10 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
 - **FR-021**: Any rasika MUST be able to create an account by signing in with Google. The
   account stores the rasika's name. The server MUST let only the signed-in rasika read or change
   their own season. A lost phone's sign-in MUST be revocable from another device.
-- **FR-022**: The app MUST allow each rasika only one writing device at a time. The device most recently signed in is the
-  writer, and others are told so when they try to sync.
+- **FR-022**: The app MUST allow each rasika only one writing device at a time. The device most
+  recently signed in is the writer, and others are told so when they try to sync. A former writer
+  can take writing back; its queued changes are then sent, and a change based on an older
+  version than the server's is shown as a conflict, never silently overwriting it.
 - **FR-023**: On first run the app MUST ask the phone to keep its storage persistently.
 
 **Planning (P3)**
@@ -458,7 +466,7 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
 - **Appearance**: one Artist in one Role at one Event, with a Colour.
 - **Item**: one piece at an Event, with a position in the running order. Refers to a Composition
   (optional), and has Ragas in order, tala with Nadai, composer, language, subject and note. Each
-  field holds a value and its state (catalog, Override, Unknown, Not applicable, Guess,
+  Detail holds a value and its state (catalog, Override, Unknown, Not applicable, Guess,
   Unresolved), plus the text as entered.
 - **Tani avartanam**: attached to the Item it followed. Has a Nadai and a note.
 - **Composition, Raga, Composer, Tala, Subject** (catalog, read-only): supplied by the logger
@@ -491,9 +499,6 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
   target is confirmed once first measured.
 - **SC-015**: Any rasika can sign up with Google, answer both consent questions and log a
   Concert, and no rasika can see another's season.
-- **SC-016**: An Artist created by hand by two consenting rasikas can be promoted by the
-  Maintainer and is offered to a new rasika from the start. Due by 15 December, not 1 December (eng review D13).
-
 **Speed and size (mid-range phone, app installed)**
 
 - **SC-006**: Opening the app to the logging screen in airplane mode takes under 1.5 seconds.
@@ -503,6 +508,11 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
   is under a further 3 MB.
 - **SC-010**: 95% of a golden set of about 100 variant spellings, drawn from last season's
   sheet and hand-added cases, return the intended entry in the top 3 results.
+
+**By 15 December 2026**
+
+- **SC-016**: An Artist created by hand by two consenting rasikas can be promoted by the
+  Maintainer and is offered to a new rasika from the start (eng review D13).
 
 **By 20 December 2026**
 

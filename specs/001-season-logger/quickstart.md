@@ -29,7 +29,7 @@ required automated tests (constitution IV).
 
 | # | Scenario | Steps | Expected | Proves |
 |---|---|---|---|---|
-| 1 | Offline capture | Offline: log a Concert with 5 Appearances with Colours, 8 Items, one Tani avartanam, notes. Force-close. Reopen | Every detail intact; no spinner on any save | SC-001, FR-003 |
+| 1 | Offline capture | After first-launch sign-in, go offline: log a Concert with 5 Appearances with Colours, 8 Items, one Tani avartanam, notes. Force-close. Reopen | Every detail intact; no spinner on any save | SC-001, FR-003 |
 | 2 | Sync without duplicates | Log 3 Events offline. Go online with the app open. Replay the same push | All ops on the server within 30 s, each once; unsynced count 0 | SC-002, FR-015 |
 | 3 | Delete and reorder | Offline: reorder two Items, delete one. Sync. Restore on a second empty profile | Server and restored order match the phone | SC-002, US2-3 |
 | 4 | Restore | Sync a season. Clear storage. Offline: log one Item. Go online, sign in | The new Item is kept and the full season returns, Unresolved values included | SC-003, FR-017, FR-018 |

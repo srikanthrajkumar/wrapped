@@ -77,15 +77,15 @@ unknown. About 10 screens.
 |---|---|---|
 | I. Offline-First Logging | Logging reads and writes only the Dexie store and the in-memory catalog. Save = one Dexie transaction (record + outbox). Sync triggers: start, `online`, visible, after save. 401 and network errors never block or redirect | Pass |
 | II. Nothing Is Lost | UUID ids and `opId` idempotency; tombstones; integer `position`; restore pushes before pulling; unsynced count = outbox length; JSON export offline; `persist()` on first run | Pass |
-| III. Catalog Suggests | `FieldValue` keeps state and text for every field; Overrides never reset; natural keys with a remap; Linked ragas looked up at Wrapped time, never stored; catalog read-only | Pass |
+| III. Catalog Suggests | `DetailValue` keeps state and text for every Detail; Overrides never reset; natural keys with a remap; Linked ragas looked up at Wrapped time, never stored; catalog read-only | Pass |
 | IV. Grounded in the Data | Sizes measured; colour palette and seeds from last season's sheet. Required tests listed in each contract for the six data-loss paths | Pass |
 | V. Budgets | First install about 0.6 MB measured so far (catalog 448 KB, React 67, Dexie 32, uFuzzy 4, wouter 3) of 2 MB; size check in the build | Pass; card renderer to be measured against the 3 MB second budget |
 | VI. Deliberate Decisions | Each choice made by the Maintainer, one at a time. ADRs in `docs/adr/`: 0001 hosting and sign-in, 0002 phone store, 0003 sync model, 0004 catalog keys and snapshot, 0005 data shape | Pass |
 | Boundaries: one storage module | All Dexie access sits in `app/src/store/` | Pass |
 | Boundaries: privacy | Server checks `rasikaId` on every row; Maintainer endpoints return names and counts only; de-identification nulls notes too; consent events logged | Pass; DPDP legal check before public launch |
 
-No principle is bent, so Complexity Tracking is empty. One risk is retained by choice: the eng
-review's D9 left the save-failure behavior unspecified (Decision ledger R11).
+One risk is retained by choice: the eng review's D9 left the save-failure behavior unspecified
+(Decision ledger R11), recorded in Complexity Tracking.
 
 ## Project Structure
 
@@ -154,7 +154,9 @@ local Supabase once it exists.
 
 ## Complexity Tracking
 
-None.
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|-------------------------------------|
+| Save-failure behavior unspecified, which bends II (Nothing Is Lost) and FR-003 | Maintainer's choice in the eng review (D9): no extra screen state now | "Keep the input, show 'Not saved', retry" was offered (D9 option A) and declined |
 
 ## Eng review (plan-eng-review, 2026-10-29)
 

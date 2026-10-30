@@ -21,10 +21,10 @@ project-kept tables are read-only on both.
   composer `name_key`, and the tala, language, subject and form names.
 - **Derived, never stored**: the Wrapped, its range and every Card (constitution III).
 
-## Field value
+## Detail value
 
-Every Item field that can be Unknown, Not applicable, a Guess, Unresolved or an Override holds
-a `FieldValue`, so the rasika's choice is kept exactly as entered (FR-008).
+Every Detail of an Item that can be Unknown, Not applicable, a Guess, Unresolved or an Override
+holds a `DetailValue`, so the rasika's choice is kept exactly as entered (FR-008).
 
 | Field | Type | Meaning |
 |---|---|---|
@@ -92,15 +92,16 @@ A Lecdem has at most 3 Appearances with role `presenter` (FR-013).
 | `position` | integer | Running order. A reorder renumbers the affected Items in one transaction, each an outbox change (constitution II) |
 | `compositionKey` | string \| null | `kriti_id`. Null for RTP, viruttam, slokam, medley, free text (FR-010) |
 | `title` | string | As picked or typed |
-| `form` | FieldValue | Catalog form, or a project-kept non-composition form (RTP, viruttam, slokam, medley) |
-| `ragas` | FieldValue[] | Ordered. One for most Items; several for ragamalika and RTP (FR-009) |
-| `tala` | FieldValue | |
-| `nadai` | FieldValue | Keys: `tisra`, `chatusra`, `khanda`, `misra`, `sankeerna` |
-| `composer` | FieldValue | For an RTP: `na`, unless `pallaviAuthor` is filled |
-| `pallaviAuthor` | FieldValue \| null | RTP only; when filled, counts as a Composer (FR-041) |
-| `language` | FieldValue | |
-| `subject` | FieldValue | Rolled up to a Topic at Wrapped time |
-| `tani` | `{ nadai: FieldValue, note: string \| null }` \| null | The Tani avartanam that followed this Item (FR-011) |
+| `form` | DetailValue | Catalog form, or a project-kept non-composition form (RTP, viruttam, slokam, medley) |
+| `ragas` | DetailValue[] | Ordered. One for most Items; several for ragamalika and RTP (FR-009) |
+| `tala` | DetailValue | |
+| `nadai` | DetailValue | Keys: `tisra`, `chatusra`, `khanda`, `misra`, `sankeerna` |
+| `composer` | DetailValue | For an RTP: `na`, unless `pallaviAuthor` is filled |
+| `pallaviAuthor` | DetailValue \| null | RTP only; when filled, counts as a Composer (FR-041) |
+| `language` | DetailValue | |
+| `subject` | DetailValue | Rolled up to a Topic at Wrapped time |
+| `tani` | `{ nadai: DetailValue, note: string \| null }` \| null | The Tani avartanam that followed this Item (FR-011) |
+| `improvised` | `{ kind: alapana \| tanam \| niraval \| kalpana_swaram, raga: DetailValue \| null }[]` | Improvised Details heard (FR-051). Shown in the usual concert order, not the order heard; `raga` is null when it is the Item's Raga. Entry design is open (T044) |
 | `note` | string \| null | Erased on deletion requests |
 | timestamps | | as Event |
 
@@ -232,16 +233,16 @@ several rows, such as unique positions, are the phone's (eng review R6).
 - An Item's `eventId` must point to an Event that is not deleted.
 - `position` is unique among an Event's live Items after each transaction.
 - A Lecdem needs a `title`. A Concert's `title` is null.
-- `FieldValue.key` is required for `catalog` and `override` and must be null otherwise.
-- A pushed row whose `rasikaId` differs from the session's rasika is rejected (constitution,
-  Privacy).
+- `DetailValue.key` is required for `catalog` and `override` and must be null otherwise.
+- A pushed record whose `id` already belongs to another rasika is rejected (`foreign_rasika`;
+  constitution, Privacy).
 
 ## Catalog version upgrade
 
 Each snapshot ships a remap from earlier versions: old key → new key, or `retired`. On the
 launch where the rasika accepts a new version (FR-038), one transaction:
 
-- rewrites merged keys on every Item `FieldValue` and `compositionKey`;
+- rewrites merged keys on every Item `DetailValue` and `compositionKey`;
 - turns retired keys into `unresolved` with `text` kept;
 - leaves `state` alone, so Overrides stay Overrides;
 - queues each changed Item in the outbox.

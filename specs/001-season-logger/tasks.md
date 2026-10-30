@@ -59,7 +59,7 @@ shell, and the design system. Every story builds on these.
 ### Record types (shared)
 
 - [ ] T011 [P] Define the record types from data-model.md in `app/src/model/records.ts`: Event (`kind`: `concert` \| `lecdem`; `status`: `planned` \| `attended` \| `missed`; `source`: `schedule` \| `plan` \| `spot`; `cancelled`, `scheduleEntryId`, `scheduleVersionSeen`, `scheduleChanged`, `touched`, `title`, `note`, `createdAt`, `updatedAt`, `deletedAt`), Appearance (`role`: `lead` \| `second_lead` \| `violin` \| `mridangam` \| `khanjira` \| `ghatam` \| `morsing` \| `other_accompaniment` \| `presenter`; `colourPrimary`: Colour \| `unknown` \| null; `colourSecondary`; `billed`; `position`), Item, Artist, Sabha (`name`, `aliases`, `mergedIntoId`), Link (`ownTable`: `artist` \| `sabha` \| `event`), SharedArtist, SharedSabha (`listVersion`), ScheduleEntry, and the Colour palette (white, red, blue, orange, yellow, brown, pink, beige, green, purple, black, grey)
-- [ ] T012 [P] Define `FieldValue` and its validator in `app/src/model/field-value.ts`: `state` is `catalog` \| `override` \| `unknown` \| `na` \| `unresolved`; "`FieldValue.key` is required for `catalog` and `override` and must be null otherwise"; `text` is `"?"` for `unknown` and `""` for `na`; `guess` is "Allowed with `catalog`, `override` and `unresolved`"
+- [ ] T012 [P] Define `DetailValue` and its validator in `app/src/model/detail-value.ts`: `state` is `catalog` \| `override` \| `unknown` \| `na` \| `unresolved`; "`DetailValue.key` is required for `catalog` and `override` and must be null otherwise"; `text` is `"?"` for `unknown` and `""` for `na`; `guess` is "Allowed with `catalog`, `override` and `unresolved`"
 - [ ] T013 [P] Add `newId()` returning `crypto.randomUUID()`, the one source of record and outbox ids, in `app/src/model/ids.ts` (eng review D2)
 - [ ] T014 [P] Define the push and pull payload types from contracts/sync-api.md (ops with `opId`, `table`, `row` and `baseSeq`, where a delete is the full row with `deletedAt` set; an `appVersion` sent with every sync request (eng review D14); responses `acked` with each record's new `seq`, `rejected` with codes `foreign_rasika`, `missing_event`, `conflict`; pull `changes`, `cursor`, `more`) in `app/src/model/sync-payloads.ts`
 
@@ -110,14 +110,14 @@ and the shell installs.
 ## Phase 3: User Story 1 - Log a Concert in the hall with no signal (Priority: P1) 🎯 MVP
 
 **Goal**: create a Concert, add Appearances with Colours and Items in running order, pick
-Compositions, and change any field in a tap, all offline, losing nothing on a force-close.
+Compositions, and change any Detail in a tap, all offline, losing nothing on a force-close.
 
 **Independent Test**: on the phone in airplane mode, log a full Concert (5 Appearances with
 Colours, 8 Items, one Tani avartanam, notes), force-close, reopen, and find every detail intact.
 
 ### Required tests for User Story 1
 
-- [ ] T034 [P] [US1] **(required)** End-to-end offline capture test (SC-001) in `app/e2e/offline-concert.spec.ts`: with `context.setOffline(true)`, log 5 Appearances with Colours, 8 Items, one Tani avartanam and notes; close the browser context; reopen; assert every field
+- [ ] T034 [P] [US1] **(required)** End-to-end offline capture test (SC-001) in `app/e2e/offline-concert.spec.ts`: with `context.setOffline(true)`, log 5 Appearances with Colours, 8 Items, one Tani avartanam and notes; close the browser context; reopen; assert every Detail
 - [ ] T035 [P] [US1] **(required)** Delete-and-reorder local test in `app/tests/store/reorder-delete.test.ts`: reordering renumbers the affected Items in one transaction with an outbox op each; deleting writes a tombstone and an op; "`position` is unique among an Event's live Items after each transaction"; both survive a reopen
 
 ### Implementation for User Story 1
@@ -132,8 +132,8 @@ Colours, 8 Items, one Tani avartanam, notes), force-close, reopen, and find ever
   - **add**: at the end of the running order;
   - **reorder**: renumber in one transaction;
   - **delete**: a tombstone;
-  - **pick a Composition**: fills `form`, `ragas`, `tala`, `composer`, `language` and `subject` as `catalog` FieldValues from the snapshot;
-  - **edit a field**: becomes `override` when the Item has a Composition and the value differs, with no confirmation (FR-007);
+  - **pick a Composition**: fills `form`, `ragas`, `tala`, `composer`, `language` and `subject` as `catalog` DetailValues from the snapshot;
+  - **edit a Detail**: becomes `override` when the Item has a Composition and the value differs, with no confirmation (FR-007);
   - **other values**: set Unknown, Not applicable, Guess or Unresolved, kept exactly as entered (FR-008);
   - **several Ragas**: in order (FR-009);
   - **no Composition**: an Item can have `compositionKey` null (FR-010)
@@ -141,14 +141,14 @@ Colours, 8 Items, one Tani avartanam, notes), force-close, reopen, and find ever
   - an RTP has no Composition, one or more Ragas, a tala and Nadai, a language and subject, and an optional `pallaviAuthor`;
   - `composer` is `na` unless `pallaviAuthor` is filled (FR-041);
   - `tani` is `{ nadai, note }` on the Item it followed (FR-011)
-- [ ] T040 [P] [US1] Build the field input in `app/src/screens/components/FieldInput.tsx`: shows the value, its state and a not-sure mark; one or two taps to change it, mark "?", mark Not applicable, toggle not sure, or type freely; offers catalog search as the rasika types
+- [ ] T040 [P] [US1] Build the Detail input in `app/src/screens/components/DetailInput.tsx`: shows the value, its state and a not-sure mark; one or two taps to change it, mark "?", mark Not applicable, toggle not sure, or type freely; offers catalog search as the rasika types
 - [ ] T041 [P] [US1] Build the Artist and Sabha pickers in `app/src/screens/components/ArtistPicker.tsx` and `app/src/screens/components/SabhaPicker.tsx`
 - [ ] T042 [P] [US1] Build the Colour picker in `app/src/screens/components/ColourPicker.tsx`: the 12 swatches plus "?", and an optional second colour
 - [ ] T043 [US1] Build the Event screen in `app/src/screens/EventScreen.tsx`: date, start time, Sabha, kind, note, the Appearances list with Role and Colours, and the running order with move up, move down and delete
-- [ ] T044 [US1] Build the Item editor in `app/src/screens/ItemEditor.tsx`: Composition search, every field through FieldInput, the ragamalika raga list, tala with Nadai, the RTP pallavi author, and the Tani avartanam section with its Nadai and note (open: the improvised Details, namely alapana, tanam, niraval and kalpana swaram, are recorded as heard, each with its own Raga when it differs from the Item's; their entry is designed here, kept out of the main logging path, per spec Clarifications 2026-10-30)
+- [ ] T044 [US1] Build the Item editor in `app/src/screens/ItemEditor.tsx`: Composition search, every Detail through DetailInput, the ragamalika raga list, tala with Nadai, the RTP pallavi author, and the Tani avartanam section with its Nadai and note (open: the improvised Details, namely alapana, tanam, niraval and kalpana swaram, are recorded as heard, each with its own Raga when it differs from the Item's; their entry is designed here, kept out of the main logging path, per FR-051 and data-model.md Item `improvised`)
 - [ ] T045 [US1] Write the 2024-25 reference import in `tools/import-2024-25/import.ts`, reading the sheet with `read-excel-file` (dev dependency) and run with `tsx`. It matches every Item through `app/src/catalog/match.ts` (FR-039) and reports, out of 193, how many matched a Composition, were "?", were special forms with no Composition, or stayed Unresolved (SC-005). It writes `app/tests/fixtures/reference-2024-25.json` as a test fixture only, never into a rasika's log, lists or Wrapped (FR-040)
 - [ ] T046 [US1] Implement the catalog upgrade in `app/src/catalog/upgrade.ts`, run on the launch where the rasika accepts a new version (FR-038). In one transaction it:
-  - rewrites merged keys on every Item `FieldValue` and `compositionKey`;
+  - rewrites merged keys on every Item `DetailValue` and `compositionKey`;
   - turns retired keys into `unresolved` with `text` kept;
   - leaves `state` alone;
   - queues each changed Item in the outbox;
@@ -383,7 +383,7 @@ rasika's own Wrapped.
 **Independent Test**: create two Artists who are the same person and one Unresolved raga.
 Merge the Artists, match the raga, and confirm all Appearances and the Wrapped update.
 
-- [ ] T104 [P] [US6] Implement matching and confirming in `app/src/store/resolve.ts`. Matching an Unresolved text to a catalog key rewrites `state` and `key` on every Item field whose `text` matches, each as its own outbox change (FR-035). Confirming a Guess clears its flag
+- [ ] T104 [P] [US6] Implement matching and confirming in `app/src/store/resolve.ts`. Matching an Unresolved text to a catalog key rewrites `state` and `key` on every Detail of an Item whose `text` matches, each as its own outbox change (FR-035). Confirming a Guess clears its flag
 - [ ] T105 [P] [US6] Implement merging in `app/src/store/merge.ts`. Merging two Artists or Sabhas sets `mergedIntoId` on the merged-away record and adds its name to the survivor's `aliases` (FR-036); Appearances are not rewritten
 - [ ] T106 [US6] Build the Tidy screen in `app/src/screens/TidyScreen.tsx`: Unresolved values and Guesses grouped by text with counts, matching through catalog search, and merging duplicate Artists and Sabhas
 
@@ -455,7 +455,7 @@ that call them.
 
 ```text
 Task: "T011 Define the record types in app/src/model/records.ts"
-Task: "T012 Define FieldValue and its validator in app/src/model/field-value.ts"
+Task: "T012 Define DetailValue and its validator in app/src/model/detail-value.ts"
 Task: "T013 Add newId() in app/src/model/ids.ts"
 Task: "T014 Define the push and pull payload types in app/src/model/sync-payloads.ts"
 Task: "T024 Implement the transliteration fold in app/src/catalog/fold.ts"
@@ -468,7 +468,7 @@ Task: "T034 End-to-end offline capture test in app/e2e/offline-concert.spec.ts"
 Task: "T035 Delete-and-reorder local test in app/tests/store/reorder-delete.test.ts"
 Task: "T036 Event actions in app/src/store/events.ts"
 Task: "T037 Artist, Sabha and Appearance actions in app/src/store/people.ts"
-Task: "T040 Field input in app/src/screens/components/FieldInput.tsx"
+Task: "T040 Detail input in app/src/screens/components/DetailInput.tsx"
 Task: "T042 Colour picker in app/src/screens/components/ColourPicker.tsx"
 ```
 
