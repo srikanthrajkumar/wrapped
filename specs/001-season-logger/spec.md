@@ -366,8 +366,9 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
   billed Artists in Roles, Lecdem title) ahead of time.
 - **FR-025**: When the logger project provides a Schedule, the app MUST let the rasika add its
   entries to the Plan, and MUST keep working fully without it.
-- **FR-026**: An Event MUST move from Planned to Attended when logged, and to Missed when the
-  rasika says so. Only Attended Events count in the Wrapped.
+- **FR-026**: An Event MUST move from Planned to Attended only when the rasika starts logging it
+  (an explicit "Start logging"), and to Missed when the rasika says so. Viewing or editing a
+  Planned Event leaves it Planned. Only Attended Events count in the Wrapped.
 - **FR-027**: Once the rasika has edited or attended an Event, Schedule updates MUST NOT change
   it and MUST show a "schedule changed" hint instead. A cancelled Schedule entry marks an
   untouched Planned Event as cancelled.

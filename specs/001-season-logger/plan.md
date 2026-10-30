@@ -1034,17 +1034,156 @@ list points at them.
 ### Suppressed findings
 - None below confidence 5.
 
+## Design decisions (plan-design-review, 2026-10-30)
+
+Decisions approved one by one in the design review. They are the brief for DESIGN.md (T030)
+and bind the screen tasks.
+
+- **DD1 Navigation (D1, approved):** three bottom tabs: Season (home), Wrapped, Settings. Event and
+  Item open as pushed screens with a back gesture. The tab bar hides while the Item editor is
+  open. Tidy is reached from home; the Maintainer's `/admin` from Settings.
+- **DD2 Home (D2, approved):** three sections, in order.
+  - **Now:** an Event counts as Now from 60 minutes before its start until 4 hours after it. It shows as one large
+    block (Sabha, lead, start time) with one primary action, "Start logging", or "Continue: N
+    Items" once started. With no such Event: "Log a Concert now", with a smaller "Lecdem".
+  - **Next:** upcoming Planned Events, grouped by day.
+  - **Season so far:** Attended Events, newest first, each with its Item count, and one line
+    linking to the Wrapped.
+- **DD3 Event screen (D3, approved):** in concert order.
+  1. A one-line header: Sabha · date · start time, tapped to edit. The kind is set at creation.
+  2. **Stage:** one row per Appearance: role, name, Colour chips.
+  3. **Running order:** numbered rows, each showing the title, then Raga · Composer. A Tani
+     avartanam shows as a badge on the row it followed.
+  4. A fixed, full-width "Add Item" button at the bottom, at least 56px tall.
+  5. The note, last.
+- **DD4 Item editor (D4, approved):**
+  - **One search box,** focused when the editor opens and docked just above the keyboard. Results
+    grow upward, best match nearest the box. Each result shows the title, then Raga · Composer ·
+    Tala. Results include Ragas, so typing "Begada" for an alapana starts an Item with only its
+    Raga, and the Composition is added when recognised.
+  - **Fixed rows, always last:** "Use what I typed" (Unresolved), "? Don't know", and the
+    special forms RTP, Viruttam/Slokam and Medley.
+  - **After a pick,** the Details appear as a grid of tappable values. The Tani avartanam and the
+    improvised Details stay folded underneath (FR-051).
+  - **Saving:** each Detail saves when it is changed; there is no Save button. The bottom bar
+    has "Done" and "Next Item →", which opens a fresh editor.
+  - **Autofocus:** the editor's search box is the one exception to "no mobile autoFocus" (T110),
+    recorded in DESIGN.md.
+- **DD5 Wrapped (D5, approved):**
+  - Headline numbers first, e.g. "39 Events · 241 Items · 112 Ragas".
+  - The suggested Wrapped range as a quiet subtitle, tapped to change.
+  - Then a vertical list of 9:16 live Card previews, drawn in the page, each with its own Share
+    button.
+  - The 1080×1920 PNG is rendered only when Share is tapped, which keeps SC-011 on the Redmi Note 5.
+  - A check that each preview matches its shared image.
+- **DD6 Status and sync messages (D6, deferred by the Maintainer):** the direction is agreed:
+  logging screens show only a quiet indicator, and messages and details live elsewhere. The
+  specifics are deferred to the frontend work (T030).
+
+- **DD7 Start logging (approved after the review closed, 2026-10-30):** opening a planned Event
+  only shows it. Editing it sets `touched` (FR-027) but leaves it Planned. An explicit "Start
+  logging" marks it Attended and opens it for logging. FR-026, data-model.md, T055 and T056 say
+  so.
+
+### Deferred design findings (for the frontend work, T030)
+
+The Maintainer stopped the detailed questions after D6 ("the frontend we'll do later"). These
+findings from the review and its outside voice are unresolved (all but item 1, settled as DD7) and form the rest of T030's brief:
+
+1. *Resolved as DD7 above:* opening a planned Event used to mark it Attended.
+2. **The visual code for the six Detail states,** including the clash between "?" for Unknown
+   and "Vararaga (?)" for a Guess.
+3. **A dark theme for logging screens in a dark hall:** near-black, warm off-white text, no white
+   flashes.
+4. **The end-of-concert moment:** "Done with this Concert" with a short summary and a link to the
+   Wrapped.
+5. **The first launch:** a welcome screen before sign-in, and the empty home.
+6. **Save success feedback:** the new row highlighted briefly, no toast.
+7. **Deleting:** a 5-second undo instead of a confirmation.
+8. **Planned Events in the past that were never opened:** a "Did you go?" group on home.
+9. **"Ready for offline":** two facts, logging versus share images.
+10. **Restore in progress:** a banner until the season is back.
+11. **The conflict screen:** the two versions side by side.
+12. **The Card template:** Instagram safe zones, one headline sentence per Card, the app
+    wordmark, how a white swatch shows, minimum data per Card, and the empty Wrapped.
+13. **The Colour sheet:** a grid of labelled swatches, "?" and a second colour.
+14. **Reordering Items** in an edit mode, and where Export lives.
+15. **Tokens and rules for DESIGN.md:** type, palette, spacing, touch targets and thumb zone,
+    accessible labels for the Detail states, motion, and copy for system messages.
+16. **Smaller states:** cancelled versus "schedule changed", when the catalog-update prompt
+    appears, consent toggles offline, Share in progress or failed.
+17. **Save failure (D9):** kept as the Maintainer decided in the eng review; not reopened.
+
+### Design review output
+
+**NOT in scope:** the deferred findings above (by the Maintainer's choice); mockups (the gstack
+designer needs an OpenAI API key, which isn't set).
+
+**What already exists:** no DESIGN.md and no UI code. The design doc fixes the 12-colour swatch
+palette, the "season fabric" cover and story-sized Cards; last season's sheet charts are the
+reference for Cards; T031 sets the mobile base rules (16px inputs, dvh, safe areas).
+
+**Implementation Tasks** (the approved decisions are already written into tasks.md):
+- [ ] **T1 (P1, human: ~1 day / CC: ~1 h)** — design — Run `/design-consultation` with DD1 to DD7 and the 16 deferred findings as its brief, then `/plan-design-review` on DESIGN.md
+  - Surfaced by: all passes; Files: DESIGN.md (T030); Verify: design review re-run before T040 to T044
+- [ ] **T2 (P1, human: ~30 min / CC: ~5 min)** — store — Build "Start logging" as the only way a planned Event becomes Attended (DD7)
+  - Surfaced by: deferred finding 1; Files: `app/src/store/plan.ts` (T055), `app/src/screens/PlanScreen.tsx` (T056); Verify: viewing or editing a planned Event leaves it Planned
+
+```
+  +====================================================================+
+  |         DESIGN PLAN REVIEW — COMPLETION SUMMARY                    |
+  +====================================================================+
+  | System Audit         | no DESIGN.md; UI scope about 10 screens     |
+  | Step 0               | 3/10; all 7 dimensions                      |
+  | Pass 1  (Info Arch)  | 2/10 → 6/10 after fixes                    |
+  | Pass 2  (States)     | 2/10 → 2/10 after fixes (deferred)         |
+  | Pass 3  (Journey)    | 3/10 → 3/10 after fixes (deferred)         |
+  | Pass 4  (AI Slop)    | 4/10 → 4/10 after fixes (deferred)         |
+  | Pass 5  (Design Sys) | 1/10 → 1/10 after fixes (deferred)         |
+  | Pass 6  (Responsive) | 2/10 → 2/10 after fixes (deferred)         |
+  | Pass 7  (Decisions)  | 6 resolved, 16 deferred                    |
+  +--------------------------------------------------------------------+
+  | NOT in scope         | written (2 items)                           |
+  | What already exists  | written                                     |
+  | TODOS.md updates     | 0 items proposed (deferred work is in T030) |
+  | Approved Mockups     | 0 generated, 0 approved (no API key)        |
+  | Decisions made       | 6 added to plan                             |
+  | Decisions deferred   | 16 (listed above), plus D6 direction-only   |
+  | Overall design score | 1/10 → 1/10                                 |
+  +====================================================================+
+```
+
+Pass 4 classifies the app screens as OPERATE (app UI) and the Cards as share artifacts; no hard
+rejection is triggered, but nothing visual is specified yet. The overall score stays at the lowest
+pass (design system, 1/10) until DESIGN.md exists.
+
 ## GSTACK REVIEW REPORT
 
 | Review | Trigger | Why | Runs | Status | Findings |
 |--------|---------|-----|------|--------|----------|
 | CEO Review | `/plan-ceo-review` | Scope & strategy | 0 | — | — |
-| Outside Review | native Claude subagent (Codex sandbox unavailable) | Independent 2nd opinion | 1 | issues_found (outside_status: unavailable, source: in-host) | 20 findings; 12 carried, 5 asked (D11 to D15), 2 TODOs |
+| Outside Review | native Claude subagent (Codex sandbox unavailable) | Independent 2nd opinion | 2 | issues_found (outside_status: unavailable, source: in-host) | eng: 20 findings; design: about 30 findings, 6 decided, the rest deferred |
 | Eng Review | `/plan-eng-review` | Architecture & tests (required) | 2 | ISSUES OPEN | 13 issues, 1 critical gap |
-| Design Review | `/plan-design-review` | UI/UX gaps | 0 | — | — |
+| Design Review | `/plan-design-review` | UI/UX gaps | 1 | ISSUES OPEN | score: 1/10 → 1/10, 6 decisions |
 | DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | — |
 
-- **OUTSIDE COVERAGE:** Codex, plan-review phase: unavailable (bwrap could not create a loopback in this container). Native Claude Plan subagent fallback completed within the 5-minute limit with 20 findings; this is not outside-provider coverage.
-- **VERDICT:** no review is CLEAR; eng review required. Every decision has an answer; status stays open because of the accepted critical gap (D9: save-failure behavior unspecified).
+- **OUTSIDE COVERAGE:** Codex unavailable for both the eng and design phases (its sandbox can't start in this container). Native Claude subagents ran instead (eng: plan challenge; design: completeness review); this is not outside-provider coverage.
+- **VERDICT:** no review is CLEAR; eng review required. The design review is open because the Maintainer deferred the remaining design decisions to the frontend work (T030).
 
-NO UNRESOLVED DECISIONS
+**UNRESOLVED DECISIONS:**
+- Design: status and sync messages (D6, direction agreed, specifics deferred)
+- Design: visual code for the six Detail states, and "?" versus a Guess
+- Design: dark theme for logging screens
+- Design: the end-of-concert moment
+- Design: first launch welcome and the empty home
+- Design: save success feedback
+- Design: delete with undo
+- Design: past Planned Events never opened
+- Design: the two meanings of "ready for offline"
+- Design: restore-in-progress banner
+- Design: the conflict compare screen
+- Design: the Card template, minimum data per Card and the empty Wrapped
+- Design: the Colour sheet
+- Design: reordering Items, and where Export lives
+- Design: tokens and rules for DESIGN.md
+- Design: smaller states (cancelled, schedule changed, catalog prompt, consent offline, Share states)

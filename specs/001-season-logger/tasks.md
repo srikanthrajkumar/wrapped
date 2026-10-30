@@ -97,9 +97,9 @@ shell, and the design system. Every story builds on these.
   - `app/src/reference/forms.json`: the project-kept non-composition forms (RTP, viruttam, slokam, medley) that `form` uses when an Item has no Composition (data-model.md, Item).
 
   Names that don't match a catalog key are listed for the Maintainer, not guessed
-- [ ] T030 Produce `DESIGN.md` with `/design-consultation` (pipeline step 6 in docs/skills-router.md), including the 12-colour swatch palette and phone-width layouts for Plan, Event, Item, Wrapped and Settings
+- [ ] T030 Produce `DESIGN.md` with `/design-consultation` (pipeline step 6 in docs/skills-router.md), including the 12-colour swatch palette and phone-width layouts for Plan, Event, Item, Wrapped and Settings. Its brief includes the approved design decisions DD1 to DD7 in plan.md "Design decisions" and the deferred design findings listed there; run `/plan-design-review` again on the resulting DESIGN.md before T040 to T044
 - [ ] T031 Apply the mobile-native base rules in `app/src/styles/base.css`: 16px inputs, `dvh`, safe-area insets, no tap highlight, no sticky hover, and `touch-action` on controls
-- [ ] T032 Set up wouter routes for Plan (home), Event, Item, Tidy, Wrapped, Settings and `/admin`, opening to the home screen with no network wait, in `app/src/App.tsx` and `app/src/main.tsx`
+- [ ] T032 Set up wouter routes for Plan (home), Event, Item, Tidy, Wrapped, Settings and `/admin`, opening to the home screen with no network wait, in `app/src/App.tsx` and `app/src/main.tsx`. Navigation per plan.md DD1: three bottom tabs (Season, Wrapped, Settings), Event and Item as pushed screens, tab bar hidden in the Item editor
 - [ ] T033 At the end of Phase 2, on the Redmi Note 5 (where the budgets are judged) and the iPhone 16, with the app installed, measure cold start to the home screen in airplane mode and search p95 over the full catalog, and record both in `specs/001-season-logger/research.md`. If either misses its budget (1.5 s, 50 ms), decide the fix then from the numbers; T113 still re-measures before release (eng review D10)
 
 **Checkpoint**: foundation ready. Saves are atomic and offline, the catalog loads and searches,
@@ -144,8 +144,8 @@ Colours, 8 Items, one Tani avartanam, notes), force-close, reopen, and find ever
 - [ ] T040 [P] [US1] Build the Detail input in `app/src/screens/components/DetailInput.tsx`: shows the value, its state and a not-sure mark; one or two taps to change it, mark "?", mark Not applicable, toggle not sure, or type freely; offers catalog search as the rasika types
 - [ ] T041 [P] [US1] Build the Artist and Sabha pickers in `app/src/screens/components/ArtistPicker.tsx` and `app/src/screens/components/SabhaPicker.tsx`
 - [ ] T042 [P] [US1] Build the Colour picker in `app/src/screens/components/ColourPicker.tsx`: the 12 swatches plus "?", and an optional second colour
-- [ ] T043 [US1] Build the Event screen in `app/src/screens/EventScreen.tsx`: date, start time, Sabha, kind, note, the Appearances list with Role and Colours, and the running order with move up, move down and delete
-- [ ] T044 [US1] Build the Item editor in `app/src/screens/ItemEditor.tsx`: Composition search, every Detail through DetailInput, the ragamalika raga list, tala with Nadai, the RTP pallavi author, and the Tani avartanam section with its Nadai and note (open: the improvised Details, namely alapana, tanam, niraval and kalpana swaram, are recorded as heard, each with its own Raga when it differs from the Item's; their entry is designed here, kept out of the main logging path, per FR-051 and data-model.md Item `improvised`)
+- [ ] T043 [US1] Build the Event screen in `app/src/screens/EventScreen.tsx`: date, start time, Sabha, kind, note, the Appearances list with Role and Colours, and the running order with move up, move down and delete. Layout per plan.md DD3: one-line header, Stage, Running order, fixed Add Item button, note last
+- [ ] T044 [US1] Build the Item editor in `app/src/screens/ItemEditor.tsx`: Composition search, every Detail through DetailInput, the ragamalika raga list, tala with Nadai, the RTP pallavi author, and the Tani avartanam section with its Nadai and note (open: the improvised Details, namely alapana, tanam, niraval and kalpana swaram, are recorded as heard, each with its own Raga when it differs from the Item's; their entry is designed here, kept out of the main logging path, per FR-051 and data-model.md Item `improvised`). Layout per plan.md DD4: one search box docked above the keyboard, fixed rows (use what I typed, ? Don't know, RTP, Viruttam/Slokam, Medley), Details grid after a pick, autosave, Done and Next Item
 - [ ] T045 [US1] Write the 2024-25 reference import in `tools/import-2024-25/import.ts`, reading the sheet with `read-excel-file` (dev dependency) and run with `tsx`. It matches every Item through `app/src/catalog/match.ts` (FR-039) and reports, out of 193, how many matched a Composition, were "?", were special forms with no Composition, or stayed Unresolved (SC-005). It writes `app/tests/fixtures/reference-2024-25.json` as a test fixture only, never into a rasika's log, lists or Wrapped (FR-040)
 - [ ] T046 [US1] Implement the catalog upgrade in `app/src/catalog/upgrade.ts`, run on the launch where the rasika accepts a new version (FR-038). In one transaction it:
   - rewrites merged keys on every Item `DetailValue` and `compositionKey`;
@@ -190,9 +190,10 @@ planned Concert and log it without typing date, Sabha or any billed Artist.
 
 - [ ] T055 [P] [US3] Implement Plan actions in `app/src/store/plan.ts`:
   - **create a Plan entry** with date, start time, Sabha, kind, billed Artists in Roles and a Lecdem title (FR-024). It is saved as an Event with `status` `planned` and `source` `plan`, and Appearances with `billed` true;
-  - **open for logging**: sets `attended` and `touched`;
+  - **view or edit a Planned Event**: viewing changes nothing; editing sets `touched` (FR-027) but leaves it Planned;
+  - **Start logging**: the explicit action that sets `attended` and `touched` (plan.md DD7);
   - **mark Missed**: Missed Events no longer show as upcoming (FR-026)
-- [ ] T056 [US3] Build the Plan (home) screen in `app/src/screens/PlanScreen.tsx`: upcoming Planned Events by date and time, today first; add a Plan entry; mark Missed; open a planned Event straight into the Event screen with everything filled in (SC-004)
+- [ ] T056 [US3] Build the Plan (home) screen in `app/src/screens/PlanScreen.tsx`: upcoming Planned Events by date and time, today first; add a Plan entry; mark Missed; open a planned Event to view it, with an explicit "Start logging" that marks it Attended and opens it for logging with everything filled in (SC-004, plan.md DD7). Layout per plan.md DD2: Now, Next, Season so far
 - [ ] T057 [US3] Get the logger project's agreement on contracts/schedule-feed.md, which is "proposed": who assigns `id`s, whether Lecdems are included, and where the file is published. Update the contract's status in `specs/001-season-logger/contracts/schedule-feed.md`
 - [ ] T058 [US3] Implement applying a Schedule version in `app/src/store/schedule.ts`:
   - `touched` false: "copy the new date, time, Sabha and billed Artists; set `cancelled`";
@@ -360,12 +361,12 @@ rasika's own Wrapped.
   - a filled pallavi author counts as a Composer
 - [ ] T091 [US5] **(required, catalog updates)** Aggregation test in `app/tests/wrapped/aggregate.test.ts`: with Items logged under v1, loading v2 (Pantuvarali linked to Kamavardhini) changes the top-ragas result; plus "?" buckets, Not applicable, Guess and Override counting; plus a merged Artist and an own Artist linked to a shared one each counting as one person (FR-036, FR-044; eng review test gap)
 - [ ] T092 [P] [US5] Reference reproduction test in `app/tests/wrapped/reference-cards.test.ts`: from `app/tests/fixtures/reference-2024-25.json`, colour counts match the sheet (white 23, red 15, blue 15), and the composer timeline matches the Timelines sheet (SC-012)
-- [ ] T093 [US5] Implement rendering a Card to a 1080×1920 PNG offline with the chosen renderer, bundling the Tamil and Devanagari Noto fonts in the phase-2 cache within the 3 MB budget, in `app/src/wrapped/render.ts`
+- [ ] T093 [US5] Implement rendering a Card to a 1080×1920 PNG offline with the chosen renderer, bundling the Tamil and Devanagari Noto fonts in the phase-2 cache within the 3 MB budget, in `app/src/wrapped/render.ts`. Render only when Share is tapped (plan.md DD5)
 - [ ] T094 [P] [US5] Build the Colours Card, counting both colours of a two-tone outfit, in `app/src/wrapped/cards/ColoursCard.tsx`
 - [ ] T095 [P] [US5] Build the top-Ragas Card, with Linked ragas counted together, own name prominent and sibling small, in `app/src/wrapped/cards/TopRagasCard.tsx`
 - [ ] T096 [P] [US5] Build the Composer timeline Card from `app/src/reference/composer-dates.json`, with an "undated" band for Composers without dates (FR-033), in `app/src/wrapped/cards/ComposerTimelineCard.tsx`
 - [ ] T097 [US5] Share a Card through `navigator.share({ files })`, offline included, with a download fallback (FR-032), in `app/src/wrapped/share.ts`
-- [ ] T098 [US5] Build the Wrapped screen in `app/src/screens/WrappedScreen.tsx`: the range picker and Cards, updating within 1 second of a save (SC-011)
+- [ ] T098 [US5] Build the Wrapped screen in `app/src/screens/WrappedScreen.tsx`: the range picker and Cards, updating within 1 second of a save (SC-011). Layout per plan.md DD5: headline numbers, quiet range subtitle, list of live Card previews, PNG rendered only on Share
 - [ ] T099 [P] [US5] (stretch, in this order per FR-031) Build the season fabric cover Card in `app/src/wrapped/cards/FabricCoverCard.tsx`
 - [ ] T100 [P] [US5] (stretch) Build the Topics Card, rolling Subjects up through `app/src/reference/topics.json` and showing unmapped Subjects under their own name (FR-034), in `app/src/wrapped/cards/TopicsCard.tsx`
 - [ ] T101 [P] [US5] (stretch) Build the most-seen Artists and Accompanists Card in `app/src/wrapped/cards/ArtistsCard.tsx`
@@ -396,7 +397,7 @@ Merge the Artists, match the raga, and confirm all Appearances and the Wrapped u
 - [ ] T107 [P] (stretch) Spreadsheet export shaped like last season's sheet (Main, Lecdems, Colours, Compositions) with write-excel-file, lazy-loaded from the phase-2 cache, in `app/src/store/export-xlsx.ts`
 - [ ] T108 [P] Run `/review` on the full change set and fix its findings
 - [ ] T109 [P] Run `/cso` on the row-level security, the functions and the Maintainer allowlist, and fix its findings, including a size limit on pushed rows (outside voice 18)
-- [ ] T110 [P] Run the `accessibility` and `web-design-guidelines` skills on `app/src/screens/` (target size, focus not obscured, `inputmode`, no mobile `autoFocus`) and fix the findings
+- [ ] T110 [P] Run the `accessibility` and `web-design-guidelines` skills on `app/src/screens/` (target size, focus not obscured, `inputmode`, no mobile `autoFocus`) and fix the findings. Except the Item editor's search box, which opens focused (plan.md DD4)
 - [ ] T111 Create the Supabase Pro project in Mumbai, set up Google OAuth credentials, and apply `supabase/migrations/` and `supabase/seed.sql` before rasikas sign up (ADR 0001). Record the project ref, but no secrets, in `docs/adr/0001-supabase-for-sign-in-and-server-store.md`
 - [ ] T112 Get the DPDP legal check of consent, withdrawal, erasure and the one-year log retention before public launch (constitution, Privacy), and record the outcome in `specs/001-season-logger/research.md`
 - [ ] T113 On the Redmi Note 5 (budgets) and the iPhone 16 (sign-in), installed to the home screen, measure:

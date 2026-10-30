@@ -64,7 +64,8 @@ Rules:
 | `note` | string \| null | Erased on deletion requests (see Deletion) |
 | `createdAt`, `updatedAt`, `deletedAt` | timestamp | Device clock; display only, never a sync cursor |
 
-State transitions: `planned → attended` (logging it), `planned → missed` (rasika says so),
+State transitions: `planned → attended` (the explicit "Start logging"; viewing or editing
+leaves it Planned), `planned → missed` (rasika says so),
 `missed → planned` and `attended → planned` (undo). A `spot` Event starts `attended`.
 
 ### Appearance
