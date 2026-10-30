@@ -45,6 +45,7 @@ required automated tests (constitution IV).
 | 14 | Second device | Sign in on device B, then sync from device A | A is told it is not the writer and keeps its unsynced changes for export | FR-022 |
 | 15 | Long offline | Set the session clock 30 days ahead with no network, then reconnect | Still signed in; sync resumes | FR-020 |
 | 16 | First launch | Install online on a fresh phone. Then switch to airplane mode and log | Sign-in and both consent questions come before logging; after that, no sign-in prompt blocks logging offline | FR-050 |
+| 17 | Tab then install | On an iPhone, sign in and log one Item in a Safari tab, let it sync, then Add to Home Screen and open the installed app | The tab shows the install banner; the installed app asks for sign-in once, then restores the logged Item | eng review D15 |
 
 ## On the device, before each release
 

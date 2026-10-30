@@ -268,6 +268,10 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
 - **Second device.** Each rasika has one writing device at a time. Signing in on a new device makes it the
   writer. A former writer that tries to sync is told it is no longer the writer, and keeps its
   unsynced changes for export.
+- **Browser tab, then installed.** A rasika can use the app fully in a phone browser tab, and
+  sees a banner suggesting they add it to the Home Screen. On iPhone the installed app has
+  separate storage, so after installing they sign in again and restore brings the season back;
+  changes not yet synced from the tab stay in the tab until it syncs.
 - **Undated reference Events.** Every Concert in last season's sheet has no date. In the
   reference import they may have no date and are ordered by their row in the sheet. New Events
   default to today.
@@ -508,8 +512,9 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
 
 - Any rasika can sign up this season, and each has one writing device at a time. Every rasika's
   season is private to them.
-- The phone runs a current iOS Safari or Android Chrome, and the app is used installed on the
-  home screen. The primary test device will be named by the rasika.
+- The phone runs a current iOS Safari or Android Chrome. Installing to the home screen is
+  recommended, with a banner, but not required: the app also works fully in a browser tab (eng
+  review D15). The primary test device will be named by the rasika.
 - The logger project supplies the catalog as versions and, possibly, a Schedule. If no Schedule
   arrives this season, P3 works from hand-entered Plan entries alone.
 - Until the logger project has an artist catalog, the Maintainer curates the shared Artist and

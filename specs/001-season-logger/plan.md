@@ -799,10 +799,10 @@ Spend at most 1 hour on the primary iPhone checking what moving from a tab to th
 D) Defer this change
 Leave the proposal open; nothing changes now. Effort: none. Risk: unchanged. Maintenance: none.
 
-State: pending
-Actual answer: D) Defer this change, D15 answer 2026-10-30 (the proposal row stays unresolved)
-Accepted scope: none; first launch in a phone browser tab stays unhandled for now
-History: none
+State: approved
+Actual answer: Other (user's own words, 2026-10-30): "nudge them, but they'd also continue to be able to use this on their regular browser flow"
+Accepted scope: a phone browser tab works fully (sign-in, consent, logging); while not running as an installed app on a phone, every screen shows a persistent banner suggesting Add to Home Screen, with the iPhone and Android steps; desktop browsers show no banner; moving from a tab to the installed app means signing in again, after which restore brings the season back; T052, spec Assumptions and Edge Cases, quickstart scenario 17
+History: D15 answer 2026-10-30 was D) Defer, leaving the row unresolved; reopened by the user the same day after an explanation of what installing means, and answered with option "nudge, don't require" offered in chat
 
 ### TODO-1: What happens to the paid Supabase plan after the season
 Finding: OV20, Low, confidence 7/10, ADR 0001 consequence "the season's database moves to Pro (from $25/month ...)" with no end date, reviewer: outside voice (Claude subagent).
@@ -890,13 +890,13 @@ Approval readiness: PASS. Accepted remedies and their answers: R1 (D2), R2 (D3),
 (D5), R5 (D6), R10 (D7), R6 (follows D7), R7 (contract alignment, no behavior change), R8 (D8),
 R9 (D10), R16 (D11), R12 (D12), R13 (D13), R14 (D14), TODO-1 (D16), TODO-2 (D17), and the
 outside-voice items carried under approved decisions (listed above). Not accepted: R11 (D9,
-kept as written). Unresolved: R15 (D15, deferred).
+kept as written). R15 (D15, nudge banner) answered after first being deferred.
 
 ## Eng review output (2026-10-30)
 
 ### NOT in scope
 - Save-failure behavior (R11): left unspecified by choice (D9); recorded as a retained risk.
-- Install-first on phone browsers (R15): deferred (D15); unresolved.
+- Requiring install on phones (R15): not required; a banner nudges instead (D15).
 - JWT lifetime and refresh-token reuse interval tuning (OV5 remainder): defaults kept; revisit only if in-hall "sign in again" prompts show up in testing.
 - Grouping of hand-typed Events into promotion candidates (OV9 remainder): settled with the schedule feed (T057).
 - Merging duplicate Events (TODO-2) and the post-season Supabase plan (TODO-1): in TODOS.md.
@@ -1010,7 +1010,7 @@ list points at them.
   - Verify: the pulled-row case in T047
 
 ### Unresolved decisions that may bite you later
-- R15 (D15): first launch in a phone browser tab instead of the installed app. Deferred, no remedy chosen.
+- None. R15 was deferred at first, then answered (D15: nudge, don't require).
 
 ### Completion summary
 - Step 0: Scope Challenge: scope accepted as-is (D1 folded `shared/` into `app/src/model/`, same scope)
@@ -1023,7 +1023,7 @@ list points at them.
 - What already exists: written
 - TODOS.md updates: 2 items proposed to user (both added)
 - Failure modes: 1 critical gap flagged (save failure, D9)
-- Unresolved decisions: 1 in this review
+- Unresolved decisions: 0 in this review
 - Outside voice: Codex unavailable (sandbox could not start); native Claude subagent fallback completed with 20 findings
 - Parallelization: 3 lanes, 2 parallel / 1 sequential
 - Lake Score: 2/7
@@ -1037,12 +1037,11 @@ list points at them.
 |--------|---------|-----|------|--------|----------|
 | CEO Review | `/plan-ceo-review` | Scope & strategy | 0 | — | — |
 | Outside Review | native Claude subagent (Codex sandbox unavailable) | Independent 2nd opinion | 1 | issues_found (outside_status: unavailable, source: in-host) | 20 findings; 12 carried, 5 asked (D11 to D15), 2 TODOs |
-| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 1 | ISSUES OPEN | 13 issues, 1 critical gap |
+| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 2 | ISSUES OPEN | 13 issues, 1 critical gap |
 | Design Review | `/plan-design-review` | UI/UX gaps | 0 | — | — |
 | DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | — |
 
 - **OUTSIDE COVERAGE:** Codex, plan-review phase: unavailable (bwrap could not create a loopback in this container). Native Claude Plan subagent fallback completed within the 5-minute limit with 20 findings; this is not outside-provider coverage.
-- **VERDICT:** no review is CLEAR; eng review required. All findings except R15 have answers; the open items are the unresolved decision below and the accepted D9 risk.
+- **VERDICT:** no review is CLEAR; eng review required. Every decision has an answer; status stays open because of the accepted critical gap (D9: save-failure behavior unspecified).
 
-**UNRESOLVED DECISIONS:**
-- R15 (D15, deferred): first launch in a phone browser tab instead of the installed app
+NO UNRESOLVED DECISIONS
