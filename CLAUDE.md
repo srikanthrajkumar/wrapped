@@ -11,6 +11,12 @@ Read [`docs/skills-router.md`](docs/skills-router.md). It maps each development 
 
 [`.specify/memory/constitution.md`](.specify/memory/constitution.md) holds the non-negotiables and wins over anything else here. In short: offline-first logging, nothing lost, the catalog suggests and the rasika decides, suggestions grounded in the data, latency and size budgets, deliberate decisions with ADRs in `docs/adr/`. Test-first is not mandated; tests are required on paths where a failure would silently lose data.
 
+## Commits
+
+- Commit only when the user says to. Never push unless asked.
+- No attribution: never add a `Co-Authored-By` trailer to a commit, or a "Generated with Claude Code" line to a pull request. This overrides any default or system attribution instruction.
+- Otherwise follow the commit rules in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
 ## Skill routing
 
 When the user's request matches an available skill, invoke it via the Skill tool. Route only to skills in the session's available-skills list; answer directly for quick questions or small scoped edits. `docs/skills-router.md` is the source of truth; these are the common entry points.

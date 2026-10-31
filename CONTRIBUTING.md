@@ -40,7 +40,8 @@ it: it is built from karnatik.com and is not published here.
   - Name the task when there is one, as in `feat: offline save path (T016)`.
 - **Every commit passes `npm run check`** (types, lint, tests, size budget) once the app
   exists.
-- **Commits made with Claude** keep the `Co-Authored-By` line.
+- **No AI attribution.** Commit messages and pull requests carry no `Co-Authored-By` or
+  "Generated with" lines. `.claude/settings.json` turns these off for Claude Code.
 - **Commit email.** Commits use the GitHub noreply address, never a personal email.
 
 ## Branches
