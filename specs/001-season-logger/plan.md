@@ -269,3 +269,51 @@ findings from the review and its outside voice are unresolved (all but item 1, s
 16. **Smaller states:** cancelled versus "schedule changed", when the catalog-update prompt
     appears, consent toggles offline, Share in progress or failed.
 17. **Save failure (D9):** kept as the Maintainer decided in the eng review; not reopened.
+
+### Design system (design consultation, 2026-10-31; in progress)
+
+Started with `/design-consultation` (T030) and paused by the Maintainer to mull over. No
+`DESIGN.md` yet, so T030 stays open and the screen tasks T040 to T044 wait on it.
+
+**The one thing to remember:** "My season, seen whole." Every later choice is checked against it.
+
+**Agreed so far**
+
+- **Base: shadcn preset `b2DeIHQ6F`** (ui.shadcn.com/create?preset=b2DeIHQ6F): style Rhea, Mist
+  neutrals and theme, emerald chart colour, Tabler icons, medium radius, subtle menu accent,
+  inverted translucent menus, Source Sans 3 for body with headings inheriting it.
+- **Two surfaces.** The logging screens are a tool used one-handed in a dark hall and should
+  recede. The Wrapped cards are shared and should look like the rasika's own season.
+- **Typography: Source Sans 3 everywhere, app and cards.** Catalog names use IAST and ISO 15919
+  letters (ḍ ṭ ṇ ṣ ṛ ḷ ṃ ṁ ṅ ḥ). Of 16 Google Fonts tested for all 39 needed letters, only
+  Source Sans 3 and Noto Sans have them all. Instrument Sans has 19 and Public Sans 30, so the
+  first preset's fonts would have mixed fonts mid-word in names like Tōḍi. Noto Sans adds no
+  letters Source Sans 3 lacks, so it is not used.
+- **Tamil and Devanagari:** the catalog contains neither script. They reach a Card only through
+  text a rasika types (Artist or Sabha names, a Lecdem title). Whether the cards bundle Noto Sans
+  Tamil and Noto Sans Devanagari as a fallback depends on the card renderer (T088): Satori or
+  Takumi need bundled fonts; Canvas 2D uses the phone's own. The app screens use the phone's fonts
+  for these scripts.
+
+**Proposed, not yet confirmed**
+
+- Dark by default (logging happens in a dark hall), with light in Settings and no white flashes.
+- Cards coloured by the season itself: the 12 Colour swatches the Artists wore, not a brand
+  palette. Needs contrast rules for seasons that are mostly white or clash.
+- Restrained colour in the app: Mist greys, near-black or white for actions, emerald only for
+  chart bars.
+- 4px spacing base; single column; primary actions in the thumb zone; minimal motion, with one
+  authored moment: a new stripe weaving into the season fabric when a Concert is finished.
+
+**Open, to mull over**
+
+1. Warm or cool text on the dark theme (finding 3 asked for warm off-white; Mist is cool).
+2. The visual code for the six Detail states, including "?" versus a Guess (finding 2).
+3. How a white swatch shows on a card, and the rest of the Card template (finding 12).
+4. Whether to normalise ṁ to ṃ in the logger's display names (only matters if a font missing
+   ṁ is ever considered).
+5. Adding shadcn brings Tailwind and a component library into the stack; that needs a short ADR
+   before the screen tasks start (constitution VI).
+
+**Next:** a preview of the system on real screens (Event, Item editor, one Card), then
+`DESIGN.md`, then `/plan-design-review` on it before T040 to T044.
