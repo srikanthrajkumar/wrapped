@@ -55,7 +55,7 @@ Everything was planned before any code was written. If you want the why behind a
 ## The catalog
 
 The compositions, ragas and composers come from [karnatik.com](https://www.karnatik.com),
-gathered and cleaned up by a separate project of mine. The app uses the facts (title, raga,
+gathered and cleaned up in a separate project. The app uses the facts (title, raga,
 tala, composer, language, subject), not lyrics or meanings. That data isn't published in this
 repository, and the code's licence doesn't cover it.
 
