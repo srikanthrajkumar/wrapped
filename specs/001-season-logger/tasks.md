@@ -58,7 +58,7 @@ shell, and the design system. Every story builds on these.
 
 ### Record types (shared)
 
-- [ ] T011 [P] Define the record types from data-model.md in `app/src/model/records.ts`: Event (`kind`: `concert` \| `lecdem`; `status`: `planned` \| `attended` \| `missed`; `source`: `schedule` \| `plan` \| `spot`; `cancelled`, `scheduleEntryId`, `scheduleVersionSeen`, `scheduleChanged`, `touched`, `title`, `note`, `createdAt`, `updatedAt`, `deletedAt`), Appearance (`role`: `lead` \| `second_lead` \| `violin` \| `mridangam` \| `khanjira` \| `ghatam` \| `morsing` \| `other_accompaniment` \| `presenter`; `colourPrimary`: Colour \| `unknown` \| null; `colourSecondary`; `billed`; `position`), Item, Artist, Sabha (`name`, `aliases`, `mergedIntoId`), Link (`ownTable`: `artist` \| `sabha` \| `event`), SharedArtist, SharedSabha (`listVersion`), ScheduleEntry, and the Colour palette (white, red, blue, orange, yellow, brown, pink, beige, green, purple, black, grey)
+- [ ] T011 [P] Define the record types from data-model.md in `app/src/model/records.ts`: Event (`kind`: `concert` \| `lecdem`; `status`: `planned` \| `attended` \| `missed`; `source`: `schedule` \| `plan` \| `spot`; `cancelled`, `scheduleEntryId`, `scheduleVersionSeen`, `scheduleChanged`, `touched`, `title`, `note`, `createdAt`, `updatedAt`, `deletedAt`), Appearance (`role`: `vocal` \| `violin` \| `veena` \| `flute` \| `mridangam` \| `khanjira` \| `ghatam` \| `morsing` \| `other` \| `presenter` \| null; `colourPrimary`: Colour \| `unknown` \| null; `colourSecondary`; `billed`; `position`), Item, Artist, Sabha (`name`, `aliases`, `mergedIntoId`), Link (`ownTable`: `artist` \| `sabha` \| `event`), SharedArtist, SharedSabha (`listVersion`), ScheduleEntry, and the Colour palette (white, red, blue, orange, yellow, brown, pink, beige, green, purple, black, grey)
 - [ ] T012 [P] Define `DetailValue` and its validator in `app/src/model/detail-value.ts`: `state` is `catalog` \| `override` \| `unknown` \| `na` \| `unresolved`; "`DetailValue.key` is required for `catalog` and `override` and must be null otherwise"; `text` is `"?"` for `unknown` and `""` for `na`; `guess` is "Allowed with `catalog`, `override` and `unresolved`"
 - [ ] T013 [P] Add `newId()` returning `crypto.randomUUID()`, the one source of record and outbox ids, in `app/src/model/ids.ts` (eng review D2)
 - [ ] T014 [P] Define the push and pull payload types from contracts/sync-api.md (ops with `opId`, `table`, `row` and `baseSeq`, where a delete is the full row with `deletedAt` set; an `appVersion` sent with every sync request (eng review D14); responses `acked` with each record's new `seq`, `rejected` with codes `foreign_rasika`, `missing_event`, `conflict`; pull `changes`, `cursor`, `more`) in `app/src/model/sync-payloads.ts`
@@ -113,11 +113,11 @@ and the shell installs.
 Compositions, and change any Detail in a tap, all offline, losing nothing on a force-close.
 
 **Independent Test**: on the phone in airplane mode, log a full Concert (5 Appearances with
-Colours, 8 Items, one Tani avartanam, notes), force-close, reopen, and find every detail intact.
+Colours, 8 Items, one Laya vinyasam, notes), force-close, reopen, and find every detail intact.
 
 ### Required tests for User Story 1
 
-- [ ] T034 [P] [US1] **(required)** End-to-end offline capture test (SC-001) in `app/e2e/offline-concert.spec.ts`: with `context.setOffline(true)`, log 5 Appearances with Colours, 8 Items, one Tani avartanam and notes; close the browser context; reopen; assert every Detail
+- [ ] T034 [P] [US1] **(required)** End-to-end offline capture test (SC-001) in `app/e2e/offline-concert.spec.ts`: with `context.setOffline(true)`, log 5 Appearances with Colours, 8 Items, one Laya vinyasam and notes; close the browser context; reopen; assert every Detail
 - [ ] T035 [P] [US1] **(required)** Delete-and-reorder local test in `app/tests/store/reorder-delete.test.ts`: reordering renumbers the affected Items in one transaction with an outbox op each; deleting writes a tombstone and an op; "`position` is unique among an Event's live Items after each transaction"; both survive a reopen
 
 ### Implementation for User Story 1
@@ -137,16 +137,16 @@ Colours, 8 Items, one Tani avartanam, notes), force-close, reopen, and find ever
   - **other values**: set Unknown, Not applicable, Guess or Unresolved, kept exactly as entered (FR-008);
   - **several Ragas**: in order (FR-009);
   - **no Composition**: an Item can have `compositionKey` null (FR-010)
-- [ ] T039 [US1] Add the RTP and Tani avartanam rules in `app/src/store/items.ts`:
-  - an RTP has no Composition, one or more Ragas, a tala and Nadai, a language and subject, and an optional `pallaviAuthor`;
-  - `composer` is `na` unless `pallaviAuthor` is filled (FR-041);
-  - `tani` is `{ nadai, note }` on the Item it followed (FR-011)
+- [ ] T039 [US1] Add the RTP and Laya vinyasam rules in `app/src/store/items.ts`:
+  - an RTP has no Composition, one or more Ragas, a tala and Nadai, and a language and subject;
+  - an RTP's `composer` defaults to `na`; filled in, it is whoever wrote the pallavi and counts like any Composer (FR-041);
+  - `layaVinyasam` is `{ nadai, note }` on the Item it followed (FR-011)
 - [ ] T040 [P] [US1] Build the Detail input in `app/src/screens/components/DetailInput.tsx`: shows the value, its state and a not-sure mark; one or two taps to change it, mark "?", mark Not applicable, toggle not sure, or type freely; offers catalog search as the rasika types
 - [ ] T041 [P] [US1] Build the Artist and Sabha pickers in `app/src/screens/components/ArtistPicker.tsx` and `app/src/screens/components/SabhaPicker.tsx`
 - [ ] T042 [P] [US1] Build the Colour picker in `app/src/screens/components/ColourPicker.tsx`: the 12 swatches plus "?", and an optional second colour
 - [ ] T043 [US1] Build the Event screen in `app/src/screens/EventScreen.tsx`: date, start time, Sabha, kind, note, the Appearances list with Role and Colours, and the running order with move up, move down and delete. Layout per plan.md DD3: one-line header, Running order, Stage, fixed Add Item button, note last; Colours optional at any time, never before logging an Item
-- [ ] T044 [US1] Build the Item editor in `app/src/screens/ItemEditor.tsx`: Composition search, every Detail through DetailInput, the ragamalika raga list, tala with Nadai, the RTP pallavi author, and the Tani avartanam section with its Nadai and note (open: the improvised Details, namely alapana, tanam, niraval and kalpana swaram, are recorded as heard, each with its own Raga when it differs from the Item's; their entry is designed here, kept out of the main logging path, per FR-051 and data-model.md Item `improvised`). Layout per plan.md DD4: one search box docked above the keyboard, fixed rows (use what I typed, ? Don't know, RTP, Viruttam/Slokam, Medley), Details grid after a pick, autosave, Done and Next Item
-- [ ] T045 [US1] Write the 2024-25 reference import in `tools/import-2024-25/import.ts`, reading the sheet with `read-excel-file` (dev dependency) and run with `tsx`. It matches every Item through `app/src/catalog/match.ts` (FR-039) and reports, out of 193, how many matched a Composition, were "?", were special forms with no Composition, or stayed Unresolved (SC-005). It writes `app/tests/fixtures/reference-2024-25.json` as a test fixture only, never into a rasika's log, lists or Wrapped (FR-040)
+- [ ] T044 [US1] Build the Item editor in `app/src/screens/ItemEditor.tsx`: Composition search, every Detail through DetailInput, the ragamalika raga list, tala with Nadai, and the Laya vinyasam section with its Nadai and note (open: the improvised Details, namely alapana, tanam, niraval and kalpana swaram, are recorded as heard, each with its own Raga when it differs from the Item's; their entry is designed here, kept out of the main logging path, per FR-051 and data-model.md Item `improvised`). Layout per plan.md DD4: one search box docked above the keyboard, fixed rows (use what I typed, ? Don't know, RTP, Viruttam/Slokam, Medley), Details grid after a pick, autosave, Done and Next Item
+- [ ] T045 [US1] Write the 2024-25 reference import in `tools/import-2024-25/import.ts`, reading the sheet with `read-excel-file` (dev dependency) and run with `tsx`. It matches every Item through `app/src/catalog/match.ts` (FR-039) and reports, out of 193, how many matched a Composition, were "?", were special forms with no Composition, or stayed Unresolved (SC-005). The sheet's Artist #1 and #2 become the first two Appearances with a blank Role, and its accompaniment columns give violin, mridangam, khanjira, ghatam and morsing. It writes `app/tests/fixtures/reference-2024-25.json` as a test fixture only, never into a rasika's log, lists or Wrapped (FR-040)
 - [ ] T046 [US1] Implement the catalog upgrade in `app/src/catalog/upgrade.ts`, run on the launch where the rasika accepts a new version (FR-038). In one transaction it:
   - rewrites merged keys on every Item `DetailValue` and `compositionKey`;
   - turns retired keys into `unresolved` with `text` kept;
@@ -279,7 +279,7 @@ Use the `supabase-postgres-best-practices` skill for every migration.
 - [ ] T076 [US2] Implement de-identification for a deletion request in `supabase/migrations/0005_deletion.sql`, following data-model.md "Deletion". In one transaction, holding the rasika's advisory lock (eng review R7):
   - delete the Supabase Auth user;
   - null `authUserId`, `email` and `name`, set `deidentifiedAt`, delete devices;
-  - null every `note`, including each Item's `tani.note` (outside voice 9);
+  - null every `note`, including each Item's `layaVinyasam.note` (outside voice 9);
   - if `seasonReports` is not true, delete the season (FR-047);
   - keep the `consent_event` rows, which point only at the opaque rasika id, for at least one year (DPDP Rules; data-model.md, "Consent event")
 - [ ] T077 [US2] Implement sign-in on the phone in `app/src/store/auth.ts`:
@@ -357,8 +357,7 @@ rasika's own Wrapped.
   - Linked ragas count together through the current snapshot's `groupKey`, each name kept;
   - Unknown counts as "?"; Not applicable counts nowhere; Guesses and Overrides count as their values; Unresolved counts under its text (FR-030);
   - each Raga of a ragamalika counts once for that Item;
-  - merged Artists and Links are resolved;
-  - a filled pallavi author counts as a Composer
+  - merged Artists and Links are resolved
 - [ ] T091 [US5] **(required, catalog updates)** Aggregation test in `app/tests/wrapped/aggregate.test.ts`: with Items logged under v1, loading v2 (Pantuvarali linked to Kamavardhini) changes the top-ragas result; plus "?" buckets, Not applicable, Guess and Override counting; plus a merged Artist and an own Artist linked to a shared one each counting as one person (FR-036, FR-044; eng review test gap)
 - [ ] T092 [P] [US5] Reference reproduction test in `app/tests/wrapped/reference-cards.test.ts`: from `app/tests/fixtures/reference-2024-25.json`, colour counts match the sheet (white 23, red 15, blue 15), and the composer timeline matches the Timelines sheet (SC-012)
 - [ ] T093 [US5] Implement rendering a Card to a 1080×1920 PNG offline with the chosen renderer, bundling the Tamil and Devanagari Noto fonts in the phase-2 cache within the 3 MB budget, in `app/src/wrapped/render.ts`. Render only when Share is tapped (plan.md DD5)
@@ -369,7 +368,7 @@ rasika's own Wrapped.
 - [ ] T098 [US5] Build the Wrapped screen in `app/src/screens/WrappedScreen.tsx`: the range picker and Cards, updating within 1 second of a save (SC-011). Layout per plan.md DD5: headline numbers, quiet range subtitle, list of live Card previews, PNG rendered only on Share
 - [ ] T099 [P] [US5] (stretch, in this order per FR-031) Build the season fabric cover Card in `app/src/wrapped/cards/FabricCoverCard.tsx`
 - [ ] T100 [P] [US5] (stretch) Build the Topics Card, rolling Subjects up through `app/src/reference/topics.json` and showing unmapped Subjects under their own name (FR-034), in `app/src/wrapped/cards/TopicsCard.tsx`
-- [ ] T101 [P] [US5] (stretch) Build the most-seen Artists and Accompanists Card in `app/src/wrapped/cards/ArtistsCard.tsx`
+- [ ] T101 [P] [US5] (stretch) Build the most-seen Artists Card, overall and by Role, in `app/src/wrapped/cards/ArtistsCard.tsx`
 - [ ] T102 [P] [US5] (stretch) Build the Sabhas Card in `app/src/wrapped/cards/SabhasCard.tsx`
 - [ ] T103 [P] [US5] (stretch) Build the firsts and rarities Card, using a Raga's share of the catalog, in `app/src/wrapped/cards/RaritiesCard.tsx`
 
@@ -407,7 +406,7 @@ Merge the Artists, match the raga, and confirm all Appearances and the Wrapped u
 
   Record the results in `specs/001-season-logger/research.md`
 - [ ] T114 Run every scenario in `specs/001-season-logger/quickstart.md` and record the results there
-- [ ] T115 Create the read-only view for season reports in `supabase/migrations/0007_report_view.sql`. It includes only seasons whose `season_reports` is true, has no rasika id, name, email or notes, and is the only thing the end-of-season DuckDB report reads (FR-048). The view lives in the same private schema as the candidates view, with no grant for anonymous users or rasikas (eng review D5). The end-of-season DuckDB report connects as a role that can read only this view (outside voice 10)
+- [ ] T115 Create the read-only view for season reports in `supabase/migrations/0007_report_view.sql`. It includes only seasons whose `season_reports` is true, has no rasika id, name, email or notes, and is the only thing the end-of-season DuckDB report reads (FR-048). The report never breaks down Items or their Details by Artist (FR-052). The view lives in the same private schema as the candidates view, with no grant for anonymous users or rasikas (eng review D5). The end-of-season DuckDB report connects as a role that can read only this view (outside voice 10)
 
 ---
 

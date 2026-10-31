@@ -31,8 +31,8 @@ them apart, and the Wrapped counts them differently. Decided 2026-10-29; full sh
   - when a rasika merges two Artists or Sabhas, the merged-away record points to the survivor;
   - when the Maintainer promotes an entry, the server writes a separate Link row.
   Appearances are never rewritten, and readers follow the pointer or Link.
-- **No separate Plan or Tani avartanam records**:
+- **No separate Plan or Laya vinyasam records**:
   - a Plan entry is an Event with status Planned;
-  - a Tani avartanam is a Detail of the Item it followed.
+  - a Laya vinyasam is a Detail of the Item it followed.
 - **The Wrapped and Cards are computed, never stored** (constitution III). Only the log is the
   record.

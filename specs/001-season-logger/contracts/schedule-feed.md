@@ -28,7 +28,7 @@ hand-entered Plan entries alone (FR-025).
       "kind": "concert",
       "title": null,
       "billed": [
-        { "name": "…", "role": "lead" },
+        { "name": "…", "role": "vocal" },
         { "name": "…", "role": "violin" }
       ],
       "cancelled": false
@@ -42,7 +42,8 @@ hand-entered Plan entries alone (FR-025).
 - `version` increases whenever any field of the entry changes.
 - `sabha` and `billed[].name` are names. The phone matches them to shared or own Sabhas and
   Artists as it does typed names. `role` uses the Role values in
-  [data-model.md](../data-model.md).
+  [data-model.md](../data-model.md), or null. `billed` is in billing order, as on the poster;
+  the phone keeps that order.
 - A cancelled Event stays in the feed with `cancelled: true`. It is not removed.
 
 ## How the phone applies a new version (FR-027)

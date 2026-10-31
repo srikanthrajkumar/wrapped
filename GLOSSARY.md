@@ -53,7 +53,7 @@ One piece performed at an Event, in its place in the running order. An Item may 
 _Avoid_: song, piece, number, track
 
 **Detail**:
-Any fact the rasika records about an Item: its Composition, Raga, Tala, Nadai, Composer, language, Subject and form, and the improvised parts heard, such as the alapana, tanam, niraval, kalpana swaram and Tani avartanam.
+Any fact the rasika records about an Item: its Composition, Raga, Tala, Nadai, Composer, language, Subject and form, and the improvised parts heard, such as the alapana, tanam, niraval, kalpana swaram and Laya vinyasam.
 _Avoid_: field, attribute, property
 
 **Composition**:
@@ -63,16 +63,12 @@ _Avoid_: song, kriti (as a general word)
 **Kriti**:
 One form of Composition, alongside varnam, thillana, javali and the others. It is never the general word for a Composition.
 
-**Pallavi author**:
-The person who wrote the pallavi of an RTP, often the performer. When known, they count as a Composer in the Wrapped.
-_Avoid_: RTP composer
-
-**Tani avartanam**:
+**Laya vinyasam**:
 The percussion solo in a Concert, played after an Item and in that Item's tala. It belongs to the Item it follows, but is not itself an Item.
-_Avoid_: tani (in writing), percussion solo
+_Avoid_: tani avartanam, tani, percussion solo
 
 **Nadai**:
-The subdivision of the beat that a Tala is played in: tisra, chatusra, khanda, misra or sankeerna. It qualifies the Tala of an Item, as in "Adi (khanda nadai)", and the Tani avartanam.
+The subdivision of the beat that a Tala is played in: tisra, chatusra, khanda, misra or sankeerna. It qualifies the Tala of an Item, as in "Adi (khanda nadai)", and the Laya vinyasam.
 _Avoid_: gati
 
 ### Ragas
@@ -118,19 +114,11 @@ A person who performs or presents at Events, the same person across the whole se
 _Avoid_: performer, musician, presenter (as a kind of person)
 
 **Role**:
-What an Artist does at one Event: lead, second lead, violin, mridangam, khanjira, ghatam, morsing, other accompaniment, or presenter.
-_Avoid_: instrument, slot, position
-
-**Lead**:
-The Role of an Artist a Concert is billed under. A Concert may have a second lead, as in a duet.
-_Avoid_: main artist, principal
-
-**Accompanist**:
-An Artist in any accompanying Role at a Concert: violin or a percussion Role.
-_Avoid_: side artist, support
+What an Artist does at one Event: vocal, violin, veena, flute, mridangam, khanjira, ghatam, morsing, other, or presenter. It may be left blank when unknown. A Role says what someone did, not how important they were: no Role ranks above another.
+_Avoid_: instrument, slot, lead, main artist, accompanist
 
 **Appearance**:
-One Artist in one Role at one Event, with the Colour they wore. The same Artist has a new Appearance at every Event.
+One Artist in one Role at one Event, with the Colour they wore. The same Artist has a new Appearance at every Event. An Event's Appearances are in billing order: the first is the Artist the Event is known by, as on a concert poster.
 _Avoid_: performance, booking, credit
 
 **Colour**:
@@ -138,8 +126,8 @@ What an Artist wore at one Appearance: a primary colour from a fixed palette, pl
 _Avoid_: outfit, attire, dress
 
 **Composer**:
-The person the catalog credits with a Composition. A Composer can also be an Artist, as when a performer sings their own Composition, but the two are different terms.
-_Avoid_: vaggeyakara (in writing), author
+The person the catalog credits with a Composition. For an RTP, it is whoever wrote the pallavi, often the performer, when the rasika knows. A Composer can also be an Artist, as when a performer sings their own Composition, but the two are different terms.
+_Avoid_: vaggeyakara (in writing), author, pallavi author
 
 ### Subjects
 

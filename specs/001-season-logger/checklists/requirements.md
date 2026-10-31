@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [x] No [NEEDS CLARIFICATION] markers remain (FR-040: reference only; FR-041: optional pallavi author)
+- [x] No [NEEDS CLARIFICATION] markers remain (FR-040: reference only; FR-041: an RTP's Composer is optional)
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)

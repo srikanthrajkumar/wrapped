@@ -73,11 +73,11 @@ leaves it Planned), `planned → missed` (rasika says so),
 | Field | Type | Notes |
 |---|---|---|
 | `id`, `eventId`, `artistId` | uuid | `artistId` is own or shared |
-| `role` | `lead` \| `second_lead` \| `violin` \| `mridangam` \| `khanjira` \| `ghatam` \| `morsing` \| `other_accompaniment` \| `presenter` | FR-004 |
+| `role` | `vocal` \| `violin` \| `veena` \| `flute` \| `mridangam` \| `khanjira` \| `ghatam` \| `morsing` \| `other` \| `presenter` \| null | What they did; null when unknown. No Role ranks above another (FR-004) |
 | `colourPrimary` | Colour \| `unknown` \| null | |
 | `colourSecondary` | Colour \| null | Two-tone outfit |
 | `billed` | boolean | Came from the Plan or Schedule |
-| `position` | integer | Display order |
+| `position` | integer | Billing order. The Event is shown under the Appearance at position 1 (FR-004) |
 | timestamps | | as Event |
 
 Colour palette: the 12 colours in last season's Colours sheet (white, red, blue, orange, yellow,
@@ -97,11 +97,10 @@ A Lecdem has at most 3 Appearances with role `presenter` (FR-013).
 | `ragas` | DetailValue[] | Ordered. One for most Items; several for ragamalika and RTP (FR-009) |
 | `tala` | DetailValue | |
 | `nadai` | DetailValue | Keys: `tisra`, `chatusra`, `khanda`, `misra`, `sankeerna`. Qualifies the `tala` and is shown with it, as in "Adi (khanda nadai)" |
-| `composer` | DetailValue | For an RTP: `na`, unless `pallaviAuthor` is filled |
-| `pallaviAuthor` | DetailValue \| null | RTP only; when filled, counts as a Composer (FR-041) |
+| `composer` | DetailValue | For an RTP: `na` by default; the rasika may fill in whoever wrote the pallavi (FR-041) |
 | `language` | DetailValue | |
 | `subject` | DetailValue | Rolled up to a Topic at Wrapped time |
-| `tani` | `{ nadai: DetailValue, note: string \| null }` \| null | The Tani avartanam that followed this Item (FR-011) |
+| `layaVinyasam` | `{ nadai: DetailValue, note: string \| null }` \| null | The Laya vinyasam that followed this Item (FR-011) |
 | `improvised` | `{ kind: alapana \| tanam \| niraval \| kalpana_swaram, raga: DetailValue \| null }[]` | Improvised Details heard (FR-051). Shown in the usual concert order, not the order heard; `raga` is null when it is the Item's Raga. Entry design is open (T044) |
 | `note` | string \| null | Erased on deletion requests |
 | timestamps | | as Event |
@@ -221,7 +220,7 @@ On request, in one transaction:
 
 1. Delete the Supabase Auth user, which ends its sessions. Null `authUserId`, `email` and
    `name`, set `deidentifiedAt`, and delete devices.
-2. Null every `note` on the rasika's Events and Items, including each Item's `tani.note`,
+2. Null every `note` on the rasika's Events and Items, including each Item's `layaVinyasam.note`,
    because free text can identify them.
 3. If `seasonReports` is not true, delete the rasika's season as well.
 

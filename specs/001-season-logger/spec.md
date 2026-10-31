@@ -57,7 +57,7 @@ At a Concert, the rasika opens the installed app and creates the Event. They pic
 then add each Artist in their Role with the Colour they wore. As each Item is performed, they
 add it in order. Picking a Composition fills in its raga, tala, composer, language and subject.
 Any of those can be changed in a tap (an Override), marked "?" (Unknown), marked not sure (a
-Guess), or typed freely (Unresolved). A Tani avartanam is recorded on the Item it followed, with
+Guess), or typed freely (Unresolved). A Laya vinyasam is recorded on the Item it followed, with
 its Nadai. Nothing waits for the network, and nothing is lost if the phone locks, the app is
 closed or the battery dies.
 
@@ -66,7 +66,7 @@ to sync, plan or wrap. Last season had 33 Concerts with about 6 Items each (193 
 this flow runs about 230 times a season.
 
 **Independent Test**: on the phone in airplane mode, log a full Concert (5 Appearances with
-Colours, 8 Items, one Tani avartanam, notes), force-close the app, reopen it, and find every
+Colours, 8 Items, one Laya vinyasam, notes), force-close the app, reopen it, and find every
 detail intact.
 
 **Acceptance Scenarios**:
@@ -88,8 +88,8 @@ detail intact.
    **Then** the Artist is offered, and choosing them creates a new Appearance for the same
    person.
 7. **Given** an RTP, **When** the rasika logs it, **Then** it is an Item with no Composition,
-   one or more Ragas in order, a tala and Nadai, the language and subject of its pallavi, and an
-   optional pallavi author.
+   one or more Ragas in order, a tala and Nadai, and the language and subject of its pallavi.
+   Its Composer is Not applicable unless the rasika knows who wrote the pallavi.
 
 ---
 
@@ -285,7 +285,7 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
 - **Undated reference Events.** Every Concert in last season's sheet has no date. In the
   reference import they may have no date and are ordered by their row in the sheet. New Events
   default to today.
-- **Two Tani avartanams in one Concert.** Each belongs to the Item it followed.
+- **Two Laya vinyasams in one Concert.** Each belongs to the Item it followed.
 - **Ragamalika.** The Item keeps its list of Ragas in order. Each Raga counts once for that Item
   in the top-ragas Card.
 - **A performer's own Composition** (e.g. Akkarai Sornalatha's "Gananatham Smarami", sung at her
@@ -311,9 +311,10 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
 - **FR-003**: Every save MUST be kept on the phone immediately, survive a force-close, and show
   no waiting indicator.
 - **FR-004**: The rasika MUST be able to add Appearances to an Event. Each Appearance has an
-  Artist, a Role (lead, second lead, violin, mridangam, khanjira, ghatam, morsing, other
-  accompaniment, presenter) and a Colour (one primary from a fixed palette plus an optional
-  second).
+  Artist, a Role (vocal, violin, veena, flute, mridangam, khanjira, ghatam, morsing, other,
+  presenter, or blank when unknown) and a Colour (one primary from a fixed palette plus an
+  optional second). Appearances keep their billing order, and the Event is shown under the
+  first. No Role ranks above another: the Wrapped counts every Appearance alike.
 - **FR-005**: Artists and Sabhas MUST be picked from earlier entries as the rasika types. A new
   name creates a new Artist or Sabha that belongs to that rasika. Every rasika starts from the
   shared lists, first seeded with the 11 Sabhas and the Artists in last season's sheet.
@@ -326,7 +327,7 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
 - **FR-009**: An Item MUST be able to have several Ragas in order (ragamalika, RTP) and a tala
   with Nadai.
 - **FR-010**: An Item MUST be loggable without a Composition (RTP, viruttam, slokam, free text).
-- **FR-011**: The rasika MUST be able to record a Tani avartanam on the Item it followed, with
+- **FR-011**: The rasika MUST be able to record a Laya vinyasam on the Item it followed, with
   its Nadai and an optional note.
 - **FR-012**: Search MUST find Compositions, Ragas and Composers across common transliteration
   variants (Thyagaraja / Tyagaraja, Sahana / Saahana) and the catalog's known Aliases.
@@ -382,8 +383,8 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
 - **FR-030**: Cards MUST count Linked ragas together while showing each name, count Unknown as
   "?", ignore Not applicable, and count Guesses and Overrides as their values.
 - **FR-031**: These Cards MUST be available by 20 December: Colours, top Ragas, Composer
-  timeline. These SHOULD follow, in order: season fabric cover, Topics, most-seen Artists and
-  Accompanists, Sabhas, firsts and rarities (a Raga's share of the catalog).
+  timeline. These SHOULD follow, in order: season fabric cover, Topics, most-seen Artists (overall
+  and by Role), Sabhas, firsts and rarities (a Raga's share of the catalog).
 - **FR-032**: Every Card MUST render offline as an image sized for an Instagram story and be
   shareable through the phone's share sheet.
 - **FR-033**: The composer timeline MUST use project-kept Composer dates. Birth and death years
@@ -391,6 +392,11 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
   in an "undated" band.
 - **FR-034**: The Topics Card MUST roll Subjects up to Topics through a project-kept table.
   Subjects with no Topic appear under their own name.
+- **FR-052**: Cards and season reports MUST NOT show what a single Artist performed: no
+  breakdown of Items, Compositions, Ragas or any other Detail by Artist. An artist's repertoire
+  and how they build their concert lists are theirs. Counting an Artist's Appearances is
+  allowed. A rasika's own log and export still show each Event in full, because they are the
+  rasika's record, not something the app publishes.
 
 **Tidying (P6)**
 
@@ -411,9 +417,9 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
   matching and Cards, and MUST never appear in the rasika's log or Wrapped. Names and dates
   from the sheet MAY seed the shared lists and the project-kept tables (FR-005, Composer
   dates).
-- **FR-041**: An RTP MUST have an optional pallavi author, blank by default. When filled, it
-  counts as a Composer in the composer Cards and timeline; when blank, the composer is Not
-  applicable.
+- **FR-041**: An RTP's Composer MUST default to Not applicable. The rasika MAY fill it with
+  whoever wrote the pallavi, and it then counts as a Composer in the composer Cards and
+  timeline like any other.
 
 **Promotion (P7)**
 
@@ -469,7 +475,7 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
   (optional), and has Ragas in order, tala with Nadai, composer, language, subject and note. Each
   Detail holds a value and its state (catalog, Override, Unknown, Not applicable, Guess,
   Unresolved), plus the text as entered.
-- **Tani avartanam**: attached to the Item it followed. Has a Nadai and a note.
+- **Laya vinyasam**: attached to the Item it followed. Has a Nadai and a note.
 - **Composition, Raga, Composer, Tala, Subject** (catalog, read-only): supplied by the logger
   project in versions, with Aliases and Linked ragas.
 - **Composer dates** (project-kept): per Composer, approximate birth and death years, seeded

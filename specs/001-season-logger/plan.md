@@ -172,7 +172,7 @@ and bind the screen tasks.
   open. Tidy is reached from home; the Maintainer's `/admin` from Settings.
 - **DD2 Home (D2, approved):** three sections, in order.
   - **Now:** an Event counts as Now from 60 minutes before its start until 4 hours after it. It shows as one large
-    block (Sabha, lead, start time) with one primary action, "Start logging", or "Continue: N
+    block (Sabha, first-billed Artist, start time) with one primary action, "Start logging", or "Continue: N
     Items" once started. With no such Event: "Log a Concert now", with a smaller "Lecdem".
   - **Next:** upcoming Planned Events, grouped by day.
   - **Season so far:** Attended Events, newest first, each with its Item count, and one line
@@ -180,9 +180,9 @@ and bind the screen tasks.
 - **DD3 Event screen (D3, approved; order revised by the information priorities):** in concert
   order.
   1. A one-line header: Sabha · date · start time, tapped to edit. The kind is set at creation.
-  2. **Running order:** numbered rows, each showing the title, then Raga · Composer. A Tani
-     avartanam shows as a badge on the row it followed.
-  3. **Stage:** one row per Appearance: role and name. Colours are optional and can be added at
+  2. **Running order:** numbered rows, each showing the title, then Raga · Composer. A Laya
+     vinyasam shows as a badge on the row it followed.
+  3. **Stage:** one row per Appearance, in billing order: name and role. Colours are optional and can be added at
      any time; they never come before logging an Item (Information priorities, 2026-10-30).
   4. A fixed, full-width "Add Item" button at the bottom, at least 56px tall.
   5. The note, last.
@@ -193,7 +193,7 @@ and bind the screen tasks.
     Raga, and the Composition is added when recognised.
   - **Fixed rows, always last:** "Use what I typed" (Unresolved), "? Don't know", and the
     special forms RTP, Viruttam/Slokam and Medley.
-  - **After a pick,** the Details appear as a grid of tappable values. The Tani avartanam and the
+  - **After a pick,** the Details appear as a grid of tappable values. The Laya vinyasam and the
     improvised Details stay folded underneath (FR-051).
   - **Saving:** each Detail saves when it is changed; there is no Save button. The bottom bar
     has "Done" and "Next Item →", which opens a fresh editor.
@@ -222,9 +222,9 @@ What matters most, in plain terms, independent of how it is drawn.
 **Inside one Item**
 1. **First:** Raga and Composition.
 2. **Second:** Composer, and Tala with its Nadai, as in "Adi (khanda nadai)". Nadai belongs to
-   the Tala or to the Tani avartanam; it is never a Detail on its own.
+   the Tala or to the Laya vinyasam; it is never a Detail on its own.
 3. **Third:** Language and Subject.
-4. **Tucked away until wanted:** the Tani avartanam (with its own Nadai) and the improvised
+4. **Tucked away until wanted:** the Laya vinyasam (with its own Nadai) and the improvised
    Details.
 
 **During a concert**
