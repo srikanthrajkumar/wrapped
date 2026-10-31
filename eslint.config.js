@@ -34,18 +34,36 @@ export default tseslint.config(
   {
     // Record and sync types are shared with the Supabase tests and the tools,
     // so they import nothing from screens, the store or UI libraries (eng review D1).
-    files: ['app/src/model/**/*.ts'],
+    files: ['app/src/model/**/*.{ts,tsx}'],
     rules: {
+      'no-restricted-syntax': [
+        'error',
+        { selector: 'ImportExpression', message: 'model/ must not load modules dynamically.' },
+        { selector: 'MetaProperty', message: 'model/ must not use import.meta (globs, workers).' },
+      ],
       'no-restricted-imports': [
         'error',
         {
           patterns: [
             {
-              group: ['**/screens/**', '**/store/**', '**/wrapped/**', '**/catalog/**'],
+              // Anything outside model/ in app/src: sibling folders, files and the entry.
+              regex:
+                '^\\.\\.(/\\.\\.)*/?$|^(\\.\\./)+(screens|store|wrapped|catalog|reference|main|app)([./].*)?$',
+              caseSensitive: false,
               message: 'model/ must not depend on app code.',
             },
             {
-              group: ['react', 'react-*', 'dexie', 'dexie-*', 'wouter', '@leeoniya/*'],
+              group: [
+                'react',
+                'react-*',
+                'dexie',
+                'dexie-*',
+                'idb',
+                'fake-indexeddb',
+                'wouter',
+                '@leeoniya/*',
+                '@supabase/*',
+              ],
               message: 'model/ must not depend on UI or storage libraries.',
             },
           ],
