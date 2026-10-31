@@ -54,7 +54,8 @@ quality gates).
 **Purpose**: the record types, the one storage module, the catalog and search, the offline
 shell, and the design system. Every story builds on these.
 
-**⚠️ CRITICAL**: no user story work can begin until this phase is complete.
+**⚠️ CRITICAL**: no user story work can begin until this phase is complete. T027 is the
+exception: it is deferred to the phonetic-search work and does not block Phase 3.
 
 ### Record types (shared)
 
@@ -69,6 +70,7 @@ shell, and the design system. Every story builds on these.
 - [X] T016 Implement the only write path in `app/src/store/mutate.ts`: `save(table, row)` and `remove(table, id)`. Each runs one Dexie read-write transaction that writes the record (a delete sets `deletedAt`, a tombstone) and an outbox entry (`opId` from `newId()`, `table`, `recordId`, `op`, `row`, `queuedAt`), then returns. Never `await fetch` inside a transaction, and never touch the network (constitution I). If the record already has an outbox entry that has never been sent, the save replaces that entry's row and keeps its place in the queue; an entry sent at least once, even if the reply was lost, is never changed, so the save adds a new entry (eng review D8). The sync loop claims a batch by setting `firstSentAt` in the same transaction that reads it and pushes exactly those rows, so a save after the claim adds a new entry (outside voice 1). Save transactions use Dexie's strict durability (`chromeTransactionDurability: 'strict'`), so a write is on disk before the save returns (FR-003, outside voice 12). `remove()` saves the full row with `deletedAt` set: a delete is an upsert (outside voice 8)
 - [X] T017 Implement live-query hooks in `app/src/store/queries.ts` that hide tombstoned rows, follow `mergedIntoId` to the surviving Artist or Sabha, and resolve own Artists, Sabhas and Events through their Link (ADR 0005)
 - [X] T018 [P] Request `navigator.storage.persist()` on first run and store the result and a quota estimate in `meta` (FR-023), in `app/src/store/persist.ts`
+  - *Review of PR #3 (Maintainer, 2026-10-31):* also asked again on each later launch until granted, because browsers grant it more readily once the app is installed
 - [X] T019 [P] **(required)** Offline-capture test in `app/tests/store/offline-capture.test.ts`: a save writes the record and its outbox entry together; a failed transaction writes neither; the data survives closing and reopening the database (a stand-in for a force-close); ten saves to one record leave one outbox entry; a save after a push whose reply was lost adds a second entry, and both reach the server (eng review D8); a save that lands between a batch claim and its acknowledgement still reaches the server (outside voice 1)
 
 ### Catalog snapshot and search (ADR 0004)
@@ -82,6 +84,7 @@ shell, and the design system. Every story builds on these.
 - [X] T026 Implement text-to-catalog matching (exact folded name or Alias → key, else Unresolved with the text kept), shared by the editor and the reference import, in `app/src/catalog/match.ts`
 - [ ] T027 [P] Build the golden set of about 100 variant spellings from last season's sheet plus hand-added cases, with a test asserting at least 95% return the intended entry in the top 3 (SC-010), in `tools/golden-set/golden.json` and `tools/golden-set/golden.test.ts`. The Maintainer reviews the set
   - *Drafted 2026-10-31:* 100 cases (63 sheet titles, 27 sheet raga spellings, 10 hand-added), each with `expect` left null for the Maintainer to fill in against the snapshot. The accuracy test skips until a snapshot is in `app/public/catalog/`
+  - Deferred (Maintainer, 2026-10-31): finished together with phonetic search, which the Maintainer takes up later. The draft golden.json stays with its answers blank, and the accuracy test keeps skipping until then. This does not block Phase 3.
 
 ### Shell, reference data and design
 
@@ -422,6 +425,7 @@ Merge the Artists, match the raga, and confirm all Appearances and the Wrapped u
   - T020 and T021 are in the logger repo, and T021 needs T020.
   - T023 and later catalog tasks can use the T022 fixtures until the real snapshot exists.
   - T029 needs the real snapshot to key composer dates.
+  - T027 (the golden set) is deferred to the phonetic-search work and does not block Phase 3.
   - T033 (on-device timing) needs the Redmi Note 5, the iPhone 16 and the real snapshot.
 - **US1 (Phase 3)**: after Foundational.
 - **US2 part 1 (Phase 4)**: after Foundational; it exports whatever exists. T054 (static
