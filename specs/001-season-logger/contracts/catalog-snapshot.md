@@ -57,6 +57,12 @@ Field notes:
 - Aliases come from the logger's normalize and alias maps. Aliases are search terms only;
   matching an Alias stores the raga's `key`.
 - `ragamalika` lists raga indices in order for songs that have several.
+  - `raga` and `ragamalika` never both hold a value. A song with a non-empty `ragamalika` has
+    `raga` = `-1`, and its member ragas, in order, are its Ragas.
+  - The list is written only when the source names at least two member ragas and every one
+    resolves to a catalog raga. A partial list is never written: the list stays empty and
+    `raga` keeps what the source names. For 143 songs that is the catalog's own "Ragamalika"
+    entry, because karnatik names no members. How the Wrapped counts those is not yet decided.
 - `remap` is cumulative from every earlier version: a key mapped to `null` is retired. The
   upgrade rules are in [data-model.md](../data-model.md), "Catalog version upgrade".
 
