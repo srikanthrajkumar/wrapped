@@ -1,0 +1,116 @@
+/* Platform rules from the mobile-native skill (T031). Colours, type and spacing come with the
+   design system (T030); this file only removes what makes a web page feel like one. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* No grey flash on tap; every control gives its own :active feedback instead. */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  color-scheme: light dark;
+}
+
+html,
+body {
+  margin: 0;
+  /* The app has its own scrolling; no pull-to-refresh or page rubber band. */
+  overscroll-behavior: none;
+}
+
+body {
+  font-family: system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+#root {
+  /* dvh tracks the visible area as the browser chrome shows and hides; 100vh would not. */
+  min-height: 100dvh;
+}
+
+/* Under 16px, iOS Safari zooms into the field and stays zoomed. */
+input,
+textarea,
+select {
+  font-size: max(16px, 1rem);
+}
+
+/* Fire taps at once (no double-tap-zoom wait), and don't select a control's label on a long
+   press. Content text stays selectable. */
+a,
+button,
+input,
+select,
+textarea,
+label,
+[role='button'],
+[role='tab'] {
+  touch-action: manipulation;
+}
+
+button,
+[role='button'],
+[role='tab'] {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Hover styles live only inside `@media (hover: hover) and (pointer: fine)`, so a tap never
+   leaves one stuck on. */
+
+/* The app shell: a scrolling screen above a fixed bottom tab bar (plan.md DD1). */
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.screen {
+  flex: 1;
+  padding: calc(1rem + env(safe-area-inset-top, 0px)) calc(1rem + env(safe-area-inset-right, 0px))
+    1rem calc(1rem + env(safe-area-inset-left, 0px));
+  overscroll-behavior: contain;
+}
+
+.tabs {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px)
+    env(safe-area-inset-left, 0px);
+  background: Canvas;
+  border-top: 1px solid color-mix(in srgb, CanvasText 15%, transparent);
+}
+
+.tabs a {
+  flex: 1;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  text-decoration: none;
+}
+
+.tabs a[aria-current='page'] {
+  font-weight: 600;
+}
+
+.tabs a:active {
+  opacity: 0.6;
+}
+
+.update-bar {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid color-mix(in srgb, CanvasText 15%, transparent);
+}

@@ -1,0 +1,802 @@
+[
+  {
+    "query": "Gananatham Smarami Anisham",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Gananatham Smarami Anisham · Kanakangi · Akkarai Sornalatha",
+    "from": "sheet, Compositions #1"
+  },
+  {
+    "query": "Sri Saraswati Namostute",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Sri Saraswati Namostute · Arabhi · Mutthuswami Dikshitar",
+    "from": "sheet, Compositions #2"
+  },
+  {
+    "query": "Birana Brova Ite",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Birana Brova Ite · Kalyani · Tarangambadi Pancanatha Iyer",
+    "from": "sheet, Compositions #3"
+  },
+  {
+    "query": "Kamakshi",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Kamakshi · Yadukulakamboji · Shyama Shastri",
+    "from": "sheet, Compositions #4"
+  },
+  {
+    "query": "Eti Yochanalu",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Eti Yochanalu · Kirnavali · Thyagaraja",
+    "from": "sheet, Compositions #5"
+  },
+  {
+    "query": "Gam Ganapathe",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Gam Ganapathe · Hamsadhwani · HN Muttiah Bhagavatar",
+    "from": "sheet, Compositions #8"
+  },
+  {
+    "query": "Sanatana Parama",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Sanatana Parama · Phalamanjari · Thyagaraja",
+    "from": "sheet, Compositions #9"
+  },
+  {
+    "query": "Na Jeevadhara",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Na Jeevadhara · Bilahari · Thyagaraja",
+    "from": "sheet, Compositions #10"
+  },
+  {
+    "query": "Sri Vishwanatham",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Sri Vishwanatham · Ragamalika · Mutthuswami Dikshitar",
+    "from": "sheet, Compositions #11"
+  },
+  {
+    "query": "Aparadhamula",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Aparadhamula · Rasali · Thyagaraja",
+    "from": "sheet, Compositions #12"
+  },
+  {
+    "query": "Yadavaraya",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Yadavaraya · Ragamalika · Kanakadasa",
+    "from": "sheet, Compositions #14"
+  },
+  {
+    "query": "Mamava Karunaya",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Mamava Karunaya · Shanmukhapriya · Swati Tirunal",
+    "from": "sheet, Compositions #16"
+  },
+  {
+    "query": "Shankaranai Tudi",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Shankaranai Tudi · Yamunakalyani · Neelakanta Sivan",
+    "from": "sheet, Compositions #18"
+  },
+  {
+    "query": "Varanamukhava",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Varanamukhava · Hamsadhwani · Koteeswara Iyer",
+    "from": "sheet, Compositions #19"
+  },
+  {
+    "query": "Vela Va Vadivela",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Vela Va Vadivela · Kiravani · Koteeswara Iyer",
+    "from": "sheet, Compositions #20"
+  },
+  {
+    "query": "Edayya Gati",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Edayya Gati · Chalanattai · Koteeswara Iyer",
+    "from": "sheet, Compositions #21"
+  },
+  {
+    "query": "Velayya",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Velayya · Saveri · Koteeswara Iyer",
+    "from": "sheet, Compositions #22"
+  },
+  {
+    "query": "Ini Namakoru",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Ini Namakoru · Bilahari · Koteeswara Iyer",
+    "from": "sheet, Compositions #23"
+  },
+  {
+    "query": "Kali Theera",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Kali Theera · Thodi · Koteeswara Iyer",
+    "from": "sheet, Compositions #24"
+  },
+  {
+    "query": "Arul Seyyavendum ayya",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Arul Seyyavendum ayya · Rasikapriya · Koteeswara Iyer",
+    "from": "sheet, Compositions #25"
+  },
+  {
+    "query": "Saraguna Gavumu",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Saraguna Gavumu · Thodi · M Balamuralikrishna",
+    "from": "sheet, Compositions #26"
+  },
+  {
+    "query": "Ganasudharasa",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Ganasudharasa · Nattai · M Balamuralikrishna",
+    "from": "sheet, Compositions #27"
+  },
+  {
+    "query": "Kavave Kanyakumari",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Kavave Kanyakumari · Sahana · M Balamuralikrishna",
+    "from": "sheet, Compositions #28"
+  },
+  {
+    "query": "Varuga Varuga",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Varuga Varuga · Kamavardhini · M Balamuralikrishna",
+    "from": "sheet, Compositions #29"
+  },
+  {
+    "query": "Marulukonnade",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Marulukonnade · Chenjurutti · M Balamuralikrishna",
+    "from": "sheet, Compositions #30"
+  },
+  {
+    "query": "Bhavame Mahabhagayamu",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Bhavame Mahabhagayamu · Kaapi · M Balamuralikrishna",
+    "from": "sheet, Compositions #31"
+  },
+  {
+    "query": "Talli Ninnu Nera",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Talli Ninnu Nera · Kalyani · Shyama Shastri",
+    "from": "sheet, Compositions #33"
+  },
+  {
+    "query": "Telisi Rama",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Telisi Rama · Poornachandrika · Thyagaraja",
+    "from": "sheet, Compositions #34"
+  },
+  {
+    "query": "Heccharikaga rara",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Heccharikaga rara · Yadukulakamboji · Thyagaraja",
+    "from": "sheet, Compositions #36"
+  },
+  {
+    "query": "Makelara",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Makelara · Ravichandrika · Thyagaraja",
+    "from": "sheet, Compositions #37"
+  },
+  {
+    "query": "Nadaloludai",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Nadaloludai · Kalyanavasantham · Thyagaraja",
+    "from": "sheet, Compositions #38"
+  },
+  {
+    "query": "Saravana Bhava",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Saravana Bhava · Pashupatipriya · HN Muttiah Bhagavatar",
+    "from": "sheet, Compositions #39"
+  },
+  {
+    "query": "Meenakshi Me Mudham",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Meenakshi Me Mudham · Purvikalyani · Mutthuswami Dikshitar",
+    "from": "sheet, Compositions #40"
+  },
+  {
+    "query": "Mahaganapatim",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Mahaganapatim · Nattai · Mutthuswami Dikshitar",
+    "from": "sheet, Compositions #41"
+  },
+  {
+    "query": "Lavanya Rama",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Lavanya Rama · Poornashadjam · Thyagaraja",
+    "from": "sheet, Compositions #42"
+  },
+  {
+    "query": "Duddukugala",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Duddukugala · Gowlai · Thyagaraja",
+    "from": "sheet, Compositions #43"
+  },
+  {
+    "query": "Panchanadeesha Pahimaam",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Panchanadeesha Pahimaam · Poornachandrika · Patnam Sri Subramania Iyer",
+    "from": "sheet, Compositions #44"
+  },
+  {
+    "query": "Palintuvo",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Palintuvo · Kantamani · Thyagaraja",
+    "from": "sheet, Compositions #45"
+  },
+  {
+    "query": "Intha Sowkhyamani",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Intha Sowkhyamani · Kaapi · Thyagaraja",
+    "from": "sheet, Compositions #46"
+  },
+  {
+    "query": "Chamaki",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Chamaki · Dwijavanti · ?",
+    "from": "sheet, Compositions #47"
+  },
+  {
+    "query": "Muthai Tharu",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Muthai Tharu · Shanmukhapriya · Arunagirinathar",
+    "from": "sheet, Compositions #48"
+  },
+  {
+    "query": "Venkatachalanilayam",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Venkatachalanilayam · Sindhubhairavi · Purandaradasa",
+    "from": "sheet, Compositions #49"
+  },
+  {
+    "query": "Bhagyadalakshmi",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Bhagyadalakshmi · Shri · Purandaradasa",
+    "from": "sheet, Compositions #50"
+  },
+  {
+    "query": "Chalamela",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Chalamela · Nattakurunji · Rangasvāmy Naṭṭuvanār",
+    "from": "sheet, Compositions #51"
+  },
+  {
+    "query": "Enna Ganurama",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Enna Ganurama · Pantuvarali · Thyagaraja",
+    "from": "sheet, Compositions #52"
+  },
+  {
+    "query": "Enneramum",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Enneramum · Devagandhari · Gopalakrishna Bharati",
+    "from": "sheet, Compositions #53"
+  },
+  {
+    "query": "Okaparijudaka rara",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Okaparijudaka rara · Kalavati · Thyagaraja",
+    "from": "sheet, Compositions #54"
+  },
+  {
+    "query": "Aparama Bhakti",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Aparama Bhakti · Pantuvarali · Thyagaraja",
+    "from": "sheet, Compositions #55"
+  },
+  {
+    "query": "Sarasa Samadhana",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Sarasa Samadhana · Kaapinarayani · Thyagaraja",
+    "from": "sheet, Compositions #56"
+  },
+  {
+    "query": "Senthilvaal Murugayya",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Senthilvaal Murugayya · Hamirkalyani · TR Subramaniam",
+    "from": "sheet, Compositions #57"
+  },
+  {
+    "query": "Pavanatmajagaccha",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Pavanatmajagaccha · Nattai · Mutthuswami Dikshitar",
+    "from": "sheet, Compositions #58"
+  },
+  {
+    "query": "Durmargachara",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Durmargachara · Ranjani · Thyagaraja",
+    "from": "sheet, Compositions #59"
+  },
+  {
+    "query": "Vararagalaya",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Vararagalaya · Chenchukamboji · Thyagaraja",
+    "from": "sheet, Compositions #60"
+  },
+  {
+    "query": "Thyagaraja Yogavaibhavam",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Thyagaraja Yogavaibhavam · Anandabhairavi · Mutthuswami Dikshitar",
+    "from": "sheet, Compositions #62"
+  },
+  {
+    "query": "Marukelara",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Marukelara · Jayantashri · Thyagaraja",
+    "from": "sheet, Compositions #64"
+  },
+  {
+    "query": "Harivarasanam",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Harivarasanam · Madhyamavati · Konnakathu Janaki Amma (Disputed)",
+    "from": "sheet, Compositions #69"
+  },
+  {
+    "query": "Sarasijanabha",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Sarasijanabha · Mayamalavagowlai · Swati Tirunal",
+    "from": "sheet, Compositions #70"
+  },
+  {
+    "query": "Narada Gana Lola",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Narada Gana Lola · Atana · Thyagaraja",
+    "from": "sheet, Compositions #71"
+  },
+  {
+    "query": "Sadachaleshwaram Bhavayeham",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Sadachaleshwaram Bhavayeham · Bhoopalam · Mutthuswami Dikshitar",
+    "from": "sheet, Compositions #73"
+  },
+  {
+    "query": "Kaanaamal Veenile",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Kaanaamal Veenile · Neelambari · Muttu Tandavar",
+    "from": "sheet, Compositions #74"
+  },
+  {
+    "query": "Paramatmudu",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Paramatmudu · Vagadeeshwari · Thyagaraja",
+    "from": "sheet, Compositions #75"
+  },
+  {
+    "query": "Maa Ramanan",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Maa Ramanan · Hindolam · Paapanasam Sivan",
+    "from": "sheet, Compositions #76"
+  },
+  {
+    "query": "Karubaru Seyuvaru",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Karubaru Seyuvaru · Mukhari · Thyagaraja",
+    "from": "sheet, Compositions #77"
+  },
+  {
+    "query": "Thodi",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Thodi",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Kaanada",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Kaanada",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Kaapi",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Kaapi",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Kapi",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Kapi",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Gowlai",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Gowlai",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Reetigowlai",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Reetigowlai",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Purvikalyani",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Purvikalyani",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Poorvikalyani",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Poorvikalyani",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Shankarabharanam",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Shankarabharanam",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Sankarabharanam",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Sankarabharanam",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Kambhoji",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Kambhoji",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Yadukulakamboji",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Yadukulakamboji",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Mayamalavagowlai",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Mayamalavagowlai",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Darbarikaanada",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Darbarikaanada",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Kedaragowlai",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Kedaragowlai",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Saalagabhairavi",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Saalagabhairavi",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Bhageshree",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Bhageshree",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Hamirkalyani",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Hamirkalyani",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Nattakurunji",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Nattakurunji",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Chenchukamboji",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Chenchukamboji",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Nalinakanthi",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Nalinakanthi",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Kalyanavasantham",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Kalyanavasantham",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Vagadeeshwari",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Vagadeeshwari",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Gowdamalhar",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Gowdamalhar",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Karnaranjani",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Karnaranjani",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Kaapinarayani",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Kaapinarayani",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Jayantashri",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Jayantashri",
+    "from": "sheet, Main Ragam"
+  },
+  {
+    "query": "Tōḍi",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Todi, typed with diacritics",
+    "from": "hand-added"
+  },
+  {
+    "query": "kamavardani",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Kamavardhini, misspelled",
+    "from": "hand-added"
+  },
+  {
+    "query": "panthuvarali",
+    "expect": {
+      "ragaKey": null
+    },
+    "hint": "raga Pantuvarali",
+    "from": "hand-added"
+  },
+  {
+    "query": "naagumomu",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Nagumomu · Abheri · Tyagaraja, long vowel typed",
+    "from": "hand-added"
+  },
+  {
+    "query": "nagumo",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Nagumomu · Abheri · Tyagaraja, half typed",
+    "from": "hand-added"
+  },
+  {
+    "query": "vatapi",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Vatapi Ganapatim · Hamsadhwani · Muttuswami Dikshitar, half typed",
+    "from": "hand-added"
+  },
+  {
+    "query": "endaro mahanubhavulu",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Endaro Mahanubhavulu · Sri · Tyagaraja",
+    "from": "hand-added"
+  },
+  {
+    "query": "sri subrahmanyaya namaste",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Sri Subrahmanyaya Namaste · Kambhoji · Muttuswami Dikshitar",
+    "from": "hand-added"
+  },
+  {
+    "query": "brochevarevarura",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Brochevarevarura · Khamas · Mysore Vasudevachar, joined",
+    "from": "hand-added"
+  },
+  {
+    "query": "ninnukori",
+    "expect": {
+      "kritiId": null
+    },
+    "hint": "Ninnukori (varnam) · Mohanam · Ramanathapuram Srinivasa Iyengar, joined",
+    "from": "hand-added"
+  }
+]

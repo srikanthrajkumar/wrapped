@@ -1,0 +1,22 @@
+[
+  {
+    "key": "rtp",
+    "display": "RTP",
+    "aliases": ["Ragam Tanam Pallavi", "Ragam Thanam Pallavi"]
+  },
+  {
+    "key": "viruttam",
+    "display": "Viruttam",
+    "aliases": ["Virutham", "Viruttham"]
+  },
+  {
+    "key": "slokam",
+    "display": "Slokam",
+    "aliases": ["Sloka", "Shlokam", "Shloka"]
+  },
+  {
+    "key": "medley",
+    "display": "Medley",
+    "aliases": ["Mix"]
+  }
+]
