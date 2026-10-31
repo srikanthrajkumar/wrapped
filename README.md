@@ -3,13 +3,10 @@
 Every year, a group of three of us log copious details of our hop around Carnatic kutcheris during the last weeks of December. Our process was fairly amateur; we'd log things on a spreadsheet. In an age where this is a little easier to do, we'd thought to app-ify this.
 
 ## What we're careful about
-
-We think the tools people use end up shaping how they listen. An app that counts something
-quietly says it's worth counting, and the words it uses become the words people use. So a few
-details here are deliberate:
+The way we design this app can influence how people listen to the music. So what we choose to count, and what we call things, matters. With that in mind, we've made a few deliberate choices:
 
 - **Laya vinyasam, not tani avartanam.** The percussion solo is a full part of the concert, not
-  an interval, and we call it that.
+  an interval.
 - **No main artist and no accompanists.** Everyone on stage is logged the same way and counts
   the same in the Wrapped. The order they're listed in is the only thing that says whose concert
   it was. (This may change, but for now it's on purpose.)
