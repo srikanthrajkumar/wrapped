@@ -208,3 +208,68 @@ export const RASIKA_TABLES = [
   'artists',
   'sabhas',
 ] as const satisfies readonly RasikaTable[];
+
+// Each table's own fields, and no others. A screen may hold a record decorated for display
+// (a resolved Artist, a Schedule id read through a Link); the store keeps only these fields,
+// so nothing else reaches the phone's table or the server. `Record<keyof …, true>` makes the
+// compiler reject a field that is missing here or no longer on the type.
+const timestamps = { createdAt: true, updatedAt: true, deletedAt: true } as const;
+const ownEntry: Record<keyof OwnEntry, true> = {
+  id: true,
+  name: true,
+  nameKey: true,
+  aliases: true,
+  mergedIntoId: true,
+  ...timestamps,
+};
+
+export const RECORD_FIELDS: { [T in RasikaTable]: Record<keyof RasikaRows[T], true> } = {
+  events: {
+    id: true,
+    kind: true,
+    date: true,
+    startTime: true,
+    sabhaId: true,
+    status: true,
+    cancelled: true,
+    source: true,
+    scheduleEntryId: true,
+    scheduleVersionSeen: true,
+    scheduleChanged: true,
+    touched: true,
+    title: true,
+    note: true,
+    ...timestamps,
+  },
+  appearances: {
+    id: true,
+    eventId: true,
+    artistId: true,
+    role: true,
+    colourPrimary: true,
+    colourSecondary: true,
+    billed: true,
+    position: true,
+    ...timestamps,
+  },
+  items: {
+    id: true,
+    eventId: true,
+    position: true,
+    compositionKey: true,
+    title: true,
+    form: true,
+    ragas: true,
+    tala: true,
+    nadai: true,
+    composer: true,
+    language: true,
+    subject: true,
+    layaVinyasam: true,
+    improvised: true,
+    note: true,
+    ...timestamps,
+  },
+  artists: ownEntry,
+  sabhas: ownEntry,
+};

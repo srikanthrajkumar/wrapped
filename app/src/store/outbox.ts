@@ -25,8 +25,9 @@ export async function claimBatch(
 }
 
 /**
- * Drop the entries the server acknowledged, by opId. Rejected entries are not dropped here:
- * they stay counted as unsynced until the rasika fixes or discards them (T078, T097).
+ * Drop the entries the server acknowledged, by opId. Rejected ops are the sync loop's (T078,
+ * T097): the contract takes them out of the push queue into "needs attention", still counted
+ * as unsynced, so a batch never re-sends them.
  */
 export async function acknowledge(
   opIds: readonly string[],

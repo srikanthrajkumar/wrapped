@@ -13,7 +13,10 @@ import type { Catalog } from './load';
 
 export type MatchField = 'raga' | 'composer' | 'tala' | 'language' | 'subject' | 'form';
 
-/** A project-kept form with no Composition, such as RTP (app/src/reference/forms.json). */
+/**
+ * A project-kept form with no Composition, such as RTP (app/src/reference/forms.json). A catalog
+ * form whose name folds the same wins, so "Slokam" matches the catalog's "shlokam".
+ */
 export interface KeptForm {
   key: string;
   display: string;
@@ -33,6 +36,8 @@ interface Name {
 }
 
 // Ambiguous folds map to null, so two entries that fold alike are never silently picked.
+// Known case, left for the phonetic-search work: the catalog's three Kanada ragas (kAnaDA,
+// kannaDa, kaNNaDa) all fold to "kanada", so none of them matches by name.
 function lookup(entries: Name[]): Map<string, string | null> {
   const primary = new Map<string, string | null>();
   const alias = new Map<string, string | null>();
@@ -53,6 +58,15 @@ function lookup(entries: Name[]): Map<string, string | null> {
   return primary;
 }
 
+/** `primary`, plus the names of `fallback` it doesn't already have. */
+function withFallback(
+  primary: Map<string, string | null>,
+  fallback: Map<string, string | null>,
+): Map<string, string | null> {
+  for (const [folded, key] of fallback) if (!primary.has(folded)) primary.set(folded, key);
+  return primary;
+}
+
 export function buildMatcher(catalog: Catalog, keptForms: readonly KeptForm[] = []): Matcher {
   const plain = (keys: string[]): Name[] => keys.map((key) => ({ key, names: [] }));
   const tables: Record<MatchField, Map<string, string | null>> = {
@@ -63,10 +77,10 @@ export function buildMatcher(catalog: Catalog, keptForms: readonly KeptForm[] = 
     tala: lookup(catalog.talas.map((t) => ({ key: t.key, names: [t.display] }))),
     language: lookup(plain(catalog.languages)),
     subject: lookup(plain(catalog.subjects)),
-    form: lookup([
-      ...plain(catalog.forms),
-      ...keptForms.map((f) => ({ key: f.key, names: [f.display, ...f.aliases] })),
-    ]),
+    form: withFallback(
+      lookup(plain(catalog.forms)),
+      lookup(keptForms.map((f) => ({ key: f.key, names: [f.display, ...f.aliases] }))),
+    ),
   };
 
   const key = (field: MatchField, text: string) => tables[field].get(fold(text)) ?? null;

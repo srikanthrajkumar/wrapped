@@ -37,13 +37,18 @@ function TabBar() {
 
 function UpdateBar() {
   const available = useUpdateAvailable();
-  if (!available) return null;
+  // The status region is always present, so a screen reader announces the message when it
+  // appears; a region inserted already filled is often missed.
   return (
-    <div className="update-bar" role="status">
-      <span>A new version is ready.</span>
-      <button type="button" onClick={updateNow}>
-        Update
-      </button>
+    <div role="status">
+      {available && (
+        <div className="update-bar">
+          <span>A new version is ready.</span>
+          <button type="button" onClick={updateNow}>
+            Update
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -51,7 +56,7 @@ function UpdateBar() {
 export function App() {
   const [inItemEditor] = useRoute(ITEM_ROUTE);
   return (
-    <div className="shell">
+    <div className={inItemEditor ? 'shell no-tabs' : 'shell'}>
       <UpdateBar />
       <main className="screen">
         <Switch>

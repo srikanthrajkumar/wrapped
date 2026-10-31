@@ -35,10 +35,12 @@ NAMESPACE = uuid.UUID("6f1c2a52-3b0e-4f43-9d1e-7a4c0b8e5d21")
 LIST_VERSION = 1
 
 # Project-kept forms an Item uses when it has no Composition (data-model.md, Item `form`).
+# Where the catalog has the same form, the key is the catalog's ("viruttam", "shlokam"), so
+# the two never split one form's count.
 FORMS = [
     {"key": "rtp", "display": "RTP", "aliases": ["Ragam Tanam Pallavi", "Ragam Thanam Pallavi"]},
     {"key": "viruttam", "display": "Viruttam", "aliases": ["Virutham", "Viruttham"]},
-    {"key": "slokam", "display": "Slokam", "aliases": ["Sloka", "Shlokam", "Shloka"]},
+    {"key": "shlokam", "display": "Slokam", "aliases": ["Sloka", "Shlokam", "Shloka"]},
     {"key": "medley", "display": "Medley", "aliases": ["Mix"]},
 ]
 
@@ -52,9 +54,18 @@ def clean(value):
 
 
 def rows(sheet):
-    """The data rows of a sheet as dicts keyed by header, skipping blank rows."""
+    """The data rows of a sheet as dicts keyed by header, skipping blank rows.
+
+    A repeated header gets a number ("Presenter/Co-presenter 2"), so no column is lost: the
+    Lecdems sheet has three columns with the same name.
+    """
     values = list(sheet.iter_rows(values_only=True))
-    header = [clean(cell) or "" for cell in values[0]]
+    seen = Counter()
+    header = []
+    for cell in values[0]:
+        name = clean(cell) or ""
+        seen[name] += 1
+        header.append(name if seen[name] == 1 else f"{name} {seen[name]}")
     for row in values[1:]:
         if any(clean(cell) for cell in row):
             yield {header[i]: row[i] for i in range(min(len(header), len(row)))}

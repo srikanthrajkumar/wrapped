@@ -119,4 +119,4 @@ same person.
 - Anantha R Krishnan / Anantha R Krishnana
 - Charumati Raghuraman / Charumati Raghuram
 
-Seeded: 11 Sabhas, 96 Artists, 4 forms.
+Seeded: 11 Sabhas, 102 Artists, 4 forms.

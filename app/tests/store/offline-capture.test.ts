@@ -79,7 +79,7 @@ async function syncAll(db: WrappedDB, server: FakeServer) {
 describe('offline capture (required)', () => {
   it('writes the record and its outbox entry together', async () => {
     const db = freshDb();
-    const event = await save('events', concert(), db);
+    const event = await save('events', concert(), { db });
 
     expect(await db.events.get(event.id)).toEqual(event);
     const outbox = await db.outbox.toArray();
@@ -101,7 +101,7 @@ describe('offline capture (required)', () => {
     });
     const event = concert();
 
-    await expect(save('events', event, db)).rejects.toThrow('disk full');
+    await expect(save('events', event, { db })).rejects.toThrow('disk full');
     expect(await db.events.get(event.id)).toBeUndefined();
     expect(await db.outbox.count()).toBe(0);
   });
@@ -109,9 +109,9 @@ describe('offline capture (required)', () => {
   it('keeps saves and deletes after the database is closed and reopened', async () => {
     const name = `offline-capture-${newId()}`;
     const before = freshDb(name);
-    const kept = await save('events', concert(), before);
-    const deleted = await save('events', concert(), before);
-    await remove('events', deleted.id, before);
+    const kept = await save('events', concert(), { db: before });
+    const deleted = await save('events', concert(), { db: before });
+    await remove('events', deleted.id, { db: before });
     before.close();
 
     // A new connection, as after a force-close and relaunch.
@@ -127,8 +127,8 @@ describe('offline capture (required)', () => {
 
   it('a delete queues the full row as a tombstone', async () => {
     const db = freshDb();
-    const event = await save('events', concert({ note: 'Thodi alapana' }), db);
-    const tombstone = await remove('events', event.id, db);
+    const event = await save('events', concert({ note: 'Thodi alapana' }), { db });
+    const tombstone = await remove('events', event.id, { db });
 
     expect(tombstone).toMatchObject({ id: event.id, note: 'Thodi alapana' });
     expect(tombstone?.deletedAt).toEqual(expect.any(String));
@@ -137,10 +137,49 @@ describe('offline capture (required)', () => {
     expect(outbox[0]?.row).toEqual(tombstone);
   });
 
+  it('an out-of-date save after a delete keeps the tombstone and its queued delete', async () => {
+    const db = freshDb();
+    const event = await save('events', concert({ note: 'first' }), { db });
+    await remove('events', event.id, { db });
+
+    // A screen still holding the live copy saves it again.
+    const result = await save('events', { ...event, note: 'stale edit' }, { db });
+    expect(result.deletedAt).toEqual(expect.any(String));
+    expect((await db.events.get(event.id))?.deletedAt).toEqual(expect.any(String));
+    const outbox = await db.outbox.toArray();
+    expect(outbox).toHaveLength(1);
+    expect(outbox[0]).toMatchObject({ op: 'remove', row: { deletedAt: expect.any(String) } });
+  });
+
+  it('a save that restores brings a deleted record back and queues it', async () => {
+    const db = freshDb();
+    const event = await save('events', concert(), { db });
+    const tombstone = await remove('events', event.id, { db });
+
+    // Restoring clears deletedAt even when the row handed in is the tombstone itself.
+    const restored = await save('events', tombstone!, { db, restore: true });
+    expect(restored.deletedAt).toBeNull();
+    expect((await db.events.get(event.id))?.deletedAt).toBeNull();
+    expect((await db.outbox.toArray()).map((entry) => entry.op)).toEqual(['save']);
+  });
+
+  it("stores only the record's own fields and keeps its first createdAt", async () => {
+    const db = freshDb();
+    const event = await save('events', concert({ createdAt: '2026-12-15T10:00:00.000Z' }), { db });
+    // A copy decorated for display, with a later createdAt from a careless screen.
+    const decorated = { ...event, createdAt: '2026-12-16T10:00:00.000Z', sabha: { name: 'X' } };
+    const stored = await save('events', decorated, { db });
+
+    expect(stored).not.toHaveProperty('sabha');
+    expect(stored.createdAt).toBe('2026-12-15T10:00:00.000Z');
+    expect(await db.events.get(event.id)).not.toHaveProperty('sabha');
+    expect((await db.outbox.toArray())[0]?.row).not.toHaveProperty('sabha');
+  });
+
   it('ten saves to one record leave one outbox entry with the last row', async () => {
     const db = freshDb();
     const event = concert();
-    for (let n = 1; n <= 10; n += 1) await save('events', { ...event, note: `edit ${n}` }, db);
+    for (let n = 1; n <= 10; n += 1) await save('events', { ...event, note: `edit ${n}` }, { db });
 
     const outbox = await db.outbox.toArray();
     expect(outbox).toHaveLength(1);
@@ -150,9 +189,9 @@ describe('offline capture (required)', () => {
   it('an unsent entry keeps its place in the queue when replaced', async () => {
     const db = freshDb();
     const first = concert();
-    await save('events', first, db);
-    const second = await save('events', concert(), db);
-    await save('events', { ...first, note: 'edited' }, db);
+    await save('events', first, { db });
+    const second = await save('events', concert(), { db });
+    await save('events', { ...first, note: 'edited' }, { db });
 
     const outbox = await db.outbox.orderBy('seq').toArray();
     expect(outbox.map((entry) => entry.recordId)).toEqual([first.id, second.id]);
@@ -161,13 +200,13 @@ describe('offline capture (required)', () => {
   it('a save after a push whose reply was lost adds a second entry, and both reach the server', async () => {
     const db = freshDb();
     const server = new FakeServer();
-    const event = await save('events', concert({ note: 'first' }), db);
+    const event = await save('events', concert({ note: 'first' }), { db });
 
     // The push reaches the server, but its reply never comes back.
     const lost = await claimBatch(200, db);
     server.push(lost);
 
-    const edited = await save('events', { ...event, note: 'second' }, db);
+    const edited = await save('events', { ...event, note: 'second' }, { db });
     const outbox = await db.outbox.orderBy('seq').toArray();
     expect(outbox).toHaveLength(2);
     expect((outbox[0]?.row as Event).note).toBe('first');
@@ -181,10 +220,10 @@ describe('offline capture (required)', () => {
   it('a save between a batch claim and its acknowledgement still reaches the server', async () => {
     const db = freshDb();
     const server = new FakeServer();
-    const event = await save('events', concert({ note: 'before the claim' }), db);
+    const event = await save('events', concert({ note: 'before the claim' }), { db });
 
     const batch = await claimBatch(200, db);
-    const edited = await save('events', { ...event, note: 'after the claim' }, db);
+    const edited = await save('events', { ...event, note: 'after the claim' }, { db });
     expect((batch[0]?.row as Event).note).toBe('before the claim');
     expect(await db.outbox.count()).toBe(2);
 

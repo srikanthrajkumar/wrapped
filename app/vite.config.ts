@@ -1,12 +1,19 @@
 import react from '@vitejs/plugin-react';
-import { readdirSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { CATALOG_FILE } from './src/catalog/load.ts';
 import { isPhase2 } from './src/precache-phases.ts';
 
 const outDir = fileURLToPath(new URL('./dist', import.meta.url));
 const SW_FILE = 'sw.js';
+
+// The precache's per-file cap. Workbox's default is 2 MiB, and the full snapshot is already
+// 2.3 MB raw (448 KB brotli), so the default would fail the build. The download budget is
+// enforced on compressed sizes by tools/size-budget/check.mjs, not here.
+const MAX_PRECACHED_FILE_BYTES = 8 * 1024 * 1024;
 
 // The catalog snapshot the build copies in (CONTRIBUTING.md). Git never holds it, so a build
 // without one (CI, a fresh clone) still works, with search empty.
@@ -14,7 +21,7 @@ function catalogFile(): string | null {
   const dir = fileURLToPath(new URL('./public/catalog', import.meta.url));
   let files: string[];
   try {
-    files = readdirSync(dir).filter((name) => /^catalog\.[0-9a-f]{64}\.json$/.test(name));
+    files = readdirSync(dir).filter((name) => CATALOG_FILE.test(name));
   } catch {
     return null;
   }
@@ -23,7 +30,14 @@ function catalogFile(): string | null {
       `app/public/catalog holds ${files.length} snapshots; keep only the current one`,
     );
   }
-  return files[0] ?? null;
+  const file = files[0];
+  if (!file) return null;
+  // The phone refuses a file whose bytes don't match its name, so never ship one.
+  const hash = createHash('sha256')
+    .update(readFileSync(`${dir}/${file}`))
+    .digest('hex');
+  if (`catalog.${hash}.json` !== file) throw new Error(`${file} does not match its hash`);
+  return file;
 }
 
 export default defineConfig({
@@ -47,6 +61,7 @@ export default defineConfig({
       },
       injectManifest: {
         globPatterns: ['**/*'],
+        maximumFileSizeToCacheInBytes: MAX_PRECACHED_FILE_BYTES,
         // Record the two phases for the size check (tools/size-budget/check.mjs). The service
         // worker itself is downloaded at install, so it belongs to the first phase.
         manifestTransforms: [

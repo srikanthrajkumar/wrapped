@@ -4,7 +4,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { loadCatalog, sha256Hex } from '../../src/catalog/load';
+import { CatalogError, decodeSnapshot, loadCatalog, sha256Hex } from '../../src/catalog/load';
 
 const fixture = (name: string) => {
   const bytes = readFileSync(join(import.meta.dirname, '../fixtures', name));
@@ -38,18 +38,23 @@ describe('catalog loader', () => {
     expect(catalog.songByKritiId.get('c0015')?.composer).toBeNull();
   });
 
-  it('refuses a mismatched file and keeps the previous version', async () => {
+  it('refuses a valid file whose bytes do not match its name, and keeps the previous version', async () => {
     const v1 = fixture('catalog-v1.json');
     const v2 = fixture('catalog-v2.json');
     const previous = await named(v1);
-    const damaged = await named(v2);
-    const bytes: Record<string, ArrayBuffer> = {
-      [damaged]: new TextEncoder().encode('{"format":1}').buffer as ArrayBuffer,
-      [previous]: v1,
-    };
+    // v2's name over v1's bytes: a snapshot that decodes, so only the hash check refuses it.
+    const mismatched = await named(v2);
+    const bytes: Record<string, ArrayBuffer> = { [mismatched]: v1, [previous]: v1 };
 
-    const loaded = await loadCatalog([damaged, previous], async (file) => bytes[file]!);
+    const loaded = await loadCatalog([mismatched, previous], async (file) => bytes[file]!);
     expect(loaded.file).toBe(previous);
+  });
+
+  it('refuses a ragamalika that lists no raga (-1) as a member', () => {
+    const raw = JSON.parse(new TextDecoder().decode(fixture('catalog-v1.json')));
+    const c0016 = raw.songs.kritiId.indexOf('c0016');
+    raw.songs.ragamalika[c0016] = [13, -1];
+    expect(() => decodeSnapshot(raw)).toThrow(CatalogError);
   });
 
   it('reports why when no file loads', async () => {
