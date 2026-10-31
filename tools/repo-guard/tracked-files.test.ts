@@ -1,24 +1,11 @@
 // The repository is public and a commit stays in history for good. These files must never be
 // tracked, whatever .gitignore says: `git add -f` or a moved folder gets past an ignore rule.
-// This checks the current index; it does not scan history, so it catches a leak before merge
-// only when it runs on every commit or pull request.
+// This checks the current index. A file added and deleted again in a pull request never shows
+// here, so CI also runs added-files.mjs over every commit the pull request adds.
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-
-const FORBIDDEN = [
-  // The private catalog snapshot, wherever it ends up, compressed or not (CONTRIBUTING.md).
-  /^app\/public\/catalog\//,
-  /(^|\/)catalog\.[0-9a-f]{8,}\.json(\.(br|gz))?$/i,
-  // Secrets: every .env file except the committed list of names, plus *.env and .envrc.
-  /(^|\/)\.env(?!\.example$)(\..*)?$/,
-  /(^|\/)[^/]+\.env$/,
-  /(^|\/)\.envrc$/,
-];
-
-export function forbiddenPaths(paths: string[]) {
-  return paths.filter((path) => FORBIDDEN.some((pattern) => pattern.test(path)));
-}
+import { forbiddenPaths } from './forbidden.mjs';
 
 const repoRoot = resolve(import.meta.dirname, '../..');
 

@@ -50,10 +50,13 @@ it: it is built from karnatik.com and is not published here.
 - From T001 on, each task group is built on its own branch, as in `phase-2-store`.
   - It goes in through a pull request, which gets a `/review` pass before merging.
   - Documentation-only changes may go straight to `main`.
-- GitHub Actions runs the checks on every pull request.
-  - It uses the handmade test snapshots.
-  - The full-catalog checks (search accuracy against the golden set, the size budget) need
-    the private snapshot, so they run locally and before each deploy.
+- GitHub Actions runs `npm run check` on every pull request and every push to `main`
+  (`.github/workflows/check.yml`).
+  - It uses the handmade test snapshots. Its size budget measures the app without the catalog.
+  - It also fails if any commit in the pull request adds a catalog snapshot or a `.env` file,
+    even one a later commit deletes, because history keeps it.
+  - The full-catalog checks (search accuracy against the golden set, the size budget with the
+    snapshot in) need the private snapshot, so they run locally and before each deploy.
 
 ## Secrets
 
