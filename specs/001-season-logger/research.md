@@ -151,8 +151,27 @@ What makes the network-error risks tolerable: logging never depends on the platf
 (constitution I). The app keeps its own record of who is signed in and asks the platform for a
 token only when syncing. If a platform ends a session, the outbox and the season stay on the
 phone, and the rasika sees a non-blocking "sign in again" prompt once online. The worst case is
-an extra sign-in, not lost data. That prompt still needs testing on the primary device: Google
-sign-in from an installed iOS PWA has not been tried.
+an extra sign-in, not lost data. Google sign-in from an installed iOS PWA was tested on
+2026-10-31 (T010, below) and works.
+
+#### Google sign-in from the installed iOS app (T010, 2026-10-31)
+
+- **Setup**: a throwaway Supabase free project, a Google OAuth web client in testing mode, and
+  a one-page test app served over a temporary Cloudflare tunnel. supabase-js 2.118.0.
+- **Device**: iPhone 16, iOS 18.7, the page added to the home screen as a web app; the page
+  reported itself as installed (`navigator.standalone`) on every run.
+- **Test A, Google's button with `signInWithIdToken`** (the method ADR 0001 plans):
+  **works.** Google returned a credential inside the installed app, and Supabase accepted it
+  with a hashed nonce. The first try failed only because the Google provider was not yet
+  switched on in Supabase, a setup slip, not a phone limit.
+- **Test B, Supabase's redirect sign-in with `signInWithOAuth`**: **works.** The app left for
+  Google, came back into the installed app (not a Safari view), and found the session on
+  reload.
+- **Result**: T077 uses Google's button with `signInWithIdToken`, as planned. The email
+  one-time code fallback, with its custom-email and name-entry questions, is not needed. Test
+  B is a known-good second route if Google's button ever breaks on iOS.
+- **Not covered**: a session surviving a force-close of the installed app, and the Redmi Note
+  5. T113 re-tests sign-in on the iPhone before release.
 
 Supabase also accepts Firebase Auth and Clerk as third-party sign-in for its database
 (supabase.com/docs/guides/auth/third-party/overview), so choosing the database does not force

@@ -45,6 +45,7 @@ as the seasons. Decided 2026-10-29; evidence in `specs/001-season-logger/researc
 - **Still open, decided when the server is built:** whether push and pull run as Postgres
   functions called through Supabase's API or as Supabase Edge Functions. Either way they follow
   `contracts/sync-api.md`.
-- **Not yet tested:** Google sign-in from an installed iOS PWA. A Phase 1 spike on the primary
-  iPhone tests Google's sign-in button with `signInWithIdToken`; if it fails, sign-in uses
-  Supabase's email one-time code instead (eng review D3).
+- **Tested 2026-10-31 (T010):** Google sign-in works from the app installed to the home screen
+  on the iPhone 16 (iOS 18.7), both with Google's button and `signInWithIdToken` and with
+  Supabase's redirect sign-in. Sign-in uses Google's button; the email one-time code fallback
+  (eng review D3) is not needed. Details in `specs/001-season-logger/research.md`.
