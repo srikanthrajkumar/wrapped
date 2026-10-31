@@ -14,6 +14,11 @@ export interface CatalogIndex {
 }
 
 export const DEFAULT_LIMIT = 20;
+// uFuzzy tries every order of the words (6 orders for 3 words, 120 for 5), so reordering is
+// kept to short queries of real words: four or five short words took seconds on the full
+// catalog. Longer queries are matched in the order typed.
+const MAX_REORDERED_WORDS = 3;
+const MIN_REORDERED_WORD = 2;
 
 // One error per term past its first letter (substitution, transposition, insertion or
 // deletion), for spellings the fold doesn't reach, such as "Kamavardani" for "Kamavardhini".
@@ -22,39 +27,57 @@ const fuzzy = new uFuzzy({ intraMode: 1, intraIns: 1, intraSub: 1, intraTrn: 1, 
 
 const ragaNames = (raga: Raga) => [raga.display, raga.key, ...raga.aliases];
 
-function songText(song: Song): string {
-  const ragas = song.raga ? [song.raga, ...song.ragamalika] : song.ragamalika;
-  const title = fold(song.title);
-  const firstLine = fold(song.firstLine);
-  return [
-    title,
-    firstLine,
-    // Joined spellings, as in "Venkatachalanilayam" for "Venkatachala Nilayam".
-    title.replaceAll(' ', ''),
-    firstLine.replaceAll(' ', ''),
-    fold(
-      [
-        ...ragas.flatMap(ragaNames),
-        ...(song.composer ? [song.composer.display, ...song.composer.aliases] : []),
-        song.tala?.display ?? '',
-      ].join(' '),
-    ),
-  ].join(' ');
+/**
+ * uFuzzy's third argument: the most words it will reorder. A query with more words than this
+ * is filtered word by word and left unranked, which is fast; 0 matches in typed order, ranked.
+ * - Up to three words of two letters or more may come in any order ("adi todi" finds Todi).
+ * - Single letters among several words ("a b c") match nearly everything, and ranking them in
+ *   order took over half a second on the full catalog, so they take the fast unranked path.
+ * - Anything else is matched in the order typed, and ranked.
+ */
+function reorderLimit(needle: string): number {
+  const words = needle.split(' ');
+  if (words.length === 1) return 0;
+  if (words.some((word) => word.length < MIN_REORDERED_WORD)) return 1;
+  return words.length <= MAX_REORDERED_WORDS ? words.length : 0;
 }
 
 /** Build the index once, when the catalog loads. */
 export function buildIndex(catalog: Catalog): CatalogIndex {
+  // Thousands of songs share each raga, composer and tala: fold their names once, not per song.
+  const ragaText = new Map(catalog.ragas.map((raga) => [raga, fold(ragaNames(raga).join(' '))]));
+  const composerText = new Map(
+    catalog.composers.map((c) => [c, fold([c.display, ...c.aliases].join(' '))]),
+  );
+  const talaText = new Map(catalog.talas.map((tala) => [tala, fold(tala.display)]));
+
   const entries: SearchResult[] = [
     ...catalog.ragas.map((raga): SearchResult => ({ kind: 'raga', raga })),
     ...catalog.songs.map((song): SearchResult => ({ kind: 'song', song })),
   ];
-  const haystack = entries.map((entry) =>
-    entry.kind === 'raga' ? fold(ragaNames(entry.raga).join(' ')) : songText(entry.song),
-  );
   // For one-letter queries: the start of each title or raga name.
-  const heads = entries.map((entry) =>
-    fold(entry.kind === 'raga' ? entry.raga.display : entry.song.title),
-  );
+  const heads: string[] = [];
+  const haystack = entries.map((entry) => {
+    if (entry.kind === 'raga') {
+      heads.push(fold(entry.raga.display));
+      return ragaText.get(entry.raga)!;
+    }
+    const { song } = entry;
+    const title = fold(song.title);
+    const firstLine = fold(song.firstLine);
+    heads.push(title);
+    const ragas = song.raga ? [song.raga, ...song.ragamalika] : song.ragamalika;
+    return [
+      title,
+      firstLine,
+      // Joined spellings, as in "Venkatachalanilayam" for "Venkatachala Nilayam".
+      title.replaceAll(' ', ''),
+      firstLine.replaceAll(' ', ''),
+      ...ragas.map((raga) => ragaText.get(raga)!),
+      song.composer ? composerText.get(song.composer)! : '',
+      song.tala ? talaText.get(song.tala)! : '',
+    ].join(' ');
+  });
 
   return {
     search(query, limit = DEFAULT_LIMIT) {
@@ -71,7 +94,7 @@ export function buildIndex(catalog: Catalog): CatalogIndex {
         return found;
       }
 
-      const [idxs, info, order] = fuzzy.search(haystack, needle, 1);
+      const [idxs, info, order] = fuzzy.search(haystack, needle, reorderLimit(needle));
       if (!idxs) return [];
       const ranked = info && order ? order.map((i) => info.idx[i]!) : idxs;
       return ranked.slice(0, limit).map((i) => entries[i]!);

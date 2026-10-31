@@ -21,11 +21,20 @@ function ask(worker: ServiceWorker, message: ToServiceWorker): Promise<OfflineSt
   });
 }
 
-async function checkOffline(registration: ServiceWorkerRegistration) {
-  const worker = registration.active;
-  if (!worker) return;
-  const status = await ask(worker, { type: 'CACHE_PHASE_2' });
-  await recordOfflineReady(status.phase2 && status.catalogFile === CATALOG_FILE, CATALOG_FILE);
+// One check at a time: two overlapping runs could finish out of order and leave a late "not
+// ready" over an earlier "ready".
+let checking: Promise<void> | null = null;
+
+function checkOffline(registration: ServiceWorkerRegistration): Promise<void> {
+  checking ??= (async () => {
+    const worker = registration.active;
+    if (!worker) return;
+    const status = await ask(worker, { type: 'CACHE_PHASE_2' });
+    await recordOfflineReady(status.phase2 && status.catalogFile === CATALOG_FILE, CATALOG_FILE);
+  })().finally(() => {
+    checking = null;
+  });
+  return checking;
 }
 
 /** Start the service worker. Never awaited by the first render: the shell opens at once. */
@@ -38,20 +47,23 @@ export function startServiceWorker(): void {
     },
     onRegisteredSW(_url, registration) {
       if (!registration) return;
-      void navigator.serviceWorker.ready.then(() => checkOffline(registration));
+      const check = () => void navigator.serviceWorker.ready.then(() => checkOffline(registration));
+      check();
+      // A first open without signal can't fetch the second download; try again when it returns.
+      window.addEventListener('online', check);
     },
   });
 }
 
 /** True when a new version is waiting for the rasika's agreement (FR-038). */
 export function useUpdateAvailable(): boolean {
-  return useSyncExternalStore(
-    (listener) => {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-    () => updateAvailable,
-  );
+  return useSyncExternalStore(subscribe, () => updateAvailable);
+}
+
+// Defined once, so React doesn't resubscribe on every render.
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => void listeners.delete(listener);
 }
 
 /** The rasika agreed: activate the waiting version and reload into it. */

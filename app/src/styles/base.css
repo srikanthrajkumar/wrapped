@@ -55,27 +55,41 @@ label,
 
 button,
 [role='button'],
-[role='tab'] {
+[role='tab'],
+.tabs a {
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
 }
 
+/* With the tap highlight gone, every control shows its own press. */
+a:active,
+button:active {
+  opacity: 0.6;
+}
+
 /* Hover styles live only inside `@media (hover: hover) and (pointer: fine)`, so a tap never
    leaves one stuck on. */
 
-/* The app shell: a scrolling screen above a fixed bottom tab bar (plan.md DD1). */
+/* The app shell: a scrolling screen above a fixed bottom tab bar (plan.md DD1). The shell
+   clears the notch, so the update bar and the screen both sit below it. */
 .shell {
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 .screen {
   flex: 1;
-  padding: calc(1rem + env(safe-area-inset-top, 0px)) calc(1rem + env(safe-area-inset-right, 0px))
-    1rem calc(1rem + env(safe-area-inset-left, 0px));
+  padding: 1rem calc(1rem + env(safe-area-inset-right, 0px)) 1rem
+    calc(1rem + env(safe-area-inset-left, 0px));
   overscroll-behavior: contain;
+}
+
+/* The tab bar clears the home indicator; without it (the Item editor) the screen does. */
+.no-tabs .screen {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
 }
 
 .tabs {
@@ -102,15 +116,12 @@ button,
   font-weight: 600;
 }
 
-.tabs a:active {
-  opacity: 0.6;
-}
-
 .update-bar {
   display: flex;
   gap: 1rem;
   align-items: center;
   justify-content: space-between;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem calc(1rem + env(safe-area-inset-right, 0px)) 0.5rem
+    calc(1rem + env(safe-area-inset-left, 0px));
   border-bottom: 1px solid color-mix(in srgb, CanvasText 15%, transparent);
 }

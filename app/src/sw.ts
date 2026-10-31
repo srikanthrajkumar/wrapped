@@ -87,11 +87,15 @@ self.addEventListener('message', (event) => {
   if (message?.type === 'SKIP_WAITING') {
     void self.skipWaiting();
   } else if (message?.type === 'CACHE_PHASE_2') {
+    // Always answer, even when the cache itself fails (quota, storage errors), so the page
+    // never waits forever and never keeps a stale "ready for offline".
     event.waitUntil(
-      cachePhase2().then((phase2Ready) => {
-        const status: OfflineStatus = { phase2: phase2Ready, catalogFile };
-        event.ports[0]?.postMessage(status);
-      }),
+      cachePhase2()
+        .catch(() => false)
+        .then((phase2Ready) => {
+          const status: OfflineStatus = { phase2: phase2Ready, catalogFile };
+          event.ports[0]?.postMessage(status);
+        }),
     );
   }
 });

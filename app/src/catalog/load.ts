@@ -103,12 +103,31 @@ function at<T>(list: T[], index: number, where: string): T | null {
   return value;
 }
 
+/** An index that must name an entry: `-1` is refused, as in a ragamalika's member list. */
+function member<T>(list: T[], index: number, where: string): T {
+  const value = at(list, index, where);
+  if (value === null) throw new CatalogError(`${where} lists no value (-1) as a member`);
+  return value;
+}
+
+/** A lookup by key. Keys are unique in a snapshot (the contract), so a repeat is refused. */
+function byKey<T>(entries: T[], keyOf: (entry: T) => string, where: string): Map<string, T> {
+  const map = new Map<string, T>();
+  for (const entry of entries) {
+    const key = keyOf(entry);
+    if (map.has(key)) throw new CatalogError(`${where} repeats the key ${JSON.stringify(key)}`);
+    map.set(key, entry);
+  }
+  return map;
+}
+
 function remapTable(value: unknown, where: string): Record<string, string | null> {
   const table = object(value ?? {}, where);
   for (const [from, to] of Object.entries(table)) {
     if (to !== null && typeof to !== 'string') throw new CatalogError(`${where}.${from} is bad`);
   }
-  return table as Record<string, string | null>;
+  // No prototype, so a lookup of a key like "constructor" finds nothing rather than a function.
+  return Object.assign(Object.create(null) as Record<string, string | null>, table);
 }
 
 /** Decode a parsed format-1 snapshot. Throws CatalogError when its shape is wrong. */
@@ -173,7 +192,7 @@ export function decodeSnapshot(raw: unknown): Catalog {
       title: title[i]!,
       firstLine: firstLine[i]!,
       raga: at(ragas, raga[i]!, where),
-      ragamalika: ragamalika[i]!.map((index) => at(ragas, index, where)!),
+      ragamalika: ragamalika[i]!.map((index) => member(ragas, index, where)),
       tala: at(talas, tala[i]!, where),
       composer: at(composers, composer[i]!, where),
       language: at(languages, language[i]!, where),
@@ -192,10 +211,10 @@ export function decodeSnapshot(raw: unknown): Catalog {
     subjects,
     forms,
     songs,
-    ragaByKey: new Map(ragas.map((entry) => [entry.key, entry])),
-    composerByKey: new Map(composers.map((entry) => [entry.key, entry])),
-    talaByKey: new Map(talas.map((entry) => [entry.key, entry])),
-    songByKritiId: new Map(songs.map((entry) => [entry.kritiId, entry])),
+    ragaByKey: byKey(ragas, (entry) => entry.key, 'ragas'),
+    composerByKey: byKey(composers, (entry) => entry.key, 'composers'),
+    talaByKey: byKey(talas, (entry) => entry.key, 'talas'),
+    songByKritiId: byKey(songs, (entry) => entry.kritiId, 'songs'),
     remap: {
       ragas: remapTable(remap.ragas, 'remap.ragas'),
       composers: remapTable(remap.composers, 'remap.composers'),

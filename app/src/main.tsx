@@ -15,6 +15,7 @@ createRoot(root).render(
   </StrictMode>,
 );
 
-// Then, in the background: the service worker, and a one-time persistent-storage request.
+// Then, in the background: the service worker, and the persistent-storage request (asked on
+// each launch until the browser agrees).
 startServiceWorker();
 void ensurePersistentStorage().catch(() => undefined);
