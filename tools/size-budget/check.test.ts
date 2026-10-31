@@ -31,11 +31,12 @@ describe('size budget', () => {
     expect(run(makeDist({ 'index.html': '<!doctype html>' })).status).toBe(0);
   });
 
+  // Brotli at quality 11 on 2 MB takes seconds, more when the suite runs in parallel.
   it('fails a first install over 2 MB', () => {
     const result = run(makeDist({ 'big.bin': randomBytes(2_100_000) }));
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('over budget');
-  });
+  }, 30_000);
 
   it('fails an empty build', () => {
     const result = run(makeDist({}));
