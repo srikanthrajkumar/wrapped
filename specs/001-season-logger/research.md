@@ -170,8 +170,10 @@ an extra sign-in, not lost data. Google sign-in from an installed iOS PWA was te
 - **Result**: T077 uses Google's button with `signInWithIdToken`, as planned. The email
   one-time code fallback, with its custom-email and name-entry questions, is not needed. Test
   B is a known-good second route if Google's button ever breaks on iOS.
-- **Not covered**: a session surviving a force-close of the installed app, and the Redmi Note
-  5. T113 re-tests sign-in on the iPhone before release.
+- **After a force-close**: **still signed in.** The app was swiped away in the app switcher and
+  reopened from the home screen; it found the session on load with no sign-in prompt.
+- **Not covered**: the Redmi Note 5, and a session left unused for days (FR-020). T113
+  re-tests sign-in on the iPhone before release.
 
 Supabase also accepts Firebase Auth and Clerk as third-party sign-in for its database
 (supabase.com/docs/guides/auth/third-party/overview), so choosing the database does not force
