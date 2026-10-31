@@ -52,7 +52,7 @@ Maintainer's end-of-season report, reading Postgres read-only.
 (`context.setOffline`); a real installed PWA on the iPhone 16 and the Redmi Note 5 before each release.
 Both tools are named in `docs/skills-router.md`.
 
-**Static hosting**: pending, task T052. The PWA's static files need a host before the
+**Static hosting**: pending, task T054. The PWA's static files need a host before the
 phone-only fallback can ship; ADR 0001 covers sign-in and the database only.
 
 **Target Platform**: current iOS Safari and Android Chrome, installed to the home screen or in a
@@ -153,8 +153,8 @@ local Supabase once it exists.
 
 1. Card renderer decision (can wait until the Cards tasks, before 20 December work starts).
 2. Schedule feed shape agreed with the logger project.
-3. Install the contingent skills the router names: `vitest` when the app is scaffolded, and
-   `supabase/agent-skills@supabase` when the server work starts.
+3. Install the contingent skill `supabase/agent-skills@supabase` when the server work starts
+   (T065). `vitest` was installed with the scaffold (T009).
 
 ## Complexity Tracking
 

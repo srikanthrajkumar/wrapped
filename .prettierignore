@@ -1,0 +1,9 @@
+# Prettier formats code only; the documents are written by hand
+*.md
+docs/
+specs/
+.specify/
+.claude/
+skills-lock.json
+package-lock.json
+app/public/

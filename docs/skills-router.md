@@ -44,7 +44,7 @@ All project-scoped (no `-g`), copied (not symlinked) into `.claude/skills/` and 
 
 **Installed state**
 - spec-kit CLI `specify` 1.2.3 via `uv` 0.13.5 (`~/.local/bin`, release binary checksum-verified). Scaffold in `.specify/`; 10 `speckit-*` skills in `.claude/skills/`, all `disable-model-invocation: true` (call them by name).
-- 9 skills via `npx skills add … -a claude-code -y --copy`, pinned by content hash in `skills-lock.json`. Restore on a new box with `npx skills experimental_install`; update deliberately with `npx skills update -p` and re-read the diff.
+- 10 skills via `npx skills add … -a claude-code -y --copy`, pinned by content hash in `skills-lock.json`. The tenth, `vitest`, was added 2026-10-31 (T009) once the plan locked Vite + React. Restore on a new box with `npx skills experimental_install`; update deliberately with `npx skills update -p` and re-read the diff.
 - `tdd` sends refactoring to "the `code-review` skill" — in this project that means gstack `/review` (mattpocock `code-review` is not approved).
 
 Commands used (for reference / re-install):
@@ -73,6 +73,9 @@ npx skills add vercel-labs/agent-skills@web-design-guidelines
 ```bash
 npx skills add addyosmani/web-quality-skills@accessibility
 ```
+```bash
+npx skills add antfu/skills@vitest -a claude-code -y --copy
+```
 
 | Skill | Why it earns a place | Evidence |
 |---|---|---|
@@ -83,6 +86,7 @@ npx skills add addyosmani/web-quality-skills@accessibility
 | **supabase-postgres-best-practices** | ~30 wrong-vs-right SQL rule files (indexes, pooling, upsert, pagination). Explicitly applies to any Postgres — the catalog is PG17 regardless of host. | Official Supabase |
 | **vercel-react-best-practices** | 70 impact-ranked rules (waterfalls, bundle size, re-renders), lazily loaded. ~10 rules are Next-server-only; ignore them if not on Next. | Official Vercel, 33K★ |
 | **web-design-guidelines** | Code-level UI audit with `file:line` output: `inputmode`, `autocomplete`, `touch-action`, safe-area, no mobile `autoFocus`. Fetches its rule list remotely — pin it if it drifts. Invoke explicitly; gstack `/design-review` owns *visual* review. | Official Vercel |
+| **antfu `vitest`** | Contingent on Vite + React (§3), now locked. Reference only: Vitest 5 config, `projects`, mocking, environments, generated from Vitest's own docs. No scripts or hooks; references scanned for fetch/exec instructions. | Anthony Fu, 6K★, pushed 2026-10-30, MIT; based on Vitest 5.1 beta (we run 5.0.5) |
 | **addyosmani `accessibility`** | WCAG 2.2 incl. target size 2.5.8 and focus-not-obscured — matters for one-handed use in a dark hall. | 3K★ |
 
 ---
