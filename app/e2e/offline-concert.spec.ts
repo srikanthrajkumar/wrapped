@@ -12,6 +12,7 @@ import { chromium, devices, expect, test, type BrowserContext, type Page } from 
 import { readFileSync } from 'node:fs';
 import { harnessScript } from './harness/build';
 import type { Harness } from './harness/entry';
+import { finishFirstLaunch } from './helpers';
 
 // The phone's screen and touch, for a persistent profile, which takes no browser type.
 const { viewport, userAgent, deviceScaleFactor, isMobile, hasTouch } = devices['iPhone 13'];
@@ -44,7 +45,7 @@ async function openOffline(context: BrowserContext): Promise<Page> {
   await context.setOffline(true);
   const page = context.pages()[0] ?? (await context.newPage());
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Season' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Season', exact: true })).toBeVisible();
   await page.addScriptTag({ content: await harnessScript() });
   return page;
 }
@@ -59,6 +60,7 @@ test('a Concert logged offline survives closing the browser (SC-001)', async ({
   let context = await launch();
   const first = context.pages()[0] ?? (await context.newPage());
   await first.goto('/');
+  await finishFirstLaunch(first);
   await first.evaluate(() => navigator.serviceWorker.ready);
   await expect
     .poll(

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
-import { Link } from 'wouter';
+import { TopBar } from './components/layout';
 
-// Stands in for each screen until the design system (T030) and the screen tasks arrive.
+// Stands in for each screen not built yet (Wrapped, Tidy, the Maintainer's review).
 export function Placeholder({
   title,
   back,
@@ -14,8 +14,8 @@ export function Placeholder({
 }) {
   return (
     <>
-      {back && <Link href={back}>Back</Link>}
-      <h1>{title}</h1>
+      {back && <TopBar back={{ href: back, label: back === '/' ? 'Season' : 'Settings' }} />}
+      <h1 className="pt-4 text-title font-semibold">{title}</h1>
       {children}
     </>
   );

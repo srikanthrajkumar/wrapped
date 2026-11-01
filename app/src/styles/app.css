@@ -1,0 +1,199 @@
+/* The design system (DESIGN.md; ADR 0006): shadcn preset b51rn04Qt on Tailwind, with the app's
+   own departures (warm and softened text, the type scale, touch targets, motion). Every colour
+   reaches the screens as one of shadcn's CSS variables, defined for both themes below. */
+
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import './base.css';
+
+/* Dark is the default theme; light is the rasika's choice in Settings (DESIGN.md "Colors"). */
+@custom-variant dark (&:is(.dark *));
+/* Hover styles only where a real pointer hovers, so a tap never leaves one stuck on. */
+@custom-variant hover {
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      @slot;
+    }
+  }
+}
+
+/* Source Sans 3, self-hosted and trimmed (tools/fonts/subset.sh): Latin, and the Latin
+   Extended letters of IAST and ISO 15919 a rasika may type. One variable file covers 400-700. */
+@font-face {
+  font-family: 'Source Sans 3';
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url('./fonts/source-sans-3-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Source Sans 3';
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url('./fonts/source-sans-3-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-017F, U+0300-036F, U+1E0C-1E0D, U+1E24-1E25, U+1E36-1E3B, U+1E40-1E49, U+1E5A-1E5F,
+    U+1E62-1E63, U+1E6C-1E6D, U+1E8E-1E8F;
+}
+
+@theme inline {
+  --font-sans: 'Source Sans 3', ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-sans);
+
+  /* Type sizes follow the phone's text setting up to 200% (DESIGN.md "Layout"): each is the
+     px size at the default setting, times --px, which is a rem fraction of the root. */
+  --text-caption: calc(13 * var(--px));
+  --text-caption--line-height: 1.3;
+  /* DESIGN.md's "secondary" role; `text-secondary` is already the surface-raised text colour. */
+  --text-sub: calc(15 * var(--px));
+  --text-sub--line-height: 1.35;
+  --text-body: calc(17 * var(--px));
+  --text-body--line-height: 1.4;
+  --text-title: calc(20 * var(--px));
+  --text-title--line-height: 1.3;
+  --text-heading: calc(24 * var(--px));
+  --text-heading--line-height: 1.25;
+  --text-display: calc(32 * var(--px));
+  --text-display--line-height: 1.15;
+
+  /* Spacing stays in px on the 4px base, so larger text never eats the 320px screen. */
+  --spacing: 4px;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Radius base 10px, scaled 6 / 8 / 10 / 14 / 18px (DESIGN.md "Shapes"). */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-2xl: 18px;
+
+  --ease-sheet: cubic-bezier(0.2, 0, 0, 1);
+}
+
+:root {
+  --px: calc(1rem / 16);
+  --radius: 0.625rem;
+
+  /* Light. `surface` is --card and --popover; `surface-raised` is --secondary, --muted and
+     --accent (DESIGN.md "Overview"). */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.2 0.014 60);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.218 0.008 223.9);
+  --primary-foreground: oklch(0.987 0.002 197.1);
+  --secondary: oklch(0.963 0.002 197.1);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.963 0.002 197.1);
+  --muted-foreground: oklch(0.5 0.016 60);
+  --accent: oklch(0.963 0.002 197.1);
+  --accent-foreground: var(--foreground);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.925 0.005 214.3);
+  --input: oklch(0.925 0.005 214.3);
+  --ring: oklch(0.723 0.014 214.4);
+  --chart-1: oklch(0.81 0.117 11.638);
+  --chart-2: oklch(0.645 0.246 16.439);
+  --chart-3: oklch(0.586 0.253 17.585);
+  --chart-4: oklch(0.514 0.222 16.935);
+  --chart-5: oklch(0.455 0.188 13.697);
+}
+
+/* On iOS the root follows Dynamic Type: -apple-system-body is 17px at the default size. */
+@supports (font: -apple-system-body) {
+  :root {
+    font: -apple-system-body;
+    font-family: 'Source Sans 3', ui-sans-serif, system-ui, sans-serif;
+    --px: calc(1rem / 17);
+  }
+}
+
+.dark {
+  /* Dark: warm text softened for the hall (lightness 0.88 and 0.72), and a primary fill that
+     matches it, so no button is brighter than the text (design D21, D22). */
+  --background: oklch(0.148 0.004 228.8);
+  --foreground: oklch(0.88 0.014 80);
+  --card: oklch(0.218 0.008 223.9);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.218 0.008 223.9);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.88 0.014 80);
+  --primary-foreground: oklch(0.218 0.008 223.9);
+  --secondary: oklch(0.275 0.011 216.9);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.275 0.011 216.9);
+  --muted-foreground: oklch(0.72 0.014 75);
+  --accent: oklch(0.275 0.011 216.9);
+  --accent-foreground: var(--foreground);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.56 0.021 213.5);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply bg-background font-sans text-foreground;
+    color-scheme: light;
+    /* The caret uses the text colour (design D19). */
+    caret-color: var(--foreground);
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-body;
+  }
+
+  /* Selected text: the text colour at 25%, never the browser's blue (design D19). */
+  ::selection {
+    background-color: color-mix(in oklch, var(--foreground) 25%, transparent);
+  }
+
+  /* One focus ring, keyboard only: a 2px ring outline with a 2px offset (design D19). */
+  :focus {
+    outline: none;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
