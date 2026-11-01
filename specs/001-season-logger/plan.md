@@ -270,10 +270,10 @@ findings from the review and its outside voice are unresolved (all but item 1, s
     appears, consent toggles offline, Share in progress or failed.
 17. **Save failure (D9):** kept as the Maintainer decided in the eng review; not reopened.
 
-### Design system (design consultation, 2026-10-31; in progress)
+### Design system (design consultation, 2026-10-31 to 2026-11-01)
 
-Started with `/design-consultation` (T030) and paused by the Maintainer to mull over. No
-`DESIGN.md` yet, so T030 stays open and the screen tasks T040 to T044 wait on it.
+Started with `/design-consultation` (T030). The result is [`DESIGN.md`](../../DESIGN.md). T030
+stays open until `/plan-design-review` has run on it; the screen tasks T040 to T044 wait on that.
 
 **The one thing to remember:** "My season, seen whole." Every later choice is checked against it.
 
@@ -305,31 +305,53 @@ Started with `/design-consultation` (T030) and paused by the Maintainer to mull 
     its "(?)".
   - **Unresolved** (typed, not matched): shown as typed; the Item editor adds a muted "not
     matched" under it. Tidy lists them all.
-  - **Override**: plain text like any value; the Item editor adds a muted "catalog: Tōḍi" so the
+  - **Override**: plain text like any value; the Item editor adds a muted "catalog: Todi" so the
     difference can be seen and undone.
   - **Not applicable**: left out of lists ("Viruttam · Kambhoji"); the Item editor shows a muted
     "Not applicable".
+- **Names shown in plain English spelling (decided 2026-11-01):** "Todi", "Kaddanuvariki",
+  "Tyagaraja", with no diacritics and none of karnatik's capital-letter coding ("tODi",
+  "Tyaagaraaja"). The catalog export produces them (contracts/catalog-snapshot.md); composer
+  names need a hand-kept list, because karnatik's spellings ("Muttuswaamee Dikshitar") do not
+  convert mechanically. Source Sans 3 stays: it also covers the diacritics rasikas may type.
+- **Dark by default** (confirmed 2026-11-01): logging happens in a dark hall. Light is available
+  in Settings, and moving between screens never flashes white.
+- **Screen behaviour (decided 2026-11-01)**, settling deferred findings 4, 6, 7, 13 and 14:
+  - **Colour sheet:** a grid of labelled swatches plus "?", then an optional second colour for
+    a two-tone outfit.
+  - **Saving:** the new or changed row highlights briefly. No toast and no spinner.
+  - **Deleting:** removes at once with a 5-second Undo, never an "Are you sure?" question.
+  - **Reordering Items:** in a separate edit mode on the Event screen, never by dragging during
+    the Concert. Export stays reachable from every screen that holds data (FR-019, T051) and
+    from Settings; its exact place is settled in the preview.
+  - **Finishing a Concert:** "Done with this Concert" shows a short summary of the Concert and
+    what it changed in the season's Wrapped (for example a first Raga or a new Composer). It
+    does not link into the Wrapped: the Wrapped belongs to the whole season, not one Concert.
+
+- **Preview approved (2026-11-01):** the Event screen and the Item editor, drawn with the preset,
+  warm text and plain English names.
+- **Tokens (approved 2026-11-01):** body 17px on a scale of 13, 15, 17, 20, 24 and 32; a 4px
+  spacing base; touch targets of 48px and 56px for a screen's main action; motion only to explain
+  a change (100ms press, 150ms state, 220ms sheets, a 1.2s save highlight, a 5s Undo), with
+  reduced motion respected. Restrained app colour: greys, near-white or near-black for actions,
+  rose only in charts. The values are in `DESIGN.md`.
 
 **Proposed, not yet confirmed**
 
-- Dark by default (logging happens in a dark hall), with light in Settings and no white flashes.
 - Cards coloured by the season itself: the 12 Colour swatches the Artists wore, not a brand
   palette. Needs contrast rules for seasons that are mostly white or clash. The Maintainer is
   happy with this direction for the white swatch and the Card template; the details are settled
   when the Cards are designed (T088 to T096).
-- Restrained colour in the app: Mist greys, near-black or white for actions, rose only for chart
-  bars.
-- 4px spacing base; single column; primary actions in the thumb zone; minimal motion, with one
-  authored moment: a new stripe weaving into the season fabric when a Concert is finished.
+- One authored motion moment: a new stripe weaving into the season fabric when a Concert is
+  finished. Settled with the Cards.
+- The 12 outfit swatch values, drafted in `DESIGN.md`.
 
-**Open, to mull over**
-
-1. Whether to normalise ṁ to ṃ in the logger's display names. Undecided; it only matters if a
-   font missing ṁ is ever considered, since Source Sans 3 has both.
+**Settled by the plain-spelling decision:** whether to normalise ṁ to ṃ. Display names no
+longer carry diacritics, so the question no longer arises.
 
 Settled from the earlier list: warm text, the Detail states and the white swatch and Card
 template direction (all above); shadcn and Tailwind recorded in
 [ADR 0006](../../docs/adr/0006-shadcn-and-tailwind-for-the-screens.md).
 
-**Next:** a preview of the system on real screens (Event, Item editor, one Card), then
-`DESIGN.md`, then `/plan-design-review` on it before T040 to T044.
+**Next:** `/plan-design-review` on `DESIGN.md`, which also takes the findings still open
+(listed at the end of `DESIGN.md`), then T040 to T044.

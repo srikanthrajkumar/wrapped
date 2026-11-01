@@ -22,7 +22,7 @@ encoding). Keys are natural keys, never logger row ids (constitution III).
   "format": 1,
   "version": "2026.11.10-1",
   "source": { "loggerCommit": "abc1234", "builtAt": "2026-11-10T09:00:00Z" },
-  "ragas":     { "key": ["Todi", "…"], "display": ["Tōḍi", "…"], "aliases": [["Thodi"], "…"], "groupKey": ["todi", "…"], "mela": [8, "…"] },
+  "ragas":     { "key": ["Todi", "…"], "display": ["Todi", "…"], "aliases": [["Thodi"], "…"], "groupKey": ["todi", "…"], "mela": [8, "…"] },
   "composers": { "key": ["tyaagaraaja", "…"], "display": ["Tyagaraja", "…"], "aliases": [["Thyagaraja"], "…"] },
   "talas":     { "key": ["adi", "…"], "display": ["Adi", "…"] },
   "languages": { "key": ["Telugu", "…"] },
@@ -31,6 +31,7 @@ encoding). Keys are natural keys, never logger row ids (constitution III).
   "songs": {
     "kritiId":   ["c0134", "…"],
     "title":     ["Viribhoni", "…"],
+    "titleAliases": [["Veeriboni", "viribhoni ninne kori"], "…"],
     "firstLine": ["…", "…"],
     "raga":      [12, "…"],
     "tala":      [3, "…"],
@@ -54,6 +55,13 @@ Field notes:
   with no tala).
 - `groupKey` comes from the logger's `raga-groups.json`. Ragas with the same `groupKey` are
   Linked ragas. Ragas never share a `key`.
+- Display strings (`display`, and a song's `title`) are plain English spellings: no diacritics
+  and none of karnatik's capital-letter coding. "Todi", not "Tōḍi" or "tODi"; "Tyagaraja", not
+  "Tyaagaraaja" (Maintainer, 2026-11-01). Raga and title spellings are converted mechanically from
+  karnatik's coding; composer names come from a hand-kept list, because karnatik's spellings do
+  not convert reliably. Keys are unchanged: they stay the natural keys above.
+- A song's `title` is one display title. The other spellings karnatik lists for the song go in
+  `titleAliases`, which, like Aliases, are search terms only.
 - Aliases come from the logger's normalize and alias maps. Aliases are search terms only;
   matching an Alias stores the raga's `key`.
 - `ragamalika` lists raga indices in order for songs that have several.
@@ -61,8 +69,9 @@ Field notes:
     `raga` = `-1`, and its member ragas, in order, are its Ragas.
   - The list is written only when the source names at least two member ragas and every one
     resolves to a catalog raga. A partial list is never written: the list stays empty and
-    `raga` keeps what the source names. For 143 songs that is the catalog's own "Ragamalika"
-    entry, because karnatik names no members. How the Wrapped counts those is not yet decided.
+    `raga` keeps what the source names. For 139 songs in snapshot 2026.11.01-1 that is the
+    catalog's own "Ragamalika" entry, because karnatik names no members or a member does
+    not resolve. How the Wrapped counts those is not yet decided.
 - `remap` is cumulative from every earlier version: a key mapped to `null` is retired. The
   upgrade rules are in [data-model.md](../data-model.md), "Catalog version upgrade".
 
