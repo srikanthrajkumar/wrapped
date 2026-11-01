@@ -26,23 +26,23 @@
       "Nalinakanti"
     ],
     "display": [
-      "Tōḍi",
-      "Kalyāṇi",
-      "Dhīraśaṅkarābharaṇam",
-      "Pantuvarāḷi",
-      "Kāmavardhini",
+      "Todi",
+      "Kalyani",
+      "Dheerasankarabharanam",
+      "Pantuvarali",
+      "Kamavardhini",
       "Bhairavi",
-      "Bēgaḍa",
-      "Haṁsadhvani",
-      "Pūrvikalyāṇi",
+      "Begada",
+      "Hamsadhwani",
+      "Purvikalyani",
       "Sindhubhairavi",
-      "Nāṭṭai",
-      "Mōhanam",
-      "Kāmbhōji",
-      "Sāvēri",
-      "Madhyamāvati",
-      "Ābhēri",
-      "Nalinakānti"
+      "Nattai",
+      "Mohanam",
+      "Kambhoji",
+      "Saveri",
+      "Madhyamavati",
+      "Abheri",
+      "Nalinakanti"
     ],
     "aliases": [
       ["Thodi", "Hanumatodi"],
@@ -171,6 +171,28 @@
       "Dharmasamvardhani",
       "Manavyalakinchara"
     ],
+    "titleAliases": [
+      ["Nagumomu Ganaleni"],
+      ["Vathapi Ganapathim", "Vatapi Ganapatim Bhajeham"],
+      [],
+      [],
+      [],
+      [],
+      [],
+      ["Cudare Celulara"],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      ["Sarasija Nabha Murare"],
+      [],
+      [],
+      []
+    ],
     "firstLine": [
       "nagumOmu ganalEni",
       "vAtApi gaNapatim bhajEham",
@@ -224,7 +246,8 @@
   },
   "remap": {
     "ragas": {
-      "Sankarabharanam": "Dheerasankarabharanam"
+      "Sankarabharanam": "Dheerasankarabharanam",
+      "Jonpuri": null
     },
     "composers": {},
     "songs": {

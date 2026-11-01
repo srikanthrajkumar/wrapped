@@ -24,7 +24,10 @@ export interface Tala {
 
 export interface Song {
   kritiId: string;
+  /** The one display title. */
   title: string;
+  /** The other spellings of the title: search terms only, never shown as the title. */
+  titleAliases: string[];
   firstLine: string;
   /** Null for a song with several ragas; those are in `ragamalika`. */
   raga: Raga | null;
@@ -176,6 +179,7 @@ export function decodeSnapshot(raw: unknown): Catalog {
   const kritiIds = column(s.kritiId, 'songs.kritiId', isString);
   const count = kritiIds.length;
   const title = column(s.title, 'songs.title', isString, count);
+  const titleAliases = column(s.titleAliases, 'songs.titleAliases', isStrings, count);
   const firstLine = column(s.firstLine, 'songs.firstLine', isString, count);
   const raga = column(s.raga, 'songs.raga', isInt, count);
   const tala = column(s.tala, 'songs.tala', isInt, count);
@@ -190,6 +194,7 @@ export function decodeSnapshot(raw: unknown): Catalog {
     return {
       kritiId,
       title: title[i]!,
+      titleAliases: titleAliases[i]!,
       firstLine: firstLine[i]!,
       raga: at(ragas, raga[i]!, where),
       ragamalika: ragamalika[i]!.map((index) => member(ragas, index, where)),

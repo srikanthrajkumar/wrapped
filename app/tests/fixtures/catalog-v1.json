@@ -24,27 +24,29 @@
       "Saveri",
       "Madhyamavati",
       "Abheri",
-      "Nalinakanti"
+      "Nalinakanti",
+      "Jonpuri"
     ],
     "display": [
-      "Tōḍi",
-      "Kalyāṇi",
-      "Śaṅkarābharaṇam",
-      "Dhīraśaṅkarābharaṇam",
-      "Pantuvarāḷi",
-      "Kāmavardhini",
+      "Todi",
+      "Kalyani",
+      "Sankarabharanam",
+      "Dheerasankarabharanam",
+      "Pantuvarali",
+      "Kamavardhini",
       "Bhairavi",
-      "Bēgaḍa",
-      "Haṁsadhvani",
-      "Pūrvikalyāṇi",
+      "Begada",
+      "Hamsadhwani",
+      "Purvikalyani",
       "Sindhubhairavi",
-      "Nāṭṭai",
-      "Mōhanam",
-      "Kāmbhōji",
-      "Sāvēri",
-      "Madhyamāvati",
-      "Ābhēri",
-      "Nalinakānti"
+      "Nattai",
+      "Mohanam",
+      "Kambhoji",
+      "Saveri",
+      "Madhyamavati",
+      "Abheri",
+      "Nalinakanti",
+      "Jonpuri"
     ],
     "aliases": [
       ["Thodi", "Hanumatodi"],
@@ -64,7 +66,8 @@
       [],
       ["Madhyamavathi"],
       [],
-      ["Nalinakanthi"]
+      ["Nalinakanthi"],
+      ["Jaunpuri"]
     ],
     "groupKey": [
       "todi",
@@ -84,9 +87,10 @@
       "saveri",
       "madhyamavati",
       "abheri",
-      "nalinakanti"
+      "nalinakanti",
+      "jonpuri"
     ],
-    "mela": [8, 65, 29, 29, 51, 51, 20, 29, 29, 53, 10, 36, 28, 28, 15, 22, 22, 27]
+    "mela": [8, 65, 29, 29, 51, 51, 20, 29, 29, 53, 10, 36, 28, 28, 15, 22, 22, 27, 20]
   },
   "composers": {
     "key": [
@@ -176,6 +180,29 @@
       "Dharmasamvardhani",
       "Manavyalakinchara",
       "Kaddanuvariki"
+    ],
+    "titleAliases": [
+      ["Nagumomu Ganaleni"],
+      ["Vathapi Ganapathim", "Vatapi Ganapatim Bhajeham"],
+      [],
+      [],
+      [],
+      [],
+      [],
+      ["Cudare Celulara"],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      ["Sarasija Nabha Murare"],
+      [],
+      [],
+      [],
+      ["Kaddanu Variki"]
     ],
     "firstLine": [
       "nagumOmu ganalEni",
