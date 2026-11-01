@@ -1,9 +1,19 @@
 // Event actions (T036, data-model.md "Event"). Each action is one local transaction through
 // mutate.ts: it reads the Event, checks the rules, and saves the record with its outbox entry.
 
-import { newId, type Event, type EventKind, type EventSource, type EventStatus } from '../model';
+import {
+  newId,
+  type Appearance,
+  type Event,
+  type EventKind,
+  type EventSource,
+  type EventStatus,
+  type Item,
+} from '../model';
 import { db as defaultDb } from './db';
+import { restoreItemRows, type Deleted, type RestoreOptions } from './items';
 import { getLive, newTimestamps, remove, save, type WriteOptions } from './mutate';
+import { takeReceipt, writeReceipt, type DeletionReceipt } from './receipts';
 import { check, eventProblems, RuleError } from './rules';
 
 /** Today on the phone's own clock, as `YYYY-MM-DD` (Edge Cases: the date defaults to today). */
@@ -108,16 +118,71 @@ export async function setStatus(
 
 /**
  * Delete an Event with its Appearances and Items, as tombstones, in one transaction: no live
- * Item ever points at a deleted Event (data-model.md, "Validation rules").
+ * Item ever points at a deleted Event (data-model.md, "Validation rules"). The receipt names
+ * exactly the records this delete removed, so Undo never brings back an Item or Appearance
+ * deleted earlier on purpose (eng review D1, D7).
  */
-export async function deleteEvent(id: string, { db = defaultDb }: WriteOptions = {}) {
-  return db.transaction('rw', [db.events, db.appearances, db.items, db.outbox], async () => {
-    for (const appearance of await db.appearances.where('eventId').equals(id).toArray()) {
-      await remove('appearances', appearance.id, { db });
-    }
-    for (const item of await db.items.where('eventId').equals(id).toArray()) {
-      await remove('items', item.id, { db });
-    }
-    return remove('events', id, { db });
-  });
+export async function deleteEvent(
+  id: string,
+  { db = defaultDb }: WriteOptions = {},
+): Promise<Deleted<Event> | undefined> {
+  return db.transaction(
+    'rw',
+    [db.events, db.appearances, db.items, db.outbox, db.meta],
+    async () => {
+      const event = await db.events.get(id);
+      if (!event || event.deletedAt !== null) return undefined;
+      const records: DeletionReceipt['records'] = [];
+      for (const appearance of await db.appearances.where('eventId').equals(id).toArray()) {
+        if (appearance.deletedAt !== null) continue;
+        const tombstone = (await remove('appearances', appearance.id, { db }))!;
+        records.push({ table: 'appearances', id: appearance.id, deletedAt: tombstone.deletedAt! });
+      }
+      for (const item of await db.items.where('eventId').equals(id).toArray()) {
+        if (item.deletedAt !== null) continue;
+        const tombstone = (await remove('items', item.id, { db }))!;
+        records.push({ table: 'items', id: item.id, deletedAt: tombstone.deletedAt! });
+      }
+      const tombstone = (await remove('events', id, { db }))!;
+      records.unshift({ table: 'events', id, deletedAt: tombstone.deletedAt! });
+      const receipt = await writeReceipt(db, {
+        kind: 'event',
+        eventId: id,
+        position: null,
+        records,
+      });
+      return { tombstone, receipt };
+    },
+  );
+}
+
+/**
+ * Undo an Event delete: the Event and exactly the Appearances and Items its delete removed come
+ * back, in one transaction, with Items brought to the catalog in use. A used or stale receipt
+ * restores nothing and returns null.
+ */
+export async function restoreEvent(
+  receiptId: string,
+  { db = defaultDb, catalog }: RestoreOptions = {},
+): Promise<Event | null> {
+  return db.transaction(
+    'rw',
+    [db.events, db.appearances, db.items, db.outbox, db.meta],
+    async () => {
+      const receipt = await takeReceipt(db, receiptId, 'event');
+      if (!receipt) return null;
+      const rows = async <T>(table: 'events' | 'appearances' | 'items') =>
+        (await db
+          .table(table)
+          .bulkGet(receipt.records.filter((r) => r.table === table).map((r) => r.id))) as T[];
+      const [event] = await rows<Event>('events');
+      if (!event) return null;
+      const restored = await save('events', event, { db, restore: true });
+      for (const appearance of await rows<Appearance>('appearances')) {
+        await save('appearances', appearance, { db, restore: true });
+      }
+      await restoreItemRows(await rows<Item>('items'), db, catalog);
+      return restored;
+    },
+  );
 }

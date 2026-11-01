@@ -13,8 +13,10 @@ import {
   type SharedEntry,
 } from '../model';
 import { db as defaultDb, type WrappedDB } from './db';
+import type { Deleted } from './items';
 import { getLive, newTimestamps, remove, save, type WriteOptions } from './mutate';
 import { resolveArtist, resolveSabha, type ResolvedEntry } from './queries';
+import { takeReceipt, writeReceipt, type DeletionReceipt } from './receipts';
 import { appearanceProblems, check, RuleError } from './rules';
 
 type Kind = 'artist' | 'sabha';
@@ -208,6 +210,139 @@ export async function editAppearance(
   });
 }
 
-export function removeAppearance(id: string, options: WriteOptions = {}) {
-  return remove('appearances', id, options);
+/** Remove an Appearance as a tombstone, with a receipt for Undo, in one transaction. */
+export async function removeAppearance(
+  id: string,
+  { db = defaultDb }: WriteOptions = {},
+): Promise<Deleted<Appearance> | undefined> {
+  return db.transaction('rw', [db.appearances, db.outbox, db.meta], async () => {
+    const current = await db.appearances.get(id);
+    if (!current || current.deletedAt !== null) return undefined;
+    const tombstone = (await remove('appearances', id, { db }))!;
+    const receipt = await writeReceipt(db, {
+      kind: 'appearance',
+      eventId: current.eventId,
+      position: current.position,
+      records: [{ table: 'appearances', id, deletedAt: tombstone.deletedAt! }],
+    });
+    return { tombstone, receipt };
+  });
+}
+
+/**
+ * Undo an Appearance removal: back at its old place in billing order, the others renumbered,
+ * in one transaction. A used or stale receipt, or one whose Event is deleted, restores nothing.
+ */
+export async function restoreAppearance(
+  receiptId: string,
+  { db = defaultDb }: WriteOptions = {},
+): Promise<Appearance | null> {
+  return db.transaction('rw', [db.events, db.appearances, db.outbox, db.meta], async () => {
+    const pending = (await db.meta.get(`receipt:${receiptId}`))?.value as
+      DeletionReceipt | undefined;
+    const event = pending && (await db.events.get(pending.eventId));
+    if (!event || event.deletedAt !== null) return null;
+    const receipt = await takeReceipt(db, receiptId, 'appearance');
+    const record = receipt?.records[0];
+    const tombstone = record && (await db.appearances.get(record.id));
+    if (!tombstone) return null;
+    const live = (await liveAppearances(tombstone.eventId, db)).sort(
+      (a, b) => a.position - b.position,
+    );
+    const index = live.filter((other) => other.position < tombstone.position).length;
+    const order = [...live];
+    order.splice(index, 0, tombstone);
+    let restored: Appearance | null = null;
+    for (const [i, appearance] of order.entries()) {
+      const position = i + 1;
+      if (appearance.id === tombstone.id) {
+        restored = await save('appearances', { ...appearance, position }, { db, restore: true });
+      } else if (appearance.position !== position) {
+        await save('appearances', { ...appearance, position }, { db });
+      }
+    }
+    return restored;
+  });
+}
+
+/**
+ * Move an Appearance to `index` (0-based) in billing order ("Edit order" on Stage), renumbering
+ * the Appearances whose place changed, in one transaction.
+ */
+export async function moveAppearance(
+  id: string,
+  index: number,
+  { db = defaultDb }: WriteOptions = {},
+): Promise<void> {
+  await db.transaction('rw', [db.appearances, db.outbox], async () => {
+    const moving = await getLive('appearances', id, { db });
+    const live = (await liveAppearances(moving.eventId, db)).sort(
+      (a, b) => a.position - b.position,
+    );
+    if (!Number.isInteger(index) || index < 0 || index >= live.length) {
+      throw new RuleError([`no place ${index} in a billing order of ${live.length}`]);
+    }
+    const order = live.filter((appearance) => appearance.id !== id);
+    order.splice(index, 0, moving);
+    for (const [i, appearance] of order.entries()) {
+      if (appearance.position !== i + 1) {
+        await save('appearances', { ...appearance, position: i + 1 }, { db });
+      }
+    }
+  });
+}
+
+/**
+ * The rasika's recent Artists or Sabhas, most recent first, for a picker before anything is
+ * typed (design D26): Sabhas of the latest Events, Artists of the latest Appearances.
+ */
+export async function recentNames(
+  kind: Kind,
+  { db = defaultDb, limit = 8 }: WriteOptions & { limit?: number } = {},
+): Promise<NameMatch[]> {
+  const ids: string[] = [];
+  if (kind === 'sabha') {
+    const events = (await db.events.toArray())
+      .filter((event) => event.deletedAt === null && event.sabhaId !== null)
+      .sort((a, b) => b.date.localeCompare(a.date) || b.updatedAt.localeCompare(a.updatedAt));
+    for (const event of events) ids.push(event.sabhaId!);
+  } else {
+    const appearances = (await db.appearances.toArray())
+      .filter((appearance) => appearance.deletedAt === null)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    for (const appearance of appearances) ids.push(appearance.artistId);
+  }
+  const resolve = kind === 'artist' ? resolveArtist : resolveSabha;
+  const found = new Map<string, NameMatch>();
+  for (const id of ids) {
+    if (found.size >= limit) break;
+    const entry = await resolve(id, db);
+    if (!entry || found.has(entry.id)) continue;
+    found.set(entry.id, {
+      id: entry.id,
+      name: entry.name,
+      aliases: entry.aliases,
+      shared: entry.shared,
+    });
+  }
+  return [...found.values()];
+}
+
+/** Each Artist's usual Role: the one they appeared in most often, where known (design D26). */
+export async function usualRoles({ db = defaultDb }: WriteOptions = {}): Promise<
+  Map<string, Role>
+> {
+  const counts = new Map<string, Map<Role, number>>();
+  for (const appearance of await db.appearances.toArray()) {
+    if (appearance.deletedAt !== null || appearance.role === null) continue;
+    const entry = (await resolveArtist(appearance.artistId, db))?.id ?? appearance.artistId;
+    const roles = counts.get(entry) ?? new Map<Role, number>();
+    roles.set(appearance.role, (roles.get(appearance.role) ?? 0) + 1);
+    counts.set(entry, roles);
+  }
+  const usual = new Map<string, Role>();
+  for (const [artist, roles] of counts) {
+    usual.set(artist, [...roles.entries()].sort((a, b) => b[1] - a[1])[0]![0]);
+  }
+  return usual;
 }
