@@ -1,9 +1,26 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark" style="background: #090b0c">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
+    />
+    <meta name="theme-color" content="#090b0c" />
+    <meta name="color-scheme" content="dark light" />
     <title>Carnatic Wrapped</title>
+    <script>
+      // Before anything draws: the rasika's theme, so the launch never flashes the wrong one
+      // (DESIGN.md "No white flash"; app/src/theme.ts keeps the same key).
+      try {
+        if (localStorage.getItem('wrapped.theme') === 'light') {
+          var root = document.documentElement;
+          root.classList.remove('dark');
+          root.style.background = '#ffffff';
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff');
+        }
+      } catch (error) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -3,8 +3,10 @@ import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { openCatalog } from './catalog/current';
 import { startServiceWorker } from './pwa';
+import { db } from './store/db';
 import { ensurePersistentStorage } from './store/persist';
-import './styles/base.css';
+import { pruneReceipts } from './store/receipts';
+import './styles/app.css';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing #root element');
@@ -22,3 +24,5 @@ createRoot(root).render(
 startServiceWorker();
 void ensurePersistentStorage().catch(() => undefined);
 void openCatalog().catch(() => undefined);
+// Undo receipts a crash left behind are dropped after a day (eng review D7).
+void pruneReceipts(24 * 60 * 60 * 1000, db).catch(() => undefined);

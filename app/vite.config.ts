@@ -1,3 +1,4 @@
+import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -8,6 +9,11 @@ import { CATALOG_FILE } from './src/catalog/load.ts';
 import { isPhase2 } from './src/precache-phases.ts';
 
 const outDir = fileURLToPath(new URL('./dist', import.meta.url));
+const appVersion = (
+  JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
+    version?: string;
+  }
+).version;
 const SW_FILE = 'sw.js';
 
 // The precache's per-file cap. Workbox's default is 2 MiB, and the full snapshot is already
@@ -41,8 +47,12 @@ function catalogFile(): string | null {
 }
 
 export default defineConfig({
+  resolve: {
+    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+  },
   plugins: [
     react(),
+    tailwindcss(),
     VitePWA({
       strategies: 'injectManifest',
       srcDir: 'src',
@@ -55,9 +65,9 @@ export default defineConfig({
         start_url: '/',
         scope: '/',
         display: 'standalone',
-        // Placeholders until the design system (T030) sets the palette and icons.
-        background_color: '#ffffff',
-        theme_color: '#ffffff',
+        // The dark theme's background (DESIGN.md), so the splash never flashes white.
+        background_color: '#090b0c',
+        theme_color: '#090b0c',
       },
       injectManifest: {
         globPatterns: ['**/*'],
@@ -80,6 +90,7 @@ export default defineConfig({
   ],
   define: {
     'import.meta.env.VITE_CATALOG_FILE': JSON.stringify(catalogFile()),
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(appVersion ?? '0.0.0'),
   },
   build: {
     outDir,
