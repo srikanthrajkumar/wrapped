@@ -4,18 +4,23 @@
 // fonts, xlsx writer) is fetched into its own cache right after, when the page asks. A new
 // version waits until the rasika agrees to update: no silent skipWaiting mid-concert.
 
-import { clientsClaim } from 'workbox-core';
+import { cacheNames, clientsClaim } from 'workbox-core';
 import {
+  addPlugins,
   cleanupOutdatedCaches,
   createHandlerBoundToURL,
+  getCacheKeyForURL,
   precacheAndRoute,
   type PrecacheEntry,
 } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
 import {
+  countCached,
   isPhase2,
   PHASE_2_CACHE,
+  type InstallProgress,
   type OfflineStatus,
+  type ReadyStatus,
   type ToServiceWorker,
 } from './precache-phases';
 
@@ -31,6 +36,34 @@ const catalogFile =
     .map((entry) => /(?:^|\/)catalog\/(catalog\.[0-9a-f]{64}\.json)$/.exec(entry.url)?.[1])
     .find((file) => file !== undefined) ?? null;
 
+/** How many first-phase files of this build are in the precache right now (eng review D8). */
+async function phase1Cached(): Promise<number> {
+  const cache = await caches.open(cacheNames.precache);
+  return countCached(
+    phase1.map((entry) => entry.url),
+    async (url) => {
+      const key = getCacheKeyForURL(url);
+      return key !== undefined && (await cache.match(key)) !== undefined;
+    },
+  );
+}
+
+// Real progress for "Getting ready to log offline" (eng review D4): after each first-phase file
+// is cached, tell every window, including one this worker doesn't control yet.
+addPlugins([
+  {
+    cacheDidUpdate: async ({ cacheName }) => {
+      if (cacheName !== cacheNames.precache) return;
+      const progress: InstallProgress = {
+        type: 'INSTALL_PROGRESS',
+        cached: await phase1Cached(),
+        total: phase1.length,
+      };
+      const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      windows.forEach((client) => client.postMessage(progress));
+    },
+  },
+]);
 precacheAndRoute(phase1);
 cleanupOutdatedCaches();
 // Every navigation opens the precached shell, so a reload in airplane mode still works.
@@ -86,6 +119,21 @@ self.addEventListener('message', (event) => {
   const message = event.data as ToServiceWorker;
   if (message?.type === 'SKIP_WAITING') {
     void self.skipWaiting();
+  } else if (message?.type === 'READY_STATUS') {
+    // Checked against the cache each time, never trusted from a stored flag (eng review D8).
+    event.waitUntil(
+      phase1Cached()
+        .catch(() => 0)
+        .then((cached) => {
+          const status: ReadyStatus = {
+            type: 'READY_STATUS',
+            cached,
+            total: phase1.length,
+            catalogFile,
+          };
+          event.ports[0]?.postMessage(status);
+        }),
+    );
   } else if (message?.type === 'CACHE_PHASE_2') {
     // Always answer, even when the cache itself fails (quota, storage errors), so the page
     // never waits forever and never keeps a stale "ready for offline".
