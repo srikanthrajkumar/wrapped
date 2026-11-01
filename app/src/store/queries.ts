@@ -5,6 +5,8 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import type { Appearance, Event, Item, Link, OwnEntry, SharedEntry } from '../model';
 import { db as defaultDb, type WrappedDB } from './db';
+import { eventStart, readLoggingNotes } from './logging-note';
+import { listReceipts } from './receipts';
 
 /** An Artist or Sabha as the screens show it. */
 export interface ResolvedEntry {
@@ -144,4 +146,110 @@ export function useAppearances(eventId: string) {
 
 export function useSabha(id: string | null) {
   return useLiveQuery(async () => (id ? ((await resolveSabha(id)) ?? null) : null), [id]);
+}
+
+export function useItem(id: string | null) {
+  return useLiveQuery(async () => {
+    if (!id) return null;
+    const item = await defaultDb.items.get(id);
+    return live(item) ? item : null;
+  }, [id]);
+}
+
+/** Writes not yet on the server (FR-016): the outbox's length. */
+export function useUnsyncedCount() {
+  return useLiveQuery(() => defaultDb.outbox.count());
+}
+
+export interface EventSummary {
+  event: ResolvedEvent;
+  sabha: ResolvedEntry | null;
+  firstArtist: string | null;
+  itemCount: number;
+}
+
+/** Every live Event with what home shows of it: Sabha, first-billed Artist, Item count. */
+export async function listEventSummaries(db: WrappedDB = defaultDb): Promise<EventSummary[]> {
+  const events = await listEvents(db);
+  return Promise.all(
+    events.map(async (event) => {
+      const [first] = await listAppearances(event.id, db);
+      return {
+        event,
+        sabha: event.sabhaId ? ((await resolveSabha(event.sabhaId, db)) ?? null) : null,
+        firstArtist: first?.artist?.name ?? null,
+        itemCount: (await listItems(event.id, db)).length,
+      };
+    }),
+  );
+}
+
+export function useEventSummaries() {
+  return useLiveQuery(() => listEventSummaries());
+}
+
+/** The per-phone logging notes, for the Now selector. */
+export function useLoggingNotes() {
+  return useLiveQuery(() => readLoggingNotes());
+}
+
+/** An Event's receipts for "Recently deleted" in its "⋯" menu. */
+export function useReceipts(eventId: string) {
+  return useLiveQuery(() => listReceipts(eventId, defaultDb), [eventId]);
+}
+
+export interface WhatItAdded {
+  /** Ragas heard for the first time this season, as shown. */
+  ragas: string[];
+  /** Composers heard for the first time this season. */
+  composers: string[];
+}
+
+const counted = (value: { state: string; key: string | null; text: string }) =>
+  value.state === 'unknown' || value.state === 'na' ? null : (value.key ?? value.text.trim());
+
+/**
+ * What one Concert added to the season (DESIGN.md "Finishing a Concert"): the Ragas and
+ * Composers no Attended Event before it had. Derived each time, never stored (constitution III).
+ */
+export async function whatItAdded(
+  eventId: string,
+  db: WrappedDB = defaultDb,
+): Promise<WhatItAdded> {
+  const events = (await db.events.toArray()).filter(
+    (event) => event.deletedAt === null && event.status === 'attended',
+  );
+  const self = events.find((event) => event.id === eventId);
+  if (!self) return { ragas: [], composers: [] };
+  const startOf = (event: Event) =>
+    eventStart(event)?.getTime() ?? new Date(`${event.date}T00:00`).getTime();
+  const earlier = events.filter(
+    (event) =>
+      event.id !== eventId &&
+      (startOf(event) < startOf(self) ||
+        (startOf(event) === startOf(self) && event.createdAt < self.createdAt)),
+  );
+  const seenRagas = new Set<string>();
+  const seenComposers = new Set<string>();
+  for (const event of earlier) {
+    for (const item of await listItems(event.id, db)) {
+      item.ragas.forEach((raga) => seenRagas.add(counted(raga) ?? ''));
+      seenComposers.add(counted(item.composer) ?? '');
+    }
+  }
+  const ragas = new Map<string, string>();
+  const composers = new Map<string, string>();
+  for (const item of await listItems(eventId, db)) {
+    for (const raga of item.ragas) {
+      const key = counted(raga);
+      if (key && !seenRagas.has(key)) ragas.set(key, raga.text);
+    }
+    const composer = counted(item.composer);
+    if (composer && !seenComposers.has(composer)) composers.set(composer, item.composer.text);
+  }
+  return { ragas: [...ragas.values()], composers: [...composers.values()] };
+}
+
+export function useWhatItAdded(eventId: string) {
+  return useLiveQuery(() => whatItAdded(eventId), [eventId]);
 }

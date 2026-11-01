@@ -149,7 +149,7 @@ describe('catalog upgrade (required)', () => {
   it('skips deleted Items', async () => {
     const db = freshDb();
     const logged = await loggedUnderV1(db);
-    const tombstone = (await removeItem(logged.merged.id, { db }))!;
+    const { tombstone } = (await removeItem(logged.merged.id, { db }))!;
 
     expect((await upgradeCatalog(v2, { db })).changed).toBe(3);
     expect(await db.items.get(logged.merged.id)).toEqual(tombstone);

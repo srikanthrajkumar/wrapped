@@ -13,8 +13,12 @@ import {
 import { createEvent, deleteEvent, editEvent, setStatus, today } from '../../src/store/events';
 import {
   addItem,
+  addItemFrom,
   addRtp,
+  discardItemDraft,
   pickComposition,
+  readItemDraft,
+  saveItemDraft,
   setDetail,
   setImprovised,
   setLayaVinyasam,
@@ -30,7 +34,7 @@ import {
 } from '../../src/store/people';
 import { listAppearances, listItems } from '../../src/store/queries';
 import { RuleError } from '../../src/store/rules';
-import { fixtureCatalog, freshDb } from '../helpers';
+import { fixtureCatalog, freshDb, reopen } from '../helpers';
 
 const v1 = fixtureCatalog('catalog-v1.json');
 const song = (id: string) => v1.songByKritiId.get(id)!;
@@ -362,5 +366,114 @@ describe('Items', () => {
       'niraval',
       'kalpana_swaram',
     ]);
+  });
+});
+
+describe('creating an Item from its first pick (eng D3, design D12)', () => {
+  async function concert() {
+    const db = freshDb();
+    const event = await createEvent({ kind: 'concert' }, { db });
+    return { db, event };
+  }
+
+  it('fills a picked song in one transaction, one outbox entry', async () => {
+    const { db, event } = await concert();
+    const before = await db.outbox.count();
+    const item = await addItemFrom(event.id, { kind: 'song', song: song('c0004') }, { db });
+    expect(item).toMatchObject({
+      position: 1,
+      compositionKey: 'c0004',
+      title: 'Kamakshi',
+      ragas: [catalogValue('Bhairavi', 'Bhairavi')],
+      composer: catalogValue('shyaama shaastri', 'Syama Sastri'),
+      nadai: notApplicableValue(),
+    });
+    expect(await db.outbox.count()).toBe(before + 1);
+  });
+
+  it('starts an Item with only its Raga', async () => {
+    const { db, event } = await concert();
+    const raga = v1.ragaByKey.get('Bhairavi')!;
+    const item = await addItemFrom(event.id, { kind: 'raga', raga }, { db });
+    expect(item).toMatchObject({
+      compositionKey: null,
+      title: '',
+      ragas: [catalogValue('Bhairavi', 'Bhairavi')],
+      tala: unknownValue(),
+    });
+  });
+
+  it('starts the special forms, "? Don\'t know" and typed text', async () => {
+    const { db, event } = await concert();
+    const rtp = await addItemFrom(event.id, { kind: 'form', form: 'rtp' }, { db });
+    expect(rtp).toMatchObject({
+      title: 'RTP',
+      form: catalogValue('rtp', 'RTP'),
+      ragas: [unknownValue()],
+      composer: notApplicableValue(),
+    });
+    const viruttam = await addItemFrom(event.id, { kind: 'form', form: 'viruttam' }, { db });
+    expect(viruttam).toMatchObject({
+      title: 'Viruttam',
+      form: catalogValue('viruttam', 'Viruttam'),
+      tala: notApplicableValue(),
+    });
+    const medley = await addItemFrom(event.id, { kind: 'form', form: 'medley' }, { db });
+    expect(medley).toMatchObject({ title: 'Medley', tala: unknownValue() });
+    const unknown = await addItemFrom(event.id, { kind: 'unknown' }, { db });
+    expect(unknown).toMatchObject({ title: '?', compositionKey: null, ragas: [] });
+    const typed = await addItemFrom(event.id, { kind: 'typed', text: ' Bhavayami ' }, { db });
+    expect(typed).toMatchObject({ title: 'Bhavayami', compositionKey: null });
+    expect((await listItems(event.id, db)).map((item) => item.position)).toEqual([1, 2, 3, 4, 5]);
+    await expect(addItemFrom(event.id, { kind: 'typed', text: '  ' }, { db })).rejects.toThrow(
+      RuleError,
+    );
+  });
+
+  it('creates nothing when the write fails', async () => {
+    const { db, event } = await concert();
+    db.items.hook('creating', () => {
+      throw new Error('disk full');
+    });
+    await expect(
+      addItemFrom(event.id, { kind: 'song', song: song('c0001') }, { db }),
+    ).rejects.toThrow('disk full');
+    expect(await db.items.count()).toBe(0);
+    expect(await db.outbox.count()).toBe(1);
+  });
+
+  it('keeps typed text across a restart before the pick', async () => {
+    const start = await concert();
+    const { event } = start;
+    let { db } = start;
+    await saveItemDraft({ id: 'draft-1', eventId: event.id, text: 'Bhava' }, { db });
+    db = reopen(db);
+    expect(await readItemDraft(event.id, { db })).toMatchObject({ id: 'draft-1', text: 'Bhava' });
+    expect(await listItems(event.id, db)).toEqual([]);
+    await discardItemDraft(event.id, { db });
+    expect(await readItemDraft(event.id, { db })).toBeNull();
+  });
+
+  it('consumes the draft with the pick, and a replay after a restart adds nothing', async () => {
+    const start = await concert();
+    const { event } = start;
+    let { db } = start;
+    await saveItemDraft({ id: 'draft-1', eventId: event.id, text: 'Kama' }, { db });
+    const item = await addItemFrom(
+      event.id,
+      { kind: 'song', song: song('c0004') },
+      { db, id: 'draft-1' },
+    );
+    expect(item.id).toBe('draft-1');
+    expect(await readItemDraft(event.id, { db })).toBeNull();
+
+    db = reopen(db);
+    const again = await addItemFrom(
+      event.id,
+      { kind: 'song', song: song('c0004') },
+      { db, id: 'draft-1' },
+    );
+    expect(again).toEqual(item);
+    expect(await listItems(event.id, db)).toHaveLength(1);
   });
 });
