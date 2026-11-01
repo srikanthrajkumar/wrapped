@@ -279,9 +279,12 @@ Started with `/design-consultation` (T030) and paused by the Maintainer to mull 
 
 **Agreed so far**
 
-- **Base: shadcn preset `b2DeIHQ6F`** (ui.shadcn.com/create?preset=b2DeIHQ6F): style Rhea, Mist
-  neutrals and theme, emerald chart colour, Tabler icons, medium radius, subtle menu accent,
-  inverted translucent menus, Source Sans 3 for body with headings inheriting it.
+- **Base: shadcn preset `b51rn04Qt`** (ui.shadcn.com/create?preset=b51rn04Qt): style Rhea, Mist
+  neutrals and theme, rose chart colour, Tabler icons, medium radius, subtle menu accent,
+  inverted translucent menus, Source Sans 3 for body with headings inheriting it. Rose replaced
+  emerald because black with green is Spotify's look, and the Wrapped should not read as a copy.
+- **Warm text on the dark theme:** an off-white with a warm cast rather than Mist's cool grey
+  (finding 3).
 - **Two surfaces.** The logging screens are a tool used one-handed in a dark hall and should
   recede. The Wrapped cards are shared and should look like the rasika's own season.
 - **Typography: Source Sans 3 everywhere, app and cards.** Catalog names use IAST and ISO 15919
@@ -294,26 +297,39 @@ Started with `/design-consultation` (T030) and paused by the Maintainer to mull 
   Tamil and Noto Sans Devanagari as a fallback depends on the card renderer (T088): Satori or
   Takumi need bundled fonts; Canvas 2D uses the phone's own. The app screens use the phone's fonts
   for these scripts.
+- **How the Detail states look (finding 2, decided 2026-11-01).** Every state also has a spoken
+  label for screen readers, so none relies on a mark alone.
+  - **Matched** to the catalog: plain text.
+  - **Guess**: the sheet's own habit, "Vararaga (?)", with the "(?)" slightly muted.
+  - **Unknown**: a lone "?". It never collides with a Guess, which always has a name before
+    its "(?)".
+  - **Unresolved** (typed, not matched): shown as typed; the Item editor adds a muted "not
+    matched" under it. Tidy lists them all.
+  - **Override**: plain text like any value; the Item editor adds a muted "catalog: Tōḍi" so the
+    difference can be seen and undone.
+  - **Not applicable**: left out of lists ("Viruttam · Kambhoji"); the Item editor shows a muted
+    "Not applicable".
 
 **Proposed, not yet confirmed**
 
 - Dark by default (logging happens in a dark hall), with light in Settings and no white flashes.
 - Cards coloured by the season itself: the 12 Colour swatches the Artists wore, not a brand
-  palette. Needs contrast rules for seasons that are mostly white or clash.
-- Restrained colour in the app: Mist greys, near-black or white for actions, emerald only for
-  chart bars.
+  palette. Needs contrast rules for seasons that are mostly white or clash. The Maintainer is
+  happy with this direction for the white swatch and the Card template; the details are settled
+  when the Cards are designed (T088 to T096).
+- Restrained colour in the app: Mist greys, near-black or white for actions, rose only for chart
+  bars.
 - 4px spacing base; single column; primary actions in the thumb zone; minimal motion, with one
   authored moment: a new stripe weaving into the season fabric when a Concert is finished.
 
 **Open, to mull over**
 
-1. Warm or cool text on the dark theme (finding 3 asked for warm off-white; Mist is cool).
-2. The visual code for the six Detail states, including "?" versus a Guess (finding 2).
-3. How a white swatch shows on a card, and the rest of the Card template (finding 12).
-4. Whether to normalise ṁ to ṃ in the logger's display names (only matters if a font missing
-   ṁ is ever considered).
-5. Adding shadcn brings Tailwind and a component library into the stack; that needs a short ADR
-   before the screen tasks start (constitution VI).
+1. Whether to normalise ṁ to ṃ in the logger's display names. Undecided; it only matters if a
+   font missing ṁ is ever considered, since Source Sans 3 has both.
+
+Settled from the earlier list: warm text, the Detail states and the white swatch and Card
+template direction (all above); shadcn and Tailwind recorded in
+[ADR 0006](../../docs/adr/0006-shadcn-and-tailwind-for-the-screens.md).
 
 **Next:** a preview of the system on real screens (Event, Item editor, one Card), then
 `DESIGN.md`, then `/plan-design-review` on it before T040 to T044.

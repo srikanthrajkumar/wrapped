@@ -174,7 +174,7 @@ find every record in the file.
 - [ ] T051 [US2] Add an Export action reachable from every screen that holds data, offering the file through `navigator.share({ files })` with a download fallback (FR-019), in `app/src/screens/components/ExportAction.tsx`
 - [ ] T052 [P] [US2] Show the unsynced count (outbox length, FR-016) and the "ready for offline" state on every screen in `app/src/screens/components/SyncStatus.tsx`. On a phone running in a browser tab rather than as an installed app, every screen also shows a persistent banner suggesting Add to Home Screen, with the steps for iPhone (Safari Share menu) and Android (the browser's install prompt); the tab keeps working fully, and desktop browsers show no banner (eng review D15)
 - [ ] T053 [P] [US2] Build the Settings screen with storage-persisted state, Export, and the app and catalog versions in `app/src/screens/SettingsScreen.tsx`
-- [ ] T054 [US2] The Maintainer decides where the PWA's static files are hosted, needed before the phone-only fallback can ship (ADR 0001 covers sign-in and the database, not the static site; research.md notes free static hosting on Cloudflare Workers Static Assets). Record it in `docs/adr/0006-static-hosting.md`
+- [ ] T054 [US2] The Maintainer decides where the PWA's static files are hosted, needed before the phone-only fallback can ship (ADR 0001 covers sign-in and the database, not the static site; research.md notes free static hosting on Cloudflare Workers Static Assets). Record it in `docs/adr/0007-static-hosting.md`
 
 **Checkpoint**: logging plus export can ship alone if the server is late.
 
