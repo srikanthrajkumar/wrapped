@@ -1,8 +1,9 @@
 // The only write path for rasika records (constitution I). Each save is one local transaction
 // that writes the record and its outbox entry, then returns. Nothing here touches the network.
 
-import { newId, RECORD_FIELDS, type RasikaRows, type RasikaTable } from '../model';
+import { newId, RECORD_FIELDS, type RasikaRows, type RasikaTable, type Timestamps } from '../model';
 import { db as defaultDb, type OutboxEntry, type WrappedDB } from './db';
+import { RuleError } from './rules';
 
 export interface WriteOptions {
   db?: WrappedDB;
@@ -62,6 +63,28 @@ export async function remove<T extends RasikaTable>(
     await enqueue(db, table, tombstone, 'remove');
     return tombstone;
   });
+}
+
+/** `createdAt`, `updatedAt` and `deletedAt` for a record made now. */
+export function newTimestamps(): Timestamps {
+  const now = new Date().toISOString();
+  return { createdAt: now, updatedAt: now, deletedAt: null };
+}
+
+/**
+ * A stored, live row, for an action to change inside its transaction. A missing or deleted
+ * record is refused, so an action never writes onto a tombstone.
+ */
+export async function getLive<T extends RasikaTable>(
+  table: T,
+  id: string,
+  { db = defaultDb }: WriteOptions = {},
+): Promise<RasikaRows[T]> {
+  const row = (await db.table(table).get(id)) as RasikaRows[T] | undefined;
+  if (!row || row.deletedAt !== null) {
+    throw new RuleError([`no ${table.replace(/s$/, '')} ${id}`]);
+  }
+  return row;
 }
 
 function ownFields<T extends RasikaTable>(table: T, row: RasikaRows[T]): Partial<RasikaRows[T]> {

@@ -122,18 +122,21 @@ Colours, 8 Items, one Laya vinyasam, notes), force-close, reopen, and find every
 
 ### Required tests for User Story 1
 
-- [ ] T034 [P] [US1] **(required)** End-to-end offline capture test (SC-001) in `app/e2e/offline-concert.spec.ts`: with `context.setOffline(true)`, log 5 Appearances with Colours, 8 Items, one Laya vinyasam and notes; close the browser context; reopen; assert every Detail
-- [ ] T035 [P] [US1] **(required)** Delete-and-reorder local test in `app/tests/store/reorder-delete.test.ts`: reordering renumbers the affected Items in one transaction with an outbox op each; deleting writes a tombstone and an op; "`position` is unique among an Event's live Items after each transaction"; both survive a reopen
+- [X] T034 [P] [US1] **(required)** End-to-end offline capture test (SC-001) in `app/e2e/offline-concert.spec.ts`: with `context.setOffline(true)`, log 5 Appearances with Colours, 8 Items, one Laya vinyasam and notes; close the browser context; reopen; assert every Detail
+  - *Built 2026-11-01:* the screens (T040 to T044) are still being designed, so the test logs the Concert through the same store actions, bundled from `app/e2e/harness/` and injected into the installed app's page; the IndexedDB, service worker and offline state are the real browser's, and the force-close is a persistent browser profile closed and relaunched. Switch it to the screens once they exist
+- [X] T035 [P] [US1] **(required)** Delete-and-reorder local test in `app/tests/store/reorder-delete.test.ts`: reordering renumbers the affected Items in one transaction with an outbox op each; deleting writes a tombstone and an op; "`position` is unique among an Event's live Items after each transaction"; both survive a reopen
 
 ### Implementation for User Story 1
 
-- [ ] T036 [P] [US1] Implement Event actions in `app/src/store/events.ts`:
+- [X] T036 [P] [US1] Implement Event actions in `app/src/store/events.ts`:
   - create an Event: date defaults to today; a `spot` Event starts `attended`;
   - edit an Event: sets `touched` to true;
   - state transitions as in data-model.md: "`planned → attended` (logging it), `planned → missed` (rasika says so), `missed → planned` and `attended → planned` (undo)";
   - validation: "A Lecdem needs a `title`. A Concert's `title` is null"
-- [ ] T037 [P] [US1] Implement Artist, Sabha and Appearance actions in `app/src/store/people.ts`. Find own and shared entries by folded name and Alias as the rasika types; a new name creates an own Artist or Sabha (FR-005). Add Appearances with a role and Colours (FR-004), so a previously logged Artist gets a new Appearance for the same person (US1 scenario 6). Each own Artist and Sabha stores its folded name as `nameKey`, using `app/src/catalog/fold.ts` (outside voice 9)
-- [ ] T038 [US1] Implement Item actions in `app/src/store/items.ts`, using `app/src/store/mutate.ts`:
+  - *Built 2026-11-01:* `touched` is set only as data-model.md says (an edit, or becoming Attended), so a hand-made Planned Event starts untouched. Deleting an Event tombstones its Appearances and Items in the same transaction
+- [X] T037 [P] [US1] Implement Artist, Sabha and Appearance actions in `app/src/store/people.ts`. Find own and shared entries by folded name and Alias as the rasika types; a new name creates an own Artist or Sabha (FR-005). Add Appearances with a role and Colours (FR-004), so a previously logged Artist gets a new Appearance for the same person (US1 scenario 6). Each own Artist and Sabha stores its folded name as `nameKey`, using `app/src/catalog/fold.ts` (outside voice 9)
+  - *Built 2026-11-01:* the shared lists reach the phone only by pull (US2), so until sync exists `findArtists` and `findSabhas` offer own entries only on a fresh phone; seeding the phone from `shared-lists.seed.json` would be a separate decision
+- [X] T038 [US1] Implement Item actions in `app/src/store/items.ts`, using `app/src/store/mutate.ts`:
   - **add**: at the end of the running order;
   - **reorder**: renumber in one transaction;
   - **delete**: a tombstone;
@@ -142,7 +145,8 @@ Colours, 8 Items, one Laya vinyasam, notes), force-close, reopen, and find every
   - **other values**: set Unknown, Not applicable, Guess or Unresolved, kept exactly as entered (FR-008);
   - **several Ragas**: in order (FR-009);
   - **no Composition**: an Item can have `compositionKey` null (FR-010)
-- [ ] T039 [US1] Add the RTP and Laya vinyasam rules in `app/src/store/items.ts`:
+  - *Built 2026-11-01:* a new Item's Details start as "?" (Unknown) and its Nadai as Not applicable, until a Composition is picked or a value set. Raga order and the Override check compare with the Composition's Raga in the same place
+- [X] T039 [US1] Add the RTP and Laya vinyasam rules in `app/src/store/items.ts`:
   - an RTP has no Composition, one or more Ragas, a tala and Nadai, and a language and subject;
   - an RTP's `composer` defaults to `na`; filled in, it is whoever wrote the pallavi and counts like any Composer (FR-041);
   - `layaVinyasam` is `{ nadai, note }` on the Item it followed (FR-011)
@@ -152,14 +156,17 @@ Colours, 8 Items, one Laya vinyasam, notes), force-close, reopen, and find every
 - [ ] T043 [US1] Build the Event screen in `app/src/screens/EventScreen.tsx`: date, start time, Sabha, kind, note, the Appearances list with Role and Colours, and the running order with move up, move down and delete. Layout per plan.md DD3: one-line header, Running order, Stage, fixed Add Item button, note last; Colours optional at any time, never before logging an Item
 - [ ] T044 [US1] Build the Item editor in `app/src/screens/ItemEditor.tsx`: Composition search, every Detail through DetailInput, the ragamalika raga list, tala with Nadai, and the Laya vinyasam section with its Nadai and note (open: the improvised Details, namely alapana, tanam, niraval and kalpana swaram, are recorded as heard, each with its own Raga when it differs from the Item's; their entry is designed here, kept out of the main logging path, per FR-051 and data-model.md Item `improvised`). Layout per plan.md DD4: one search box docked above the keyboard, fixed rows (use what I typed, ? Don't know, RTP, Viruttam/Slokam, Medley), Details grid after a pick, autosave, Done and Next Item
 - [ ] T045 [US1] Write the 2024-25 reference import in `tools/import-2024-25/import.ts`, reading the sheet with `read-excel-file` (dev dependency) and run with `tsx`. It matches every Item through `app/src/catalog/match.ts` (FR-039) and reports, out of 193, how many matched a Composition, were "?", were special forms with no Composition, or stayed Unresolved (SC-005). The sheet's Artist #1 and #2 become the first two Appearances with a blank Role, and its accompaniment columns give violin, mridangam, khanjira, ghatam and morsing. It writes `app/tests/fixtures/reference-2024-25.json` as a test fixture only, never into a rasika's log, lists or Wrapped (FR-040)
-- [ ] T046 [US1] Implement the catalog upgrade in `app/src/catalog/upgrade.ts`, run on the launch where the rasika accepts a new version (FR-038). In one transaction it:
+- [X] T046 [US1] Implement the catalog upgrade in `app/src/catalog/upgrade.ts`, run on the launch where the rasika accepts a new version (FR-038). In one transaction it:
   - rewrites merged keys on every Item `DetailValue` and `compositionKey`;
   - turns retired keys into `unresolved` with `text` kept;
   - leaves `state` alone;
   - queues each changed Item in the outbox;
   - separately, outside that transaction: the same remap is applied to every pulled row before it is stored, so rows restored under older keys keep their meaning (outside voice 6)
-- [ ] T047 [US1] **(required)** Catalog-update test using the v1 and v2 fixtures in `app/tests/catalog/upgrade.test.ts`: a merged key is rewritten; an Override keeps its state; a retired key becomes Unresolved with its text kept; a row pulled with a v1 key after v2 is installed is remapped (outside voice 6)
-- [ ] T048 [P] [US1] Search latency test in `app/e2e/search-perf.spec.ts`: 4× CPU throttle via CDP, p95 from keystroke to results under 50 ms over the full snapshot (SC-007)
+  - *Built 2026-11-01:* the transaction is `app/src/store/catalog-version.ts` (all Dexie access stays in the store) and records `catalogVersion` in `meta` with the rewritten Items, so a force-close leaves either version whole. `app/src/catalog/current.ts` opens the build's catalog after first render and runs the upgrade; `remapPulledRow` is ready for the pull (T078)
+- [X] T047 [US1] **(required)** Catalog-update test using the v1 and v2 fixtures in `app/tests/catalog/upgrade.test.ts`: a merged key is rewritten; an Override keeps its state; a retired key becomes Unresolved with its text kept; a row pulled with a v1 key after v2 is installed is remapped (outside voice 6)
+  - *Built 2026-11-01:* v1 gained the raga Jonpuri, which v2 retires, so a retired `DetailValue` is covered as well as the retired song c0021
+- [X] T048 [P] [US1] Search latency test in `app/e2e/search-perf.spec.ts`: 4× CPU throttle via CDP, p95 from keystroke to results under 50 ms over the full snapshot (SC-007)
+  - *Measured 2026-11-01 (Playwright Chromium, 4x CPU slowdown, the 2026.11.01-1 snapshot, 1,343 keystrokes from the golden set's spellings, on a loaded 2-core dev box):* p95 115 ms and 120 ms in two runs, p50 45 ms, max 310 ms; over the 50 ms budget, which is left as it is. Slowest are multi-word prefixes ("Aparama Bhak") and short common ones ("Maa"). The aliases added on 2026-11-01 made no measurable difference. The test times the search call, not a render, until T044's search box exists; it skips without a snapshot, as in CI. The fix is the Maintainer's call, with T033's device numbers
 
 From the design and eng reviews of 2026-11-01 (`DESIGN.md`; [reviews.md](reviews.md), D1 to D8 of the eng review). The screens T040 to T044 are built to `DESIGN.md`.
 

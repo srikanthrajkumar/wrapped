@@ -57,6 +57,32 @@ describe('catalog loader', () => {
     expect(() => decodeSnapshot(raw)).toThrow(CatalogError);
   });
 
+  it("decodes each song's title aliases", () => {
+    const catalog = decodeSnapshot(
+      JSON.parse(new TextDecoder().decode(fixture('catalog-v1.json'))),
+    );
+    expect(catalog.songByKritiId.get('c0002')).toMatchObject({
+      title: 'Vatapi Ganapatim',
+      titleAliases: ['Vathapi Ganapathim', 'Vatapi Ganapatim Bhajeham'],
+    });
+    expect(catalog.songByKritiId.get('c0003')?.titleAliases).toEqual([]);
+  });
+
+  it('refuses title aliases that are missing, short a song, or not lists of names', () => {
+    const v1 = () => JSON.parse(new TextDecoder().decode(fixture('catalog-v1.json')));
+    const missing = v1();
+    delete missing.songs.titleAliases;
+    expect(() => decodeSnapshot(missing)).toThrow(CatalogError);
+
+    const short = v1();
+    short.songs.titleAliases.pop();
+    expect(() => decodeSnapshot(short)).toThrow(/songs.titleAliases has 20 entries/);
+
+    const notNames = v1();
+    notNames.songs.titleAliases[0] = ['Nagumomu', 7];
+    expect(() => decodeSnapshot(notNames)).toThrow(CatalogError);
+  });
+
   it('reports why when no file loads', async () => {
     const loaded = await loadCatalog(['catalog.json'], async () => new ArrayBuffer(0));
     expect(loaded).toEqual({
@@ -72,7 +98,10 @@ describe('catalog loader', () => {
     const { catalog } = loaded;
 
     expect(catalog.ragaByKey.has('Sankarabharanam')).toBe(false);
-    expect(catalog.remap.ragas).toEqual({ Sankarabharanam: 'Dheerasankarabharanam' });
+    expect(catalog.remap.ragas).toEqual({
+      Sankarabharanam: 'Dheerasankarabharanam',
+      Jonpuri: null,
+    });
     expect(catalog.remap.songs).toEqual({ c0021: null });
     expect(catalog.songByKritiId.has('c0021')).toBe(false);
     expect(catalog.ragaByKey.get('Kamavardhini')?.groupKey).toBe(

@@ -1,5 +1,5 @@
 // Catalog search (ADR 0004, research.md "Catalog search"). uFuzzy runs over folded text: for
-// each song its title, first line, raga names and aliases, composer names and aliases and
+// each song its title and title aliases, first line, raga names and aliases, composer names and aliases and
 // tala; and one entry per raga, so typing a raga's name can start an Item with only its Raga
 // (plan.md DD4).
 
@@ -65,14 +65,19 @@ export function buildIndex(catalog: Catalog): CatalogIndex {
     const { song } = entry;
     const title = fold(song.title);
     const firstLine = fold(song.firstLine);
+    // The title's other spellings are search terms: matching one finds the song, which still
+    // shows its own title.
+    const titleAliases = song.titleAliases.map(fold);
     heads.push(title);
     const ragas = song.raga ? [song.raga, ...song.ragamalika] : song.ragamalika;
     return [
       title,
       firstLine,
+      ...titleAliases,
       // Joined spellings, as in "Venkatachalanilayam" for "Venkatachala Nilayam".
       title.replaceAll(' ', ''),
       firstLine.replaceAll(' ', ''),
+      ...titleAliases.map((alias) => alias.replaceAll(' ', '')),
       ...ragas.map((raga) => ragaText.get(raga)!),
       song.composer ? composerText.get(song.composer)! : '',
       song.tala ? talaText.get(song.tala)! : '',
