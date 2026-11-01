@@ -35,4 +35,34 @@ describe('catalog search', () => {
     const raga = index.search('thodi').find((result) => result.kind === 'raga');
     expect(raga?.kind === 'raga' && raga.raga.key).toBe('Todi');
   });
+
+  it('answers each keystroke as a fresh search would, as the rasika types and corrects', () => {
+    const typed = buildIndex(catalog);
+    const ids = (results: SearchResult[]) =>
+      results.map((r) => (r.kind === 'song' ? r.song.kritiId : `raga:${r.raga.key}`));
+    // Words crossing the four-to-five letter line, extra words, a single-letter word that
+    // switches to unordered matching, and backspacing.
+    const sessions = [
+      'nagumomu ganaleni',
+      'kamavardani',
+      'tyagaraja abheri adi',
+      'enduku pedala',
+      'venkatachalanilayam',
+      'a sarasija',
+      'sarasija a',
+      'talli ninnu nera',
+      // A repeated word, and a long query corrected letter by letter.
+      'kamakshi kamakshi',
+      'meenakshi me mudam dehi',
+    ];
+    for (const session of sessions) {
+      const keystrokes = [...session].map((_, i) => session.slice(0, i + 1));
+      keystrokes.push(...keystrokes.slice(0, -1).reverse(), 'kalyani', 'kalyan', 'kaly');
+      for (const query of keystrokes) {
+        expect(ids(typed.search(query, 100)), query).toEqual(
+          ids(buildIndex(catalog).search(query, 100)),
+        );
+      }
+    }
+  });
 });
