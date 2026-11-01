@@ -923,33 +923,704 @@ Pass 4 classifies the app screens as OPERATE (app UI) and the Cards as share art
 rejection is triggered, but nothing visual is specified yet. The overall score stays at the lowest
 pass (design system, 1/10) until DESIGN.md exists.
 
+## Design review output (plan-design-review, 2026-11-01)
+
+Reviewed `DESIGN.md` with the design sections of `plan.md`, scoped by the Maintainer (D1) to the
+logging screens needed by 1 December: Season home, Event, Item editor, Detail input, the Artist
+and Sabha pickers, the Colour sheet and first launch. Cards, sync conflict, restore and the
+Lecdem variant are left to the phases that build them. Every decision below was asked and
+answered one at a time and is written into `DESIGN.md`.
+
+**Mockups:** none. The gstack designer has no image API key on this machine, so the review ran
+text-only. The approved preview of the Event screen and Item editor (2026-11-01) stood as the
+visual reference.
+
+**Outside voices:** Codex (gpt-6-astra, completed) and an independent Claude subagent both
+ran. Litmus: both said NO to "brand unmistakable on the first screen" and "cards necessary",
+and YES to the other five checks. No hard rejection was triggered, and both named the risk of
+lists built as card stacks (settled by D18). Both flagged the eng review's D9 as the most
+serious gap (settled by D15).
+
+### Decisions
+
+| # | Decision | Answer |
+|---|---|---|
+| D3 | Which Event is Now when two qualify | The one being logged; otherwise the nearest start, with the other as a smaller line |
+| D4 | The Event screen's bottom bar | "Start logging" or "Add Item" by state; "Done with this Concert" is a row after the last Item |
+| D5 | Top bars of pushed screens | Back chevron left and "⋯" right (the Dynamic Island takes the centre); the concert shown large as the first block |
+| D6 | Where reordering starts | A muted "Edit order" on the Running order heading |
+| D7 | Fixed rows in the Item search | As in the preview: pinned at the top of the stack, the best match by the box |
+| D8 | "Log a Concert now" | Opens the Event at once, ready to log; "Add Sabha" and "Add Artist" filled in any time |
+| D9 | The product's name in the app | Deferred: the Maintainer is considering other names; a logo will appear somewhere |
+| D10 | First launch | One step per screen: Welcome, Google, Consent 1, Consent 2, Getting ready (with progress), home |
+| D11 | Empty home | The Now block alone; empty sections are hidden |
+| D12 | When an Item exists | From its first pick; typed text survives the phone locking |
+| D13 | Search states | Fixed rows only before typing; one-line notes for no match and no catalog |
+| D14 | Status messages | A count line on home; an action line under the top bar only when something needs the rasika |
+| D15 | Save failure (reopens the eng review's D9) | Highlight only after a successful write; a persistent "Not saved on this phone" with Try again and Export |
+| D16 | Undo bar | Above the bottom action; pauses on focus; earlier deletes recoverable until leaving the Event |
+| D17 | "Done with this Concert" | Optional; Now follows logging activity (an Item in the last 60 minutes); the summary also shows on the Concert |
+| D18 | Lists | Rows on the background with hairlines; fills only for the Now block, the best match and sheets |
+| D19 | Browser surfaces | Caret, selection, focus ring and scrollbars themed from the palette |
+| D20 | Outfit swatches | The drafted 12 values, retuned with the Cards |
+| D21 | Dark-theme text | Softened to lightness 0.88 and 0.72 for the hall |
+| D22 | Dark-theme primary | Warm 0.88 fill, matching the softened text |
+| D23 | Larger text and narrow phones | Follow the phone's text size to 200%; reflow; check at 320px |
+| D24 | Focus | Five rules: focus on open, sheets return focus, one result announcement, rich Detail names, real roles |
+| D25 | Detail input | One sheet: scoped docked search with "?", "Not sure" and "N/A" chips |
+| D26 | Artist and Sabha pickers | Docked search, recent first, an explicit "Add new" row, skippable Role chips |
+| D27 | Colour sheet | Tap saves; check mark plus ring; Second colour below; a stronger edge on Black, White and Grey |
+| D28 | System message wording | Drafted now as one table in `DESIGN.md` for the Maintainer to edit |
+| D29 | New catalog prompt | A row at the top of home, hidden while a Concert is being logged |
+
+### Design Review Completion Summary
+
+```
+  +====================================================================+
+  |         DESIGN PLAN REVIEW — COMPLETION SUMMARY                    |
+  +====================================================================+
+  | System Audit         | DESIGN.md present (spec format); UI scope:  |
+  |                      | logging screens for 1 December              |
+  | Step 0               | 6/10; focus: logging screens first (D1)     |
+  | Pass 1  (Info Arch)  | 6/10 → 8/10 after fixes                     |
+  | Pass 2  (States)     | 3/10 → 8/10 after fixes                     |
+  | Pass 3  (Journey)    | 6/10 → 8/10 after fixes                     |
+  | Pass 4  (AI Slop)    | 7/10 → 9/10 after fixes                     |
+  | Pass 5  (Design Sys) | 7/10 → 9/10 after fixes                     |
+  | Pass 6  (Responsive) | 5/10 → 9/10 after fixes                     |
+  | Pass 7  (Decisions)  | 5 resolved, 9 deferred to their phases      |
+  +--------------------------------------------------------------------+
+  | NOT in scope         | written (9 items)                           |
+  | What already exists  | written                                     |
+  | TODOS.md updates     | 0 items proposed                            |
+  | Approved Mockups     | 0 generated, 0 approved (no image API key)  |
+  | Decisions made       | 26 added to the plan                        |
+  | Decisions deferred   | 10 (listed below)                           |
+  | Overall design score | 3/10 → 8/10                                 |
+  +====================================================================+
+```
+
+Every rated pass is now 8 or above. What keeps the passes below 10:
+- **Pass 1:** the brand (D9).
+- **Pass 2:** the states deferred to their phases.
+- **Pass 3:** the Wrapped moment, which belongs to the Cards.
+- **Passes 4 to 6:** they still need checking on the built screens with `/design-review`, VoiceOver and TalkBack.
+
+### NOT in scope
+
+- "Did you go?" for past Planned Events: with the Plan screen (T056).
+- "Ready for offline" covering share images: with the Cards.
+- The restore banner and the conflict screen: with sync (US2).
+- The Card template and the swatches' final tuning: T088 to T096.
+- Cancelled versus "schedule changed": with the Schedule (T061).
+- Consent toggles offline: with Settings (T082).
+- Share in progress or failed: with the Cards.
+- The Lecdem variant of the Event screen: T063.
+- The Settings layout: with T082.
+
+### What already exists
+
+- **`app/src/styles/base.css` (T031):** tap feedback, the 16px input floor, safe areas, `dvh`,
+  the tab-bar shell and `color-scheme`. D19 and D23 extend it.
+- **The approved preview of the Event screen and Item editor (2026-11-01):** the reference for D5,
+  D7 and D18.
+- **The Phase 3 store on `phase-3-logging` (PR #4):**
+  - Item actions, with Details starting as "?" and the Nadai as Not applicable, which D25
+    matches;
+  - the catalog upgrade, which D29's prompt starts;
+  - `titleAliases` search, which D13 relies on.
+- **shadcn preset `b51rn04Qt` (ADR 0006):** CSS variables, sheets with focus trapping (D24),
+  and the Tabler icons. Not yet installed in `app/`.
+
+### TODOS.md updates
+
+None. Each deferral above belongs to an existing task, and the in-scope checks are in the
+Implementation Tasks below.
+
+### Implementation Tasks
+
+Synthesized from this review's findings. Each task derives from a specific finding above.
+
+- [ ] **T1 (P1, human: ~3h / CC: ~20min)** — store and screens — Save-failure state and its
+  required test (D15)
+  - Surfaced by: Pass 2, both outside voices; reopens the eng review's D9
+  - Files: `app/src/store/mutate.ts`, the Event and Item screens, `app/tests/store/save-failure.test.ts`
+  - Verify: a failed write never plays the highlight, and leaves the value on screen with "Not
+    saved on this phone"
+- [ ] **T2 (P1, human: ~4h / CC: ~30min)** — Season home — Which Event holds Now: logging
+  activity, then the nearest start, with "Done" optional (D3, D17); empty home (D11); catalog
+  row (D29)
+  - Surfaced by: Pass 1 and Pass 3
+  - Files: the home screen and its selector, with a unit test for overlapping windows
+  - Verify: a 4 pm and a 6:30 pm at 5:45, with and without Items logged in the last hour
+- [ ] **T3 (P1, human: ~2h / CC: ~15min)** — theme — The CSS variable mapping, softened dark
+  text and primary (D21, D22), and the themed caret, selection and focus ring (D19)
+  - Surfaced by: Pass 4 and Pass 5
+  - Files: the Tailwind theme and `app/src/styles/base.css`, when shadcn is set up
+  - Verify: no browser-default blue in either theme; contrast as in `DESIGN.md`
+- [ ] **T4 (P2, human: ~1 day / CC: ~1h)** — every logging screen — Larger-text reflow and the
+  five focus rules (D23, D24)
+  - Surfaced by: Pass 6
+  - Files: T040 to T044
+  - Verify: each screen at 320px and 200% text with the keyboard open; a VoiceOver and a
+    TalkBack pass
+- [ ] **T5 (P2, human: ~3h / CC: ~20min)** — Event screen — The Undo bar, "Recently deleted"
+  and delete focus (D16)
+  - Surfaced by: Pass 2
+  - Files: `app/src/screens/EventScreen.tsx`
+  - Verify: two quick deletes are both recoverable; Add Item stays reachable
+- [ ] **T6 (P2, human: ~1h / CC: ~10min)** — copy — Use the Messages table's strings verbatim
+  once the Maintainer has edited it (D28)
+  - Surfaced by: Pass 7
+  - Files: the screens in T040 to T044 and T081
+  - Verify: grep the screens for each table string
+
+### Unresolved Decisions
+
+1. The product's name and where its logo appears (D9, deferred by the Maintainer).
+2. The Maintainer's edits to the drafted Messages table (D28).
+3. The items listed under NOT in scope above, each deferred to its phase under D1.
+
+## Eng review output (plan-eng-review, 2026-11-01)
+
+**Target:** the engineering impact of the design review of 2026-11-01 (`DESIGN.md`, D3 to D29
+above) on `plan.md` and the Phase 3 store on `phase-3-logging` (PR #4, head `0f9206d`).
+**Scope record:** about 7 changed files and one new module, under the complexity gate; scope
+accepted as-is.
+
+### Findings
+
+1. [CRITICAL] (9/10) `app/src/store/items.ts:241` — a restored Item tombstone can collide with
+   a newer Item's `position`; `deleteEvent` leaves no record of which tombstones it made.
+2. [INFORMATIONAL] (9/10) `app/src/store/catalog-version.ts:38` — the catalog upgrade stamps
+   `updatedAt` on every rewritten Item, so "changed in the last 60 minutes" (D17) misfires; no
+   stored "Done".
+3. [INFORMATIONAL] (9/10) `app/src/store/items.ts:68` — creating an Item from its first pick
+   (D12) takes two transactions; a force-close between them leaves a blank Item.
+4. [INFORMATIONAL] (8/10) `app/src/store/offline-ready.ts:2` — no first-phase "ready to log"
+   fact and no install progress for D10.
+5. [INFORMATIONAL] (8/10) `app/package.json` — no DOM test library for D15's required test.
+
+### Decision ledger (2026-11-01)
+
+#### R1: Undo restores without breaking the running order
+
+Finding: 1, CRITICAL, 9/10, `app/src/store/items.ts:241`, `events.ts:113`, `mutate.ts:33`; reviewer: Claude (eng review)
+Plan baseline: D16 (design review, 2026-11-01) approved Undo and "Recently deleted"; no restore action exists in the plan or `tasks.md`.
+Runtime evidence: `removeItem` keeps the tombstone's `position`; `addItem` numbers from the last live Item; `save(..., { restore: true })` puts the row back unchanged; `deleteEvent` stamps each tombstone at its own time.
+Comparison grid:
+
+| Choice | Current | A | B |
+|---|---|---|---|
+| R1 restore | `save(restore)` only; position can collide | `restoreItem` re-inserts at its old place and renumbers; `deleteEvent` returns the ids it removed for `restoreEvent` | unchanged |
+| Required test | none | added to `app/tests/store/reorder-delete.test.ts` | none |
+| D16 Undo design | approved | unchanged | unchanged |
+
+Question D1:
+D1 — How does Undo put a deleted Item or Concert back?
+Project/branch/task: phase-3-logging (PR #4), the store behind D16's Undo and "Recently deleted".
+ELI10: Deleting keeps the Item as a hidden "tombstone" at its old place number. If you then add a new Item, it can take the same number. Undoing the delete would then give two Items the same place, which the running-order test (T035) forbids. Deleting a whole Concert also hides its Items one by one with no note of which ones it hid, so Undo can't put back exactly those. Fix: a `restoreItem` action that slots the Item back where it was and renumbers in one step, and `deleteEvent` returning the list of what it hid so `restoreEvent` brings back exactly that.
+Stakes if we pick wrong: Undo scrambles the running order, or brings back Items the rasika had deleted earlier on purpose.
+Recommendation: A because Undo is now a promised feature and the collision is a silent integrity break on a required-test path.
+Completeness: A=10/10, B=4/10
+Pros / cons:
+A) restoreItem and restoreEvent, with a required test (recommended)
+  ✅ Undo always returns the Item to its place and keeps every place number unique (human: ~3h / CC: ~20min)
+  ✅ Undoing a Concert delete brings back exactly the Items and Appearances it removed, nothing older
+  ❌ Two new store actions and one more required test to maintain
+B) Leave it; Undo calls save(restore) as today
+  ✅ No new code; works whenever nothing was added between the delete and the Undo
+  ❌ Delete-then-add-then-Undo gives two Items the same place, silently, mid-concert
+Net: a small store change against a silent running-order corruption.
+Header: Undo restore
+Options:
+A) restoreItem + restoreEvent (recommended)
+Re-insert at the old place with renumbering in one transaction; deleteEvent returns the ids it removed; a required test in reorder-delete.test.ts.
+B) Leave as is
+Undo uses save(restore); a collision is possible after delete, add, Undo.
+
+State: approved
+Actual answer: A) restoreItem + restoreEvent (D1, 2026-11-01)
+Accepted scope: `restoreItem` re-inserts an Item at its old place and renumbers in one transaction; `deleteEvent` returns the ids it tombstoned and `restoreEvent` restores exactly those; a required test in `app/tests/store/reorder-delete.test.ts`.
+History: none
+
+#### R2: Where "being logged" and "Done" are kept (D17)
+
+Finding: 2, INFORMATIONAL, 9/10, `app/src/store/catalog-version.ts:38`, `app/src/model/records.ts` (Event); reviewer: Claude (eng review)
+Plan baseline: D17 (design review, 2026-11-01): Now goes to the Event with an Item added or changed in the last 60 minutes and not ended with Done.
+Runtime evidence: `save()` stamps `updatedAt` to now on every write, including the catalog upgrade's rewrite of each remapped Item; the Event record has no field for Done.
+Comparison grid:
+
+| Choice | Current | A | B |
+|---|---|---|---|
+| R2 storage | none | per-phone record in `db.meta`: per Event, the last logging time and the Done time, written only by the logging screens' actions; never synced | `loggingEndedAt` on Event, synced (data model, sync payload, server schema); activity from Items' `createdAt` |
+| Effect of catalog upgrade or sync on Now | would count as activity | none | none |
+| D17 behaviour | approved | unchanged | unchanged |
+
+Question D2:
+D2 — Where does the app keep "this Concert is being logged" and "Done was tapped"?
+Project/branch/task: phase-3-logging (PR #4), the Now rule from D17.
+ELI10: D17 says Now goes to the Concert you've logged in the last hour, unless you tapped Done. Reading that from each Item's "last changed" time doesn't work, because a catalog update rewrites every affected Item and stamps them all as changed just now. And there's nowhere to store "Done". Option A keeps a small note on this phone only: for each Concert, when you last logged something and when you tapped Done. Only the logging screens write it. Option B adds a "Done" field to the Concert record itself, which then syncs to the server and needs a data-model and server change.
+Stakes if we pick wrong: A catalog update makes an old Concert grab Now, or a sync-schema change for something only this phone cares about.
+Recommendation: A because Now is about what you're doing on this phone right now, and a per-phone note can't be disturbed by catalog updates or sync.
+Completeness: A=9/10, B=8/10
+Pros / cons:
+A) A per-phone logging note in db.meta (recommended)
+  ✅ Catalog updates and sync can never change Now; only your own logging taps do (human: ~2h / CC: ~15min)
+  ✅ No change to the data model, the sync contract or the server schema
+  ❌ Restoring onto a new phone mid-concert loses the note, so Now falls back to the nearest start
+B) A synced loggingEndedAt field on the Event
+  ✅ Done travels with the Concert to every device and survives a restore
+  ❌ A data-model, sync-payload and server-schema change, plus migration, for a per-phone convenience
+Net: a local note that nothing else can disturb, against a synced field that needs schema work.
+Header: Logging note
+Options:
+A) Per-phone note in db.meta (recommended)
+Per Event: last logging time and Done time, written only by the logging screens; never synced. Now reads it.
+B) Synced Event field
+loggingEndedAt on Event through the data model, sync payload and server schema; activity from Item createdAt.
+
+State: approved
+Actual answer: A) Per-phone note in db.meta (D2, 2026-11-01)
+Accepted scope: A per-phone logging note in `db.meta`: per Event, the last logging time and the Done time, written only by the logging screens' actions and never synced; the Now selector reads it, so catalog upgrades and sync never change Now. A unit test covers a catalog upgrade not making an Event active.
+History: none
+
+#### R3: An Item is created from its first pick in one transaction (D12)
+
+Finding: 3, INFORMATIONAL, 9/10, `app/src/store/items.ts:68` (`addItem` takes `title`, `form`, `note` only); reviewer: Claude (eng review)
+Plan baseline: D12 (design review, 2026-11-01): a new Item exists from its first pick: a song, a Raga, a special form, "? Don't know" or "Use what I typed".
+Runtime evidence: picking a song is `addItem` then `pickComposition`, two transactions; there is no Raga-only start.
+Comparison grid:
+
+| Choice | Current | A | B |
+|---|---|---|---|
+| R3 create | two transactions | one action, `addItemFrom(eventId, pick)`, for all five picks, in one transaction | unchanged |
+| Test | none | extend `app/tests/store/logging.test.ts`: each pick creates exactly one Item with its Details | none |
+
+Question D3:
+D3 — Create a new Item and fill it from its first pick in one step?
+Project/branch/task: phase-3-logging (PR #4), the store behind D12.
+ELI10: D12 says an Item only exists once you pick something. Today the store can only make an empty Item, then fill it in a second step. If the phone dies or the app is swiped away between the two, a blank "?" Item is left in the running order and counts in the Wrapped. One store action that makes the Item already filled from the pick (a song, a Raga, a special form, "?" or what you typed) closes that gap.
+Stakes if we pick wrong: Occasional phantom "?" Items appear in a Concert and inflate the season's counts.
+Recommendation: A because it is what D12 means, and one transaction is how every other change in the store already works.
+Completeness: A=10/10, B=6/10
+Pros / cons:
+A) One addItemFrom(pick) action (recommended)
+  ✅ An Item never exists half-made; each pick creates exactly one filled Item (human: ~2h / CC: ~15min)
+  ✅ Raga-only starts (an alapana before the song is known) get a proper action instead of a workaround
+  ❌ One more store action, and the screens must route every pick through it
+B) Keep addItem then pickComposition
+  ✅ No store change; the two actions already exist and are tested
+  ❌ A crash between them leaves a blank Item, and Raga-only starts have no action
+Net: a single atomic action against an occasional phantom Item.
+Header: Create on pick
+Options:
+A) addItemFrom(pick) (recommended)
+One transaction for all five picks: song, Raga, special form, Unknown, typed text; tests extend logging.test.ts.
+B) Keep two steps
+addItem then pickComposition; a crash between them can leave a blank Item.
+
+State: approved
+Actual answer: A) addItemFrom(pick) (D3, 2026-11-01)
+Accepted scope: One store action, `addItemFrom(eventId, pick)`, that creates an Item already filled from its first pick (song, Raga, special form, Unknown or typed text) in one transaction; the screens route every first pick through it; tests extend `app/tests/store/logging.test.ts` so each pick creates exactly one Item with its Details.
+History: none
+
+#### R4: "Ready to log offline" and real progress on first launch (D10)
+
+Finding: 4, INFORMATIONAL, 8/10, `app/src/store/offline-ready.ts:2` ("set only when both download phases are cached"), `app/src/sw.ts:34` (`precacheAndRoute(phase1)`); reviewer: Claude (eng review)
+Plan baseline: D10 (design review, 2026-11-01): "Getting ready to log offline" with real progress; "Ready to log offline" only once the catalog is stored.
+Runtime evidence: Workbox precaches the first phase on install without reporting progress; the only stored fact covers both phases.
+Comparison grid:
+
+| Choice | Current | A | B |
+|---|---|---|---|
+| R4 ready fact | both phases only | a separate first-phase fact, `readyToLog`, in `db.meta`; `readyForOffline` keeps meaning both | a separate first-phase fact, `readyToLog` |
+| Progress | none | the service worker posts "n of m first-phase files cached" to the page during install; a real bar | no progress messages; an indeterminate "Getting ready…" until the fact is set |
+| D10 design | approved, "real progress" | unchanged | changes D10 to an indeterminate wait |
+
+Question D4:
+D4 — How does first launch know it can log offline, and show real progress?
+Project/branch/task: phase-3-logging (PR #4), the first-launch "Getting ready" screen (D10).
+ELI10: The app downloads in two parts: the first lets you log offline, the second (Cards, export) comes later. Today the app only notes "ready" once both parts are in, and the download reports no progress. D10 promised "Ready to log offline" after the first part, with a real progress bar. Option A stores a separate "ready to log" fact and has the background worker report how many first-part files are in. Option B stores the fact but shows a plain "Getting ready…" without a bar, a small change to D10.
+Stakes if we pick wrong: First launch waits for the Cards download it doesn't need, or shows a bar that isn't measuring anything.
+Recommendation: A because D10 promised real progress, and the worker already knows its file list.
+Completeness: A=10/10, B=8/10
+Pros / cons:
+A) First-phase fact plus progress from the service worker (recommended)
+  ✅ The bar measures real files, and logging opens as soon as the first part is stored (human: ~3h / CC: ~20min)
+  ✅ 'Ready for offline' keeps its meaning for both parts, as the spec's Edge Cases define
+  ❌ A small message channel between the worker and the page to build and test
+B) First-phase fact, no progress bar
+  ✅ Simpler: no worker messages, only a fact checked when install finishes
+  ❌ On a slow first connection the rasika watches an unmoving 'Getting ready…' with no sense of time left
+Net: an honest progress bar for a little worker plumbing, against a simpler wait that changes D10.
+Header: First launch
+Options:
+A) Ready fact + progress (recommended)
+readyToLog in db.meta for the first phase; the service worker posts n of m files during install for a real bar.
+B) Ready fact only
+readyToLog for the first phase; an indeterminate Getting ready with no bar, changing D10.
+
+State: approved
+Actual answer: A) Ready fact + progress (D4, 2026-11-01)
+Accepted scope: A first-phase fact, `readyToLog`, in `db.meta` (`readyForOffline` keeps meaning both phases); the service worker posts first-phase install progress (n of m files cached) to the page, and the Getting ready screen shows a real bar; tests cover the fact being set after the first phase only and the progress messages.
+History: none
+
+#### R5: How D15's required save-failure test is built
+
+Finding: 5, INFORMATIONAL, 8/10, `app/package.json` (no DOM test library); reviewer: Claude (eng review)
+Plan baseline: D15 (design review, 2026-11-01): the save highlight plays only after a successful write; a failed write keeps the value with a persistent "Not saved on this phone", Try again and Export. A data-loss path, so its test is required (constitution IV).
+Runtime evidence: `save()` returns a promise that rejects when its transaction fails (`mutate.ts:28`); Vitest runs without a DOM; Playwright e2e runs against the built app (`app/playwright.config.ts`).
+Comparison grid:
+
+| Choice | Current | A | B |
+|---|---|---|---|
+| R5 test approach | none | the save-feedback logic in one framework-free module, unit-tested with a failing store; one Playwright case that makes IndexedDB writes fail and checks the screen | add `@testing-library/react` and `happy-dom`; component tests |
+| New dev dependencies | none | none | two |
+| D15 behaviour | approved | unchanged | unchanged |
+
+Question D5:
+D5 — How should the required save-failure test (D15) be built?
+Project/branch/task: phase-3-logging (PR #4) and the screen tasks T040–T044.
+ELI10: D15 is about what you see when a save fails, so its test has to check the screen, not just the store. The project has no tool today for testing React components outside a browser. Option A keeps the 'saving / saved / not saved' logic in one small plain module tested quickly with a fake failing store, and adds one real-browser test that forces the phone's storage to fail and checks 'Not saved on this phone' shows and the value stays. Option B adds a component-testing library and tests the components directly.
+Stakes if we pick wrong: The one guard against silently lost Items goes untested at the screen, or the project picks up test dependencies it doesn't otherwise need.
+Recommendation: A because it tests the logic fast and the real failure in the real browser, with no new dependencies.
+Completeness: A=10/10, B=9/10
+Pros / cons:
+A) Plain module plus one real-browser failure test (recommended)
+  ✅ The real screen is checked against a real storage failure in Chromium, not a simulated DOM (human: ~3h / CC: ~20min)
+  ✅ No new dev dependencies; reuses the existing Vitest and Playwright setup
+  ❌ Forcing an IndexedDB failure in Playwright needs a small test-only script in the page
+B) Add @testing-library/react and happy-dom
+  ✅ Components get fast tests of their own, useful for the screens that follow
+  ❌ Two new dev dependencies, and a simulated DOM can't prove the real storage failure path
+Net: one real-browser test and a plain module, against a new component-testing stack.
+Header: Save test
+Options:
+A) Module + browser test (recommended)
+Save-feedback logic in one framework-free module, unit-tested with a failing store; one Playwright case forcing IndexedDB writes to fail.
+B) Component test library
+Add @testing-library/react and happy-dom; test the components directly.
+
+State: approved
+Actual answer: A) Module + browser test (D5, 2026-11-01)
+Accepted scope: The save-feedback logic (saving, saved with highlight, not saved with the value kept) lives in one framework-free module, unit-tested in Vitest against a store whose write rejects; one Playwright case forces IndexedDB writes to fail in the page and checks that "Not saved on this phone" shows and the value stays. No new dev dependencies. Required test (constitution IV).
+History: none
+
+### Sections 1 to 4
+
+**1. Architecture.** Findings 1 to 4 above; all approved (D1 to D4). Two shapes for the one new
+module, the per-phone logging note: (A) a `db.meta` note per Event, behind `noteLogging(eventId)`,
+`endLogging(eventId)` and a pure `nowEvent(events, notes, now)` selector; (B) a synced
+`loggingEndedAt` field on Event. A hides the whole Now rule behind three calls and touches no
+contract; B spreads it across the data model, the sync payload and the server. A was picked
+(D2). Red flag 8 (hand-synced list): the Messages table in `DESIGN.md` and the strings in the
+screens. Implementing D28's "copy these strings" means one `app/src/screens/messages.ts` as the
+only home for them in code, with a test that each table row's text appears there; this is the
+mechanics of an approved decision, not a new choice. Failure per new path: a restore after the
+Event's other Items were reordered (covered by D1's re-insert with renumbering); a service worker
+that never posts progress (the Getting ready screen still advances when `readyToLog` is set, D4).
+
+**2. Code quality.** No issues found beyond the findings above.
+
+**3. Tests.**
+
+```
+CODE PATHS                                         USER FLOWS
+[+] store/items.ts                                 [+] Logging a Concert
+  ├── addItemFrom(pick)  [GAP] 5 picks (D3)          ├── [★★★ TESTED] offline capture — e2e/offline-concert.spec.ts
+  ├── restoreItem()      [GAP] collision (D1) CRIT   ├── [GAP] [→E2E] save fails: "Not saved" stays (D5) CRIT
+  └── removeItem()       [★★★ TESTED] reorder-delete ├── [GAP] delete, add, Undo keeps places unique (D1)
+[+] store/events.ts                                  └── [GAP] Undo a Concert delete restores only its own
+  ├── deleteEvent()      [★★ TESTED]                    Items and Appearances (D1)
+  └── restoreEvent()     [GAP] token (D1) CRIT       [+] Home
+[+] store/logging-note   (new)                          ├── [GAP] 4 pm and 6:30 pm at 5:45 (D2 selector)
+  ├── nowEvent()         [GAP] activity, Done,          └── [GAP] catalog upgrade does not make an Event Now
+  │                      window, ties (D2)            [+] First launch
+[+] save-feedback        (new) [GAP] ok / fail (D5)      └── [GAP] readyToLog after phase 1 only; progress (D4)
+[+] sw.ts install progress [GAP] messages (D4)
+COVERAGE: 2/13 paths tested  |  GAPS: 11 (1 E2E), 3 critical (data-loss paths)
+```
+
+Every gap above is required proof of an approved decision (D1 to D5); no new test policy was
+asked. Value cards are in the Implementation Tasks below. No test is made obsolete.
+
+**4. Performance.** No issues found: `nowEvent` reads one note per Event in its window, and
+nothing here touches the search path.
+
+### Outside voice (Codex, gpt-6-astra, completed): dispositions
+
+| # | Severity | Finding | Disposition |
+|---|---|---|---|
+| 1 | High | Unpicked typed text has no persistence plan | Carried under D12 (design): a persisted editor draft consumed by `addItemFrom`, with a stable id so a reopen after commit can't duplicate; restart test before and after a pick |
+| 2 | High | Export beside a failed save omits the unsaved value | R6 (D6) |
+| 3 | High | Overlapping edits can clear or misplace save feedback | Carried under D15/D5: feedback tracked per record, field and edit; a failed edit stays across navigation until a retry succeeds; tests for overlapping success and failure |
+| 4 | High | Undo receipt lost on a crash; a stale Undo can replay over a newer delete in another tab | R7 (D7) |
+| 5 | Medium | Appearance removal promises Undo but has no restore | Carried under D16 (design, "Artist removed"): R1's accepted scope extends to `restoreAppearance` with the same billing-order handling |
+| 6 | High | A stored ready flag doesn't prove usable offline assets | R8 (D8) |
+| 7 | Medium | The logging note is a separate write from the Item | Carried under D2: the note is written inside the logging action's transaction with the Item and outbox |
+| 8 | Medium | After Done, the nearest-start fallback can reselect the same Concert; clock jumps | Carried under D17 (design, "releases Now at once"): ended Events are excluded from both paths; logging again clears Done; a note time in the future counts as now |
+| 9 | Medium | Restoring after a catalog upgrade revives retired keys | Carried under D1: restore passes the Item through the current cumulative remap, keeping text and Overrides; test delete, upgrade, restore |
+| 10 | High | Tests should prove rollback on part-way failure | Carried under D1/D3 as required proof, as T035 and T047 already do: a failure injected after the first write leaves records, positions and outbox unchanged |
+
+#### R6: What Export includes when a save has failed (outside voice 2)
+
+Finding: outside voice 2, High; `DESIGN.md` (Save failure), `contracts/season-export.md:7`; reviewer: Codex
+Plan baseline: D15 (design): a failed write shows "Not saved on this phone" with Try again and Export.
+Runtime evidence: the export contract reads stored records only, so the unsaved value is exactly what it leaves out.
+Comparison grid:
+
+| Choice | Current | A | B |
+|---|---|---|---|
+| R6 Export from "Not saved" | stored records only | stored records plus a labelled "Not saved" section holding the unsaved values from memory, written without touching the database | stored records only; the "Not saved" line instead offers Copy, putting the unsaved text on the clipboard |
+| Ordinary Export | stored records | unchanged | unchanged |
+
+Question D6:
+D6 — When a save fails, what does the Export button next to "Not saved" export?
+Project/branch/task: the save-failure state (D15) and the season export contract.
+ELI10: If the phone can't write, the value you just entered lives only on screen. The Export next to "Not saved" is meant to rescue it, but today's export only reads what's already stored, so it would leave out exactly that value. Option A adds a clearly labelled "Not saved" section to that export, built from what's on screen, without writing to the database. Option B swaps Export for "Copy", putting the unsaved text on the clipboard.
+Stakes if we pick wrong: The rescue button rescues everything except the one thing that needed rescuing.
+Recommendation: A because the rasika gets one file with everything, including the stranded values, with no second step.
+Note: options differ in kind, not coverage — no completeness score.
+Pros / cons:
+A) Export includes a labelled "Not saved" section (recommended)
+  ✅ One file holds the whole season plus the stranded values, clearly marked (human: ~2h / CC: ~15min)
+  ✅ Works even when the database can't be written, since it reads from the screen
+  ❌ The export contract gains an optional section that importers must expect
+B) Replace that Export with Copy to clipboard
+  ✅ No contract change; the rasika pastes the text anywhere
+  ❌ Clipboard text is easy to lose, and it's a second step mid-concert
+Net: one complete rescue file against a lighter but more fragile clipboard copy.
+Header: Rescue export
+Options:
+A) Add a Not saved section (recommended)
+Export from the Not saved line includes the stranded values, read from the screen, in a labelled section.
+B) Copy instead
+The Not saved line offers Copy to clipboard instead of Export.
+
+State: approved
+Actual answer: A) Add a Not saved section (D6, 2026-11-01)
+Accepted scope: Export started from the "Not saved" line includes the stored season plus a clearly labelled "Not saved" section holding the stranded values, read from the screen without writing to the database; `contracts/season-export.md` gains that optional section; a test exports while writes are still failing and finds the stranded value.
+History: none
+
+#### R7: Undo that survives a crash and can't replay over a newer delete (outside voice 4)
+
+Finding: outside voice 4, High; `app/src/store/events.ts:113`, R1/D1; reviewer: Codex
+Plan baseline: D1: `deleteEvent` returns the ids it tombstoned, held in memory; `restoreEvent` restores those.
+Runtime evidence: a returned list lives only in memory; nothing stops a stale Undo from another tab restoring rows that were restored and deleted again since.
+Comparison grid:
+
+| Choice | Current (D1) | A | B | C | D |
+|---|---|---|---|---|---|
+| R7 receipt | in memory only | a deletion receipt (the ids and each one's `deletedAt`) written to `db.meta` in the same transaction as the tombstones; restore checks every `deletedAt` still matches, then consumes the receipt; a stale receipt restores nothing | unchanged | unchanged; investigate two-tab use first | unchanged; proposal deferred |
+| Tests | D1's | add: restart then Undo; a replayed Undo; two tabs deleting and restoring | D1's | D1's | D1's |
+
+Question D7:
+D7 — Should Undo survive a crash and refuse to replay over a newer delete?
+Project/branch/task: phase-3-logging, the restore actions approved in D1.
+ELI10: D1 has delete hand back a list of what it hid, kept in memory for Undo. If the app crashes, that list is gone, so "Recently deleted" vanishes. With the app open in two tabs, an old Undo in one tab could also bring back something the other tab deleted later. Option A writes a small receipt with the delete, in the same step, recording exactly when each thing was hidden. Undo only works if nothing has changed since, and the receipt survives a crash.
+Stakes if we pick wrong: Undo disappears after a crash, or a stale Undo resurrects something deleted on purpose later.
+Recommendation: A because it costs one record per delete and makes every Undo either exactly right or a no-op.
+Note: options differ in kind, not coverage — no completeness score.
+Pros / cons:
+A) Apply: a stored receipt checked on restore (recommended)
+  ✅ 'Recently deleted' survives a crash or reload, and a stale Undo can never restore the wrong thing (human: ~2h / CC: ~15min)
+  ✅ The check is a timestamp comparison inside the same transaction, nothing new to sync
+  ❌ Receipts need clearing when the rasika leaves the Event, one more small cleanup
+B) Keep D1 as approved
+  ✅ Simplest; two tabs on one phone mid-concert is rare
+  ❌ A crash loses Undo, and a stale Undo can override a newer delete silently
+C) Investigate two-tab use first
+  ✅ Measures whether two tabs ever happen in this PWA before adding code
+  ❌ Leaves the crash case open while investigating, and the fix is small anyway
+D) Defer this change
+  ✅ Ships D1 sooner, with the receipt as a later change
+  ❌ The restore actions get written twice, once now and again with receipts
+Net: a small stored receipt against an Undo that can be lost or replayed wrongly.
+Header: Undo receipt
+Options:
+A) Apply: stored receipt (recommended)
+Receipt in db.meta written with the tombstones; restore checks each deletedAt still matches, then consumes it; tests for restart, replay and two tabs.
+B) Keep D1
+Receipt stays in memory as approved in D1.
+C) Investigate first
+Check whether two tabs happen before choosing; D1 unchanged meanwhile.
+D) Defer
+Leave this proposal open; D1 unchanged.
+
+State: approved
+Actual answer: A) Apply: stored receipt (D7, 2026-11-01)
+Accepted scope: A deletion receipt (the ids and each one's `deletedAt`) is written to `db.meta` in the same transaction as the tombstones; restore checks every `deletedAt` still matches, then consumes the receipt, and a stale receipt restores nothing; receipts are cleared when the rasika leaves the Event; tests for Undo after a restart, a replayed Undo, and two tabs deleting and restoring.
+History: none
+
+#### R8: "Ready to log" checked against the cache, not just stored (outside voice 6)
+
+Finding: outside voice 6, High; `app/src/pwa.ts:16,28`, `app/src/sw.ts:34`, R4/D4; reviewer: Codex
+Plan baseline: D4: a stored first-phase fact, `readyToLog`, in `db.meta`; the service worker posts install progress.
+Runtime evidence: a stored fact can outlive the cache it describes (eviction, a replacement worker); a page waiting for progress messages has no timeout.
+Comparison grid:
+
+| Choice | Current (D4) | A | B | C | D |
+|---|---|---|---|---|---|
+| R8 readiness | stored fact | derived: the page asks the controlling service worker, which checks its precache for every first-phase file of its own build; `db.meta` keeps only the last answer for display | unchanged | unchanged; investigate eviction on the two phones first | unchanged; proposal deferred |
+| Progress wait | none | no progress message for 15 s: ask for status again; still incomplete: "The download stopped" with Try again | as D4 | as D4 | as D4 |
+| Tests | D4's | add: interrupted install, a replacement worker, a missed message, cache removal | D4's | D4's | D4's |
+
+Question D8:
+D8 — Should "Ready to log offline" be checked against what's actually cached, rather than trusted as a stored flag?
+Project/branch/task: phase-3-logging, the first-launch readiness approved in D4.
+ELI10: D4 stores a "ready to log" note once the first download finishes. But phones can quietly clear website caches, and an app update can swap the background worker. Then the note says ready when the files aren't there, and you find out in the hall. Option A asks the background worker each time, and it checks that every needed file is really in its cache. If progress messages stop for 15 seconds, the screen asks again and offers "Try again" instead of waiting forever.
+Stakes if we pick wrong: The app says it's ready offline when it isn't, and search fails at the concert.
+Recommendation: A because readiness is exactly the promise the hall depends on, and checking the cache is a few lines in a worker that already holds the file list.
+Note: options differ in kind, not coverage — no completeness score.
+Pros / cons:
+A) Apply: check the cache each time, with a 15 s timeout (recommended)
+  ✅ 'Ready' is true only when the files are really there for the build that is running (human: ~3h / CC: ~20min)
+  ✅ A stalled download ends in 'Try again' rather than an endless 'Getting ready…'
+  ❌ More cases to test: interrupted install, a swapped worker, a cleared cache
+B) Keep D4's stored fact
+  ✅ Simpler; the fact is written once and read cheaply
+  ❌ After an eviction or a worker swap it can claim 'ready' when it isn't
+C) Investigate eviction first
+  ✅ Learns how often the two test phones actually clear caches before adding code
+  ❌ Leaves the stall-forever case open, and eviction is hard to observe on demand
+D) Defer this change
+  ✅ D4 ships as approved; this hardening comes later
+  ❌ The first-launch screen gets built twice
+Net: a readiness check that can't lie against a simpler flag that sometimes can.
+Header: Ready check
+Options:
+A) Apply: check the cache (recommended)
+The controlling service worker checks its precache for every first-phase file; 15 s progress timeout then Try again; tests for install interruption, worker swap, missed message, cache removal.
+B) Keep D4
+Stored readyToLog fact as approved in D4.
+C) Investigate first
+Check eviction on the phones first; D4 unchanged meanwhile.
+D) Defer
+Leave this proposal open; D4 unchanged.
+
+State: approved
+Actual answer: A) Apply: check the cache (D8, 2026-11-01)
+Accepted scope: Readiness is derived, not trusted: the page asks the controlling service worker, which checks its precache for every first-phase file of its own build; `db.meta` keeps only the last answer for display. With no progress message for 15 s the page asks for status again, and if still incomplete shows "The download stopped" with Try again. Tests for an interrupted install, a replacement worker, a missed message and cache removal.
+History: none
+
+Approval readiness: PASS. R1 to R8 are approved (eng D1 to D8); outside voice findings 1, 3, 5,
+7, 8, 9 and 10 are carried under earlier approvals as recorded above; nothing is pending.
+
+### Required outputs (eng review, 2026-11-01)
+
+**NOT in scope.** The screens themselves (T040 to T044, built to `DESIGN.md`); sync and its
+conflict screen (US2); Cards (T088 to T096). Two tabs are handled only for Undo (D7), not as a
+general mode.
+
+**What already exists.** `save()` and `remove()` in `app/src/store/mutate.ts` (one transaction
+with the outbox; `restore` flag); `moveItem` renumbering (`items.ts:216`); `deleteEvent`
+cascade (`events.ts:113`); the catalog remap used by the upgrade (`catalog/upgrade.ts`); the two
+precache phases (`sw.ts:27`); `db.meta` for per-phone facts (`offline-ready.ts`). Every new
+action reuses these.
+
+**Failure modes.**
+
+| New path | Realistic failure | Handled by |
+|---|---|---|
+| Undo restore | delete, add, Undo collides on a place | D1 re-insert with renumbering |
+| Undo restore | crash loses Undo; stale Undo in another tab | D7 stored receipt, checked |
+| Undo restore | restored Item carries a retired catalog key | outside voice 9, current remap on restore |
+| Create on pick | crash between create and fill | D3 one transaction |
+| Now | catalog upgrade or sync looks like activity | D2 per-phone note |
+| Now | Done reselected by nearest start | outside voice 8, ended Events excluded |
+| Save feedback | a failed save looks saved | D5 highlight only after success |
+| Save feedback | Export omits the stranded value | D6 `notSaved` section |
+| First launch | flag says ready after eviction or a worker swap | D8 cache check |
+| First launch | progress never arrives | D8 15 s timeout, Try again |
+
+**Worktree parallelization.**
+
+| Lane | Tasks | Modules |
+|---|---|---|
+| A | T048a, T048b, T048c | `app/src/store/` (shared, so in sequence) |
+| B | T048e | `app/src/sw.ts`, `app/src/pwa.ts` |
+| C | T048d, T048f | `app/src/screens/` (new modules) |
+
+Launch A, B and C together; A runs its three tasks in order. T040 to T044 follow C and use A's
+actions. Conflict flag: T048d's Playwright test and T048e both touch the e2e setup, so merge B
+before C's e2e test.
+
+### Implementation Tasks
+
+Synthesized from this review's findings; each is also in `tasks.md`.
+
+- [ ] **T1 (P1, human: ~1 day / CC: ~45min)** — store — Undo restore with receipts (T048a)
+  - Surfaced by: finding 1; outside voice 4, 5, 9, 10
+  - Files: `app/src/store/items.ts`, `events.ts`, `people.ts`, `app/tests/store/reorder-delete.test.ts`
+  - Verify: `npm test -- reorder-delete`
+  - Value: protects=place numbers stay unique and Undo restores exactly what one delete hid; fails_when=restore skips renumbering or the receipt check; why_new=T035 covers delete and reorder, not restore; seam=none; no_claim=two real devices (two Dexie connections stand in)
+- [ ] **T2 (P1, human: ~3h / CC: ~15min)** — store — `addItemFrom(pick)` (T048b)
+  - Surfaced by: finding 3; outside voice 1
+  - Files: `app/src/store/items.ts`, `app/tests/store/logging.test.ts`
+  - Verify: `npm test -- logging`
+  - Value: protects=a pick creates exactly one filled Item; fails_when=creation splits into two transactions again; why_new=logging.test.ts creates then fills; seam=none; no_claim=none beyond protects
+- [ ] **T3 (P1, human: ~3h / CC: ~20min)** — store — Logging note and `nowEvent` (T048c)
+  - Surfaced by: finding 2; outside voice 7, 8
+  - Files: `app/src/store/logging-note.ts`, tests beside it
+  - Verify: `npm test -- logging-note`
+  - Value: protects=Now follows the rasika's logging and Done only; fails_when=Now reads updatedAt or a finished Event wins the fallback; why_new=no Now logic exists; seam=none; no_claim=real clock changes (injected times)
+- [ ] **T4 (P1, human: ~1 day / CC: ~45min)** — screens — Save feedback and rescue Export (T048d)
+  - Surfaced by: finding 5; outside voice 2, 3
+  - Files: `app/src/screens/save-feedback.ts`, its tests, `app/e2e/save-failure.spec.ts`
+  - Verify: `npm test -- save-feedback` and `npm run e2e -- save-failure`
+  - Value: protects=a failed write never looks saved and its value can be exported; fails_when=the highlight plays before the write settles or Export reads only the store; why_new=no screen-level save tests exist; seam=a test-only init script makes IndexedDB writes fail; no_claim=real quota exhaustion on a phone
+- [ ] **T5 (P1, human: ~1 day / CC: ~45min)** — service worker — Verified readiness and progress (T048e)
+  - Surfaced by: finding 4; outside voice 6
+  - Files: `app/src/sw.ts`, `app/src/pwa.ts`, `app/e2e/first-launch.spec.ts`
+  - Verify: `npm run e2e -- first-launch`
+  - Value: protects="Ready to log offline" only when phase-one files are cached for the running build; fails_when=readiness is read from a stored flag again; why_new=offline-concert.spec.ts assumes an installed app; seam=none; no_claim=iOS eviction behaviour (Chromium only)
+- [ ] **T6 (P2, human: ~1h / CC: ~10min)** — screens — `messages.ts` and its table test (T048f)
+  - Surfaced by: Section 1, red flag 8
+  - Files: `app/src/screens/messages.ts`, its test
+  - Verify: `npm test -- messages`
+
+Test Plan Artifact: written to the gstack project directory (`tasks-eng-review` and
+`eng-review-test-plan` files).
+
+### Completion summary (eng review, 2026-11-01)
+
+- Scope Challenge: scope accepted as-is (about 7 files, one new module).
+- Architecture: 4 findings (1 critical); Code quality: 0; Tests: 11 gaps, all covered by
+  approved tasks; Performance: 0.
+- Outside voice: Codex completed, 10 findings: 3 asked (D6 to D8), 7 carried under earlier
+  approvals.
+- Decisions: 8 made, 0 deferred. Unresolved: none.
+
+REALITY: premise-table pass every claim has a receipt, unverified=0 app/src/store/mutate.ts:28
+REALITY: already-done pass no commits on main since 2026-11-01 touch app/src/store or sw.ts app/src/store/items.ts:68
+REALITY: surface-check pass no CLI or route named; store APIs read at their lines app/src/store/events.ts:113
+REALITY: binding-decisions pass consistent with the 2026-10-30 eng decisions and design D3 to D29 specs/001-season-logger/reviews.md:926
+REALITY: numbers pass 60 min and 15 s are design choices [estimated]; efforts [estimated] specs/001-season-logger/tasks.md:163
+REALITY: deferred-asks pass no linked issue specs/001-season-logger/tasks.md:163
+REALITY: pr-count pass one PR per wave (no ship policy file) specs/001-season-logger/tasks.md:163
+
 ## GSTACK REVIEW REPORT
 
 | Review | Trigger | Why | Runs | Status | Findings |
 |--------|---------|-----|------|--------|----------|
 | CEO Review | `/plan-ceo-review` | Scope & strategy | 0 | — | — |
-| Outside Review | native Claude subagent (Codex sandbox unavailable) | Independent 2nd opinion | 2 | issues_found (outside_status: unavailable, source: in-host) | eng: 20 findings; design: about 30 findings, 6 decided, the rest deferred |
-| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 2 | ISSUES OPEN | 13 issues, 1 critical gap |
-| Design Review | `/plan-design-review` | UI/UX gaps | 1 | ISSUES OPEN | score: 1/10 → 1/10, 6 decisions |
+| Outside Review | Codex (`/plan-design-review`, `/plan-eng-review`; host: claude) | Independent 2nd opinion | 4 | eng 2026-11-01: completed, issues_found; design 2026-11-01: completed, issues_found; 2026-10-30 eng and design: unavailable (in-host fallback) | eng: 10 findings, 3 decided, 7 carried; design: 17 findings |
+| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 3 | CLEAR | 4 issues, 1 critical gap, all resolved (8 decisions) |
+| Design Review | `/plan-design-review` | UI/UX gaps | 2 | ISSUES OPEN | score: 3/10 → 8/10, 26 decisions |
 | DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | — |
 
-- **OUTSIDE COVERAGE:** Codex unavailable for both the eng and design phases (its sandbox can't start in this container). Native Claude subagents ran instead (eng: plan challenge; design: completeness review); this is not outside-provider coverage.
-- **VERDICT:** no review is CLEAR; eng review required. The design review is open because the Maintainer deferred the remaining design decisions to the frontend work (T030).
+- **OUTSIDE COVERAGE:** Codex (gpt-6-astra) completed for both the design phase and the eng
+  phase on 2026-11-01, each with findings. The 2026-10-30 eng and design phases had no outside
+  coverage (Codex sandbox unavailable then; native fallback only).
+- **CROSS-MODEL:** on the eng phase, Codex agreed with findings 1 to 4 and went further on each:
+  receipts for Undo, the rescue Export, cache-checked readiness, rollback tests. Where it went
+  further, it was asked (D6 to D8) or carried under an approval that already covered it.
+- **VERDICT:** ENG CLEARED — ready to implement the Phase 3 store additions (T048a to T048f) and
+  the screens T040 to T044. Design review is open only for decisions deferred to later phases
+  and the product's name.
 
 **UNRESOLVED DECISIONS:**
-- Design: status and sync messages (D6, direction agreed, specifics deferred)
-- Design: visual code for the six Detail states, and "?" versus a Guess
-- Design: dark theme for logging screens
-- Design: the end-of-concert moment
-- Design: first launch welcome and the empty home
-- Design: save success feedback
-- Design: delete with undo
-- Design: past Planned Events never opened
-- Design: the two meanings of "ready for offline"
-- Design: restore-in-progress banner
-- Design: the conflict compare screen
-- Design: the Card template, minimum data per Card and the empty Wrapped
-- Design: the Colour sheet
-- Design: reordering Items, and where Export lives
-- Design: tokens and rules for DESIGN.md
-- Design: smaller states (cancelled, schedule changed, catalog prompt, consent offline, Share states)
+- Design: the product's name and where its logo appears (D9, deferred by the Maintainer)
+- Design: the Maintainer's edits to the drafted Messages table (D28)
+- Design: items deferred to their phases under D1 (Did you go, ready for offline with Cards, restore, conflict, Card template, smaller states, Lecdem, Settings layout)

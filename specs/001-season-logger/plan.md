@@ -87,8 +87,10 @@ unknown. About 10 screens.
 | Boundaries: one storage module | All Dexie access sits in `app/src/store/` | Pass |
 | Boundaries: privacy | Server checks `rasikaId` on every row; Maintainer endpoints return names and counts only; de-identification nulls notes too; consent events logged | Pass; DPDP legal check before public launch |
 
-One risk is retained by choice: the eng review's D9 left the save-failure behavior unspecified
-([reviews.md](reviews.md), R11), recorded in Complexity Tracking.
+The eng review's D9 left the save-failure behavior unspecified ([reviews.md](reviews.md), R11).
+The Maintainer reopened it in the design review of 2026-11-01 (D15): a failed write shows a
+persistent "Not saved on this phone" with Try again and Export, and the save highlight plays only
+after a successful write (`DESIGN.md`, Components).
 
 ## Project Structure
 
@@ -160,7 +162,7 @@ local Supabase once it exists.
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| Save-failure behavior unspecified, which bends II (Nothing Is Lost) and FR-003 | Maintainer's choice in the eng review (D9): no extra screen state now | "Keep the input, show 'Not saved', retry" was offered (D9 option A) and declined |
+| *Resolved 2026-11-01 (design review D15):* save-failure behavior unspecified, which bent II (Nothing Is Lost) and FR-003 | Maintainer's choice in the eng review (D9), reopened in the design review | "Keep the input, show 'Not saved', retry" was offered (D9 option A) and declined |
 
 ## Design decisions (plan-design-review, 2026-10-30)
 
@@ -268,7 +270,8 @@ findings from the review and its outside voice are unresolved (all but item 1, s
     accessible labels for the Detail states, motion, and copy for system messages.
 16. **Smaller states:** cancelled versus "schedule changed", when the catalog-update prompt
     appears, consent toggles offline, Share in progress or failed.
-17. **Save failure (D9):** kept as the Maintainer decided in the eng review; not reopened.
+17. **Save failure (D9):** reopened and settled in the design review of 2026-11-01 (D15); see
+    `DESIGN.md`, Components.
 
 ### Design system (design consultation, 2026-10-31 to 2026-11-01)
 
@@ -353,5 +356,7 @@ Settled from the earlier list: warm text, the Detail states and the white swatch
 template direction (all above); shadcn and Tailwind recorded in
 [ADR 0006](../../docs/adr/0006-shadcn-and-tailwind-for-the-screens.md).
 
-**Next:** `/plan-design-review` on `DESIGN.md`, which also takes the findings still open
-(listed at the end of `DESIGN.md`), then T040 to T044.
+**Reviewed 2026-11-01** with `/plan-design-review` (D3 to D29, in [reviews.md](reviews.md)); its
+decisions are in `DESIGN.md`. What is left is listed under "Still open" there, each with the
+phase that designs it. **Next:** the Maintainer edits the Messages table in `DESIGN.md`, then
+T040 to T044 are built to it.

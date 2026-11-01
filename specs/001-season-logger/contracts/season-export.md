@@ -27,6 +27,11 @@ Built entirely from the phone store, then handed to the share sheet or saved.
 - `unsyncedOps` tells the rasika whether the server is behind.
 - Shared lists and the catalog are referenced by id and key, not copied.
 - No account details are included.
+- `notSaved` (optional; eng review D6, 2026-11-01): present only in an Export started from a
+  "Not saved on this phone" line. It lists the values the phone could not store, each with the
+  record it belongs to (`table`, `id`, `field`, `value`, `enteredAt`), read from the screen
+  without writing to the database. Every other array still comes from the store, so the file is
+  the stored season plus what failed to save, clearly separated.
 
 Importing an export is out of scope this season (YAGNI). The format keeps every field an import
 would need.
