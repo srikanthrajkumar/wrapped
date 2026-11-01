@@ -9,7 +9,7 @@ import {
   type DetailValue,
 } from '../model/detail-value';
 import { fold } from './fold';
-import type { Catalog } from './load';
+import type { Catalog, Song } from './load';
 
 export type MatchField = 'raga' | 'composer' | 'tala' | 'language' | 'subject' | 'form';
 
@@ -28,6 +28,12 @@ export interface Matcher {
   key(field: MatchField, text: string): string | null;
   /** `text` as a Detail value: matched, Unknown for "?", else Unresolved. */
   detail(field: MatchField, text: string, matchedState?: 'catalog' | 'override'): DetailValue;
+  /**
+   * The songs whose title or a title alias folds to `text`, in catalog order. Many songs share
+   * a title, so this can be several; the caller picks one only on other evidence, or leaves the
+   * Item Unresolved.
+   */
+  songs(text: string): Song[];
 }
 
 interface Name {
@@ -85,6 +91,17 @@ export function buildMatcher(catalog: Catalog, keptForms: readonly KeptForm[] = 
 
   const key = (field: MatchField, text: string) => tables[field].get(fold(text)) ?? null;
 
+  const songsByTitle = new Map<string, Song[]>();
+  for (const song of catalog.songs) {
+    const titles = new Set([song.title, ...song.titleAliases].map(fold));
+    for (const title of titles) {
+      if (title === '') continue;
+      const list = songsByTitle.get(title);
+      if (list) list.push(song);
+      else songsByTitle.set(title, [song]);
+    }
+  }
+
   return {
     key,
     detail(field, text, matchedState: Extract<DetailState, 'catalog' | 'override'> = 'catalog') {
@@ -95,5 +112,6 @@ export function buildMatcher(catalog: Catalog, keptForms: readonly KeptForm[] = 
         ? unresolvedValue(trimmed)
         : { state: matchedState, key: matched, text: trimmed, guess: false };
     },
+    songs: (text) => songsByTitle.get(fold(text)) ?? [],
   };
 }
