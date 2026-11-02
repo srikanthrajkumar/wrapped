@@ -1,4 +1,4 @@
-// Required tests (constitution IV, "nothing lost"; reviews of PR #5): journeys where a value
+// Required tests (constitution IV, "nothing lost"; ADR 0007): journeys where a value
 // could be lost or a screen could lose the rasika's typing. Writes are made to fail, or never to
 // finish, by a test-only script in the page (helpers.ts, failWritesOnDemand).
 
@@ -28,7 +28,7 @@ test('A1: a failed first pick tried again opens its Item, and the next pick make
 
   await setFailingWrites(page, true);
   await page.getByRole('button', { name: '? Don’t know' }).click();
-  await expect(page.getByText('Not saved on this phone.')).toBeVisible();
+  await expect(page.getByText('Not saved', { exact: true })).toBeVisible();
   await setFailingWrites(page, false);
   await page.getByRole('button', { name: 'Try again' }).click();
 
@@ -44,23 +44,31 @@ test('A1: a failed first pick tried again opens its Item, and the next pick make
   expect(items.map((item) => item.title)).toEqual(['?', 'Bhavayami']);
 });
 
-test('A4: a new Concert that failed to save is listed at the top with Try again', async ({
-  page,
-}) => {
+test('a failed Concert stays listed, by its time, when a later one saves', async ({ page }) => {
   await failWritesOnDemand(page);
   await page.goto('/');
   await finishFirstLaunch(page);
 
   await setFailingWrites(page, true);
   await page.getByRole('button', { name: 'Log a Concert now' }).click();
-  await page.getByRole('button', { name: 'Log a Concert now' }).click();
-  // Each attempt is listed: the second never hides the first.
-  await expect(page.getByText('2 changes not saved on this phone.')).toBeVisible();
+  await expect(page.getByText(/^Not saved · Concert, /)).toBeVisible();
 
-  // But both meant one Concert: Try again makes one (review A4).
+  // A later tap saves: the first Concert is still waiting, never folded into the second.
   await setFailingWrites(page, false);
-  await page.getByRole('button', { name: 'Try again' }).click();
-  await expect(page.getByText(/not saved on this phone/)).toHaveCount(0);
+  await page.getByRole('button', { name: 'Log a Concert now' }).click();
+  await expect(page.getByRole('link', { name: 'Add Item' })).toBeVisible();
+  await expect(page.getByText(/^Not saved · Concert, /)).toBeVisible();
+
+  await page.getByRole('button', { name: /^Try again/ }).click();
+  await expect(page.getByText(/not saved/i)).toHaveCount(0);
+  expect(await readTable(page, 'events')).toHaveLength(2);
+});
+
+test('a double tap on "Log a Concert now" makes one Concert', async ({ page }) => {
+  await page.goto('/');
+  await finishFirstLaunch(page);
+  await page.getByRole('button', { name: 'Log a Concert now' }).dblclick();
+  await expect(page.getByRole('link', { name: 'Add Item' })).toBeVisible();
   expect(await readTable(page, 'events')).toHaveLength(1);
 });
 
@@ -124,7 +132,7 @@ test('A7: a second colour after a failed first one keeps the first as entered', 
   await page.getByRole('button', { name: /^Colours for Sanjay/ }).click();
   await setFailingWrites(page, true);
   await page.getByRole('radio', { name: 'Red' }).click();
-  await expect(page.getByText('Not saved on this phone.').first()).toBeVisible();
+  await expect(page.getByText('Not saved', { exact: true }).first()).toBeVisible();
   await setFailingWrites(page, false);
 
   // The sheet shows Red as entered, so a second colour can be added to it.
@@ -146,6 +154,9 @@ test('A7: a second colour after a failed first one keeps the first as entered', 
 test('A2: a value whose Try again is still running survives a force-close', async ({
   baseURL,
 }, testInfo) => {
+  // Two browser launches; measured 2026-11-02 at 20.9 s (load average 8) and 23.5 s (load 14),
+  // too close to the default 30 s. No retries: a data-loss test must fail loudly.
+  test.setTimeout(60_000);
   const { viewport, userAgent, deviceScaleFactor, isMobile, hasTouch } = devices['iPhone 13'];
   const launch = () =>
     chromium.launchPersistentContext(testInfo.outputPath('profile'), {
@@ -166,7 +177,7 @@ test('A2: a value whose Try again is still running survives a force-close', asyn
   await setFailingWrites(page, true);
   await page.getByRole('button', { name: /^Tala,/ }).click();
   await page.getByRole('button', { name: 'Not applicable' }).click();
-  await expect(page.getByText('Not saved on this phone.')).toBeVisible();
+  await expect(page.getByText('Not saved', { exact: true })).toBeVisible();
   await page.keyboard.press('Escape');
 
   // Try again starts, and the app is swiped away before its write finishes.
@@ -178,7 +189,7 @@ test('A2: a value whose Try again is still running survives a force-close', asyn
   context = await launch();
   page = context.pages()[0] ?? (await context.newPage());
   await page.goto('/');
-  await expect(page.getByText('1 change not saved on this phone.')).toBeVisible();
+  await expect(page.getByText('Not saved', { exact: true })).toBeVisible();
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export' }).click();
   const file = JSON.parse(readFileSync((await (await download).path())!, 'utf8'));
@@ -212,7 +223,7 @@ test('A3: when the phone store cannot be opened, a rescue screen still offers Ex
     };
   });
   await page.goto('/');
-  await expect(page.getByText("Your season can't be opened on this phone just now.")).toBeVisible();
+  await expect(page.getByRole('heading', { name: "Can't open your season" })).toBeVisible();
 
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export' }).click();
@@ -221,11 +232,8 @@ test('A3: when the phone store cannot be opened, a rescue screen still offers Ex
   const file = JSON.parse(readFileSync((await handed.path())!, 'utf8'));
   expect(file.storeUnreadable).toEqual({ error: expect.any(String) });
   expect(file.notSaved).toEqual([expect.objectContaining({ id: 'i1', value: 'Adi' })]);
-  await expect(
-    page.getByText(
-      "This Export holds only the changes not saved. The stored season couldn't be read; it's still on this phone.",
-    ),
-  ).toBeVisible();
+  // Handed over: a check on the Export button, not a red line.
+  await expect(page.getByRole('button', { name: /^Exported/ })).toBeVisible();
 });
 
 test('A8: a failed date edit shows as entered, in the header and when the sheet reopens', async ({
@@ -239,7 +247,7 @@ test('A8: a failed date edit shows as entered, in the header and when the sheet 
   await setFailingWrites(page, true);
   await page.getByLabel('Date').fill('2026-12-20');
   await page.keyboard.press('Escape');
-  await expect(page.getByText('Not saved on this phone.')).toBeVisible();
+  await expect(page.getByText('Not saved', { exact: true })).toBeVisible();
   await expect(facts).toContainText('Sun 20 Dec');
 
   await facts.click();
@@ -263,7 +271,7 @@ test('A8: a failed delete keeps what it deleted, says Not saved, and throws noth
   await page.getByRole('button', { name: 'Remove from Stage' }).click();
   // The sheet stays, with the failure in it.
   const sheet = page.getByRole('dialog');
-  await expect(sheet.getByText('Not saved on this phone.')).toBeVisible();
+  await expect(sheet.getByText('Not saved', { exact: true })).toBeVisible();
   await expect(sheet.getByRole('button', { name: 'Remove from Stage' })).toBeVisible();
 
   await setFailingWrites(page, false);
@@ -271,4 +279,57 @@ test('A8: a failed delete keeps what it deleted, says Not saved, and throws noth
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByText('Artist removed', { exact: true })).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+test('Clear asks first, and removes only what the saved Export holds', async ({ page }) => {
+  await failWritesOnDemand(page);
+  await newConcert(page);
+  await setFailingWrites(page, true);
+  await page.getByRole('button', { name: 'Add Artist' }).click();
+  await page.getByRole('searchbox', { name: 'Search Artists' }).fill('Sanjay');
+  await page.getByRole('button', { name: 'Add “Sanjay” as a new Artist' }).click();
+  await page.keyboard.press('Escape');
+  await setFailingWrites(page, false);
+  // After a reload the value can only be exported.
+  await page.reload();
+  await expect(page.getByText(/^Not saved · Sanjay/)).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Clear/ })).toHaveCount(0);
+
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: /^Export/ }).click();
+  await download;
+  await page.getByRole('button', { name: /^Clear/ }).click();
+  const confirm = page.getByRole('dialog');
+  await expect(confirm.getByText('Is the Export saved where you can find it?')).toBeVisible();
+  await confirm.getByRole('button', { name: 'Not yet' }).click();
+  await expect(page.getByText(/^Not saved · Sanjay/)).toBeVisible();
+
+  await page.getByRole('button', { name: /^Clear/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Yes, clear' }).click();
+  await expect(page.getByText(/not saved/i)).toHaveCount(0);
+});
+
+test('a failed Undo bar never covers a field the rasika moves to', async ({ page }) => {
+  await failWritesOnDemand(page);
+  await page.setViewportSize({ width: 390, height: 480 });
+  await newConcert(page);
+  await page.getByRole('button', { name: 'Add Artist' }).click();
+  await page.getByRole('searchbox', { name: 'Search Artists' }).fill('Sanjay');
+  await page.getByRole('button', { name: 'Add “Sanjay” as a new Artist' }).click();
+  await page.getByRole('button', { name: 'vocal' }).click();
+  await page.getByRole('button', { name: /^Sanjay/ }).click();
+  await page.getByRole('button', { name: 'Remove from Stage' }).click();
+  await setFailingWrites(page, true);
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  await expect(page.getByText('Undo failed · Artist', { exact: true })).toBeVisible();
+  await setFailingWrites(page, false);
+
+  // Moving to the Note, as Tab or the keyboard's next-field arrow does, brings it above the bar.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const note = page.getByRole('textbox', { name: 'Note' });
+  await note.evaluate((field: HTMLElement) => field.focus());
+  await expect(note).toBeFocused();
+  const field = (await note.boundingBox())!;
+  const footer = (await page.locator('footer').boundingBox())!;
+  expect(field.y + field.height).toBeLessThanOrEqual(footer.y);
 });

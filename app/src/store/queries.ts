@@ -71,9 +71,34 @@ async function linkFor(ownTable: Link['ownTable'], ownId: string, db: WrappedDB)
   return db.links.where('[ownTable+ownId]').equals([ownTable, ownId]).first();
 }
 
+/** Follow an id through merges and Links, in memory, the way `resolveEntry` does. */
+function resolverOver(
+  ownById: Map<string, OwnEntry>,
+  sharedById: Map<string, SharedEntry>,
+  linkByOwn: Map<string, Link>,
+): (id: string) => ResolvedEntry | undefined {
+  return (id) => {
+    const start = ownById.get(id);
+    if (!start) {
+      const direct = sharedById.get(id);
+      return direct && fromShared(direct, null);
+    }
+    let entry: OwnEntry = start;
+    for (let hops = 0; entry.mergedIntoId && hops < MAX_MERGE_HOPS; hops += 1) {
+      const next = ownById.get(entry.mergedIntoId);
+      if (!next) break;
+      entry = next;
+    }
+    const link = linkByOwn.get(entry.id);
+    const promoted = link && sharedById.get(link.sharedId);
+    if (promoted) return fromShared(promoted, entry);
+    return { id: entry.id, name: entry.name, aliases: entry.aliases, shared: false, own: entry };
+  };
+}
+
 /**
  * The own and shared entries of one kind, and a resolver over them: the own, shared and Link
- * tables are read once, then each id is followed in memory the way `resolveEntry` follows it.
+ * tables are read once, then each id is followed in memory.
  */
 export async function loadEntries(
   kind: Kind,
@@ -91,27 +116,47 @@ export async function loadEntries(
       .between([kind, Dexie.minKey], [kind, Dexie.maxKey])
       .toArray(),
   ]);
-  const ownById = new Map(own.map((entry) => [entry.id, entry]));
-  const sharedById = new Map(shared.map((entry) => [entry.id, entry]));
-  const linkByOwn = new Map(links.map((link) => [link.ownId, link]));
-  const resolve = (id: string): ResolvedEntry | undefined => {
-    const start = ownById.get(id);
-    if (!start) {
-      const direct = sharedById.get(id);
-      return direct && fromShared(direct, null);
-    }
-    let entry: OwnEntry = start;
-    for (let hops = 0; entry.mergedIntoId && hops < MAX_MERGE_HOPS; hops += 1) {
-      const next = ownById.get(entry.mergedIntoId);
-      if (!next) break;
-      entry = next;
-    }
-    const link = linkByOwn.get(entry.id);
-    const promoted = link && sharedById.get(link.sharedId);
-    if (promoted) return fromShared(promoted, entry);
-    return { id: entry.id, name: entry.name, aliases: entry.aliases, shared: false, own: entry };
-  };
+  const resolve = resolverOver(
+    new Map(own.map((entry) => [entry.id, entry])),
+    new Map(shared.map((entry) => [entry.id, entry])),
+    new Map(links.map((link) => [link.ownId, link])),
+  );
   return { own, shared, resolve };
+}
+
+/**
+ * A resolver for just `ids`: only those entries, the ones they were merged into, their Links
+ * and the shared entries those name are read, rather than the whole directory.
+ */
+async function resolverFor(
+  kind: Kind,
+  ids: readonly string[],
+  db: WrappedDB,
+): Promise<(id: string) => ResolvedEntry | undefined> {
+  const own = kind === 'artist' ? db.artists : db.sabhas;
+  const shared = kind === 'artist' ? db.sharedArtists : db.sharedSabhas;
+  const ownById = new Map<string, OwnEntry>();
+  let wanted = [...new Set(ids)];
+  for (let hops = 0; wanted.length > 0 && hops <= MAX_MERGE_HOPS; hops += 1) {
+    const found = (await own.bulkGet(wanted)).filter((entry) => entry !== undefined);
+    found.forEach((entry) => ownById.set(entry.id, entry));
+    wanted = found
+      .map((entry) => entry.mergedIntoId)
+      .filter((id): id is string => id !== null && !ownById.has(id));
+  }
+  const links = await db.links
+    .where('[ownTable+ownId]')
+    .anyOf([...ownById.keys()].map((id) => [kind, id]))
+    .toArray();
+  const sharedIds = [
+    ...new Set([...ids.filter((id) => !ownById.has(id)), ...links.map((l) => l.sharedId)]),
+  ];
+  const sharedEntries = (await shared.bulkGet(sharedIds)).filter((entry) => entry !== undefined);
+  return resolverOver(
+    ownById,
+    new Map(sharedEntries.map((entry) => [entry.id, entry])),
+    new Map(links.map((link) => [link.ownId, link])),
+  );
 }
 
 /** Resolve many references at once, as a picker does per keystroke (`loadEntries`). */
@@ -236,30 +281,45 @@ export interface EventSummary {
 
 /**
  * Every live Event with what home shows of it: Sabha, first-billed Artist, Item count. The
- * Artist and Sabha tables are read once for all Events, and only the first-billed Appearance of
- * each is resolved.
+ * Appearances and Items of all Events are read in one query each, and only the Artists and
+ * Sabhas named are resolved, never the whole directories.
  */
 export async function listEventSummaries(db: WrappedDB = defaultDb): Promise<EventSummary[]> {
-  const [events, artists, sabhas] = await Promise.all([
-    listEvents(db),
-    entryResolver('artist', db),
-    entryResolver('sabha', db),
+  const events = await listEvents(db);
+  const ids = events.map((event) => event.id);
+  const [appearances, items] = await Promise.all([
+    db.appearances.where('eventId').anyOf(ids).toArray(),
+    db.items.where('eventId').anyOf(ids).toArray(),
   ]);
-  return Promise.all(
-    events.map(async (event) => {
-      const appearances = await db.appearances.where('eventId').equals(event.id).toArray();
-      let first: Appearance | undefined;
-      for (const appearance of appearances.filter(live)) {
-        if (!first || appearance.position < first.position) first = appearance;
-      }
-      return {
-        event,
-        sabha: event.sabhaId ? (sabhas(event.sabhaId) ?? null) : null,
-        firstArtist: first ? (artists(first.artistId)?.name ?? null) : null,
-        itemCount: await countItems(event.id, db),
-      };
-    }),
-  );
+  const first = new Map<string, Appearance>();
+  for (const appearance of appearances.filter(live)) {
+    const seen = first.get(appearance.eventId);
+    if (!seen || appearance.position < seen.position) first.set(appearance.eventId, appearance);
+  }
+  const counts = new Map<string, number>();
+  for (const item of items.filter(live))
+    counts.set(item.eventId, (counts.get(item.eventId) ?? 0) + 1);
+  const [artists, sabhas] = await Promise.all([
+    resolverFor(
+      'artist',
+      [...first.values()].map((appearance) => appearance.artistId),
+      db,
+    ),
+    resolverFor(
+      'sabha',
+      events.map((event) => event.sabhaId).filter((id): id is string => id !== null),
+      db,
+    ),
+  ]);
+  return events.map((event) => {
+    const billed = first.get(event.id);
+    return {
+      event,
+      sabha: event.sabhaId ? (sabhas(event.sabhaId) ?? null) : null,
+      firstArtist: billed ? (artists(billed.artistId)?.name ?? null) : null,
+      itemCount: counts.get(event.id) ?? 0,
+    };
+  });
 }
 
 export function useEventSummaries() {

@@ -22,7 +22,7 @@ import { db as defaultDb, type WrappedDB } from './db';
 import { noteLogging } from './logging-note';
 import { getLive, newTimestamps, remove, save, type WriteOptions } from './mutate';
 import { peekReceipt, takeReceipt, writeReceipt, type DeletionReceipt } from './receipts';
-import { check, isRtp, itemProblems, RTP_FORM, RuleError } from './rules';
+import { check, EVENT_DELETED, isRtp, itemProblems, RTP_FORM, RuleError } from './rules';
 
 /** The single-valued Details of an Item. Ragas are a list and have their own action. */
 export type DetailField = 'form' | 'tala' | 'nadai' | 'composer' | 'language' | 'subject';
@@ -243,10 +243,7 @@ export async function moveItem(
   });
 }
 
-/**
- * Move an Item `by` places from where it is now: a retried move starts from the running order
- * as it stands, not from the one it was tapped in (second review of PR #5, B3).
- */
+/** Move an Item `by` places from where it is now in the running order. */
 export async function moveItemBy(
   id: string,
   by: number,
@@ -313,8 +310,8 @@ export interface RestoreOptions extends WriteOptions {
 /**
  * Undo an Item delete: put the Item back at its old place and renumber the running order, in
  * one transaction, so places stay unique even if Items were added or moved since. A used or
- * stale receipt restores nothing and returns null; so does one whose Event is itself deleted
- * (that receipt is kept, for after the Event's own Undo).
+ * stale receipt restores nothing and returns null. One whose Event is itself deleted is refused
+ * with EVENT_DELETED, and its receipt kept, for after the Event's own Undo.
  */
 export async function restoreItem(
   receiptId: string,
@@ -323,7 +320,9 @@ export async function restoreItem(
   return db.transaction('rw', [db.events, db.items, db.outbox, db.meta], async () => {
     const pending = await peekReceipt(db, receiptId);
     const event = pending && (await db.events.get(pending.eventId));
-    if (!event || event.deletedAt !== null) return null;
+    if (!event) return null;
+    // Said, not passed over: the Undo bar must not read as done (receipt kept for later).
+    if (event.deletedAt !== null) throw new RuleError([EVENT_DELETED]);
     const receipt = await takeReceipt(db, receiptId, 'item');
     const record = receipt?.records[0];
     const tombstone = record && (await db.items.get(record.id));
@@ -466,45 +465,22 @@ function leaveComposition(item: Item, catalog: Catalog | undefined): Item {
   };
 }
 
-/** The fields a retried repick leaves as they are when the rasika changed them since. */
-const KEEPABLE = [
-  'form',
-  'ragas',
-  'tala',
-  'nadai',
-  'composer',
-  'language',
-  'subject',
-  'layaVinyasam',
-  'improvised',
-  'note',
-] as const;
-
 /**
  * Change an Item's pick from the editor's title, in one transaction with the logging note.
  * A song fills in its title and every Detail the catalog knows, as `catalog` values (FR-007);
  * an RTP has no Composition, so picking a song makes it an ordinary Item. A Raga, a special
  * form, typed text or "?" leaves the Composition (its Details go back to "?") and starts from
  * the pick as a new Item would. The Nadai, Laya vinyasam, improvised Details and note are the
- * rasika's and stay; an RTP gets "?" for its first Raga and Nadai where it has none. `keep`
- * names fields saved since a failed repick, which its retry leaves as they are (B3).
+ * rasika's and stay; an RTP gets "?" for its first Raga and Nadai where it has none. A failed
+ * repick is never retried (docs/adr/0007): the rasika picks again.
  */
 export function repickItem(
   id: string,
   pick: ItemPick,
-  { db = defaultDb, catalog, keep = [] }: DetailOptions & { keep?: readonly string[] } = {},
+  { db = defaultDb, catalog }: DetailOptions = {},
 ): Promise<Item> {
   const start = startFrom(pick);
-  const kept = KEEPABLE.filter((field) => keep.includes(field));
-  return changeItem(
-    id,
-    (item) =>
-      kept.reduce(
-        (next, field) => ({ ...next, [field]: item[field] }),
-        applyPick(item, pick, start, catalog),
-      ),
-    db,
-  );
+  return changeItem(id, (item) => applyPick(item, pick, start, catalog), db);
 }
 
 /** The Item after `pick`, as `repickItem` describes. */

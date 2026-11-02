@@ -1,27 +1,27 @@
 // Hand the season's export to the rasika: the share sheet where the phone has one, else a
-// download (FR-019). A rescue Export from a "Not saved" line adds the values the phone could not
-// store, read from save feedback, never from the database (eng review D6); once it is handed
-// over, those values may be cleared. When the database itself can't be read, only a rescue
-// Export is made: it carries those values, marked and named `-store-unreadable`, and the line
-// "This Export holds only the changes not saved…" says so; a plain Export fails instead. Never
-// throws: a file that can't be made at all shows "The Export couldn't be made on this phone."
-// at the top of the screen, with Try again (SeasonFeedback).
+// download (FR-019). A rescue Export from a "Not saved" row adds the whole journal (typed, being
+// written and failed values), read from save feedback, never from the database (eng review D6).
+// The last handover is remembered: its Export icon carries a check badge, and its entries are what
+// Clear may remove once the rasika confirms the file is saved; a handover alone never clears
+// anything, since a download may not have been kept (docs/adr/0007). When the database can't be
+// read, only a rescue Export is made, named `-store-unreadable`; a plain one fails instead.
+// Never throws: a file that can't be made at all shows "Export failed" with Try again.
 
 import { useSyncExternalStore } from 'react';
 import type { WrappedDB } from '../../store/db';
 import { buildExport, exportOrRescue, type SeasonExport } from '../../store/export';
-import { saveFeedback } from '../save-feedback';
+import { saveFeedback, type JournalEntry } from '../save-feedback';
 
 export const APP_VERSION: string = import.meta.env.VITE_APP_VERSION ?? '0.0.0';
 
 interface ExportState {
   /** The last Export that failed outright, kept for its Try again. */
   failed: { rescue: boolean } | null;
-  /** The last rescue Export handed over came from a store that couldn't be read. */
-  storeUnreadable: boolean;
+  /** The last rescue Export handed over: what it held, and whether the store was unreadable. */
+  handover: { entries: JournalEntry[]; storeUnreadable: boolean } | null;
 }
 
-let state: ExportState = { failed: null, storeUnreadable: false };
+let state: ExportState = { failed: null, handover: null };
 const listeners = new Set<() => void>();
 
 function update(next: Partial<ExportState>) {
@@ -74,11 +74,14 @@ export async function exportSeason({
   try {
     const { name, file } = await makeExportFile({ rescue });
     const handed = await handOver(name, file);
-    if (handed && file.notSaved) saveFeedback.markExported(file.notSaved);
-    update({
-      failed: null,
-      storeUnreadable: handed ? file.storeUnreadable !== undefined : state.storeUnreadable,
-    });
+    const handover =
+      handed && rescue
+        ? {
+            entries: (file.notSaved ?? []) as JournalEntry[],
+            storeUnreadable: file.storeUnreadable !== undefined,
+          }
+        : state.handover;
+    update({ failed: null, handover });
     return handed;
   } catch (error) {
     console.error('export failed', error);
@@ -99,4 +102,9 @@ export function useExportState(): ExportState {
 
 export function dismissExportFailure(): void {
   update({ failed: null });
+}
+
+/** The store opened after all: a handover marked store-unreadable no longer says so. */
+export function storeOpened(): void {
+  if (state.handover?.storeUnreadable) update({ handover: null });
 }

@@ -68,7 +68,7 @@ describe('save feedback (required)', () => {
     expect(feedback.get(target)).toMatchObject({ status: 'failed', value: 'Viriboni' });
     expect(feedback.shown(target, 'Varnam')).toBe('Viriboni');
     expect((await db.items.get(item.id))?.title).toBe('Varnam');
-    expect(feedback.hasFailures(item.id)).toBe(true);
+    expect(feedback.unshown()).toEqual([target]);
 
     // Still failing: still not saved.
     await feedback.retry(target);
@@ -78,7 +78,7 @@ describe('save feedback (required)', () => {
     await feedback.retry(target);
     expect(feedback.get(target)?.status).toBe('saved');
     expect((await db.items.get(item.id))?.title).toBe('Viriboni');
-    expect(feedback.hasFailures()).toBe(false);
+    expect(feedback.unshown()).toEqual([]);
   });
 
   it('lets the latest edit of a field decide, whatever order the writes settle in', async () => {
@@ -151,7 +151,14 @@ describe('save feedback (required)', () => {
 
     expect(file.items).toHaveLength(1);
     expect(file.notSaved).toEqual([
-      { table: 'items', id: item.id, field: 'tala', value, enteredAt: expect.any(String) },
+      {
+        table: 'items',
+        id: item.id,
+        field: 'tala',
+        value,
+        enteredAt: expect.any(String),
+        state: 'failed',
+      },
     ]);
     // The stored Item is untouched: the rescue never wrote anything.
     expect((file.items[0] as { tala: unknown }).tala).toEqual(item.tala);
@@ -163,7 +170,9 @@ describe('save feedback (required)', () => {
     const target = { table: 'items', id: 'i1', field: 'tala' } as const;
     await feedback.track(target, 'Adi', () => Promise.reject(new Error('disk full')));
 
-    expect(storage.copies()).toEqual([{ ...target, value: 'Adi', enteredAt: expect.any(String) }]);
+    expect(storage.copies()).toEqual([
+      expect.objectContaining({ ...target, value: 'Adi', enteredAt: expect.any(String) }),
+    ]);
 
     await feedback.track(target, 'Adi', () => Promise.resolve('ok'));
     expect(storage.copies()).toEqual([]);
@@ -173,53 +182,54 @@ describe('save feedback (required)', () => {
     const storage = memoryStorage();
     const before = new SaveFeedback({ storage });
     const target = { table: 'events', id: 'new-1', field: '*' } as const;
-    await before.track(target, 'concert', () => Promise.reject(new Error('disk full')));
+    await before.track(target, 'concert', () => Promise.reject(new Error('disk full')), {
+      kind: 'create',
+    });
 
     const after = new SaveFeedback({ storage });
 
     expect(after.notSaved()).toEqual(before.notSaved());
-    expect(after.hasFailures()).toBe(true);
+    expect(after.unshown()).toEqual([target]);
     expect(after.canRetry(target)).toBe(false);
-    await after.retryAll();
+    await after.retryAll([target]);
     expect(after.notSaved()).toHaveLength(1);
   });
 
-  it('A1: after a relaunch, copied values hold back no update, and Clear removes them once exported', async () => {
+  it('after a relaunch, copied values hold back no update; Clear takes what a saved Export holds', async () => {
     const storage = memoryStorage();
     const target = { table: 'events', id: 'new-1', field: '*' } as const;
-    await new SaveFeedback({ storage }).track(target, 'concert', () =>
-      Promise.reject(new Error('disk full')),
+    await new SaveFeedback({ storage }).track(
+      target,
+      { kind: 'concert' },
+      () => Promise.reject(new Error('disk full')),
+      { kind: 'create' },
     );
     const base = { available: true, later: false, logging: false };
 
-    // Relaunch: the value is still there, for Export, but no write is waiting to be replayed,
-    // so a reload loses nothing and the update is offered again.
     const after = new SaveFeedback({ storage });
     expect(after.notSaved()).toHaveLength(1);
     expect(offersUpdate({ ...base, unsaved: after.hasRetryableFailures() })).toBe(true);
 
-    // Clear only once an Export has held it.
-    expect(after.canClear(target)).toBe(false);
-    after.markExported(after.notSaved());
-    expect(after.canClear(target)).toBe(true);
-    after.clear([target]);
+    const file = after.notSaved();
+    expect(after.canClear(target, [])).toBe(false);
+    expect(after.canClear(target, file)).toBe(true);
+    after.clearSaved(file);
     expect(after.notSaved()).toEqual([]);
     expect(storage.copies()).toEqual([]);
-    expect(after.unshown()).toEqual([]);
   });
 
-  it('A1: a write the rules refuse is not offered again, and holds back no update', async () => {
+  it('a write the rules refuse is not offered again, and holds back no update', async () => {
     const feedback = new SaveFeedback();
     const target = { table: 'items', id: 'i1', field: '*' } as const;
     const refused = Object.assign(new Error('item id i1 is already used'), { name: 'RuleError' });
-    await feedback.track(target, 'Varnam', () => Promise.reject(refused));
+    await feedback.track(target, 'Varnam', () => Promise.reject(refused), { kind: 'create' });
 
     expect(feedback.get(target)?.status).toBe('failed');
     expect(feedback.canRetry(target)).toBe(false);
     expect(feedback.hasRetryableFailures()).toBe(false);
   });
 
-  it('A1: a failure that Try again can still save holds back the update', async () => {
+  it('a failure that Try again can still save holds back the update', async () => {
     const feedback = new SaveFeedback();
     await feedback.track({ table: 'items', id: 'i1', field: 'tala' }, 'Adi', () =>
       Promise.reject(new Error('disk full')),
@@ -227,113 +237,156 @@ describe('save feedback (required)', () => {
     expect(feedback.hasRetryableFailures()).toBe(true);
   });
 
-  it('A2: keeps the copy while a retry is in flight, so a force-close then loses nothing', async () => {
+  it('keeps the copy while a retry is in flight, so a force-close then loses nothing', async () => {
     const storage = memoryStorage();
     const feedback = new SaveFeedback({ storage });
     const target = { table: 'items', id: 'i1', field: 'tala' } as const;
     let attempts = 0;
-    // The first write fails; the retry never settles: the page is killed while it runs.
     const write = () =>
       ++attempts === 1 ? Promise.reject(new Error('disk full')) : new Promise<never>(() => {});
     await feedback.track(target, 'Adi', write);
 
     void feedback.retry(target);
     expect(feedback.get(target)?.status).toBe('saving');
-
     const relaunched = new SaveFeedback({ storage });
-    expect(relaunched.notSaved()).toEqual([
-      { ...target, value: 'Adi', enteredAt: expect.any(String) },
-    ]);
+    expect(relaunched.notSaved()).toEqual([expect.objectContaining({ ...target, value: 'Adi' })]);
   });
 
-  it('A2: copies typed text at once, before any write starts, and lets it go if unchanged', () => {
+  it('copies typed text at once, before any write starts, and lets it go if unchanged', () => {
     const storage = memoryStorage();
     const feedback = new SaveFeedback({ storage });
     const target = { table: 'events', id: 'e1', field: 'note' } as const;
 
     feedback.hold(target, 'Tisram');
     expect(new SaveFeedback({ storage }).notSaved()).toEqual([
-      { ...target, value: 'Tisram', enteredAt: expect.any(String) },
+      expect.objectContaining({ ...target, value: 'Tisram' }),
     ]);
-    // The field shows its own typing; the stored value is what a save is compared with.
     expect(feedback.shown(target, null)).toBeNull();
 
     feedback.release(target);
     expect(storage.copies()).toEqual([]);
   });
 
-  it('A4: an attempt that succeeds supersedes the failed attempts of the same intent', async () => {
+  it('third review: Export carries typed and in-flight values too, not only failed ones', async () => {
     const feedback = new SaveFeedback();
-    const made: string[] = [];
+    feedback.hold({ table: 'events', id: 'e1', field: 'note' }, 'Tisram');
+    void feedback.track(
+      { table: 'items', id: 'i1', field: 'tala' },
+      'Adi',
+      () => new Promise(() => {}),
+    );
+    expect(feedback.notSaved().map((entry) => [entry.field, entry.state])).toEqual([
+      ['note', 'typed'],
+      ['tala', 'saving'],
+    ]);
+  });
+
+  it('third review: an entry leaves only once the store is seen holding its value', async () => {
+    const storage = memoryStorage();
+    const held = new Map<string, boolean>([['tala', false]]);
+    const feedback = new SaveFeedback({
+      storage,
+      confirm: async (entry) => held.get(entry.field) ?? true,
+    });
+    const tala = { table: 'items', id: 'i1', field: 'tala' } as const;
+    await feedback.track(tala, 'Adi', () => Promise.resolve('ok'));
+
+    // The write said it succeeded, but the store doesn't hold the value: it stays for Export.
+    expect(feedback.get(tala)?.status).toBe('saved');
+    expect(storage.copies()).toEqual([expect.objectContaining({ field: 'tala', value: 'Adi' })]);
+
+    held.set('tala', true);
+    await feedback.reconcile();
+    expect(storage.copies()).toEqual([]);
+  });
+
+  it('third review: a later Concert that saves leaves an earlier failed one in place', async () => {
+    const feedback = new SaveFeedback();
     const logNow = (id: string, fail: boolean) =>
       feedback.track(
         { table: 'events', id, field: '*' },
-        'concert',
-        () => (fail ? Promise.reject(new Error('disk full')) : Promise.resolve(made.push(id))),
-        { intent: 'log-now' },
+        { kind: 'concert' },
+        () => (fail ? Promise.reject(new Error('disk full')) : Promise.resolve(id)),
+        { kind: 'create' },
       );
     await logNow('c1', true);
-    await logNow('c2', true);
-    await logNow('c3', false);
-
-    expect(feedback.notSaved()).toEqual([]);
-    await feedback.retryAll();
-    expect(made).toEqual(['c3']);
+    await logNow('c2', false);
+    expect(feedback.notSaved().map((entry) => entry.id)).toEqual(['c1']);
   });
 
-  it('A4: Try again replays one attempt of each intent', async () => {
+  it('third review: a failed move or repick is not retried', async () => {
     const feedback = new SaveFeedback();
-    const made: string[] = [];
+    const fail = () => Promise.reject(new Error('disk full'));
+    const move = { table: 'items', id: 'i1', field: 'position' } as const;
+    const pick = { table: 'items', id: 'i1', field: 'pick' } as const;
+    await feedback.track(move, 2, fail, { kind: 'move' });
+    await feedback.track(pick, { label: 'Bhavayami' }, fail, { kind: 'repick' });
+
+    expect(feedback.canRetry(move)).toBe(false);
+    expect(feedback.canRetry(pick)).toBe(false);
+    expect(feedback.hasRetryableFailures()).toBe(false);
+    // The pick stays for Export; a move is nothing typed, so it isn't kept.
+    expect(feedback.notSaved().map((entry) => entry.field)).toEqual(['pick']);
+  });
+
+  it('third review: Try again writes one entry at a time, in the order entered', async () => {
+    const feedback = new SaveFeedback();
+    const log: string[] = [];
     let failing = true;
-    const logNow = (id: string) =>
-      feedback.track(
-        { table: 'events', id, field: '*' },
-        'concert',
-        () => (failing ? Promise.reject(new Error('disk full')) : Promise.resolve(made.push(id))),
-        { intent: 'log-now' },
-      );
-    await logNow('c1');
-    await logNow('c2');
-    expect(feedback.unshown()).toHaveLength(2);
+    const write = (name: string) => async () => {
+      log.push(`start ${name}`);
+      await Promise.resolve();
+      log.push(`end ${name}`);
+      if (failing) throw new Error('disk full');
+    };
+    const tala = { table: 'items', id: 'i1', field: 'tala' } as const;
+    const nadai = { table: 'items', id: 'i1', field: 'nadai' } as const;
+    await feedback.track(tala, 'Adi', write('tala'));
+    await feedback.track(nadai, 'khanda', write('nadai'));
+    log.length = 0;
 
     failing = false;
-    await feedback.retryAll(feedback.unshown());
-    expect(made).toEqual(['c2']);
-    expect(feedback.notSaved()).toEqual([]);
+    await feedback.retryAll([nadai, tala]);
+    expect(log).toEqual(['start tala', 'end tala', 'start nadai', 'end nadai']);
   });
 
-  it('A8: shows a just-saved value until the stored one catches up', async () => {
+  it('third review: Clear matches what the Export held, value and time, never the field alone', async () => {
+    const feedback = new SaveFeedback();
+    const target = { table: 'events', id: 'new-1', field: '*' } as const;
+    const refused = Object.assign(new Error('event id new-1 is already used'), {
+      name: 'RuleError',
+    });
+    await feedback.track(target, { at: 'A' }, () => Promise.reject(refused), { kind: 'create' });
+    const file = feedback.notSaved();
+    // While the file was being handed over, the same field failed again with another value.
+    await feedback.track(target, { at: 'B' }, () => Promise.reject(refused), { kind: 'create' });
+
+    expect(feedback.canClear(target, file)).toBe(false);
+    feedback.clearSaved(file);
+    expect(feedback.notSaved()).toEqual([expect.objectContaining({ value: { at: 'B' } })]);
+  });
+
+  it('third review: values written by another visit come in when the page is shown again', () => {
+    const storage = memoryStorage();
+    const feedback = new SaveFeedback({ storage });
+    new SaveFeedback({ storage }).hold({ table: 'events', id: 'e1', field: 'note' }, 'Tisram');
+
+    feedback.reload();
+    expect(feedback.notSaved()).toEqual([expect.objectContaining({ value: 'Tisram' })]);
+  });
+
+  it('a shown just-saved value stays until the stored one catches up', async () => {
     vi.useFakeTimers();
     const feedback = new SaveFeedback();
     const target = { table: 'events', id: 'e1', field: 'note' } as const;
     await feedback.track(target, 'Tisram', () => Promise.resolve('ok'));
 
-    // The screen still holds the record read before the write: the saved text stays.
     expect(feedback.shown(target, 'old')).toBe('Tisram');
-    expect(feedback.shown(target, 'Tisram')).toBe('Tisram');
-    // A different value that arrives later (another tab) wins once the moment has passed.
     vi.advanceTimersByTime(SETTLE_MS);
-    expect(feedback.shown(target, 'from another tab')).toBe('from another tab');
+    expect(feedback.shown(target, 'from elsewhere')).toBe('from elsewhere');
   });
 
-  it("B1: two tabs keep each other's copies, and hear of each other's", async () => {
-    const storage = memoryStorage();
-    const first = new SaveFeedback({ storage, listen: storage.listen });
-    const second = new SaveFeedback({ storage, listen: storage.listen });
-    const fail = () => Promise.reject(new Error('disk full'));
-    const tala = { table: 'items', id: 'i1', field: 'tala' } as const;
-    const note = { table: 'events', id: 'e1', field: 'note' } as const;
-    await first.track(tala, 'Adi', fail);
-    await second.track(note, 'Tisram', fail);
-
-    expect(storage.copies().map((copy) => copy.field)).toEqual(['tala', 'note']);
-    expect(first.notSaved().map((entry) => entry.field)).toEqual(['tala', 'note']);
-
-    await second.track(note, 'Tisram', () => Promise.resolve('ok'));
-    expect(first.notSaved().map((entry) => entry.field)).toEqual(['tala']);
-  });
-
-  it('B4: a damaged copy is skipped, and the rest still load', () => {
+  it('a damaged copy is skipped, and the rest still load', () => {
     const storage = memoryStorage();
     storage.setItem(`${NOT_SAVED_PREFIX}bad`, '{not json');
     storage.setItem(`${NOT_SAVED_PREFIX}wrong`, JSON.stringify({ table: 3, id: null }));
@@ -341,100 +394,24 @@ describe('save feedback (required)', () => {
       `${NOT_SAVED_PREFIX}items:i1:tala`,
       JSON.stringify({ table: 'items', id: 'i1', field: 'tala', value: 'Adi', enteredAt: 'x' }),
     );
-    // The unversioned list an earlier build wrote is read once, then moved.
-    storage.setItem('wrapped.notSaved', JSON.stringify([{ table: 'items', id: 'i2' }, 7]));
-
     const feedback = new SaveFeedback({ storage });
     expect(feedback.notSaved()).toEqual([
-      { table: 'items', id: 'i1', field: 'tala', value: 'Adi', enteredAt: 'x' },
+      expect.objectContaining({ table: 'items', id: 'i1', field: 'tala', value: 'Adi' }),
     ]);
-    expect(storage.getItem('wrapped.notSaved')).toBeNull();
-  });
-
-  it('B3: Try again tells the write which fields were saved since it failed', async () => {
-    const feedback = new SaveFeedback();
-    const pick = { table: 'items', id: 'i1', field: 'pick' } as const;
-    const seen: string[][] = [];
-    let failing = true;
-    await feedback.track(pick, 'Bhavayami', (replay) => {
-      seen.push(replay?.changedSince ?? []);
-      return failing ? Promise.reject(new Error('disk full')) : Promise.resolve('ok');
-    });
-    await feedback.track({ table: 'items', id: 'i1', field: 'tala' }, 'Adi', () =>
-      Promise.resolve('ok'),
-    );
-    failing = false;
-    await feedback.retry(pick);
-    expect(seen).toEqual([[], ['tala']]);
-  });
-
-  it('drops copied values the store already holds, after a relaunch', async () => {
-    const storage = memoryStorage();
-    const before = new SaveFeedback({ storage });
-    const fail = () => Promise.reject(new Error('disk full'));
-    await before.track({ table: 'events', id: 'c1', field: '*' }, 'concert', fail);
-    await before.track({ table: 'events', id: 'c2', field: '*' }, 'concert', fail);
-    await before.track({ table: 'items', id: 'i1', field: 'title' }, 'Varnam', fail);
-
-    const after = new SaveFeedback({ storage });
-    // The page was killed after c1 and the title committed, before they were marked saved.
-    const store: Record<string, Record<string, unknown>> = {
-      'events/c1': { id: 'c1', deletedAt: null },
-      'items/i1': { id: 'i1', title: 'Varnam', deletedAt: null },
-    };
-    await after.reconcile(async (table, id) => store[`${table}/${id}`]);
-    expect(after.notSaved().map((entry) => entry.id)).toEqual(['c2']);
-  });
-
-  it('counts the failures no screen is showing, for the season-wide line', async () => {
-    const feedback = new SaveFeedback();
-    const shown = { table: 'items', id: 'i1', field: 'tala' } as const;
-    const hidden = { table: 'appearances', id: 'new-1', field: '*' } as const;
-    const fail = () => Promise.reject(new Error('disk full'));
-    await feedback.track(shown, 'Adi', fail);
-    await feedback.track(hidden, 'T M Krishna', fail);
-
-    const stop = feedback.showing([shown]);
-    expect(feedback.unshown()).toEqual([hidden]);
-
-    stop();
-    expect(feedback.unshown()).toEqual([shown, hidden]);
-  });
-
-  it('keeps each attempt of a new record apart, so a second failure never hides the first', async () => {
-    const feedback = new SaveFeedback();
-    const fail = () => Promise.reject(new Error('disk full'));
-    await feedback.track({ table: 'appearances', id: 'a1', field: '*' }, 'Vocal', fail);
-    await feedback.track({ table: 'appearances', id: 'a2', field: '*' }, 'Violin', fail);
-    expect(feedback.notSaved().map((entry) => entry.value)).toEqual(['Vocal', 'Violin']);
   });
 });
 
-/** localStorage as two tabs share it: per-key values and the `storage` event to the other tabs. */
+/** localStorage, per key. */
 function memoryStorage() {
   const values = new Map<string, string>();
-  const tabs = new Set<(key: string, value: string | null) => void>();
-  const tell = (key: string, value: string | null) => tabs.forEach((tab) => tab(key, value));
   return {
     get length() {
       return values.size;
     },
     key: (index: number) => [...values.keys()][index] ?? null,
     getItem: (key: string) => values.get(key) ?? null,
-    setItem: (key: string, value: string) => {
-      values.set(key, value);
-      tell(key, value);
-    },
-    removeItem: (key: string) => {
-      values.delete(key);
-      tell(key, null);
-    },
-    /** Each tab hears the others' changes (the browser never tells a tab of its own). */
-    listen(onChange: (key: string, value: string | null) => void) {
-      const own = onChange;
-      // Changes are delivered after the writing call returns, as the browser does.
-      tabs.add((key, value) => queueMicrotask(() => own(key, value)));
-    },
+    setItem: (key: string, value: string) => void values.set(key, value),
+    removeItem: (key: string) => void values.delete(key),
     copies: () =>
       [...values.entries()]
         .filter(([key]) => key.startsWith(NOT_SAVED_PREFIX))

@@ -95,11 +95,19 @@ export async function dropReceipt(id: string, db: WrappedDB): Promise<void> {
   await db.meta.delete(keyOf(id));
 }
 
-/** Forget receipts older than `maxAgeMs`, so a crash mid-Undo never leaves them for good. */
-export async function pruneReceipts(maxAgeMs: number, db: WrappedDB, now = Date.now()) {
+/**
+ * Forget receipts older than `maxAgeMs`, so a crash mid-Undo never leaves them for good, except
+ * those in `keep`: a failed Undo's bar, kept across reloads, still needs its receipt.
+ */
+export async function pruneReceipts(
+  maxAgeMs: number,
+  db: WrappedDB,
+  now = Date.now(),
+  keep: ReadonlySet<string> = new Set(),
+) {
   const cutoff = new Date(now - maxAgeMs).toISOString();
   const keys = (await allReceipts(db))
-    .filter((receipt) => receipt.at < cutoff)
+    .filter((receipt) => receipt.at < cutoff && !keep.has(receipt.id))
     .map((receipt) => keyOf(receipt.id));
   await db.meta.bulkDelete(keys);
 }

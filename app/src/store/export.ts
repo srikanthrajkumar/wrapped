@@ -12,6 +12,8 @@ export interface NotSavedValue {
   field: string;
   value: unknown;
   enteredAt: string;
+  /** Typed, being written, failed, or written and not yet seen in the store. */
+  state?: 'typed' | 'saving' | 'failed' | 'unconfirmed';
 }
 
 export interface SeasonExport {

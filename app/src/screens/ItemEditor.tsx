@@ -146,8 +146,9 @@ function ItemSearch({
       fixed={
         <>
           {/* One row, scrolling sideways when the chips don't fit (large text, a narrow phone,
-              Android's text zoom), so the results keep their room. */}
-          <div className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1">
+              Android's text zoom), so the results keep their room. The padding, taken back by
+              the margin, keeps the focus rings inside the scrolling box. */}
+          <div className="-m-1 flex gap-2 overflow-x-auto overscroll-x-contain p-1">
             {SPECIAL.map(({ form, label }) => (
               <Chip
                 key={form}
@@ -248,6 +249,7 @@ function NewItem({ eventId }: { eventId: string }) {
       { table: 'items', id, field: '*' },
       { eventId, pick: describePick(choice), label: pickLabel(choice) },
       () => addItemFrom(eventId, choice, { id }),
+      { kind: 'create' },
     );
   };
 
@@ -355,23 +357,25 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
     void saveWith(target('layaVinyasam'), next, () => setLayaVinyasam(item.id, next));
 
   // One write: the pick, the Details it clears and the logging note (store/items.ts repickItem).
-  // It waits for the catalog, so a Guess is never taken for the old song's value; a retry
-  // leaves the Details saved since it failed as they are (B3).
+  // It waits for the catalog, so a Guess is never taken for the old song's value. A failed
+  // repick is never retried ("Not changed"): the rasika picks again; the pick is journalled for
+  // Export.
   const repick = (choice: ItemPick) => {
     setOpen(null);
     setQuery('');
     void saveWith(
       target('pick'),
       { eventId, pick: describePick(choice), label: pickLabel(choice) },
-      async (replay) =>
-        repickItem(item.id, choice, {
-          catalog: (await readyCatalog()) ?? undefined,
-          keep: replay?.changedSince,
-        }),
+      async () => repickItem(item.id, choice, { catalog: (await readyCatalog()) ?? undefined }),
+      { kind: 'repick' },
     );
   };
 
-  const picking = shown<{ label: string } | null>('pick', null);
+  // A pick being written shows at once; a failed one didn't happen, so the title stays.
+  const picking =
+    feedback.get(target('pick'))?.status === 'failed'
+      ? null
+      : shown<{ label: string } | null>('pick', null);
   const title = picking?.label || item.title || ragasText(ragas) || '?';
   const cell = (field: ItemField, value: DetailValue, text?: string) => (
     <DetailCell

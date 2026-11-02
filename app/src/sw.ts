@@ -152,7 +152,8 @@ async function cachePhase2(): Promise<boolean> {
  * Fetch each first-phase file missing from the precache (the phone evicted it, or the install
  * stopped part-way) and store it under its precache key. An unchanged worker is never installed
  * again by `registration.update()`, so this is what "Try again" relies on. When the server has
- * moved to a newer build, nothing is mixed in: the answer says so, and the page updates.
+ * moved to a newer build (repairMissing's checks), nothing is mixed in: the answer says so, and
+ * the page installs the new build.
  */
 async function repairPhase1(): Promise<'repaired' | 'new-build'> {
   const cache = await caches.open(cacheNames.precache);
@@ -161,9 +162,14 @@ async function repairPhase1(): Promise<'repaired' | 'new-build'> {
       const key = getCacheKeyForURL(file.url);
       return key === undefined || (await cache.match(key)) !== undefined;
     },
-    fetch: (url) => fetch(absolute(url), { cache: 'reload' }),
-    async put(file, response) {
-      await cache.put(getCacheKeyForURL(file.url)!, countingBytes(response));
+    // Counted as the body arrives, so one slow file is not taken for a stall.
+    fetch: async (url) => countingBytes(await fetch(absolute(url), { cache: 'reload' })),
+    async put(file, body, response) {
+      const { status, statusText, headers } = response;
+      await cache.put(
+        getCacheKeyForURL(file.url)!,
+        new Response(body, { status, statusText, headers }),
+      );
       await postProgress();
     },
     serverWorker: async () => (await fetch(self.location.href, { cache: 'reload' })).text(),
