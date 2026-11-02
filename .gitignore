@@ -11,6 +11,7 @@ supabase/.env
 node_modules/
 dist/
 *.log
+*.tsbuildinfo
 
 # The catalog snapshot is private: the build copies it in, git never holds it
 app/public/catalog/
