@@ -15,7 +15,7 @@ import {
 import { db as defaultDb, type WrappedDB } from './db';
 import { renumber, type Deleted } from './items';
 import { getLive, newTimestamps, remove, save, type WriteOptions } from './mutate';
-import { entryResolver, type ResolvedEntry } from './queries';
+import { entryResolver, loadEntries, type ResolvedEntry } from './queries';
 import { peekReceipt, takeReceipt, writeReceipt } from './receipts';
 import { appearanceProblems, check, RuleError } from './rules';
 
@@ -59,12 +59,11 @@ async function findNames(
 ): Promise<NameMatch[]> {
   const needle = fold(query);
   if (needle === '') return [];
-  const own = kind === 'artist' ? db.artists : db.sabhas;
-  const shared = kind === 'artist' ? db.sharedArtists : db.sharedSabhas;
-  const resolve = await entryResolver(kind, db);
+  // The own, shared and Link tables, read once for both the matching and the resolving.
+  const { own, shared, resolve } = await loadEntries(kind, db);
 
   // Merged-away entries are skipped: their names are Aliases of the one that survived.
-  const ownEntries = (await own.toArray()).filter(
+  const ownEntries = own.filter(
     (entry: OwnEntry) => entry.deletedAt === null && entry.mergedIntoId === null,
   );
   const found = new Map<string, { match: NameMatch; rank: number }>();
@@ -78,7 +77,7 @@ async function findNames(
       rank: r,
     });
   };
-  for (const entry of await shared.toArray()) offer(entry, true, [entry.name, ...entry.aliases]);
+  for (const entry of shared) offer(entry, true, [entry.name, ...entry.aliases]);
   for (const entry of ownEntries) {
     // An own entry the Maintainer promoted reads as the shared one (ADR 0005), so the two are
     // offered once; the name the rasika typed still finds it.
@@ -139,7 +138,8 @@ async function createOwn(
 ): Promise<OwnEntry> {
   return db.transaction('rw', [db.table(table), db.outbox], async () => {
     const existing = (await db.table(table).get(id)) as OwnEntry | undefined;
-    if (existing) return existing;
+    if (existing?.deletedAt === null) return existing;
+    if (existing) throw new RuleError([`${table} id ${id} is already used`]);
     return save(table, ownEntry(name, id), { db });
   });
 }
@@ -306,6 +306,24 @@ export async function moveAppearance(
     const order = live.filter((appearance) => appearance.id !== id);
     order.splice(index, 0, moving);
     await renumber('appearances', order, db);
+  });
+}
+
+/**
+ * Move an Appearance `by` places from where it is now: a retried move starts from the billing
+ * order as it stands, not from the one it was tapped in (second review of PR #5, B3).
+ */
+export async function moveAppearanceBy(
+  id: string,
+  by: number,
+  { db = defaultDb }: WriteOptions = {},
+): Promise<void> {
+  await db.transaction('rw', [db.appearances, db.outbox], async () => {
+    const moving = await getLive('appearances', id, { db });
+    const live = (await liveAppearances(moving.eventId, db)).sort(
+      (a, b) => a.position - b.position,
+    );
+    await moveAppearance(id, live.findIndex((appearance) => appearance.id === id) + by, { db });
   });
 }
 

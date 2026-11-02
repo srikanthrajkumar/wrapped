@@ -137,20 +137,6 @@ async function changeItem(id: string, change: (item: Item) => Item, db: WrappedD
   });
 }
 
-/**
- * Pick a Composition: its title and Details are filled in from the catalog as `catalog` values
- * (FR-007). Picking replaces every Detail the catalog knows; the Nadai, Laya vinyasam,
- * improvised Details and note stay as they were. An RTP has no Composition, so picking one
- * makes the Item an ordinary one.
- */
-export function pickComposition(
-  id: string,
-  song: Song,
-  { db = defaultDb }: WriteOptions = {},
-): Promise<Item> {
-  return repickItem(id, { kind: 'song', song }, { db });
-}
-
 function suggestionsFor(item: Item, catalog: Catalog | undefined): Partial<Suggested> {
   const song = item.compositionKey ? catalog?.songByKritiId.get(item.compositionKey) : undefined;
   return song ? suggestedDetails(song) : {};
@@ -254,6 +240,22 @@ export async function moveItem(
     order.splice(index, 0, moving);
     await noteLogging(db, moving.eventId);
     return renumber('items', order, db);
+  });
+}
+
+/**
+ * Move an Item `by` places from where it is now: a retried move starts from the running order
+ * as it stands, not from the one it was tapped in (second review of PR #5, B3).
+ */
+export async function moveItemBy(
+  id: string,
+  by: number,
+  { db = defaultDb }: WriteOptions = {},
+): Promise<Item[]> {
+  return db.transaction('rw', [db.items, db.outbox, db.meta], async () => {
+    const moving = await getLive('items', id, { db });
+    const items = await liveItems(moving.eventId, db);
+    return moveItem(id, items.findIndex((item) => item.id === id) + by, { db });
   });
 }
 
@@ -364,6 +366,25 @@ export type ItemPick =
   | { kind: 'unknown' }
   | { kind: 'typed'; text: string };
 
+/**
+ * A pick as plain data, for a value not saved (contracts/season-export.md, `notSaved`): enough
+ * to place it back by hand, without the catalog's whole song.
+ */
+export function describePick(pick: ItemPick): Record<string, string> {
+  switch (pick.kind) {
+    case 'song':
+      return { kind: 'song', kritiId: pick.song.kritiId, title: pick.song.title };
+    case 'raga':
+      return { kind: 'raga', key: pick.raga.key, display: pick.raga.display };
+    case 'form':
+      return { kind: 'form', form: pick.form };
+    case 'unknown':
+      return { kind: 'unknown' };
+    case 'typed':
+      return { kind: 'typed', text: pick.text };
+  }
+}
+
 const formDisplay = (key: SpecialForm) => forms.find((form) => form.key === key)?.display ?? key;
 
 /** The Item a pick starts, before it has a place. */
@@ -445,43 +466,67 @@ function leaveComposition(item: Item, catalog: Catalog | undefined): Item {
   };
 }
 
+/** The fields a retried repick leaves as they are when the rasika changed them since. */
+const KEEPABLE = [
+  'form',
+  'ragas',
+  'tala',
+  'nadai',
+  'composer',
+  'language',
+  'subject',
+  'layaVinyasam',
+  'improvised',
+  'note',
+] as const;
+
 /**
- * Change an Item's pick from the editor's title, in one transaction with the logging note: a
- * song fills in its Details as `pickComposition` does; a Raga, a special form, typed text or
- * "?" leaves the Composition (its Details go back to "?") and starts from the pick as a new
- * Item would. The Nadai, Laya vinyasam, improvised Details and note are the rasika's and stay;
- * an RTP gets "?" for its first Raga and Nadai where it has none.
+ * Change an Item's pick from the editor's title, in one transaction with the logging note.
+ * A song fills in its title and every Detail the catalog knows, as `catalog` values (FR-007);
+ * an RTP has no Composition, so picking a song makes it an ordinary Item. A Raga, a special
+ * form, typed text or "?" leaves the Composition (its Details go back to "?") and starts from
+ * the pick as a new Item would. The Nadai, Laya vinyasam, improvised Details and note are the
+ * rasika's and stay; an RTP gets "?" for its first Raga and Nadai where it has none. `keep`
+ * names fields saved since a failed repick, which its retry leaves as they are (B3).
  */
 export function repickItem(
   id: string,
   pick: ItemPick,
-  { db = defaultDb, catalog }: DetailOptions = {},
+  { db = defaultDb, catalog, keep = [] }: DetailOptions & { keep?: readonly string[] } = {},
 ): Promise<Item> {
   const start = startFrom(pick);
+  const kept = KEEPABLE.filter((field) => keep.includes(field));
   return changeItem(
     id,
-    (item) => {
-      if (pick.kind === 'song') {
-        return { ...item, ...start, nadai: isRtp(item) ? notApplicableValue() : item.nadai };
-      }
-      const left = leaveComposition(item, catalog);
-      const next: Item = { ...left, ...start };
-      if (pick.kind !== 'form') return next;
-      if (pick.form === RTP_FORM) {
-        return {
-          ...next,
-          ragas: left.ragas.length > 0 ? left.ragas : [unknownValue()],
-          nadai: left.nadai.state === 'na' ? unknownValue() : left.nadai,
-          composer: left.composer.state === 'unknown' ? notApplicableValue() : left.composer,
-        };
-      }
-      // Another form: an RTP's own Nadai default goes with it.
-      return isRtp(item) && next.nadai.state === 'unknown'
-        ? { ...next, nadai: notApplicableValue() }
-        : next;
-    },
+    (item) =>
+      kept.reduce(
+        (next, field) => ({ ...next, [field]: item[field] }),
+        applyPick(item, pick, start, catalog),
+      ),
     db,
   );
+}
+
+/** The Item after `pick`, as `repickItem` describes. */
+function applyPick(item: Item, pick: ItemPick, start: ItemStart, catalog?: Catalog): Item {
+  if (pick.kind === 'song') {
+    return { ...item, ...start, nadai: isRtp(item) ? notApplicableValue() : item.nadai };
+  }
+  const left = leaveComposition(item, catalog);
+  const next: Item = { ...left, ...start };
+  if (pick.kind !== 'form') return next;
+  if (pick.form === RTP_FORM) {
+    return {
+      ...next,
+      ragas: left.ragas.length > 0 ? left.ragas : [unknownValue()],
+      nadai: left.nadai.state === 'na' ? unknownValue() : left.nadai,
+      composer: left.composer.state === 'unknown' ? notApplicableValue() : left.composer,
+    };
+  }
+  // Another form: an RTP's own Nadai default goes with it.
+  return isRtp(item) && next.nadai.state === 'unknown'
+    ? { ...next, nadai: notApplicableValue() }
+    : next;
 }
 
 /**

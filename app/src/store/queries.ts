@@ -72,13 +72,17 @@ async function linkFor(ownTable: Link['ownTable'], ownId: string, db: WrappedDB)
 }
 
 /**
- * Resolve many references at once, as a picker does per keystroke: the own, shared and Link
+ * The own and shared entries of one kind, and a resolver over them: the own, shared and Link
  * tables are read once, then each id is followed in memory the way `resolveEntry` follows it.
  */
-export async function entryResolver(
+export async function loadEntries(
   kind: Kind,
   db: WrappedDB = defaultDb,
-): Promise<(id: string) => ResolvedEntry | undefined> {
+): Promise<{
+  own: OwnEntry[];
+  shared: SharedEntry[];
+  resolve: (id: string) => ResolvedEntry | undefined;
+}> {
   const [own, shared, links] = await Promise.all([
     (kind === 'artist' ? db.artists : db.sabhas).toArray(),
     (kind === 'artist' ? db.sharedArtists : db.sharedSabhas).toArray(),
@@ -90,7 +94,7 @@ export async function entryResolver(
   const ownById = new Map(own.map((entry) => [entry.id, entry]));
   const sharedById = new Map(shared.map((entry) => [entry.id, entry]));
   const linkByOwn = new Map(links.map((link) => [link.ownId, link]));
-  return (id) => {
+  const resolve = (id: string): ResolvedEntry | undefined => {
     const start = ownById.get(id);
     if (!start) {
       const direct = sharedById.get(id);
@@ -107,6 +111,15 @@ export async function entryResolver(
     if (promoted) return fromShared(promoted, entry);
     return { id: entry.id, name: entry.name, aliases: entry.aliases, shared: false, own: entry };
   };
+  return { own, shared, resolve };
+}
+
+/** Resolve many references at once, as a picker does per keystroke (`loadEntries`). */
+export async function entryResolver(
+  kind: Kind,
+  db: WrappedDB = defaultDb,
+): Promise<(id: string) => ResolvedEntry | undefined> {
+  return (await loadEntries(kind, db)).resolve;
 }
 
 export function resolveArtist(id: string, db: WrappedDB = defaultDb) {
@@ -197,12 +210,16 @@ export function useSabha(id: string | null) {
   return useLiveQuery(async () => (id ? ((await resolveSabha(id)) ?? null) : null), [id]);
 }
 
-export function useItem(id: string | null) {
+/**
+ * An Item, null once missing or deleted. With `withDeleted`, a deleted Item is returned too (a
+ * new Item's editor must know its id is taken).
+ */
+export function useItem(id: string | null, { withDeleted = false } = {}) {
   return useLiveQuery(async () => {
     if (!id) return null;
     const item = await defaultDb.items.get(id);
-    return live(item) ? item : null;
-  }, [id]);
+    return item && (withDeleted || live(item)) ? item : null;
+  }, [id, withDeleted]);
 }
 
 /** Writes not yet on the server (FR-016): the outbox's length. */
@@ -217,16 +234,28 @@ export interface EventSummary {
   itemCount: number;
 }
 
-/** Every live Event with what home shows of it: Sabha, first-billed Artist, Item count. */
+/**
+ * Every live Event with what home shows of it: Sabha, first-billed Artist, Item count. The
+ * Artist and Sabha tables are read once for all Events, and only the first-billed Appearance of
+ * each is resolved.
+ */
 export async function listEventSummaries(db: WrappedDB = defaultDb): Promise<EventSummary[]> {
-  const events = await listEvents(db);
+  const [events, artists, sabhas] = await Promise.all([
+    listEvents(db),
+    entryResolver('artist', db),
+    entryResolver('sabha', db),
+  ]);
   return Promise.all(
     events.map(async (event) => {
-      const [first] = await listAppearances(event.id, db);
+      const appearances = await db.appearances.where('eventId').equals(event.id).toArray();
+      let first: Appearance | undefined;
+      for (const appearance of appearances.filter(live)) {
+        if (!first || appearance.position < first.position) first = appearance;
+      }
       return {
         event,
-        sabha: event.sabhaId ? ((await resolveSabha(event.sabhaId, db)) ?? null) : null,
-        firstArtist: first?.artist?.name ?? null,
+        sabha: event.sabhaId ? (sabhas(event.sabhaId) ?? null) : null,
+        firstArtist: first ? (artists(first.artistId)?.name ?? null) : null,
         itemCount: await countItems(event.id, db),
       };
     }),

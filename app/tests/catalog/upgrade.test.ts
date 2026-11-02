@@ -10,7 +10,7 @@ import { catalogValue, type Item } from '../../src/model';
 import { CATALOG_VERSION_KEY, upgradeStoredItems } from '../../src/store/catalog-version';
 import type { WrappedDB } from '../../src/store/db';
 import { createEvent } from '../../src/store/events';
-import { addItem, pickComposition, removeItem, setRagas } from '../../src/store/items';
+import { addItem, removeItem, repickItem, setRagas } from '../../src/store/items';
 import { acknowledge, claimBatch } from '../../src/store/outbox';
 import { fixtureCatalog, freshDb, reopen } from '../helpers';
 
@@ -24,13 +24,21 @@ async function loggedUnderV1(db: WrappedDB) {
   const song = (id: string) => v1.songByKritiId.get(id)!;
 
   // Enduku Peddala, in Sankarabharanam as the catalog says.
-  const merged = await pickComposition((await addItem(event.id, {}, { db })).id, song('c0005'), {
-    db,
-  });
+  const merged = await repickItem(
+    (await addItem(event.id, {}, { db })).id,
+    { kind: 'song', song: song('c0005') },
+    {
+      db,
+    },
+  );
   // Nagumomu (Abheri in the catalog), heard in Sankarabharanam: an Override.
-  const nagumomu = await pickComposition((await addItem(event.id, {}, { db })).id, song('c0001'), {
-    db,
-  });
+  const nagumomu = await repickItem(
+    (await addItem(event.id, {}, { db })).id,
+    { kind: 'song', song: song('c0001') },
+    {
+      db,
+    },
+  );
   const override = await setRagas(
     nagumomu.id,
     [catalogValue('Sankarabharanam', 'Sankarabharanam')],
@@ -44,15 +52,19 @@ async function loggedUnderV1(db: WrappedDB) {
     options,
   );
   // Kaddanuvariki, a song v2 retires.
-  const retiredSong = await pickComposition(
+  const retiredSong = await repickItem(
     (await addItem(event.id, {}, { db })).id,
-    song('c0021'),
+    { kind: 'song', song: song('c0021') },
     { db },
   );
   // Vatapi Ganapatim in Hamsadhwani: nothing in it changes.
-  const untouched = await pickComposition((await addItem(event.id, {}, { db })).id, song('c0002'), {
-    db,
-  });
+  const untouched = await repickItem(
+    (await addItem(event.id, {}, { db })).id,
+    { kind: 'song', song: song('c0002') },
+    {
+      db,
+    },
+  );
   await db.meta.put({ key: CATALOG_VERSION_KEY, value: v1.version });
   const sent = await claimBatch(500, db);
   await acknowledge(

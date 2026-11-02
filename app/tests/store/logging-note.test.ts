@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { upgradeCatalog } from '../../src/catalog/upgrade';
 import { CATALOG_VERSION_KEY } from '../../src/store/catalog-version';
 import { createEvent } from '../../src/store/events';
-import { addItem, pickComposition } from '../../src/store/items';
+import { addItem, repickItem } from '../../src/store/items';
 import {
   endLogging,
   nowEvent,
@@ -138,9 +138,9 @@ describe('the logging note', () => {
       { kind: 'concert', source: 'plan', date: '2026-12-14', startTime: '16:00' },
       { db },
     );
-    const item = await pickComposition(
+    const item = await repickItem(
       (await addItem(old.id, {}, { db })).id,
-      v1.songByKritiId.get('c0005')!,
+      { kind: 'song', song: v1.songByKritiId.get('c0005')! },
       { db },
     );
     const evening = await createEvent(

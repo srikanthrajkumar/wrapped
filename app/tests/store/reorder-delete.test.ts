@@ -10,7 +10,14 @@ import type { Item } from '../../src/model';
 import { CATALOG_VERSION_KEY } from '../../src/store/catalog-version';
 import type { WrappedDB } from '../../src/store/db';
 import { createEvent, deleteEvent, restoreEvent } from '../../src/store/events';
-import { addItem, moveItem, pickComposition, removeItem, restoreItem } from '../../src/store/items';
+import {
+  addItem,
+  moveItem,
+  moveItemBy,
+  removeItem,
+  repickItem,
+  restoreItem,
+} from '../../src/store/items';
 import { acknowledge, claimBatch } from '../../src/store/outbox';
 import {
   addAppearance,
@@ -267,9 +274,9 @@ describe('Undo (required)', () => {
     await db.meta.put({ key: CATALOG_VERSION_KEY, value: v1.version });
     const event = await createEvent({ kind: 'concert' }, { db });
     // Enduku Peddala, in Sankarabharanam, which v2 merges into Dheerasankarabharanam.
-    const item = await pickComposition(
+    const item = await repickItem(
       (await addItem(event.id, {}, { db })).id,
-      v1.songByKritiId.get('c0005')!,
+      { kind: 'song', song: v1.songByKritiId.get('c0005')! },
       { db },
     );
     const deleted = (await removeItem(item.id, { db }))!;
@@ -460,5 +467,27 @@ describe('Undo (required)', () => {
 
     expect((await db.appearances.get(presenters[0]!.id))?.deletedAt).not.toBeNull();
     expect((await listReceipts(lecdem.id, db)).map((r) => r.id)).toEqual([removed.receipt.id]);
+  });
+});
+
+describe('a move retried after others (second review of PR #5, B3)', () => {
+  it('moves from where the Item is now, not from the place it was tapped in', async () => {
+    const db = freshDb();
+    const event = await createEvent({ kind: 'concert' }, { db });
+    await addItem(event.id, { title: 'A' }, { db });
+    await addItem(event.id, { title: 'B' }, { db });
+    const c = await addItem(event.id, { title: 'C' }, { db });
+    // "C up" failed while C was third; since then C was moved to first.
+    await moveItem(c.id, 0, { db });
+    await moveItemBy(c.id, 1, { db });
+    const order = (await db.items.toArray()).sort((x, y) => x.position - y.position);
+    expect(order.map((item) => item.title)).toEqual(['A', 'C', 'B']);
+  });
+
+  it('refuses a move past either end', async () => {
+    const db = freshDb();
+    const event = await createEvent({ kind: 'concert' }, { db });
+    const only = await addItem(event.id, { title: 'A' }, { db });
+    await expect(moveItemBy(only.id, -1, { db })).rejects.toThrow(/no place/);
   });
 });

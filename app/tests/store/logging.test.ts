@@ -1,7 +1,7 @@
 // The logging actions of User Story 1 (T036 to T039): Events, Artists and Sabhas, Appearances,
 // and Items with their Details, against the v1 handmade snapshot.
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { fold } from '../../src/catalog/fold';
 import {
   catalogValue,
@@ -16,7 +16,6 @@ import {
   addItemFrom,
   addRtp,
   discardItemDraft,
-  pickComposition,
   readItemDraft,
   removeItem,
   repickItem,
@@ -228,7 +227,7 @@ describe('Items', () => {
 
   it('fills in a picked Composition as catalog values', async () => {
     const { db, item } = await concertWithItem();
-    const picked = await pickComposition(item.id, song('c0004'), { db });
+    const picked = await repickItem(item.id, { kind: 'song', song: song('c0004') }, { db });
     expect(picked).toMatchObject({
       compositionKey: 'c0004',
       title: 'Kamakshi',
@@ -240,13 +239,13 @@ describe('Items', () => {
       subject: catalogValue('Kamakshi', 'Kamakshi'),
     });
     // A song the catalog knows less of: no composer, so "?".
-    const thillana = await pickComposition(item.id, song('c0015'), { db });
+    const thillana = await repickItem(item.id, { kind: 'song', song: song('c0015') }, { db });
     expect(thillana.composer).toEqual(unknownValue());
   });
 
   it('makes a changed Detail an Override, with no confirmation, and back again', async () => {
     const { db, item } = await concertWithItem();
-    await pickComposition(item.id, song('c0004'), { db });
+    await repickItem(item.id, { kind: 'song', song: song('c0004') }, { db });
     const options = { db, catalog: v1 };
 
     // Sung in Todi, not the catalog's Bhairavi (US1 scenario 3).
@@ -263,7 +262,7 @@ describe('Items', () => {
 
   it('keeps "?", Not applicable, a Guess and free text exactly as entered', async () => {
     const { db, item } = await concertWithItem();
-    await pickComposition(item.id, song('c0004'), { db });
+    await repickItem(item.id, { kind: 'song', song: song('c0004') }, { db });
     const options = { db, catalog: v1 };
 
     await setDetail(item.id, 'composer', unknownValue(), options);
@@ -293,7 +292,7 @@ describe('Items', () => {
 
   it('keeps several Ragas in order', async () => {
     const { db, item } = await concertWithItem();
-    const ragamalika = await pickComposition(item.id, song('c0016'), { db });
+    const ragamalika = await repickItem(item.id, { kind: 'song', song: song('c0016') }, { db });
     expect(ragamalika.ragas.map((raga) => raga.key)).toEqual(['Saveri', 'Mohanam', 'Kalyani']);
     const reordered = await setRagas(
       item.id,
@@ -343,7 +342,7 @@ describe('Items', () => {
 
   it('records a Laya vinyasam on the Item it followed, and improvised Details in concert order', async () => {
     const { db, item } = await concertWithItem();
-    await pickComposition(item.id, song('c0001'), { db });
+    await repickItem(item.id, { kind: 'song', song: song('c0001') }, { db });
     const laya = await setLayaVinyasam(
       item.id,
       { nadai: catalogValue('khanda', 'khanda'), note: 'with ghatam' },
@@ -576,14 +575,60 @@ describe("changing an Item's pick (repickItem)", () => {
     expect(changed.composer).toEqual(unknownValue());
   });
 
-  it('changes nothing when the write fails', async () => {
+  it('A9: is one transaction: a write failing after the Item is stored leaves nothing changed', async () => {
     const { db, item } = await itemFromSong();
-    db.items.hook('updating', () => {
+    const meta = await db.meta.toArray();
+    const outbox = await db.outbox.toArray();
+    // The last write of the repick, after the Item and the logging note.
+    const fail = () => {
       throw new Error('disk full');
-    });
+    };
+    db.outbox.hook('creating', fail);
+    db.outbox.hook('updating', fail);
+    // A minute later, so a logging note written by the repick would differ from the one stored.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(Date.now() + 60_000);
     await expect(
       repickItem(item.id, { kind: 'form', form: 'rtp' }, { db, catalog: v1 }),
     ).rejects.toThrow('disk full');
+    vi.useRealTimers();
+    db.outbox.hook('creating').unsubscribe(fail);
+    db.outbox.hook('updating').unsubscribe(fail);
+
     expect(await db.items.get(item.id)).toEqual(item);
+    expect(await db.meta.toArray()).toEqual(meta);
+    expect(await db.outbox.toArray()).toEqual(outbox);
+  });
+});
+
+describe('second review of PR #5, store', () => {
+  it('B5: a create retried with an id a deleted record holds is refused, never handed back', async () => {
+    const db = freshDb();
+    const event = await createEvent({ kind: 'concert' }, { db, id: 'c1' });
+    await deleteEvent(event.id, { db });
+    await expect(createEvent({ kind: 'concert' }, { db, id: 'c1' })).rejects.toThrow(RuleError);
+
+    const artist = await createArtist('Sanjay', { db, id: 'a1' });
+    await db.artists.put({ ...artist, deletedAt: new Date().toISOString() });
+    await expect(createArtist('Sanjay', { db, id: 'a1' })).rejects.toThrow(RuleError);
+    // A live one is still handed back: the retry of a create that did commit.
+    expect((await createSabha('Music Academy', { db, id: 's1' })).id).toBe('s1');
+    expect((await createSabha('Music Academy', { db, id: 's1' })).id).toBe('s1');
+  });
+
+  it('B3: a retried repick leaves the Details saved since it failed as they are', async () => {
+    const db = freshDb();
+    const event = await createEvent({ kind: 'concert' }, { db });
+    const item = await addItemFrom(event.id, { kind: 'unknown' }, { db });
+    await setDetail(item.id, 'tala', unresolvedValue('Khanda Chapu'), { db });
+
+    const picked = await repickItem(
+      item.id,
+      { kind: 'song', song: song('c0004') },
+      { db, catalog: v1, keep: ['tala'] },
+    );
+    expect(picked.compositionKey).toBe('c0004');
+    expect(picked.tala).toEqual(unresolvedValue('Khanda Chapu'));
+    expect(picked.composer).not.toEqual(unknownValue());
   });
 });

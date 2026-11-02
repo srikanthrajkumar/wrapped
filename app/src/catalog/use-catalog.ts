@@ -46,9 +46,9 @@ export function currentCatalog(): Catalog | null {
 
 /**
  * The catalog once opened, for a store action that must not run without it when it exists
- * (Undo brings a restored Item to the catalog in use). Opens it if no screen has yet.
+ * (Undo brings a restored Item to the catalog in use; a repick tells a Guess from the song's
+ * value). Opens it if no screen has yet, without building the search index.
  */
 export async function readyCatalog(): Promise<Catalog | null> {
-  start();
   return openCatalog().catch(() => null);
 }

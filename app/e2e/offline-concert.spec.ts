@@ -121,19 +121,22 @@ test('a Concert logged offline survives closing the browser (SC-001)', async ({
     const options = { catalog };
     const add = () => items.addItem(event.id);
     // 1. A varnam, picked from the catalog as it is.
-    await items.pickComposition((await add()).id, song('c0017'));
+    await items.repickItem((await add()).id, { kind: 'song', song: song('c0017') });
     // 2. Vatapi, with its tala marked not sure.
-    const vatapi = await items.pickComposition((await add()).id, song('c0002'));
+    const vatapi = await items.repickItem((await add()).id, { kind: 'song', song: song('c0002') });
     await items.setDetail(vatapi.id, 'tala', { ...vatapi.tala, guess: true }, options);
     // 3. Nagumomu, heard in Sankarabharanam: an Override.
-    const nagumomu = await items.pickComposition((await add()).id, song('c0001'));
+    const nagumomu = await items.repickItem((await add()).id, {
+      kind: 'song',
+      song: song('c0001'),
+    });
     await items.setRagas(
       nagumomu.id,
       [catalogValue('Sankarabharanam', 'Sankarabharanam')],
       options,
     );
     // 4. A ragamalika.
-    await items.pickComposition((await add()).id, song('c0016'));
+    await items.repickItem((await add()).id, { kind: 'song', song: song('c0016') });
     // 5. An RTP in two ragas, khanda nadai, pallavi by an unknown hand.
     const rtp = await items.addRtp(event.id);
     await items.setRagas(
@@ -145,7 +148,10 @@ test('a Concert logged offline survives closing the browser (SC-001)', async ({
     await items.setDetail(rtp.id, 'nadai', catalogValue('khanda', 'khanda'), options);
     await items.setDetail(rtp.id, 'language', unresolvedValue('Sanskrit?'), options);
     // 6. Kamakshi, followed by the Laya vinyasam, with a note.
-    const kamakshi = await items.pickComposition((await add()).id, song('c0004'));
+    const kamakshi = await items.repickItem((await add()).id, {
+      kind: 'song',
+      song: song('c0004'),
+    });
     await items.setLayaVinyasam(kamakshi.id, {
       nadai: catalogValue('tisra', 'tisra'),
       note: 'Tisra korvai to close',
@@ -157,7 +163,7 @@ test('a Concert logged offline survives closing the browser (SC-001)', async ({
     await items.setDetail(typed.id, 'composer', unresolvedValue('Adi Sankara'), options);
     await items.setRagas(typed.id, [unknownValue()], options);
     // 8. A tillana, with no subject.
-    const tillana = await items.pickComposition((await add()).id, song('c0015'));
+    const tillana = await items.repickItem((await add()).id, { kind: 'song', song: song('c0015') });
     await items.setDetail(tillana.id, 'subject', notApplicableValue(), options);
     // The last two swap places, then one more is added and deleted again.
     await items.moveItem(tillana.id, 6);
