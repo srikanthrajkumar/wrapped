@@ -423,6 +423,14 @@ timeline are due by 20 December.
 composer timeline as Cards offline and share one. The reference data never shows in the
 rasika's own Wrapped.
 
+- [ ] T088a [US5] The Maintainer settles the motif (DESIGN.md, "The motif") before the Card template is designed, with `/design-consultation` and `/design-shotgun`. Settle:
+  - how a Concert's instruments, its number of percussionists and perhaps its Ragas map to form and movement;
+  - the rose range in both themes;
+  - which Concerts show it, and where;
+  - the logo, drawn from the motif, with the product name (DESIGN.md, "Still open");
+  - its accessible name.
+
+  Record the result in DESIGN.md. This blocks the Card template (T094 to T096) and T116, not T088
 - [ ] T088 [US5] The Maintainer decides the card renderer (Satori + resvg-wasm, Takumi, or Canvas 2D; research.md, "Share-card rendering"). Record the decision in `specs/001-season-logger/research.md`, with an ADR in `docs/adr/` if it carries lock-in. This blocks T093
 - [ ] T089 [P] [US5] Suggest a Wrapped range covering the rasika's Attended Events, adjustable at both ends (FR-029), in `app/src/wrapped/range.ts`
 - [ ] T090 [US5] Implement the aggregations in `app/src/wrapped/aggregate.ts`:
@@ -479,6 +487,14 @@ Merge the Artists, match the raga, and confirm all Appearances and the Wrapped u
 
   Record the results in `specs/001-season-logger/research.md`
 - [ ] T114 Run every scenario in `specs/001-season-logger/quickstart.md` and record the results there
+- [ ] T116 [P] Build the motif generator in `app/src/motif/` per T088a:
+  - drawn in code (SVG or canvas), a few KB, offline;
+  - deterministic: the same Concert always draws the same mark;
+  - it has an accessible name;
+  - it appears where T088a placed it (the logo, a Concert's strip or profile mark, the Cards' ground) and never on the logging surfaces.
+
+  Measure its first-install cost against the size budget
+- [ ] T117 [P] Copy pass, "Prefer a mark to a sentence" (DESIGN.md, "Do's and Don'ts"): cut on-screen words wherever an icon, the motif or a familiar shape already says it, keeping the words in accessible names. Then update the Messages table and `app/src/screens/messages.ts` together
 - [ ] T115 Create the read-only view for season reports in `supabase/migrations/0007_report_view.sql`. It includes only seasons whose `season_reports` is true, has no rasika id, name, email or notes, and is the only thing the end-of-season DuckDB report reads (FR-048). The report never breaks down Items or their Details by Artist (FR-052). The view lives in the same private schema as the candidates view, with no grant for anonymous users or rasikas (eng review D5). The end-of-season DuckDB report connects as a role that can read only this view (outside voice 10)
 
 ---
@@ -504,7 +520,7 @@ Merge the Artists, match the raga, and confirm all Appearances and the Wrapped u
 - **US2 part 2 (Phase 7)**: after US1 and US2 part 1; built and tested locally, deployed last
   (ADR 0001, eng review D12). T073 to T075 wait on T066.
 - **US7 (Phase 8)**: after Phase 7, because it needs the server.
-- **US5 (Phase 9)**: after US1. T093 waits on T088, the card renderer decision.
+- **US5 (Phase 9)**: after US1. T093 waits on T088, the card renderer decision. The Card template (T094 to T096) waits on T088a, the motif; so does T116, which is built last as polish.
 - **US6 (Phase 10)**: after US1.
 - **Polish (Phase 11)**: T111 before rasikas sign up; T112 before public launch.
 
@@ -514,6 +530,7 @@ Merge the Artists, match the raga, and confirm all Appearances and the Wrapped u
 - T054: static hosting.
 - T057: the schedule feed, with the logger project.
 - T066: where push and pull run.
+- T088a: the motif and the logo.
 - T088: the card renderer.
 
 None of these is decided by the implementer (constitution VI).

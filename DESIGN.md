@@ -90,6 +90,21 @@ The app has two surfaces with opposite jobs:
 - **The Wrapped cards** are shared. They should look like the rasika's own season, not like the
   app (proposed: coloured by the outfits the Artists wore; settled with the Cards, T088 to T096).
 
+**The motif (direction, 2026-11-02; designed late, before the Cards).** One ethereal mark runs
+through the app: soft, blurred light-rose forms, like a held note seen rather than heard. It is
+generated per Concert from what was played, in the spirit of antfu's generative sketches (line
+and field from simple rules, never illustration):
+- a violin draws long bowed waves;
+- a veena draws plucked ripples that fade, abstractly a yazh;
+- three percussionists bring pulse and movement;
+- a vocal-led Concert reads as breath.
+
+The same Concert always draws the same mark. The motif is the logo, the ground of the Wrapped
+cards, and one thin strip or profile mark per Concert (perhaps only today's, or only the Now
+block). It stays out of the logging surfaces themselves (search, Details, the running order),
+which keep receding. It is drawn in code (SVG or canvas, a few KB), so it works offline and
+fits the size budget.
+
 Built with shadcn/ui on Tailwind ([ADR 0006](docs/adr/0006-shadcn-and-tailwind-for-the-screens.md)),
 starting from preset `b51rn04Qt`. The preset's values are the base; this file records where the
 app departs from them (warm text, the type scale, touch targets, motion). Every colour reaches
@@ -442,10 +457,13 @@ Motion explains a change and is otherwise absent.
 - Use the glossary's words (Concert, Item, Raga, Appearance, Sabha) in every label.
 - Write system messages plainly and briefly, with no exclamation marks.
 - Give every Detail state, swatch and icon-only control an accessible name.
+- Prefer a mark to a sentence: where an icon, the motif or a familiar shape explains what to
+  do, cut the words from the screen. The words move into the accessible name, so VoiceOver and
+  TalkBack still read them.
 
 **Don't**
 - Don't flash white in dark mode, on launch or between screens.
-- Don't use rose, or any accent colour, outside charts.
+- Don't use rose, or any accent colour, outside charts and the motif.
 - Don't put Colours, the note or sync status between the rasika and the next Item.
 - Don't show a toast for a save, a spinner for local work, or a confirmation for a delete.
 - Don't autofocus anything except the Item editor's search box.
@@ -515,7 +533,13 @@ in the phase that builds it):
   the screens deferred here.
 - The product's name and where its logo appears (deferred 2026-11-01: the Maintainer is
   considering other names; a logo will appear somewhere). "Carnatic Wrapped" stays the working
-  name until then.
+  name until then. The logo is drawn from the motif.
+- The motif itself (T088a), settled before the Card template:
+  - how instruments, the number of percussionists and perhaps the Ragas map to form and movement;
+  - the rose range in both themes;
+  - which Concerts show it and where (a strip, a profile mark, the Now block);
+  - the logo;
+  - its accessible name.
 
 ## Decisions Log
 
@@ -531,4 +555,5 @@ in the phase that builds it):
 | 2026-11-02 | Third review of PR #5, the Maintainer's answers: the rescue model simplified to one journal (docs/adr/0007); icon-led safety rows (Tabler IconAlertCircle, IconRefresh, IconDownload, IconTrash, IconX) with the short labels "Not saved", "Not moved", "Not changed", "Export failed"; Clear asks "Is the Export saved where you can find it?"; the rescue screen "Can't open your season" with a check on Export; "Still opening your season…"; only the newest failed Undo bar, with "+1"; "Can't undo: its Concert is deleted". |
 | 2026-11-02 | After the round-3 screenshots, the Maintainer's answers: a failed Undo bar names what failed, "Undo failed · Item 2" (not "Item 2 deleted" in red), and never covers a field; "Still opening your season…" is muted, with a spinner and no alert mark; after an Export the download icon stays the button, with a small check badge that is no button of its own, on the rows and the rescue screen. |
 | 2026-11-02 | Fourth review of PR #5, the Maintainer's answers: fixed by class, not per finding; a failed delete reads "Not deleted" ("Not deleted · Concert, Mon 2 Nov"), and its Try again deletes and offers Undo; a row shows one kind of failure; Dismiss acts only on moves and repicks; "Not kept on this phone" when the phone can't keep a copy of values entered; an Export from "Still opening" that times out is named `-not-saved`, marked `storeTimedOut`, and gets no check badge. |
+| 2026-11-02 | Direction, not yet designed: the ethereal rose motif, generated per Concert from its instruments, is the logo and the ground of the Cards, and stays out of the logging surfaces. "Prefer a mark to a sentence." Rose is allowed in the motif as well as charts. |
 | 2026-11-03 | After the round-4 screenshots, the Maintainer's answer: a "Not deleted" row offers Try again and Dismiss, not Export; Dismiss keeps the record after all, taking only the delete entry and leaving the store as it is. |
