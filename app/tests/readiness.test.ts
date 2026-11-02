@@ -146,4 +146,34 @@ describe('first-launch readiness', () => {
     await vi.advanceTimersByTimeAsync(STALL_MS);
     expect(tracker.get()).toEqual({ state: 'unavailable' });
   });
+
+  it('A7: a Try again whose repair hangs stops again after 15 s, with Try again', async () => {
+    const { tracker, repair } = setup(null);
+    repair.mockImplementation(() => new Promise<undefined>(() => undefined));
+    await tracker.start();
+    await vi.advanceTimersByTimeAsync(STALL_MS);
+    expect(tracker.get().state).toBe('stopped');
+
+    void tracker.retry();
+    await settle();
+    expect(tracker.get()).toEqual({ state: 'checking' });
+    await vi.advanceTimersByTimeAsync(STALL_MS);
+    expect(tracker.get()).toEqual({ state: 'stopped' });
+  });
+
+  it('A7: bytes arriving during Try again keep it going', async () => {
+    const { tracker, repair } = setup(null);
+    repair.mockImplementation(() => new Promise<undefined>(() => undefined));
+    await tracker.start();
+    await vi.advanceTimersByTimeAsync(STALL_MS);
+
+    void tracker.retry();
+    for (let second = 0; second < 30; second += 1) {
+      await vi.advanceTimersByTimeAsync(1000);
+      tracker.bytes();
+    }
+    expect(tracker.get()).toEqual({ state: 'checking' });
+    await vi.advanceTimersByTimeAsync(STALL_MS);
+    expect(tracker.get()).toEqual({ state: 'stopped' });
+  });
 });
