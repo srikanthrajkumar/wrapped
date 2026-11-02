@@ -1,8 +1,10 @@
 // "Ready to log offline" on first launch (eng review D4 and D8; design D10). Readiness is never
 // trusted from a stored flag: the page asks the service worker, which checks its precache for
-// every first-phase file of its build. While the worker installs it posts real progress; 15 s
-// with no progress asks again, and an incomplete answer then means the download stopped.
-// Framework-free, with the worker and timers injected, so tests/readiness.test.ts drives it.
+// every first-phase file of its build. While the worker installs it posts real progress, per
+// file and as bytes arrive; 15 s with neither asks again, and an incomplete answer then means the
+// download stopped. Try again asks the worker to fetch what its precache is missing. Without a
+// service worker there is no offline logging, and the rasika is told so and let in.
+// Framework-free, with the worker injected, so tests/readiness.test.ts drives it.
 
 import type { ReadyStatus } from './precache-phases';
 
@@ -10,7 +12,9 @@ export type Readiness =
   | { state: 'checking' }
   | { state: 'downloading'; cached: number; total: number }
   | { state: 'ready' }
-  | { state: 'stopped' };
+  | { state: 'stopped' }
+  /** No service worker in this browser (Firefox private mode): logging works, offline doesn't. */
+  | { state: 'unavailable' };
 
 export const STALL_MS = 15_000;
 
@@ -19,10 +23,11 @@ export interface ReadinessDeps {
   ask(): Promise<ReadyStatus | null>;
   /** Keep the last answer, for display only (`db.meta` `readyToLog`). */
   remember(status: ReadyStatus | null): Promise<void>;
-  /** Start the download again after it stopped. */
-  reinstall(): Promise<void>;
-  setTimer(run: () => void, ms: number): unknown;
-  clearTimer(handle: unknown): void;
+  /**
+   * Start the download again after it stopped: the worker fetches the first-phase files missing
+   * from its precache (an evicted file included), or installs again if there is no worker yet.
+   */
+  repair(): Promise<void>;
 }
 
 const complete = (status: ReadyStatus | null): boolean =>
@@ -30,7 +35,7 @@ const complete = (status: ReadyStatus | null): boolean =>
 
 export class ReadinessTracker {
   private current: Readiness = { state: 'checking' };
-  private timer: unknown = null;
+  private timer: ReturnType<typeof setTimeout> | null = null;
   private listeners = new Set<() => void>();
   /** Bumped on each check, so a late answer to an earlier one is ignored. */
   private round = 0;
@@ -55,7 +60,7 @@ export class ReadinessTracker {
 
   /** A first-phase file was cached by the installing worker. */
   progress(cached: number, total: number): void {
-    if (this.current.state === 'ready') return;
+    if (this.current.state === 'ready' || this.current.state === 'unavailable') return;
     this.set({ state: 'downloading', cached, total });
     if (total > 0 && cached === total) {
       // Everything is in; confirm with the worker, which may still be activating.
@@ -63,6 +68,18 @@ export class ReadinessTracker {
     } else {
       this.arm();
     }
+  }
+
+  /** Bytes of a first-phase file arrived: one slow file is still a download, not a stall. */
+  bytes(): void {
+    if (this.current.state === 'downloading') this.arm();
+  }
+
+  /** The browser has no service worker, or refused to register one. */
+  unavailable(): void {
+    this.round += 1;
+    this.disarm();
+    this.set({ state: 'unavailable' });
   }
 
   /** A different worker took control (an update, or the first install finishing): ask it. */
@@ -73,11 +90,12 @@ export class ReadinessTracker {
   /** "Try again" after the download stopped. */
   async retry(): Promise<void> {
     this.set({ state: 'checking' });
-    await this.deps.reinstall().catch(() => undefined);
+    await this.deps.repair().catch(() => undefined);
     await this.check({ stopIfIncomplete: false });
   }
 
   private async check({ stopIfIncomplete }: { stopIfIncomplete: boolean }): Promise<void> {
+    if (this.current.state === 'unavailable') return;
     const round = ++this.round;
     this.disarm();
     const status = await this.deps.ask().catch(() => null);
@@ -100,17 +118,17 @@ export class ReadinessTracker {
     }
   }
 
-  /** No progress for STALL_MS: ask again, and stop if still incomplete. */
+  /** No progress and no bytes for STALL_MS: ask again, and stop if still incomplete. */
   private arm() {
     this.disarm();
-    this.timer = this.deps.setTimer(() => {
+    this.timer = setTimeout(() => {
       this.timer = null;
       void this.check({ stopIfIncomplete: true });
     }, STALL_MS);
   }
 
   private disarm() {
-    if (this.timer !== null) this.deps.clearTimer(this.timer);
+    if (this.timer !== null) clearTimeout(this.timer);
     this.timer = null;
   }
 
