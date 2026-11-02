@@ -5,19 +5,10 @@
 
 import { expect, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { finishFirstLaunch, readMeta } from './helpers';
+import { failWritesOnDemand, finishFirstLaunch, readMeta, setFailingWrites } from './helpers';
 
 test('a failed save stays on screen as "Not saved", exports, and retries', async ({ page }) => {
-  await page.addInitScript(() => {
-    const flag = window as unknown as { failWrites?: boolean };
-    for (const name of ['put', 'add'] as const) {
-      const original = IDBObjectStore.prototype[name] as (...args: unknown[]) => IDBRequest;
-      IDBObjectStore.prototype[name] = function (this: IDBObjectStore, ...args: unknown[]) {
-        if (flag.failWrites) throw new DOMException('The disk is full', 'QuotaExceededError');
-        return original.apply(this, args);
-      };
-    }
-  });
+  await failWritesOnDemand(page);
   await page.goto('/');
   await finishFirstLaunch(page);
   await page.getByRole('button', { name: 'Log a Concert now' }).click();
@@ -27,9 +18,7 @@ test('a failed save stays on screen as "Not saved", exports, and retries', async
   await expect(tala).toHaveAccessibleName('Tala, unknown');
 
   // The phone stops storing anything.
-  await page.evaluate(() => {
-    (window as unknown as { failWrites: boolean }).failWrites = true;
-  });
+  await setFailingWrites(page, true);
   await tala.click();
   await page.getByRole('button', { name: 'Not applicable' }).click();
 
@@ -60,9 +49,7 @@ test('a failed save stays on screen as "Not saved", exports, and retries', async
   ]);
 
   // The phone can write again: Try again saves it, and the line goes.
-  await page.evaluate(() => {
-    (window as unknown as { failWrites: boolean }).failWrites = false;
-  });
+  await setFailingWrites(page, false);
   await page.getByRole('button', { name: 'Try again' }).click();
   await expect(page.getByText('Not saved on this phone.')).toHaveCount(0);
   await expect(tala).toHaveAccessibleName('Tala, not applicable');

@@ -33,6 +33,11 @@ export async function writeReceipt(
   return stored;
 }
 
+/** Read a receipt without taking it, inside the caller's transaction. */
+export async function peekReceipt(db: WrappedDB, id: string): Promise<DeletionReceipt | undefined> {
+  return (await db.meta.get(keyOf(id)))?.value as DeletionReceipt | undefined;
+}
+
 /**
  * Take a receipt for an Undo, inside the caller's transaction: it is returned and deleted only
  * when every record it names is still the tombstone it recorded. A receipt that is missing
@@ -44,7 +49,7 @@ export async function takeReceipt(
   id: string,
   kind: DeletionKind,
 ): Promise<DeletionReceipt | null> {
-  const receipt = (await db.meta.get(keyOf(id)))?.value as DeletionReceipt | undefined;
+  const receipt = await peekReceipt(db, id);
   if (!receipt || receipt.kind !== kind) return null;
   for (const record of receipt.records) {
     const row = (await db.table(record.table).get(record.id)) as

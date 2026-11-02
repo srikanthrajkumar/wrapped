@@ -5,8 +5,8 @@
 // choice, never a typo's side effect.
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useState, type ReactNode } from 'react';
-import type { Role } from '../../model';
+import { useRef, useState, type ReactNode } from 'react';
+import { newId, ROLES, type Role } from '../../model';
 import {
   createArtist,
   createSabha,
@@ -16,8 +16,8 @@ import {
   usualRoles,
   type NameMatch,
 } from '../../store/people';
-import { ROLE_NAMES } from '../format';
-import { DockedSearch, FixedRow, type SearchRow } from './DockedSearch';
+import { Chip, DockedSearch, FixedRow, type SearchRow } from './DockedSearch';
+import { saveWith } from './feedback';
 import { SheetFrame } from './sheet-frame';
 
 type Kind = 'artist' | 'sabha';
@@ -41,30 +41,58 @@ export function NamePicker({
   const [query, setQuery] = useState('');
   const typed = query.trim();
   const noun = NOUN[kind];
-  const found = useLiveQuery(async () => {
-    const names = typed
-      ? await (kind === 'artist' ? findArtists : findSabhas)(typed)
-      : await recentNames(kind);
-    const roles: Map<string, Role> = kind === 'artist' ? await usualRoles() : new Map();
-    return { names, roles };
-  }, [kind, typed, open]);
+  // The names follow each keystroke; the usual Roles don't change while typing, so they are
+  // read once per opening, and neither is read while the picker is closed.
+  const names = useLiveQuery(
+    async () =>
+      !open
+        ? []
+        : typed
+          ? await (kind === 'artist' ? findArtists : findSabhas)(typed)
+          : await recentNames(kind),
+    [kind, typed, open],
+  );
+  const roles = useLiveQuery(
+    async (): Promise<Map<string, Role>> =>
+      open && kind === 'artist' ? await usualRoles() : new Map(),
+    [kind, open],
+  );
 
   const pick = (entry: NameMatch | { id: string; name: string }) => {
     setQuery('');
     onPick({ id: entry.id, name: entry.name });
   };
 
+  // One add at a time: a double tap must not create the name twice. Each add has its own id, so
+  // a failed one is listed on its own and its Try again creates the name once, then picks it.
+  const adding = useRef(false);
   const addNew = async () => {
-    const created = await (kind === 'artist' ? createArtist : createSabha)(typed);
-    pick(created);
+    if (adding.current || !typed) return;
+    adding.current = true;
+    const id = newId();
+    const name = typed;
+    const create = kind === 'artist' ? createArtist : createSabha;
+    try {
+      await saveWith(
+        { table: kind === 'artist' ? 'artists' : 'sabhas', id, field: '*' },
+        name,
+        () =>
+          create(name, { id }).then((created) => {
+            pick(created);
+            return created;
+          }),
+      );
+    } finally {
+      adding.current = false;
+    }
   };
 
-  const rows: SearchRow[] = (found?.names ?? []).map((name) => {
-    const role = found?.roles.get(name.id);
+  const rows: SearchRow[] = (names ?? []).map((name) => {
+    const role = roles?.get(name.id);
     return {
       key: name.id,
       title: name.name,
-      line: role ? ROLE_NAMES[role] : name.aliases.length > 0 ? name.aliases.join(', ') : null,
+      line: role ?? (name.aliases.length > 0 ? name.aliases.join(', ') : null),
       onPick: () => pick(name),
     };
   });
@@ -101,43 +129,34 @@ export function NamePicker({
   );
 }
 
-/** The Role chips after an Artist is picked; skippable, so the Role can stay blank. */
-export function RoleChips({ onRole }: { onRole(role: Role | null): void }) {
-  const roles: (Role | null)[] = [
-    'vocal',
-    'violin',
-    'veena',
-    'flute',
-    'mridangam',
-    'khanjira',
-    'ghatam',
-    'morsing',
-    'other',
-    'presenter',
-  ];
+/**
+ * The Role chips. The current Role shows pressed, and tapping it again clears it. Right after an
+ * Artist is added (`skippable`), "Not sure" moves on with the Role left blank.
+ */
+export function RoleChips({
+  value = null,
+  skippable = false,
+  onRole,
+}: {
+  value?: Role | null;
+  skippable?: boolean;
+  onRole(role: Role | null): void;
+}) {
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sub text-muted-foreground">Role</p>
       <div role="group" aria-label="Role" className="flex flex-wrap gap-2">
-        {roles.map((role) => (
-          <FixedChip key={role} onClick={() => onRole(role)}>
-            {ROLE_NAMES[role!]}
-          </FixedChip>
+        {ROLES.map((role) => (
+          <Chip
+            key={role}
+            pressed={value === role}
+            onClick={() => onRole(value === role ? null : role)}
+          >
+            {role}
+          </Chip>
         ))}
-        <FixedChip onClick={() => onRole(null)}>Not sure</FixedChip>
+        {skippable && <Chip onClick={() => onRole(null)}>Not sure</Chip>}
       </div>
     </div>
   );
 }
-
-function FixedChip(props: React.ComponentProps<'button'>) {
-  return (
-    <button
-      type="button"
-      className="inline-flex min-h-12 items-center rounded-full border border-border px-4 py-2 text-sub"
-      {...props}
-    />
-  );
-}
-
-export { FixedRow };

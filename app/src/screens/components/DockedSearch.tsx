@@ -100,8 +100,9 @@ export function DockedSearch({
                   className={cn(
                     'flex min-h-[60px] w-full flex-col items-stretch justify-center rounded-xl px-3 py-2 text-left',
                     // The best match sits on surface; in light, its border does that job.
+                    // Inside a sheet, itself on surface, it rises to surface-raised.
                     i === drawn.length - 1 &&
-                      'border border-border bg-card dark:border-transparent',
+                      'border border-border bg-card in-data-[slot=sheet-content]:bg-secondary dark:border-transparent',
                   )}
                 >
                   <span className="flex flex-wrap items-center gap-2 font-semibold">

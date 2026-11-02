@@ -4,6 +4,8 @@
 // "N/A" (Not applicable). Every state is two taps from the grid. A value picked from the catalog
 // that differs from the Composition's becomes an Override in the store; the sheet then shows
 // "catalog: Todi" with "Use catalog value". "Use what I typed" keeps the text as Unresolved.
+// The Nadai uses the same pattern, its five nadais as chips and as results (constitution: "?"
+// and free text on every Detail).
 
 import { useMemo, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
@@ -17,12 +19,12 @@ import {
   unresolvedValue,
   type DetailValue,
 } from '../../model';
-import { detailText, NADAI_NAMES } from '../format';
+import { detailText } from '../format';
 import { MESSAGES } from '../messages';
 import { Chip, DockedSearch, FixedRow, type SearchRow } from './DockedSearch';
 import { SheetFrame } from './sheet-frame';
 
-export type DetailField = DetailKind | 'nadai';
+export type DetailField = DetailKind;
 
 /** Can be marked not sure: a value with a name (data-model.md, "Detail value"). */
 const guessable = (value: DetailValue) =>
@@ -64,16 +66,23 @@ export function StateChips({
   );
 }
 
-/** A Nadai, from chips: none picked means the Tala's usual nadai (Not applicable). */
+/**
+ * A Nadai, from chips: none picked means the Tala's usual nadai (Not applicable). With
+ * `allowUnknown`, "?" leads; with `onOther`, "Other…" opens the Nadai's own Detail input, for
+ * "Not sure" and free text.
+ */
 export function NadaiChips({
   value,
   onChange,
   allowUnknown = false,
+  onOther,
 }: {
   value: DetailValue;
   onChange(value: DetailValue): void;
   allowUnknown?: boolean;
+  onOther?: () => void;
 }) {
+  const typed = value.state === 'unresolved';
   return (
     <div role="group" aria-label="Nadai" className="flex flex-wrap gap-2">
       {allowUnknown && (
@@ -91,14 +100,18 @@ export function NadaiChips({
           <Chip
             key={nadai}
             pressed={picked}
-            onClick={() =>
-              onChange(picked ? notApplicableValue() : catalogValue(nadai, NADAI_NAMES[nadai]))
-            }
+            onClick={() => onChange(picked ? notApplicableValue() : catalogValue(nadai, nadai))}
           >
-            {NADAI_NAMES[nadai]}
+            {nadai}
+            {picked && value.guess && ' (?)'}
           </Chip>
         );
       })}
+      {onOther && (
+        <Chip pressed={typed} onClick={onOther}>
+          {typed ? `${value.text}${value.guess ? ' (?)' : ''}` : 'Other…'}
+        </Chip>
+      )}
     </div>
   );
 }
@@ -128,10 +141,7 @@ export function DetailInput({
   const catalogState = useCatalog();
   const catalog = catalogState.status === 'ready' ? catalogState.catalog : null;
   const [query, setQuery] = useState('');
-  const options = useMemo(
-    () => (field === 'nadai' ? [] : detailOptions(catalog, field)),
-    [catalog, field],
-  );
+  const options = useMemo(() => detailOptions(catalog, field), [catalog, field]);
   const typed = query.trim();
 
   const choose = (next: DetailValue) => {
@@ -140,23 +150,20 @@ export function DetailInput({
     onOpenChange(false);
   };
 
-  const results: SearchRow[] =
-    field === 'nadai'
-      ? []
-      : searchDetail(options, query).map((option) => ({
-          key: option.key,
-          title: option.display,
-          onPick: () => choose(catalogValue(option.key, option.display)),
-        }));
+  const matches = useMemo(() => searchDetail(options, query), [options, query]);
+  const results: SearchRow[] = matches.map((option) => ({
+    key: option.key,
+    title: option.display,
+    onPick: () => choose(catalogValue(option.key, option.display)),
+  }));
 
-  const note =
-    !typed || field === 'nadai'
-      ? null
-      : catalogState.status === 'missing' && field !== 'form'
-        ? MESSAGES.search.noCatalog
-        : results.length === 0
-          ? MESSAGES.search.noMatch
-          : null;
+  const note = !typed
+    ? null
+    : catalogState.status === 'missing' && field !== 'form' && field !== 'nadai'
+      ? MESSAGES.search.noCatalog
+      : results.length === 0
+        ? MESSAGES.search.noMatch
+        : null;
 
   const current = detailText(value);
   return (
@@ -168,7 +175,7 @@ export function DetailInput({
       }}
       title={title}
       description={current ? `Now: ${value.guess ? `${current} (?)` : current}` : undefined}
-      tall={field !== 'nadai'}
+      tall
     >
       {value.state === 'override' && suggested && (
         <div className="flex flex-wrap items-center gap-x-2 pb-2 text-sub text-muted-foreground">
@@ -178,33 +185,27 @@ export function DetailInput({
           </Button>
         </div>
       )}
-      {field === 'nadai' ? (
-        <div className="flex flex-col gap-3 pb-2">
-          <NadaiChips value={value} allowUnknown onChange={choose} />
-          {extra}
-        </div>
-      ) : (
-        <DockedSearch
-          label={`Search ${title}`}
-          placeholder={`${title}…`}
-          query={query}
-          onQueryChange={setQuery}
-          note={note}
-          onSubmit={() => results[0]?.onPick()}
-          fixed={
-            <div className="flex flex-col gap-3">
-              <StateChips value={value} onChange={choose} />
-              {extra}
-              {typed && (
-                <FixedRow onClick={() => choose(unresolvedValue(typed))}>
-                  Use what I typed: “{typed}”
-                </FixedRow>
-              )}
-            </div>
-          }
-          results={results}
-        />
-      )}
+      <DockedSearch
+        label={`Search ${title}`}
+        placeholder={`${title}…`}
+        query={query}
+        onQueryChange={setQuery}
+        note={note}
+        onSubmit={() => results[0]?.onPick()}
+        fixed={
+          <div className="flex flex-col gap-3">
+            <StateChips value={value} onChange={choose} />
+            {field === 'nadai' && <NadaiChips value={value} onChange={choose} />}
+            {extra}
+            {typed && (
+              <FixedRow onClick={() => choose(unresolvedValue(typed))}>
+                Use what I typed: “{typed}”
+              </FixedRow>
+            )}
+          </div>
+        }
+        results={results}
+      />
     </SheetFrame>
   );
 }

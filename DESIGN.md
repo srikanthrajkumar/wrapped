@@ -311,9 +311,11 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   - "Use what I typed" gives Unresolved, as in the Item search.
   - A ragamalika's Ragas show as an ordered row of chips with "+ Raga"; each chip opens the
     same sheet, and the row has its own move controls.
-  - Tala opens its search, then a row of Nadai chips. With none picked, the Nadai stays Not
-    applicable, which means the Tala's usual nadai (the store's default) and shows nothing
-    extra: "Adi", not "Adi (chatusra nadai)".
+  - Tala opens its search, then a row of Nadai chips: "?", the five nadais and "Other…".
+    With none picked, the Nadai stays Not applicable, which means the Tala's usual nadai (the
+    store's default) and shows nothing extra: "Adi", not "Adi (chatusra nadai)". "Other…"
+    opens the Nadai's own sheet, the same pattern as every Detail ("?", "Not sure", "N/A",
+    free text), as the Laya vinyasam's Nadai does (2026-11-02).
   - The Laya vinyasam and improvised folds use the same sheet for each Detail inside them.
 - **Artist and Sabha pickers** (decided 2026-11-01; T041, FR-004, FR-005): the same docked
   search. Before typing it lists the rasika's recent Sabhas or Artists; as they type, matches
@@ -324,6 +326,8 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   - After an Artist is picked, a row of Role chips appears (vocal, violin, veena, flute,
     mridangam, khanjira, ghatam, morsing, other, presenter, "Not sure"). It can be skipped;
     the Role then stays blank.
+  - Tapping an Artist on Stage shows the same chips with the current Role pressed; tapping it
+    again clears the Role. "Not sure" appears only right after adding (2026-11-02).
   - The new Appearance joins Stage at the end of the billing order; billing order changes
     with the same "Edit order" pattern as the running order.
 - **Search box:** 48px, surface-raised fill, a 2px `ring` inset while focused. It is the one
@@ -443,10 +447,13 @@ voice: plain, short, the glossary's words, no exclamation marks, never blaming t
 | Any screen | Session ended (FR-050) | "Sign in again to keep backing up. Logging still works." | Sign in |
 | Any screen | Another phone writes (FR-022) | "Your season is now being logged on another phone. Changes here are kept." | Details |
 | Item or Event | Save failed | "Not saved on this phone." | Try again · Export |
+| Any screen, top | Saves failed with no field on screen (a new Concert, Start logging, an added Artist, a move); after a relaunch, Export only | "2 changes not saved on this phone." | Try again · Export |
+| Any screen, top | The Export file can't be made at all | "The Export couldn't be made on this phone." | Try again |
 | Home | New catalog (FR-038) | "An updated song catalog is ready." | Update · Later |
 | Item search | No match | "No match in the catalog" | |
 | Item search | No catalog | "Catalog not on this phone yet. What you type is kept and can be matched later in Tidy." | |
 | Undo bar | After a delete | "Item 5 deleted" (or "Artist removed", "Concert deleted") | Undo |
+| Undo bar | The Undo itself failed to save | "Concert deleted. Not saved on this phone." | Try again |
 | Screen reader | After a delete | "Item 5 deleted. Undo available." | |
 | Screen reader | Search pauses | "5 results" / "No matches" | |
 
@@ -479,3 +486,4 @@ in the phase that builds it):
 | 2026-11-01 | Preview of the Event screen and Item editor approved. |
 | 2026-11-01 | Tokens: 17px body on a 13–32 scale, 4px spacing, 48px targets and 56px main actions, the motion rules. |
 | 2026-11-01 | Design review (`/plan-design-review`, D3 to D29): Now and Done, the Event and Item editor bars, top bars, first launch, states, save failure, Undo, rows not cards, softened dark text, larger text, focus, Detail input, pickers, Colour sheet, Messages. The record is in `specs/001-season-logger/reviews.md`. |
+| 2026-11-02 | Review of PR #5, the Maintainer's answers: "2 changes not saved on this phone." at the top of any screen for failures no field shows; "The Export couldn't be made on this phone."; "Offline logging isn't available in this browser. You can still log while you have signal." with Start; a failed Undo keeps its bar ("Concert deleted. Not saved on this phone." with Try again); failed values also copied to localStorage for Export after a relaunch; at 150% text and up, the Item search's form chips scroll in one row. |

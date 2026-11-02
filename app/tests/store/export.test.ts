@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { createEvent, deleteEvent } from '../../src/store/events';
-import { buildExport, localTimestamp } from '../../src/store/export';
+import { buildExport, exportOrRescue, localTimestamp } from '../../src/store/export';
 import { addItem, removeItem } from '../../src/store/items';
 import { addAppearance, createArtist, createSabha } from '../../src/store/people';
 import { freshDb } from '../helpers';
@@ -45,5 +45,35 @@ describe('season export (required)', () => {
     expect(localTimestamp(new Date(2026, 11, 14, 21, 30))).toMatch(
       /^2026-12-14T21:30:00[+-]\d{2}:\d{2}$/,
     );
+  });
+
+  it('still writes the unsaved values, marked, when the store cannot be read at all', async () => {
+    const db = freshDb();
+    await createEvent({ kind: 'concert' }, { db });
+    const notSaved = [
+      { table: 'items', id: 'i1', field: 'tala', value: 'Adi', enteredAt: '2026-12-14T21:30Z' },
+    ];
+    // As after WebKit's "Connection to Indexed Database server lost".
+    db.close();
+
+    const file = await exportOrRescue({ db, appVersion: 'test', notSaved });
+
+    expect(file).toMatchObject({
+      format: 1,
+      appVersion: 'test',
+      events: [],
+      items: [],
+      unsyncedOps: null,
+      notSaved,
+      storeUnreadable: { error: expect.any(String) },
+    });
+  });
+
+  it('reads the store as usual when it can', async () => {
+    const db = freshDb();
+    await createEvent({ kind: 'concert' }, { db });
+    const file = await exportOrRescue({ db, appVersion: 'test' });
+    expect(file.events).toHaveLength(1);
+    expect(file).not.toHaveProperty('storeUnreadable');
   });
 });

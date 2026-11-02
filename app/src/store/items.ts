@@ -16,11 +16,12 @@ import {
   type Improvised,
   type Item,
   type LayaVinyasam,
+  type RasikaRows,
 } from '../model';
 import { db as defaultDb, type WrappedDB } from './db';
 import { noteLogging } from './logging-note';
 import { getLive, newTimestamps, remove, save, type WriteOptions } from './mutate';
-import { takeReceipt, writeReceipt, type DeletionReceipt } from './receipts';
+import { peekReceipt, takeReceipt, writeReceipt, type DeletionReceipt } from './receipts';
 import { check, isRtp, itemProblems, RTP_FORM, RuleError } from './rules';
 
 /** The single-valued Details of an Item. Ragas are a list and have their own action. */
@@ -52,8 +53,9 @@ type ItemStart = Partial<
 
 /**
  * Insert a new Item last in its Event's running order, in one transaction with its outbox
- * entry and the logging note. With `id`, an Item that already has it is returned unchanged, so
- * a create replayed after a reopen never adds a second one.
+ * entry and the logging note. With `id`, a live Item of the same Event that already has it is
+ * returned unchanged, so a create replayed after a reopen never adds a second one; an id taken
+ * by a tombstone or another Event's Item is refused.
  */
 async function insertItem(
   eventId: string,
@@ -63,7 +65,10 @@ async function insertItem(
 ): Promise<Item> {
   return db.transaction('rw', [db.events, db.items, db.outbox, db.meta], async () => {
     const existing = await db.items.get(id);
-    if (existing) return existing;
+    if (existing) {
+      if (existing.deletedAt === null && existing.eventId === eventId) return existing;
+      throw new RuleError([`item id ${id} is already used`]);
+    }
     await getLive('events', eventId, { db });
     const items = await liveItems(eventId, db);
     const item: Item = {
@@ -143,17 +148,7 @@ export function pickComposition(
   song: Song,
   { db = defaultDb }: WriteOptions = {},
 ): Promise<Item> {
-  return changeItem(
-    id,
-    (item) => ({
-      ...item,
-      ...suggestedDetails(song),
-      compositionKey: song.kritiId,
-      title: song.title,
-      nadai: isRtp(item) ? notApplicableValue() : item.nadai,
-    }),
-    db,
-  );
+  return repickItem(id, { kind: 'song', song }, { db });
 }
 
 function suggestionsFor(item: Item, catalog: Catalog | undefined): Partial<Suggested> {
@@ -258,18 +253,23 @@ export async function moveItem(
     const order = items.filter((item) => item.id !== id);
     order.splice(index, 0, moving);
     await noteLogging(db, moving.eventId);
-    return renumber(order, db);
+    return renumber('items', order, db);
   });
 }
 
-/** Number `order` 1..n, saving only the Items whose place changed, inside the caller's transaction. */
-async function renumber(order: Item[], db: WrappedDB): Promise<Item[]> {
-  const result: Item[] = [];
-  for (const [i, item] of order.entries()) {
+/**
+ * Number `order` 1..n, saving only the records whose place changed, inside the caller's
+ * transaction. Shared by the running order and Stage's billing order.
+ */
+export async function renumber<T extends 'items' | 'appearances'>(
+  table: T,
+  order: RasikaRows[T][],
+  db: WrappedDB,
+): Promise<RasikaRows[T][]> {
+  const result: RasikaRows[T][] = [];
+  for (const [i, row] of order.entries()) {
     const position = i + 1;
-    result.push(
-      item.position === position ? item : await save('items', { ...item, position }, { db }),
-    );
+    result.push(row.position === position ? row : await save(table, { ...row, position }, { db }));
   }
   return result;
 }
@@ -319,8 +319,7 @@ export async function restoreItem(
   { db = defaultDb, catalog }: RestoreOptions = {},
 ): Promise<Item | null> {
   return db.transaction('rw', [db.events, db.items, db.outbox, db.meta], async () => {
-    const pending = (await db.meta.get(`receipt:${receiptId}`))?.value as
-      DeletionReceipt | undefined;
+    const pending = await peekReceipt(db, receiptId);
     const event = pending && (await db.events.get(pending.eventId));
     if (!event || event.deletedAt !== null) return null;
     const receipt = await takeReceipt(db, receiptId, 'item');
@@ -335,6 +334,7 @@ export async function restoreItem(
     const restored = await save('items', { ...item, position: index + 1 }, { db, restore: true });
     await noteLogging(db, item.eventId);
     const renumbered = await renumber(
+      'items',
       order.map((other) => (other.id === restored.id ? restored : other)),
       db,
     );
@@ -377,7 +377,7 @@ function startFrom(pick: ItemPick): ItemStart {
       };
     case 'raga':
       // An alapana before the song is known: only its Raga, the Composition picked later.
-      return { ragas: [catalogValue(pick.raga.key, pick.raga.display)] };
+      return { title: '', ragas: [catalogValue(pick.raga.key, pick.raga.display)] };
     case 'form': {
       const display = formDisplay(pick.form);
       if (pick.form === RTP_FORM) {
@@ -405,6 +405,83 @@ function startFrom(pick: ItemPick): ItemStart {
       return { title: text };
     }
   }
+}
+
+/** Whether `value` is what the catalog suggested: the same key, as the song filled it in. */
+const sameAsSuggested = (value: DetailValue, suggested: DetailValue | undefined) =>
+  suggested !== undefined &&
+  value.state === suggested.state &&
+  value.key === suggested.key &&
+  !value.guess;
+
+/**
+ * The Item without its Composition: the Details the old song filled in go back to "?", and
+ * whatever the rasika changed from them is kept (an Override, kept as their own value). Without
+ * the catalog, a value in the `catalog` state is taken as the song's.
+ */
+function leaveComposition(item: Item, catalog: Catalog | undefined): Item {
+  if (item.compositionKey === null) return item;
+  const song = catalog?.songByKritiId.get(item.compositionKey);
+  const suggested: Partial<Suggested> = song ? suggestedDetails(song) : {};
+  const fromSong = (value: DetailValue, from: DetailValue | undefined) =>
+    song ? sameAsSuggested(value, from) : value.state === 'catalog';
+  const settle = (value: DetailValue, from: DetailValue | undefined): DetailValue =>
+    fromSong(value, from)
+      ? unknownValue()
+      : value.state === 'override'
+        ? { ...value, state: 'catalog' }
+        : value;
+  return {
+    ...item,
+    compositionKey: null,
+    form: settle(item.form, suggested.form),
+    ragas: item.ragas
+      .map((raga, i) => settle(raga, suggested.ragas?.[i]))
+      .filter((raga) => raga.state !== 'unknown'),
+    tala: settle(item.tala, suggested.tala),
+    composer: settle(item.composer, suggested.composer),
+    language: settle(item.language, suggested.language),
+    subject: settle(item.subject, suggested.subject),
+  };
+}
+
+/**
+ * Change an Item's pick from the editor's title, in one transaction with the logging note: a
+ * song fills in its Details as `pickComposition` does; a Raga, a special form, typed text or
+ * "?" leaves the Composition (its Details go back to "?") and starts from the pick as a new
+ * Item would. The Nadai, Laya vinyasam, improvised Details and note are the rasika's and stay;
+ * an RTP gets "?" for its first Raga and Nadai where it has none.
+ */
+export function repickItem(
+  id: string,
+  pick: ItemPick,
+  { db = defaultDb, catalog }: DetailOptions = {},
+): Promise<Item> {
+  const start = startFrom(pick);
+  return changeItem(
+    id,
+    (item) => {
+      if (pick.kind === 'song') {
+        return { ...item, ...start, nadai: isRtp(item) ? notApplicableValue() : item.nadai };
+      }
+      const left = leaveComposition(item, catalog);
+      const next: Item = { ...left, ...start };
+      if (pick.kind !== 'form') return next;
+      if (pick.form === RTP_FORM) {
+        return {
+          ...next,
+          ragas: left.ragas.length > 0 ? left.ragas : [unknownValue()],
+          nadai: left.nadai.state === 'na' ? unknownValue() : left.nadai,
+          composer: left.composer.state === 'unknown' ? notApplicableValue() : left.composer,
+        };
+      }
+      // Another form: an RTP's own Nadai default goes with it.
+      return isRtp(item) && next.nadai.state === 'unknown'
+        ? { ...next, nadai: notApplicableValue() }
+        : next;
+    },
+    db,
+  );
 }
 
 /**
@@ -438,22 +515,38 @@ export interface ItemDraft {
 
 const draftKey = (eventId: string) => `itemDraft:${eventId}`;
 
-/** Keep the typed text, so it survives the phone locking or the app being closed. */
+/**
+ * Keep the typed text, so it survives the phone locking or the app being closed. A draft whose
+ * id an Item already has was consumed by its pick and is never written back (a page-hide that
+ * fires after the pick committed).
+ */
 export async function saveItemDraft(
   draft: Omit<ItemDraft, 'at'>,
   { db = defaultDb }: WriteOptions = {},
 ): Promise<void> {
-  await db.meta.put({
-    key: draftKey(draft.eventId),
-    value: { ...draft, at: new Date().toISOString() },
+  await db.transaction('rw', [db.items, db.meta], async () => {
+    if (await db.items.get(draft.id)) return;
+    await db.meta.put({
+      key: draftKey(draft.eventId),
+      value: { ...draft, at: new Date().toISOString() },
+    });
   });
 }
 
+/** The stored draft; one whose id an Item already has is discarded, never reused. */
 export async function readItemDraft(
   eventId: string,
   { db = defaultDb }: WriteOptions = {},
 ): Promise<ItemDraft | null> {
-  return ((await db.meta.get(draftKey(eventId)))?.value as ItemDraft | undefined) ?? null;
+  return db.transaction('rw', [db.items, db.meta], async () => {
+    const draft = (await db.meta.get(draftKey(eventId)))?.value as ItemDraft | undefined;
+    if (!draft) return null;
+    if (await db.items.get(draft.id)) {
+      await db.meta.delete(draftKey(eventId));
+      return null;
+    }
+    return draft;
+  });
 }
 
 /** Backing out of a new Item discards what was typed. */

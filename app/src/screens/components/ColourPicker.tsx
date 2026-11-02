@@ -5,10 +5,11 @@
 // always carry a 2px ring border, so they stand off the sheet in both themes.
 
 import { IconCheck } from '@tabler/icons-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { COLOURS, type Colour } from '../../model';
+import { useTextScale } from '@/hooks/use-text-scale';
+import type { Colour } from '../../model';
 import { SheetFrame } from './sheet-frame';
 
 /** The swatch values (DESIGN.md, "Outfit colours"): data a rasika picks, not theme colours. */
@@ -48,18 +49,6 @@ const EDGED: readonly Colour[] = ['black', 'white', 'grey'];
 const LIGHT: readonly Colour[] = ['white', 'yellow', 'beige', 'pink', 'grey', 'orange'];
 
 export const colourName = (colour: Colour) => colour[0]!.toUpperCase() + colour.slice(1);
-
-/** The phone's text size against the default, for layouts that change at large sizes. */
-export function useTextScale(): number {
-  const read = () => parseFloat(getComputedStyle(document.documentElement).fontSize) / 16 || 1;
-  const [scale, setScale] = useState(read);
-  useEffect(() => {
-    const update = () => setScale(read());
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
-  }, []);
-  return scale;
-}
 
 /** A small swatch, as Stage shows an Appearance's Colours. */
 export function SwatchDot({ colour }: { colour: Colour | 'unknown' }) {
@@ -221,5 +210,3 @@ export function ColourPicker({
     </SheetFrame>
   );
 }
-
-export { COLOURS };

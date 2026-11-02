@@ -32,6 +32,14 @@ Built entirely from the phone store, then handed to the share sheet or saved.
   record it belongs to (`table`, `id`, `field`, `value`, `enteredAt`), read from the screen
   without writing to the database. Every other array still comes from the store, so the file is
   the stored season plus what failed to save, clearly separated.
+- `storeUnreadable` (optional; review of PR #5, 2026-11-02): present only when the phone store
+  itself could not be read (the database closed or lost, as WebKit's "Connection to Indexed
+  Database server lost"). It holds `{ "error": "<name>: <message>" }`; every record array is
+  then empty, `catalogVersion` and `unsyncedOps` are `null`, and `notSaved` still carries the
+  values the screen held, so they leave the phone even when the store can't. A rasika who sees
+  this marker has not lost the stored season: it is still on the phone, unread.
+- After a relaunch, `notSaved` can also hold values copied to `localStorage`
+  (`wrapped.notSaved`) when they failed, so a reload or iOS ending the page doesn't lose them.
 
 Importing an export is out of scope this season (YAGNI). The format keeps every field an import
 would need.

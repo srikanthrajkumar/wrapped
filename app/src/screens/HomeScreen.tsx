@@ -15,11 +15,13 @@ import {
   useUnsyncedCount,
   type EventSummary,
 } from '../store/queries';
-import { saveWith } from './components/feedback';
+import { newId } from '../model';
+import { saveWith, useSaveFeedback } from './components/feedback';
 import { BottomDock, useNow } from './components/layout';
 import { UndoBar } from './components/UndoBar';
 import { dayText, eventLine, itemCount, nowTime, timeText } from './format';
 import { MESSAGES } from './messages';
+import { offersUpdate } from './update-offer';
 
 // "Later" hides the catalog row until the next launch (design D29): kept for this page's life.
 let updateLater = false;
@@ -34,6 +36,7 @@ export function HomeScreen() {
   const update = useUpdate();
   const [later, setLater] = useState(updateLater);
   const [, navigate] = useLocation();
+  const feedback = useSaveFeedback();
 
   if (summaries === undefined || notes === undefined) return null;
 
@@ -63,14 +66,29 @@ export function HomeScreen() {
         (b.event.startTime ?? '').localeCompare(a.event.startTime ?? ''),
     );
 
+  // Each attempt has its own id: a failure is listed on its own, and its Try again (from the
+  // season-wide line) never makes a second Concert.
   const logNow = async () => {
-    const event = await saveWith({ table: 'events', id: 'new', field: '*' }, 'concert', () =>
-      createEvent({ kind: 'concert', date: today(), startTime: nowTime() }),
+    const id = newId();
+    const event = await saveWith({ table: 'events', id, field: '*' }, 'concert', () =>
+      createEvent({ kind: 'concert', date: today(), startTime: nowTime() }, { id }),
     );
     if (event) navigate(`/event/${event.id}`);
   };
 
-  const showUpdate = update.available && !later && !logging;
+  const startLogging = async (id: string) => {
+    const event = await saveWith({ table: 'events', id, field: 'status' }, 'attended', () =>
+      setStatus(id, 'attended'),
+    );
+    if (event) navigate(`/event/${id}`);
+  };
+
+  const showUpdate = offersUpdate({
+    available: update.available,
+    later,
+    logging,
+    unsaved: feedback.hasFailures(),
+  });
 
   return (
     <>
@@ -115,11 +133,7 @@ export function HomeScreen() {
               <Button
                 size="lg"
                 className="mt-3 w-full"
-                onClick={() =>
-                  void setStatus(holder.event.id, 'attended').then(() =>
-                    navigate(`/event/${holder.event.id}`),
-                  )
-                }
+                onClick={() => void startLogging(holder.event.id)}
               >
                 Start logging
               </Button>

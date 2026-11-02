@@ -47,11 +47,14 @@ export type EventChanges = Partial<
  * Schedule starts Planned. An Attended Event is `touched` from the start, so the Schedule never
  * changes it (FR-027).
  */
-export async function createEvent(input: NewEvent, options: WriteOptions = {}): Promise<Event> {
+export async function createEvent(
+  input: NewEvent,
+  { db = defaultDb, id = newId() }: WriteOptions & { id?: string } = {},
+): Promise<Event> {
   const source = input.source ?? 'spot';
   const status: EventStatus = source === 'spot' ? 'attended' : 'planned';
   const event: Event = {
-    id: newId(),
+    id,
     kind: input.kind,
     date: input.date ?? today(),
     startTime: input.startTime ?? null,
@@ -68,7 +71,12 @@ export async function createEvent(input: NewEvent, options: WriteOptions = {}): 
     ...newTimestamps(),
   };
   check(eventProblems(event));
-  return save('events', event, options);
+  // With `id` (one per attempt), a create retried after a failure never makes a second Event.
+  return db.transaction('rw', [db.events, db.outbox], async () => {
+    const existing = await db.events.get(id);
+    if (existing) return existing;
+    return save('events', event, { db });
+  });
 }
 
 /** Edit an Event's fields. Any edit marks it `touched`, so Schedule updates stop (FR-027). */

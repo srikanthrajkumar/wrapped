@@ -19,7 +19,8 @@ export interface SeasonExport {
   exportedAt: string;
   appVersion: string;
   catalogVersion: string | null;
-  unsyncedOps: number;
+  /** Null only when the store could not be read (`storeUnreadable`). */
+  unsyncedOps: number | null;
   events: unknown[];
   appearances: unknown[];
   items: unknown[];
@@ -27,6 +28,8 @@ export interface SeasonExport {
   sabhas: unknown[];
   links: unknown[];
   notSaved?: NotSavedValue[];
+  /** Present only when the store itself could not be read: the arrays are then empty. */
+  storeUnreadable?: { error: string };
 }
 
 /** An ISO timestamp with the phone's own offset, as in "2026-12-14T21:30:00+05:30". */
@@ -75,4 +78,40 @@ export async function buildExport({
       ...(notSaved && notSaved.length > 0 ? { notSaved } : {}),
     }),
   );
+}
+
+/**
+ * The export to hand over whatever happens: the stored season when the store can be read, else
+ * (the database closed or lost, as WebKit's "Connection to Indexed Database server lost") a file
+ * with empty arrays, the unsaved values and a `storeUnreadable` marker, so values the phone
+ * could not store still leave it.
+ */
+export async function exportOrRescue(options: {
+  db?: WrappedDB;
+  appVersion: string;
+  notSaved?: NotSavedValue[];
+  now?: Date;
+}): Promise<SeasonExport> {
+  try {
+    return await buildExport(options);
+  } catch (error) {
+    const { appVersion, notSaved, now = new Date() } = options;
+    return {
+      format: 1,
+      exportedAt: localTimestamp(now),
+      appVersion,
+      catalogVersion: null,
+      unsyncedOps: null,
+      events: [],
+      appearances: [],
+      items: [],
+      artists: [],
+      sabhas: [],
+      links: [],
+      ...(notSaved && notSaved.length > 0 ? { notSaved } : {}),
+      storeUnreadable: {
+        error: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+      },
+    };
+  }
 }
