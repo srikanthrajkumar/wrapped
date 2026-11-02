@@ -18,11 +18,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useCatalog } from '../catalog/use-catalog';
-import { newId, type Appearance, type Colour, type Item, type Role } from '../model';
+import { newId, type Colour, type Item, type Role } from '../model';
 import { deleteEvent, editEvent, setStatus } from '../store/events';
-import { moveItem, removeItem } from '../store/items';
+import { moveItemBy, removeItem } from '../store/items';
 import { endLogging, isBeingLogged } from '../store/logging-note';
-import { addAppearance, editAppearance, moveAppearance, removeAppearance } from '../store/people';
+import { addAppearance, editAppearance, moveAppearanceBy, removeAppearance } from '../store/people';
 import {
   getEvent,
   useAppearances,
@@ -33,10 +33,11 @@ import {
   countRagas,
   useWhatItAdded,
   type ResolvedAppearance,
+  type ResolvedEvent,
 } from '../store/queries';
 import { ColourPicker, colourName, SwatchDot } from './components/ColourPicker';
 import { exportSeason } from './components/export-file';
-import { saveWith, Saved, useSaveFeedback } from './components/feedback';
+import { NotSavedLine, saveWith, Saved, useSaveFeedback } from './components/feedback';
 import { useAutosave } from './components/autosave';
 import {
   BottomDock,
@@ -59,24 +60,35 @@ function useEventOrNull(id: string) {
   return useLiveQuery(async () => (await getEvent(id)) ?? null, [id]);
 }
 
+const eventTarget = (eventId: string, field: string) => ({
+  table: 'events' as const,
+  id: eventId,
+  field,
+});
+
+const appearanceTarget = (id: string, field: string) => ({
+  table: 'appearances' as const,
+  id,
+  field,
+});
+
 export function EventScreen({ eventId }: { eventId: string }) {
   const event = useEventOrNull(eventId);
   const items = useItems(eventId);
   const appearances = useAppearances(eventId);
-  const sabha = useSabha(event?.sabhaId ?? null);
   const notes = useLoggingNotes();
   const receipts = useReceipts(eventId);
   const now = useNow();
   const [, navigate] = useLocation();
   const [order, setOrder] = useState<Order>(null);
-  const [factsOpen, setFactsOpen] = useState(false);
-  const [sabhaOpen, setSabhaOpen] = useState(false);
   const [artistOpen, setArtistOpen] = useState(false);
+  const [artistFailed, setArtistFailed] = useState<{
+    id: string;
+    entry: { id: string; name: string };
+  } | null>(null);
   const [rolesFor, setRolesFor] = useState<string | null>(null);
   const [coloursFor, setColoursFor] = useState<string | null>(null);
   const [appearanceFor, setAppearanceFor] = useState<string | null>(null);
-  const head = useFocusOnOpen<HTMLHeadingElement>(eventId);
-  const feedback = useSaveFeedback();
   const rows = useRef(new Map<string, HTMLElement>());
   const runningHead = useRef<HTMLHeadingElement>(null);
   const stageHead = useRef<HTMLHeadingElement>(null);
@@ -109,39 +121,45 @@ export function EventScreen({ eventId }: { eventId: string }) {
   const note = notes?.get(eventId);
   const logging = isBeingLogged(event, note, now);
   const firstArtist = appearances[0]?.artist?.name ?? null;
-  const target = (field: string) => ({ table: 'events' as const, id: eventId, field });
-  const appearanceTarget = (id: string, field: string) => ({
-    table: 'appearances' as const,
-    id,
-    field,
-  });
-  // A value waiting to save, or not saved, is shown as entered (design D15), so a second edit
-  // starts from it rather than from what the phone holds.
-  const shownAppearance = (appearance: ResolvedAppearance): ResolvedAppearance => ({
-    ...appearance,
-    role: feedback.shown(appearanceTarget(appearance.id, 'role'), appearance.role),
-    ...feedback.shown(appearanceTarget(appearance.id, 'colours'), {
-      colourPrimary: appearance.colourPrimary,
-      colourSecondary: appearance.colourSecondary,
-    }),
-  });
-  const editing = (id: string) => {
-    const found = appearances.find((a) => a.id === id);
-    return found ? shownAppearance(found) : null;
-  };
+  const target = (field: string) => eventTarget(eventId, field);
+  const appearanceById = (id: string | null) => appearances.find((a) => a.id === id);
 
+  // Deletes go through save feedback: a failed one says so, and nothing is thrown.
   const removeItemAt = async (item: Item, index: number) => {
-    const deleted = await removeItem(item.id);
-    if (deleted) offerUndo(deleted.receipt);
+    const deleted = await saveWith(
+      { table: 'items', id: item.id, field: 'deletedAt' },
+      'deleted',
+      () => removeItem(item.id),
+    );
+    if (!deleted) return;
+    offerUndo(deleted.receipt);
     setFocusAfter({ list: 'items', index });
   };
 
-  const removeFromStage = async (appearance: Appearance) => {
-    const index = appearances.findIndex((a) => a.id === appearance.id);
+  // The sheet closes only once the Artist is removed; a failure stays in it.
+  const removeFromStage = async (id: string) => {
+    const index = appearances.findIndex((a) => a.id === id);
+    const removed = await saveWith(appearanceTarget(id, 'deletedAt'), 'deleted', () =>
+      removeAppearance(id),
+    );
+    if (!removed) return;
     setAppearanceFor(null);
-    const removed = await removeAppearance(appearance.id);
-    if (removed) offerUndo(removed.receipt);
+    offerUndo(removed.receipt);
     setFocusAfter({ list: 'stage', index });
+  };
+
+  // Each add has its own id, so a second failure never hides the first; attempts for one Artist
+  // are one change, so a retry never adds the Artist twice. The Role chips follow only an add
+  // made in this sheet, never one replayed from the season-wide line.
+  const addArtist = async (entry: { id: string; name: string }, id = newId()) => {
+    const appearance = await saveWith(
+      appearanceTarget(id, '*'),
+      { eventId, artistId: entry.id, name: entry.name },
+      () => addAppearance(eventId, entry.id, {}, { id }),
+      { intent: `appearances:${eventId}:${entry.id}` },
+    );
+    setArtistFailed(appearance ? null : { id, entry });
+    if (appearance) setRolesFor(appearance.id);
   };
 
   return (
@@ -187,38 +205,7 @@ export function EventScreen({ eventId }: { eventId: string }) {
         }
       />
 
-      {/* The concert, as the first block (design D5). */}
-      <section className="pt-2 pb-6">
-        <h1 ref={head} tabIndex={-1} className="text-title font-semibold break-words">
-          {sabha ? (
-            <button
-              type="button"
-              className="inline-flex min-h-12 items-center rounded-xl text-left"
-              onClick={() => setFactsOpen(true)}
-            >
-              {sabha.name}
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="inline-flex min-h-12 items-center gap-2 rounded-xl text-left"
-              onClick={() => setSabhaOpen(true)}
-            >
-              <IconPlus aria-hidden className="size-5" />
-              Add Sabha
-            </button>
-          )}
-        </h1>
-        <Saved target={[target('date'), target('startTime'), target('sabhaId')]}>
-          <button
-            type="button"
-            onClick={() => setFactsOpen(true)}
-            className="min-h-12 py-1 text-left text-sub text-muted-foreground"
-          >
-            {eventLine(event, firstArtist)}
-          </button>
-        </Saved>
-      </section>
+      <ConcertBlock event={event} firstArtist={firstArtist} />
 
       {items.length > 0 && (
         <section aria-labelledby="running-order" className="pb-6">
@@ -238,10 +225,11 @@ export function EventScreen({ eventId }: { eventId: string }) {
             {items.map((item, index) => (
               <li key={item.id} className="border-b border-border">
                 <Saved
-                  target={[
-                    { table: 'items', id: item.id, field: '*' },
-                    { table: 'items', id: item.id, field: 'position' },
-                  ]}
+                  target={['*', 'position', 'deletedAt'].map((field) => ({
+                    table: 'items' as const,
+                    id: item.id,
+                    field,
+                  }))}
                 >
                   {order === 'items' ? (
                     // At large text the move and delete controls wrap under the title.
@@ -254,10 +242,12 @@ export function EventScreen({ eventId }: { eventId: string }) {
                         first={index === 0}
                         last={index === items.length - 1}
                         onMove={(by) =>
+                          // Moved from where it is when written, so a retry never replays a stale
+                          // place (B3).
                           void saveWith(
                             { table: 'items', id: item.id, field: 'position' },
                             index + by + 1,
-                            () => moveItem(item.id, index + by),
+                            () => moveItemBy(item.id, by),
                           )
                         }
                       />
@@ -319,51 +309,25 @@ export function EventScreen({ eventId }: { eventId: string }) {
           Stage
         </SectionHead>
         <ul className="border-t border-border">
-          {appearances.map(shownAppearance).map((appearance, index) => (
-            <li key={appearance.id} className="border-b border-border">
-              <Saved
-                target={['*', 'role', 'colours', 'position'].map((field) =>
-                  appearanceTarget(appearance.id, field),
-                )}
-              >
-                <div className="flex flex-wrap items-center justify-end gap-x-1">
-                  <button
-                    type="button"
-                    ref={(node) => {
-                      if (node) rows.current.set(appearance.id, node);
-                      else rows.current.delete(appearance.id);
-                    }}
-                    disabled={order === 'stage'}
-                    onClick={() => setAppearanceFor(appearance.id)}
-                    className="flex min-h-[60px] min-w-[min(100%,calc(9*var(--text-body)))] flex-1 flex-col items-stretch justify-center py-2 text-left"
-                  >
-                    <span className="break-words">{appearance.artist?.name ?? '?'}</span>
-                    {appearance.role && (
-                      <span className="text-sub text-muted-foreground">{appearance.role}</span>
-                    )}
-                  </button>
-                  {order === 'stage' ? (
-                    <MoveButtons
-                      name={appearance.artist?.name ?? 'Artist'}
-                      first={index === 0}
-                      last={index === appearances.length - 1}
-                      onMove={(by) =>
-                        void saveWith(
-                          appearanceTarget(appearance.id, 'position'),
-                          index + by + 1,
-                          () => moveAppearance(appearance.id, index + by),
-                        )
-                      }
-                    />
-                  ) : (
-                    <ColoursButton
-                      appearance={appearance}
-                      onOpen={() => setColoursFor(appearance.id)}
-                    />
-                  )}
-                </div>
-              </Saved>
-            </li>
+          {appearances.map((appearance, index) => (
+            <StageRow
+              key={appearance.id}
+              appearance={appearance}
+              first={index === 0}
+              last={index === appearances.length - 1}
+              ordering={order === 'stage'}
+              rowRef={(node) => {
+                if (node) rows.current.set(appearance.id, node);
+                else rows.current.delete(appearance.id);
+              }}
+              onOpen={() => setAppearanceFor(appearance.id)}
+              onColours={() => setColoursFor(appearance.id)}
+              onMove={(by) =>
+                void saveWith(appearanceTarget(appearance.id, 'position'), index + by + 1, () =>
+                  moveAppearanceBy(appearance.id, by),
+                )
+              }
+            />
           ))}
           {order === null && (
             <li className="border-b border-border">
@@ -380,7 +344,7 @@ export function EventScreen({ eventId }: { eventId: string }) {
         </ul>
       </section>
 
-      <NoteField eventId={eventId} stored={feedback.shown(target('note'), event.note)} />
+      <NoteField eventId={eventId} stored={event.note} />
 
       <BottomDock>
         <UndoBar />
@@ -412,51 +376,25 @@ export function EventScreen({ eventId }: { eventId: string }) {
         </div>
       </BottomDock>
 
-      <EventFacts
-        open={factsOpen}
-        onOpenChange={setFactsOpen}
-        date={event.date}
-        startTime={event.startTime}
-        sabhaName={sabha?.name ?? null}
-        onSabha={() => {
-          setFactsOpen(false);
-          setSabhaOpen(true);
-        }}
-        onChange={(changes) => {
-          const [field] = Object.keys(changes);
-          void saveWith(target(field!), Object.values(changes)[0], () =>
-            editEvent(eventId, changes),
-          );
-        }}
-      />
-
-      <NamePicker
-        kind="sabha"
-        open={sabhaOpen}
-        onOpenChange={setSabhaOpen}
-        onPick={(entry) => {
-          setSabhaOpen(false);
-          void saveWith(target('sabhaId'), entry.name, () =>
-            editEvent(eventId, { sabhaId: entry.id }),
-          );
-        }}
-      />
-
       <NamePicker
         kind="artist"
         open={artistOpen}
         onOpenChange={(open) => {
           setArtistOpen(open);
-          if (!open) setRolesFor(null);
+          if (!open) {
+            setRolesFor(null);
+            setArtistFailed(null);
+          }
         }}
-        onPick={(entry) => {
-          // Each add has its own id, so a second failure never hides the first, and a retry
-          // never adds the Artist twice.
-          const id = newId();
-          void saveWith(appearanceTarget(id, '*'), entry.name, () =>
-            addAppearance(eventId, entry.id, {}, { id }),
-          ).then((appearance) => appearance && setRolesFor(appearance.id));
-        }}
+        onPick={(entry) => void addArtist(entry)}
+        notice={
+          artistFailed && (
+            <NotSavedLine
+              targets={[appearanceTarget(artistFailed.id, '*')]}
+              onRetry={() => void addArtist(artistFailed.entry, artistFailed.id)}
+            />
+          )
+        }
         after={
           rolesFor && (
             <RoleChips
@@ -472,56 +410,253 @@ export function EventScreen({ eventId }: { eventId: string }) {
         }
       />
 
-      {coloursFor && editing(coloursFor) && (
-        <ColourPicker
-          open
-          onOpenChange={(open) => !open && setColoursFor(null)}
-          artistName={editing(coloursFor)!.artist?.name ?? 'Artist'}
-          primary={editing(coloursFor)!.colourPrimary}
-          secondary={editing(coloursFor)!.colourSecondary}
-          onChange={(colours) =>
-            void saveWith(appearanceTarget(coloursFor, 'colours'), colours, () =>
-              editAppearance(coloursFor, colours),
-            )
-          }
+      {coloursFor && appearanceById(coloursFor) && (
+        <ColoursSheet
+          appearance={appearanceById(coloursFor)!}
+          onClose={() => setColoursFor(null)}
         />
       )}
 
-      {appearanceFor && editing(appearanceFor) && (
-        <SheetFrame
-          open
-          onOpenChange={(open) => !open && setAppearanceFor(null)}
-          title={editing(appearanceFor)!.artist?.name ?? 'Artist'}
-        >
-          <div className="flex flex-col gap-4">
-            <RoleChips
-              value={editing(appearanceFor)!.role}
-              onRole={(role) => {
-                const id = appearanceFor;
-                setAppearanceFor(null);
-                void saveRole(id, role);
-              }}
-            />
-            <Button
-              variant="outline"
-              onClick={() => {
-                const id = appearanceFor;
-                setAppearanceFor(null);
-                setColoursFor(id);
-              }}
-            >
-              Colours
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => void removeFromStage(editing(appearanceFor)!)}
-            >
-              Remove from Stage
-            </Button>
-          </div>
-        </SheetFrame>
+      {appearanceFor && appearanceById(appearanceFor) && (
+        <AppearanceSheet
+          appearance={appearanceById(appearanceFor)!}
+          onClose={() => setAppearanceFor(null)}
+          onColours={() => {
+            setAppearanceFor(null);
+            setColoursFor(appearanceFor);
+          }}
+          onRemove={() => void removeFromStage(appearanceFor)}
+        />
       )}
     </>
+  );
+}
+
+/**
+ * The concert, as the first block (design D5): its Sabha, then date, start time and first
+ * Artist, with the sheet that edits them. A date, time or Sabha saving or not saved shows as
+ * entered, here and when the sheet reopens (design D15).
+ */
+function ConcertBlock({
+  event,
+  firstArtist,
+}: {
+  event: ResolvedEvent;
+  firstArtist: string | null;
+}) {
+  const feedback = useSaveFeedback();
+  const [factsOpen, setFactsOpen] = useState(false);
+  const [sabhaOpen, setSabhaOpen] = useState(false);
+  const head = useFocusOnOpen<HTMLHeadingElement>(event.id);
+  const target = (field: string) => eventTarget(event.id, field);
+  const date = feedback.shown(target('date'), event.date);
+  const startTime = feedback.shown(target('startTime'), event.startTime);
+  // A Sabha is kept with its name, so one not saved still reads by name.
+  const chosen = feedback.shown<{ id: string | null; name: string | null }>(target('sabhaId'), {
+    id: event.sabhaId,
+    name: null,
+  });
+  const resolved = useSabha(chosen.id);
+  const sabhaName = resolved?.name ?? chosen.name;
+
+  return (
+    <section className="pt-2 pb-6">
+      <h1 ref={head} tabIndex={-1} className="text-title font-semibold break-words">
+        {sabhaName ? (
+          <button
+            type="button"
+            className="inline-flex min-h-12 items-center rounded-xl text-left"
+            onClick={() => setFactsOpen(true)}
+          >
+            {sabhaName}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="inline-flex min-h-12 items-center gap-2 rounded-xl text-left"
+            onClick={() => setSabhaOpen(true)}
+          >
+            <IconPlus aria-hidden className="size-5" />
+            Add Sabha
+          </button>
+        )}
+      </h1>
+      <Saved target={[target('date'), target('startTime'), target('sabhaId')]}>
+        <button
+          type="button"
+          onClick={() => setFactsOpen(true)}
+          className="min-h-12 py-1 text-left text-sub text-muted-foreground"
+        >
+          {eventLine({ date, startTime }, firstArtist)}
+        </button>
+      </Saved>
+
+      <EventFacts
+        open={factsOpen}
+        onOpenChange={setFactsOpen}
+        date={date}
+        startTime={startTime}
+        sabhaName={sabhaName}
+        onSabha={() => {
+          setFactsOpen(false);
+          setSabhaOpen(true);
+        }}
+        onChange={(changes) => {
+          const [field] = Object.keys(changes);
+          void saveWith(target(field!), Object.values(changes)[0], () =>
+            editEvent(event.id, changes),
+          );
+        }}
+      />
+
+      <NamePicker
+        kind="sabha"
+        open={sabhaOpen}
+        onOpenChange={setSabhaOpen}
+        onPick={(entry) => {
+          setSabhaOpen(false);
+          void saveWith(target('sabhaId'), { id: entry.id, name: entry.name }, () =>
+            editEvent(event.id, { sabhaId: entry.id }),
+          );
+        }}
+      />
+    </section>
+  );
+}
+
+/** An Appearance with its Role and Colours as entered while saving or not saved (design D15). */
+function useShownAppearance(appearance: ResolvedAppearance): ResolvedAppearance {
+  const feedback = useSaveFeedback();
+  return {
+    ...appearance,
+    role: feedback.shown(appearanceTarget(appearance.id, 'role'), appearance.role),
+    ...feedback.shown(appearanceTarget(appearance.id, 'colours'), {
+      colourPrimary: appearance.colourPrimary,
+      colourSecondary: appearance.colourSecondary,
+    }),
+  };
+}
+
+function StageRow({
+  appearance: stored,
+  first,
+  last,
+  ordering,
+  rowRef,
+  onOpen,
+  onColours,
+  onMove,
+}: {
+  appearance: ResolvedAppearance;
+  first: boolean;
+  last: boolean;
+  ordering: boolean;
+  rowRef(node: HTMLButtonElement | null): void;
+  onOpen(): void;
+  onColours(): void;
+  onMove(by: -1 | 1): void;
+}) {
+  const appearance = useShownAppearance(stored);
+  return (
+    <li className="border-b border-border">
+      <Saved
+        target={['*', 'role', 'colours', 'position', 'deletedAt'].map((field) =>
+          appearanceTarget(appearance.id, field),
+        )}
+      >
+        <div className="flex flex-wrap items-center justify-end gap-x-1">
+          <button
+            type="button"
+            ref={rowRef}
+            disabled={ordering}
+            onClick={onOpen}
+            className="flex min-h-[60px] min-w-[min(100%,calc(9*var(--text-body)))] flex-1 flex-col items-stretch justify-center py-2 text-left"
+          >
+            <span className="break-words">{appearance.artist?.name ?? '?'}</span>
+            {appearance.role && (
+              <span className="text-sub text-muted-foreground">{appearance.role}</span>
+            )}
+          </button>
+          {ordering ? (
+            <MoveButtons
+              name={appearance.artist?.name ?? 'Artist'}
+              first={first}
+              last={last}
+              onMove={onMove}
+            />
+          ) : (
+            <ColoursButton appearance={appearance} onOpen={onColours} />
+          )}
+        </div>
+      </Saved>
+    </li>
+  );
+}
+
+function ColoursSheet({
+  appearance: stored,
+  onClose,
+}: {
+  appearance: ResolvedAppearance;
+  onClose(): void;
+}) {
+  const appearance = useShownAppearance(stored);
+  return (
+    <ColourPicker
+      open
+      onOpenChange={(open) => !open && onClose()}
+      artistName={appearance.artist?.name ?? 'Artist'}
+      primary={appearance.colourPrimary}
+      secondary={appearance.colourSecondary}
+      onChange={(colours) =>
+        void saveWith(appearanceTarget(appearance.id, 'colours'), colours, () =>
+          editAppearance(appearance.id, colours),
+        )
+      }
+    />
+  );
+}
+
+/** An Artist on Stage: Role, Colours, and Remove, whose failure shows in the sheet. */
+function AppearanceSheet({
+  appearance: stored,
+  onClose,
+  onColours,
+  onRemove,
+}: {
+  appearance: ResolvedAppearance;
+  onClose(): void;
+  onColours(): void;
+  onRemove(): void;
+}) {
+  const appearance = useShownAppearance(stored);
+  const feedback = useSaveFeedback();
+  const removal = appearanceTarget(appearance.id, 'deletedAt');
+  return (
+    <SheetFrame
+      open
+      onOpenChange={(open) => !open && onClose()}
+      title={appearance.artist?.name ?? 'Artist'}
+    >
+      <div className="flex flex-col gap-4">
+        {feedback.get(removal)?.status === 'failed' && (
+          <NotSavedLine targets={[removal]} onRetry={onRemove} />
+        )}
+        <RoleChips
+          value={appearance.role}
+          onRole={(role) => {
+            onClose();
+            void saveRole(appearance.id, role);
+          }}
+        />
+        <Button variant="outline" onClick={onColours}>
+          Colours
+        </Button>
+        <Button variant="destructive" onClick={onRemove}>
+          Remove from Stage
+        </Button>
+      </div>
+    </SheetFrame>
   );
 }
 
@@ -693,13 +828,18 @@ function EventFacts({
   );
 }
 
-/** The note, last on the screen, saved as the rasika pauses, leaves the field or the app. */
+/**
+ * The note, last on the screen, saved as the rasika pauses, leaves the field or the app; typed
+ * text is copied to save feedback's storage before its write starts.
+ */
 function NoteField({ eventId, stored }: { eventId: string; stored: string | null }) {
-  const target = { table: 'events' as const, id: eventId, field: 'note' };
+  const feedback = useSaveFeedback();
+  const target = eventTarget(eventId, 'note');
   const note = useAutosave(
-    stored ?? '',
+    feedback.shown(target, stored) ?? '',
     (value) =>
       void saveWith(target, value, () => editEvent(eventId, { note: value === '' ? null : value })),
+    (value) => (value === null ? feedback.release(target) : feedback.hold(target, value)),
   );
   return (
     <section aria-labelledby="note" className="pb-6">

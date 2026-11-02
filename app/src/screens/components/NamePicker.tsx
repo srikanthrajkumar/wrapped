@@ -2,10 +2,12 @@
 // same docked search. Before typing it lists the rasika's recent names; as they type, matches
 // from their own and the shared lists, each with a distinguishing line where known. The last row
 // is always "Add “what you typed” as a new Sabha" (or Artist), so a new entry is a deliberate
-// choice, never a typo's side effect.
+// choice, never a typo's side effect. A new name that fails to save shows "Not saved on this
+// phone." in the sheet, above the search, with Try again.
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useRef, useState, type ReactNode } from 'react';
+import { fold } from '../../catalog/fold';
 import { newId, ROLES, type Role } from '../../model';
 import {
   createArtist,
@@ -17,7 +19,7 @@ import {
   type NameMatch,
 } from '../../store/people';
 import { Chip, DockedSearch, FixedRow, type SearchRow } from './DockedSearch';
-import { saveWith } from './feedback';
+import { NotSavedLine, saveWith } from './feedback';
 import { SheetFrame } from './sheet-frame';
 
 type Kind = 'artist' | 'sabha';
@@ -29,6 +31,7 @@ export function NamePicker({
   onOpenChange,
   onPick,
   after,
+  notice,
 }: {
   kind: Kind;
   open: boolean;
@@ -37,8 +40,11 @@ export function NamePicker({
   onPick(entry: { id: string; name: string }): void;
   /** Shown instead of the search once something is picked (the Role chips). */
   after?: ReactNode;
+  /** The caller's own failure line, shown above the search (an Artist not added). */
+  notice?: ReactNode;
 }) {
   const [query, setQuery] = useState('');
+  const [failedAdd, setFailedAdd] = useState<{ id: string; name: string } | null>(null);
   const typed = query.trim();
   const noun = NOUN[kind];
   // The names follow each keystroke; the usual Roles don't change while typing, so they are
@@ -63,29 +69,26 @@ export function NamePicker({
     onPick({ id: entry.id, name: entry.name });
   };
 
-  // One add at a time: a double tap must not create the name twice. Each add has its own id, so
-  // a failed one is listed on its own and its Try again creates the name once, then picks it.
+  // One add at a time: a double tap must not create the name twice. Each add has its own id;
+  // the write only creates the name, so Try again from the season-wide line never picks it into
+  // whatever the screen shows by then. Try again in the sheet adds it and picks it, as now.
   const adding = useRef(false);
-  const addNew = async () => {
-    if (adding.current || !typed) return;
+  const add = async (id: string, name: string) => {
+    if (adding.current || !name) return;
     adding.current = true;
-    const id = newId();
-    const name = typed;
+    const table = kind === 'artist' ? 'artists' : 'sabhas';
     const create = kind === 'artist' ? createArtist : createSabha;
     try {
-      await saveWith(
-        { table: kind === 'artist' ? 'artists' : 'sabhas', id, field: '*' },
-        name,
-        () =>
-          create(name, { id }).then((created) => {
-            pick(created);
-            return created;
-          }),
-      );
+      const created = await saveWith({ table, id, field: '*' }, name, () => create(name, { id }), {
+        intent: `${table}:${fold(name)}`,
+      });
+      setFailedAdd(created ? null : { id, name });
+      if (created) pick(created);
     } finally {
       adding.current = false;
     }
   };
+  const addNew = () => add(newId(), typed);
 
   const rows: SearchRow[] = (names ?? []).map((name) => {
     const role = roles?.get(name.id);
@@ -101,29 +104,44 @@ export function NamePicker({
     <SheetFrame
       open={open}
       onOpenChange={(next) => {
-        if (!next) setQuery('');
+        if (!next) {
+          setQuery('');
+          // Once the sheet is gone, the season-wide line shows the failure.
+          setFailedAdd(null);
+        }
         onOpenChange(next);
       }}
       title={kind === 'artist' ? 'Add Artist' : 'Sabha'}
       tall={!after}
     >
       {after ?? (
-        <DockedSearch
-          label={`Search ${noun}s`}
-          placeholder={`${noun}…`}
-          query={query}
-          onQueryChange={setQuery}
-          resultsLabel={typed ? 'Matches, best match last' : `Recent ${noun}s`}
-          onSubmit={() => (rows[0] ? rows[0].onPick() : typed && void addNew())}
-          results={rows}
-          lastRow={
-            typed && (
-              <FixedRow onClick={() => void addNew()}>
-                Add “{typed}” as a new {noun}
-              </FixedRow>
-            )
-          }
-        />
+        <>
+          {notice}
+          {failedAdd && (
+            <NotSavedLine
+              targets={[
+                { table: kind === 'artist' ? 'artists' : 'sabhas', id: failedAdd.id, field: '*' },
+              ]}
+              onRetry={() => void add(failedAdd.id, failedAdd.name)}
+            />
+          )}
+          <DockedSearch
+            label={`Search ${noun}s`}
+            placeholder={`${noun}…`}
+            query={query}
+            onQueryChange={setQuery}
+            resultsLabel={typed ? 'Matches, best match last' : `Recent ${noun}s`}
+            onSubmit={() => (rows[0] ? rows[0].onPick() : typed && void addNew())}
+            results={rows}
+            lastRow={
+              typed && (
+                <FixedRow onClick={() => void addNew()}>
+                  Add “{typed}” as a new {noun}
+                </FixedRow>
+              )
+            }
+          />
+        </>
       )}
     </SheetFrame>
   );

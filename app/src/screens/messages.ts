@@ -44,6 +44,14 @@ export const MESSAGES = {
   notSavedCount: (count: number) =>
     `${count} ${count === 1 ? 'change' : 'changes'} not saved on this phone.`,
   exportFailed: "The Export couldn't be made on this phone.",
+  /** After a rescue Export from a store that couldn't be read. */
+  exportStoreUnreadable:
+    "This Export holds only the changes not saved. The stored season couldn't be read; it's still on this phone.",
+  /** The screen shown when the phone's database won't open. */
+  rescue: {
+    title: "Your season can't be opened on this phone just now.",
+    sentence: "It's still stored here. Close the app and open it again.",
+  },
   newCatalog: 'An updated song catalog is ready.',
   /** Not in the table: the app update without a new catalog (T028's wording, kept). */
   appUpdate: 'A new version is ready.',
@@ -63,6 +71,8 @@ export const MESSAGES = {
     spoken: (bar: string) => `${bar}. Undo available.`,
     /** The Undo itself could not be written: the bar stays, with Try again. */
     failed: (bar: string) => `${bar}. Not saved on this phone.`,
+    /** A rule refused the Undo, as "a Lecdem has at most 3 presenters". */
+    refused: (bar: string, rule: string) => `${bar}. Can't undo: ${rule}.`,
   },
   actions: {
     tryAgain: 'Try again',
@@ -75,5 +85,7 @@ export const MESSAGES = {
     update: 'Update',
     later: 'Later',
     undo: 'Undo',
+    dismiss: 'Dismiss',
+    clear: 'Clear',
   },
 } as const;

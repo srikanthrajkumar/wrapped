@@ -1,9 +1,16 @@
-// Required tests (constitution IV, "nothing lost"; review of PR #5, items A1, A4, A6, A7, A8):
-// journeys where a value could be lost or a screen could lose the rasika's typing. Writes are
-// made to fail by a test-only script in the page (helpers.ts, failWritesOnDemand).
+// Required tests (constitution IV, "nothing lost"; reviews of PR #5): journeys where a value
+// could be lost or a screen could lose the rasika's typing. Writes are made to fail, or never to
+// finish, by a test-only script in the page (helpers.ts, failWritesOnDemand).
 
-import { expect, test, type Page } from '@playwright/test';
-import { failWritesOnDemand, finishFirstLaunch, readTable, setFailingWrites } from './helpers';
+import { chromium, devices, expect, test, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import {
+  failWritesOnDemand,
+  finishFirstLaunch,
+  readTable,
+  setFailingWrites,
+  setHangingWrites,
+} from './helpers';
 
 async function newConcert(page: Page) {
   await page.goto('/');
@@ -47,13 +54,14 @@ test('A4: a new Concert that failed to save is listed at the top with Try again'
   await setFailingWrites(page, true);
   await page.getByRole('button', { name: 'Log a Concert now' }).click();
   await page.getByRole('button', { name: 'Log a Concert now' }).click();
-  // Each attempt is its own entry: the second never hides the first.
+  // Each attempt is listed: the second never hides the first.
   await expect(page.getByText('2 changes not saved on this phone.')).toBeVisible();
 
+  // But both meant one Concert: Try again makes one (review A4).
   await setFailingWrites(page, false);
   await page.getByRole('button', { name: 'Try again' }).click();
   await expect(page.getByText(/not saved on this phone/)).toHaveCount(0);
-  expect(await readTable(page, 'events')).toHaveLength(2);
+  expect(await readTable(page, 'events')).toHaveLength(1);
 });
 
 test('A6: the Laya vinyasam note is saved when the page is hidden, before any blur', async ({
@@ -65,7 +73,13 @@ test('A6: the Laya vinyasam note is saved when the page is hidden, before any bl
   await page.getByRole('button', { name: 'Laya vinyasam' }).click();
   await page.getByRole('button', { name: 'Laya vinyasam after this Item' }).click();
   const note = page.getByRole('textbox', { name: 'Note' });
+  // Time stands still, so the autosave's pause never ends: only pagehide can save the note.
+  await page.clock.install();
+  await page.clock.pauseAt(Date.now() + 1000);
   await note.fill('tisram, then khandam');
+  await page.waitForTimeout(1500);
+  const [before] = await readTable<{ layaVinyasam: { note: string | null } }>(page, 'items');
+  expect(before?.layaVinyasam.note).toBeNull();
 
   // The phone locks: iOS fires pagehide, and no blur.
   await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pagehide')));
@@ -127,4 +141,134 @@ test('A7: a second colour after a failed first one keeps the first as entered', 
       return appearance && [appearance.colourPrimary, appearance.colourSecondary];
     })
     .toEqual(['red', 'blue']);
+});
+
+test('A2: a value whose Try again is still running survives a force-close', async ({
+  baseURL,
+}, testInfo) => {
+  const { viewport, userAgent, deviceScaleFactor, isMobile, hasTouch } = devices['iPhone 13'];
+  const launch = () =>
+    chromium.launchPersistentContext(testInfo.outputPath('profile'), {
+      viewport,
+      userAgent,
+      deviceScaleFactor,
+      isMobile,
+      hasTouch,
+      baseURL,
+    });
+  let context = await launch();
+  await failWritesOnDemand(context);
+  let page = context.pages()[0] ?? (await context.newPage());
+  await newConcert(page);
+  await page.getByRole('link', { name: 'Add Item' }).click();
+  await page.getByRole('button', { name: '? Don’t know' }).click();
+
+  await setFailingWrites(page, true);
+  await page.getByRole('button', { name: /^Tala,/ }).click();
+  await page.getByRole('button', { name: 'Not applicable' }).click();
+  await expect(page.getByText('Not saved on this phone.')).toBeVisible();
+  await page.keyboard.press('Escape');
+
+  // Try again starts, and the app is swiped away before its write finishes.
+  await setFailingWrites(page, false);
+  await setHangingWrites(page, true);
+  await page.getByRole('button', { name: 'Try again' }).click();
+  await context.close();
+
+  context = await launch();
+  page = context.pages()[0] ?? (await context.newPage());
+  await page.goto('/');
+  await expect(page.getByText('1 change not saved on this phone.')).toBeVisible();
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export' }).click();
+  const file = JSON.parse(readFileSync((await (await download).path())!, 'utf8'));
+  expect(file.notSaved).toEqual([
+    expect.objectContaining({
+      table: 'items',
+      field: 'tala',
+      value: expect.objectContaining({ state: 'na' }),
+    }),
+  ]);
+  await context.close();
+});
+
+test('A3: when the phone store cannot be opened, a rescue screen still offers Export', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'wrapped.notSaved.v1:items:i1:tala',
+      JSON.stringify({
+        table: 'items',
+        id: 'i1',
+        field: 'tala',
+        value: 'Adi',
+        enteredAt: '2026-12-14T21:30:00+05:30',
+      }),
+    );
+    // As after WebKit's "Connection to Indexed Database server lost".
+    IDBFactory.prototype.open = () => {
+      throw new DOMException('Connection to Indexed Database server lost', 'UnknownError');
+    };
+  });
+  await page.goto('/');
+  await expect(page.getByText("Your season can't be opened on this phone just now.")).toBeVisible();
+
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export' }).click();
+  const handed = await download;
+  expect(handed.suggestedFilename()).toMatch(/^carnatic-wrapped-.*-store-unreadable\.json$/);
+  const file = JSON.parse(readFileSync((await handed.path())!, 'utf8'));
+  expect(file.storeUnreadable).toEqual({ error: expect.any(String) });
+  expect(file.notSaved).toEqual([expect.objectContaining({ id: 'i1', value: 'Adi' })]);
+  await expect(
+    page.getByText(
+      "This Export holds only the changes not saved. The stored season couldn't be read; it's still on this phone.",
+    ),
+  ).toBeVisible();
+});
+
+test('A8: a failed date edit shows as entered, in the header and when the sheet reopens', async ({
+  page,
+}) => {
+  await failWritesOnDemand(page);
+  await newConcert(page);
+  const facts = page.getByRole('main').getByRole('button', { name: / · / }).first();
+  await facts.click();
+
+  await setFailingWrites(page, true);
+  await page.getByLabel('Date').fill('2026-12-20');
+  await page.keyboard.press('Escape');
+  await expect(page.getByText('Not saved on this phone.')).toBeVisible();
+  await expect(facts).toContainText('Sun 20 Dec');
+
+  await facts.click();
+  await expect(page.getByLabel('Date')).toHaveValue('2026-12-20');
+});
+
+test('A8: a failed delete keeps what it deleted, says Not saved, and throws nothing', async ({
+  page,
+}) => {
+  const errors: Error[] = [];
+  page.on('pageerror', (error) => errors.push(error));
+  await failWritesOnDemand(page);
+  await newConcert(page);
+  await page.getByRole('button', { name: 'Add Artist' }).click();
+  await page.getByRole('searchbox', { name: 'Search Artists' }).fill('Sanjay');
+  await page.getByRole('button', { name: 'Add “Sanjay” as a new Artist' }).click();
+  await page.getByRole('button', { name: 'vocal' }).click();
+
+  await page.getByRole('button', { name: /^Sanjay/ }).click();
+  await setFailingWrites(page, true);
+  await page.getByRole('button', { name: 'Remove from Stage' }).click();
+  // The sheet stays, with the failure in it.
+  const sheet = page.getByRole('dialog');
+  await expect(sheet.getByText('Not saved on this phone.')).toBeVisible();
+  await expect(sheet.getByRole('button', { name: 'Remove from Stage' })).toBeVisible();
+
+  await setFailingWrites(page, false);
+  await sheet.getByRole('button', { name: 'Try again' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByText('Artist removed', { exact: true })).toBeVisible();
+  expect(errors).toEqual([]);
 });

@@ -3,6 +3,8 @@
 
 import { describe, expect, it } from 'vitest';
 import { createEvent, deleteEvent } from '../../src/store/events';
+import { makeExportFile } from '../../src/screens/components/export-file';
+import type { WrappedDB } from '../../src/store/db';
 import { buildExport, exportOrRescue, localTimestamp } from '../../src/store/export';
 import { addItem, removeItem } from '../../src/store/items';
 import { addAppearance, createArtist, createSabha } from '../../src/store/people';
@@ -75,5 +77,33 @@ describe('season export (required)', () => {
     const file = await exportOrRescue({ db, appVersion: 'test' });
     expect(file.events).toHaveLength(1);
     expect(file).not.toHaveProperty('storeUnreadable');
+  });
+
+  it('A5: a plain Export of an unreadable store fails; a rescue one is named for what it holds', async () => {
+    const db = freshDb();
+    await createEvent({ kind: 'concert' }, { db });
+    db.close();
+
+    await expect(makeExportFile({ rescue: false, db })).rejects.toThrow();
+
+    const rescue = await makeExportFile({ rescue: true, db });
+    expect(rescue.name).toMatch(/^carnatic-wrapped-\d{4}-\d{2}-\d{2}-store-unreadable\.json$/);
+    expect(rescue.file.storeUnreadable).toEqual({ error: expect.any(String) });
+  });
+
+  it('A5: names a rescue Export from a readable store as before', async () => {
+    const db = freshDb();
+    await createEvent({ kind: 'concert' }, { db });
+    const rescue = await makeExportFile({ rescue: true, db });
+    expect(rescue.name).toMatch(/-not-saved\.json$/);
+    expect((await makeExportFile({ rescue: false, db })).name).toMatch(/-\d{2}\.json$/);
+  });
+
+  it('A5: an Export whose store never answers fails after a while, and never hangs', async () => {
+    // As a db.open blocked by another tab's upgrade.
+    const blocked = { transaction: () => new Promise(() => undefined) } as unknown as WrappedDB;
+    await expect(buildExport({ db: blocked, appVersion: 'test', timeoutMs: 20 })).rejects.toThrow(
+      /didn't answer/,
+    );
   });
 });

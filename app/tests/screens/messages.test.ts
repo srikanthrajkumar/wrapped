@@ -47,7 +47,11 @@ function produced(): Set<string> {
   const fromNumbers = functions.flatMap((fn) => numbers.map((n) => fn(n as never)));
   const all = [...strings, ...fromNumbers];
   const fromStrings = functions.flatMap((fn) => all.map((s) => fn(s as never)));
-  return new Set([...all, ...fromStrings]);
+  // Messages made of two values, on the sample the table shows.
+  const twoValues = [
+    MESSAGES.undo.refused(MESSAGES.undo.artistRemoved, 'a Lecdem has at most 3 presenters'),
+  ];
+  return new Set([...all, ...fromStrings, ...twoValues]);
 }
 
 describe('messages.ts', () => {

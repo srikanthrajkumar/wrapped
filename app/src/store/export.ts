@@ -44,21 +44,47 @@ export function localTimestamp(date = new Date()): string {
   );
 }
 
+/** How long an Export waits for the store: a db.open blocked by another tab never answers. */
+export const EXPORT_TIMEOUT_MS = 10_000;
+
 /**
  * The whole season as stored, tombstones included, in one read transaction so the file is one
  * consistent copy. With `notSaved`, the stranded values come as their own labelled section.
+ * Fails, rather than hangs, when the store doesn't answer within `timeoutMs`.
  */
 export async function buildExport({
   db = defaultDb,
   appVersion,
   notSaved,
   now = new Date(),
+  timeoutMs = EXPORT_TIMEOUT_MS,
 }: {
   db?: WrappedDB;
   appVersion: string;
   notSaved?: NotSavedValue[];
   now?: Date;
+  timeoutMs?: number;
 }): Promise<SeasonExport> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      const error = new Error(`the phone store didn't answer within ${timeoutMs / 1000} s`);
+      reject(Object.assign(error, { name: 'TimeoutError' }));
+    }, timeoutMs);
+  });
+  try {
+    return await Promise.race([readSeason(db, appVersion, notSaved, now), timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function readSeason(
+  db: WrappedDB,
+  appVersion: string,
+  notSaved: NotSavedValue[] | undefined,
+  now: Date,
+): Promise<SeasonExport> {
   return db.transaction(
     'r',
     [db.events, db.appearances, db.items, db.artists, db.sabhas, db.links, db.outbox, db.meta],
@@ -81,16 +107,18 @@ export async function buildExport({
 }
 
 /**
- * The export to hand over whatever happens: the stored season when the store can be read, else
- * (the database closed or lost, as WebKit's "Connection to Indexed Database server lost") a file
- * with empty arrays, the unsaved values and a `storeUnreadable` marker, so values the phone
- * could not store still leave it.
+ * A rescue Export, whatever happens: the stored season when the store can be read, else (the
+ * database closed, lost as in WebKit's "Connection to Indexed Database server lost", or not
+ * answering) a file with empty arrays, the unsaved values and a `storeUnreadable` marker, so
+ * values the phone could not store still leave it. Only a rescue Export comes here: a plain one
+ * of an unreadable store fails visibly instead (screens/components/export-file.ts).
  */
 export async function exportOrRescue(options: {
   db?: WrappedDB;
   appVersion: string;
   notSaved?: NotSavedValue[];
   now?: Date;
+  timeoutMs?: number;
 }): Promise<SeasonExport> {
   try {
     return await buildExport(options);

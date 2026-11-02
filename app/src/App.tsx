@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, Route, Switch, useLocation, useRoute } from 'wouter';
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 import { cn } from '@/lib/utils';
-import { SeasonFeedback } from './screens/components/feedback';
 import { BottomSlot } from './screens/components/layout';
 import { EventScreen } from './screens/EventScreen';
 import { FirstLaunch } from './screens/FirstLaunch';
@@ -10,7 +9,7 @@ import { HomeScreen } from './screens/HomeScreen';
 import { ItemEditor } from './screens/ItemEditor';
 import { Placeholder } from './screens/Placeholder';
 import { SettingsScreen } from './screens/SettingsScreen';
-import { currentUndo, dismissUndo } from './screens/undo';
+import { leaveEvent } from './screens/undo';
 import { db } from './store/db';
 import { useFirstLaunchDone } from './store/first-launch';
 import { clearReceipts } from './store/receipts';
@@ -66,7 +65,8 @@ function TabBar() {
 
 /**
  * "Recently deleted" lasts until the rasika leaves the Event (design D16, eng review D7): its
- * Item and Appearance receipts are cleared once the location is no longer under it.
+ * Item and Appearance receipts are cleared once the location is no longer under it, except
+ * those of a failed Undo, whose bar stays until it works or is dismissed.
  */
 function useReceiptsClearedOnLeave() {
   const [path] = useLocation();
@@ -76,9 +76,8 @@ function useReceiptsClearedOnLeave() {
     if (last.current && last.current !== current) {
       const left = last.current;
       // An open Undo bar for an Item or Artist of that Event goes with its receipt.
-      const offer = currentUndo();
-      if (offer && offer.receipt.eventId === left && offer.receipt.kind !== 'event') dismissUndo();
-      void clearReceipts(left, db);
+      const keep = leaveEvent(left);
+      void clearReceipts(left, db, keep).catch(() => undefined);
     }
     last.current = current;
   }, [path]);
@@ -98,7 +97,6 @@ export function App() {
     <BottomSlot.Provider value={slot}>
       <div className="flex min-h-dvh flex-col pt-[env(safe-area-inset-top)]">
         <main className="flex flex-1 flex-col pr-[calc(16px+env(safe-area-inset-right))] pl-[calc(16px+env(safe-area-inset-left))]">
-          {done && <SeasonFeedback />}
           {!done ? (
             <FirstLaunch />
           ) : (
