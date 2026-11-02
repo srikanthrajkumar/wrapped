@@ -3,7 +3,7 @@
 // one primary action; then Next and Season so far, each shown only once it has something in it.
 
 import { IconChevronRight } from '@tabler/icons-react';
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { updateNow, useUpdate } from '../pwa';
@@ -16,11 +16,12 @@ import {
   type EventSummary,
 } from '../store/queries';
 import { newId } from '../model';
-import { saveWith, useSaveFeedback } from './components/feedback';
+import { saveWith, SeasonFeedback, useSaveFeedback } from './components/feedback';
 import { BottomDock, useNow } from './components/layout';
 import { UndoBar } from './components/UndoBar';
 import { dayText, eventLine, itemCount, nowTime, timeText } from './format';
 import { MESSAGES } from './messages';
+import { subscribeUndo, undoOffers } from './undo';
 import { offersUpdate } from './update-offer';
 
 // "Later" hides the catalog row until the next launch (design D29): kept for this page's life.
@@ -37,6 +38,7 @@ export function HomeScreen() {
   const [later, setLater] = useState(updateLater);
   const [, navigate] = useLocation();
   const feedback = useSaveFeedback();
+  const undos = useSyncExternalStore(subscribeUndo, undoOffers);
 
   if (summaries === undefined || notes === undefined) return null;
 
@@ -66,12 +68,16 @@ export function HomeScreen() {
         (b.event.startTime ?? '').localeCompare(a.event.startTime ?? ''),
     );
 
-  // Each attempt has its own id: a failure is listed on its own, and its Try again (from the
-  // season-wide line) never makes a second Concert.
+  // Each attempt has its own id, so a failure is listed on its own; the attempts are one
+  // intent, so once one succeeds the failed others go, and Try again makes one Concert.
   const logNow = async () => {
     const id = newId();
-    const event = await saveWith({ table: 'events', id, field: '*' }, 'concert', () =>
-      createEvent({ kind: 'concert', date: today(), startTime: nowTime() }, { id }),
+    const concert = { kind: 'concert' as const, date: today(), startTime: nowTime() };
+    const event = await saveWith(
+      { table: 'events', id, field: '*' },
+      concert,
+      () => createEvent(concert, { id }),
+      { intent: 'events:log-now' },
     );
     if (event) navigate(`/event/${event.id}`);
   };
@@ -87,7 +93,7 @@ export function HomeScreen() {
     available: update.available,
     later,
     logging,
-    unsaved: feedback.hasFailures(),
+    unsaved: feedback.hasRetryableFailures() || undos.some((offer) => offer.failed),
   });
 
   return (
@@ -96,6 +102,8 @@ export function HomeScreen() {
       <Link href="/settings" className="flex min-h-12 items-center text-sub text-muted-foreground">
         {unsynced ? MESSAGES.homeStatus.changesWaiting(unsynced) : MESSAGES.homeStatus.allSynced}
       </Link>
+      {/* Home has no top bar: the season-wide line goes under its title and status. */}
+      <SeasonFeedback />
 
       {showUpdate && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-y border-border py-1">

@@ -23,11 +23,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
-import { useTextScale } from '@/hooks/use-text-scale';
 import { cn } from '@/lib/utils';
 import { suggestedDetails, type Suggested } from '../catalog/details';
 import type { SearchResult } from '../catalog/search';
-import { currentCatalog, useCatalog } from '../catalog/use-catalog';
+import { currentCatalog, readyCatalog, useCatalog } from '../catalog/use-catalog';
 import {
   IMPROVISED_KINDS,
   newId,
@@ -37,9 +36,9 @@ import {
   type ImprovisedKind,
   type Item,
 } from '../model';
-import { db } from '../store/db';
 import {
   addItemFrom,
+  describePick,
   discardItemDraft,
   readItemDraft,
   removeItem,
@@ -120,7 +119,6 @@ function ItemSearch({
   autoFocus?: boolean;
 }) {
   const catalog = useCatalog();
-  const scale = useTextScale();
   const typed = query.trim();
   // The search runs once per keystroke, not per render; turning its results into rows is cheap.
   const found = useMemo(
@@ -147,13 +145,9 @@ function ItemSearch({
       }
       fixed={
         <>
-          {/* At large text the chips scroll sideways in one row, leaving room for results. */}
-          <div
-            className={cn(
-              'flex gap-2 pb-1',
-              scale >= 1.5 ? 'overflow-x-auto overscroll-x-contain' : 'flex-wrap',
-            )}
-          >
+          {/* One row, scrolling sideways when the chips don't fit (large text, a narrow phone,
+              Android's text zoom), so the results keep their room. */}
+          <div className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1">
             {SPECIAL.map(({ form, label }) => (
               <Chip
                 key={form}
@@ -177,6 +171,7 @@ function ItemSearch({
   );
 }
 
+/** What a pick is called while it is saving or not saved. */
 const pickLabel = (pick: ItemPick) =>
   pick.kind === 'song'
     ? pick.song.title
@@ -196,12 +191,17 @@ function NewItem({ eventId }: { eventId: string }) {
   const [draft, setDraft] = useState<{ id: string; text: string } | null>(null);
   const feedback = useSaveFeedback();
 
-  // Restore what was typed before the phone locked or the app was closed (design D12).
+  // Restore what was typed before the phone locked or the app was closed (design D12). A store
+  // that can't be read still gives a search box: the draft is only a convenience.
   useEffect(() => {
     let live = true;
-    void readItemDraft(eventId).then((stored) => {
-      if (live) setDraft(stored ? { id: stored.id, text: stored.text } : { id: newId(), text: '' });
-    });
+    void readItemDraft(eventId)
+      .catch(() => null)
+      .then((stored) => {
+        if (live) {
+          setDraft(stored ? { id: stored.id, text: stored.text } : { id: newId(), text: '' });
+        }
+      });
     return () => {
       live = false;
     };
@@ -227,28 +227,34 @@ function NewItem({ eventId }: { eventId: string }) {
   }, [eventId]);
 
   // The editor moves on whenever the Item exists, whether the first pick or its Try again made
-  // it, so a consumed draft id is never picked again.
-  const created = useLiveQuery(
-    async () => (draft ? ((await db.items.get(draft.id)) ?? null) : null),
-    [draft?.id],
-  );
-  const ready = created?.deletedAt === null && created.eventId === eventId;
+  // it, so a consumed draft id is never picked again. An id a deleted Item (or another Event's)
+  // holds can't be used: the editor takes a new one, keeping what was typed.
+  const created = useItem(draft?.id ?? null, { withDeleted: true });
+  // Until the query answers for a new id, it still holds the last id's Item.
+  const current = created?.id === draft?.id ? created : null;
+  const ready = current?.deletedAt === null && current.eventId === eventId;
+  const taken = current != null && !ready;
   useEffect(() => {
-    if (ready) navigate(`/event/${eventId}/item/${created.id}`, { replace: true });
-  }, [ready, created, eventId, navigate]);
+    if (ready) navigate(`/event/${eventId}/item/${current.id}`, { replace: true });
+  }, [ready, current, eventId, navigate]);
+  if (taken && draft) setDraft({ ...draft, id: newId() });
 
   const pick = (choice: ItemPick) => {
     if (!draft) return;
     const id = draft.id;
     // From here a page-hide never writes the draft back (the store refuses it too).
     latest.current = null;
-    void saveWith({ table: 'items', id, field: '*' }, pickLabel(choice), () =>
-      addItemFrom(eventId, choice, { id }),
+    void saveWith(
+      { table: 'items', id, field: '*' },
+      { eventId, pick: describePick(choice), label: pickLabel(choice) },
+      () => addItemFrom(eventId, choice, { id }),
     );
   };
 
   if (!draft) return null;
   const failed = feedback.get({ table: 'items', id: draft.id, field: '*' });
+  const failedLabel =
+    failed && failed.status !== 'saved' ? (failed.value as { label?: string }).label : undefined;
   return (
     <div
       className="flex flex-col pb-2"
@@ -260,7 +266,7 @@ function NewItem({ eventId }: { eventId: string }) {
       <TopBar back={back} onBack={() => void discardItemDraft(eventId)} />
       <h1 className="pt-1 pb-2 text-title font-semibold">
         Item {number ?? ''}
-        {failed && failed.status !== 'saved' && ` · ${String(failed.value)}`}
+        {failedLabel !== undefined && ` · ${failedLabel}`}
       </h1>
       {failed?.status === 'failed' && (
         <NotSavedLine targets={[{ table: 'items', id: draft.id, field: '*' }]} />
@@ -349,15 +355,24 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
     void saveWith(target('layaVinyasam'), next, () => setLayaVinyasam(item.id, next));
 
   // One write: the pick, the Details it clears and the logging note (store/items.ts repickItem).
+  // It waits for the catalog, so a Guess is never taken for the old song's value; a retry
+  // leaves the Details saved since it failed as they are (B3).
   const repick = (choice: ItemPick) => {
     setOpen(null);
     setQuery('');
-    void saveWith(target('title'), pickLabel(choice), () =>
-      repickItem(item.id, choice, { catalog: currentCatalog() ?? undefined }),
+    void saveWith(
+      target('pick'),
+      { eventId, pick: describePick(choice), label: pickLabel(choice) },
+      async (replay) =>
+        repickItem(item.id, choice, {
+          catalog: (await readyCatalog()) ?? undefined,
+          keep: replay?.changedSince,
+        }),
     );
   };
 
-  const title = shown('title', item.title) || ragasText(ragas) || '?';
+  const picking = shown<{ label: string } | null>('pick', null);
+  const title = picking?.label || item.title || ragasText(ragas) || '?';
   const cell = (field: ItemField, value: DetailValue, text?: string) => (
     <DetailCell
       key={field}
@@ -388,10 +403,14 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
               <DropdownMenuItem
                 variant="destructive"
                 onSelect={() =>
-                  void removeItem(item.id).then((deleted) => {
-                    if (deleted) offerUndo(deleted.receipt);
-                    navigate(`/event/${eventId}`);
-                  })
+                  // A failed delete stays here, with "Not saved" under the title.
+                  void saveWith(target('deletedAt'), 'deleted', () => removeItem(item.id)).then(
+                    (deleted) => {
+                      if (!deleted) return;
+                      offerUndo(deleted.receipt);
+                      navigate(`/event/${eventId}`);
+                    },
+                  )
                 }
               >
                 Delete Item
@@ -401,7 +420,7 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
         }
       />
 
-      <Saved target={[target('*'), target('title')]}>
+      <Saved target={[target('*'), target('pick'), target('deletedAt')]}>
         <h1
           ref={head}
           tabIndex={-1}
@@ -524,6 +543,11 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
                   // a note still pending when the Laya vinyasam is removed goes with it.
                   const current = shown('layaVinyasam', item.layaVinyasam);
                   if (current) saveLaya({ ...current, note: note || null });
+                }}
+                onPending={(note) => {
+                  const current = shown('layaVinyasam', item.layaVinyasam);
+                  if (note === null) feedback.release(target('layaVinyasam'));
+                  else if (current) feedback.hold(target('layaVinyasam'), { ...current, note });
                 }}
               />
               <Button variant="ghost" className="self-start" onClick={() => saveLaya(null)}>
@@ -812,8 +836,16 @@ function Fold({
 }
 
 /** The Laya vinyasam's note, saved as the rasika pauses, leaves the field or the app. */
-function LayaNote({ stored, onSave }: { stored: string | null; onSave(note: string): void }) {
-  const note = useAutosave(stored ?? '', onSave);
+function LayaNote({
+  stored,
+  onSave,
+  onPending,
+}: {
+  stored: string | null;
+  onSave(note: string): void;
+  onPending(note: string | null): void;
+}) {
+  const note = useAutosave(stored ?? '', onSave, onPending);
   return (
     <label className="flex flex-col gap-1">
       <span className="text-caption text-muted-foreground">Note</span>

@@ -1,6 +1,7 @@
 // The screens' side of save feedback (save-feedback.ts; design D15): the highlight after a
-// successful write, the persistent "Not saved on this phone" line with Try again and Export,
-// and, at the top of every screen, the season-wide line for failures no field shows.
+// successful write, the persistent "Not saved on this phone" line with Try again, Export and,
+// once an Export holds what Try again can't save, Clear; and, under the top bar of every
+// screen, the season-wide line for failures no field shows.
 
 import {
   useEffect,
@@ -13,8 +14,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { MESSAGES } from '../messages';
-import { saveFeedback, type Target } from '../save-feedback';
-import { dismissExportFailure, exportSeason, useExportFailure } from './export-file';
+import { saveFeedback, type Replay, type Target, type TrackOptions } from '../save-feedback';
+import { dismissExportFailure, exportSeason, useExportState } from './export-file';
 
 /** The save highlight's length (DESIGN.md "Saving"). */
 const HIGHLIGHT_MS = 1200;
@@ -26,8 +27,13 @@ export function useSaveFeedback(): typeof saveFeedback {
 }
 
 /** Save `value` for `target` through `write`, with feedback; resolves to the write's result. */
-export function saveWith<T>(target: Target, value: unknown, write: () => Promise<T>) {
-  return saveFeedback.track(target, value, write);
+export function saveWith<T>(
+  target: Target,
+  value: unknown,
+  write: (replay?: Replay) => Promise<T>,
+  options?: TrackOptions,
+) {
+  return saveFeedback.track(target, value, write, options);
 }
 
 const keyOf = (targets: Target[]) =>
@@ -93,15 +99,18 @@ export function Saved({
   );
 }
 
-function FailureLine({
+export function FailureLine({
   text,
   onRetry,
   rescue,
+  onClear,
 }: {
   text: string;
   onRetry?: () => void;
   /** Offer the rescue Export. */
   rescue?: boolean;
+  /** Offer Clear: an Export holds what Try again can't save. */
+  onClear?: () => void;
 }) {
   return (
     <div
@@ -109,7 +118,7 @@ function FailureLine({
       className="flex flex-wrap items-center gap-x-2 py-1 text-sub text-destructive"
     >
       <span className="py-2">{text}</span>
-      <span className="flex gap-1">
+      <span className="flex flex-wrap gap-1">
         {onRetry && (
           <Button variant="ghost" className="text-sub text-destructive" onClick={onRetry}>
             {MESSAGES.actions.tryAgain}
@@ -124,54 +133,79 @@ function FailureLine({
             {MESSAGES.actions.export}
           </Button>
         )}
+        {onClear && (
+          <Button variant="ghost" className="text-sub text-destructive" onClick={onClear}>
+            {MESSAGES.actions.clear}
+          </Button>
+        )}
       </span>
     </div>
   );
 }
 
-/** "Not saved on this phone." in destructive, with Try again and Export, until a retry works. */
-export function NotSavedLine({ targets }: { targets: Target[] }) {
-  useShowsFailures(targets);
+/** A line's actions for `targets`: Try again for what can be replayed, Clear once exported. */
+function lineActions(targets: Target[], retry?: () => void) {
   const retryable = targets.filter((t) => saveFeedback.canRetry(t));
-  return (
-    <FailureLine
-      text={MESSAGES.saveFailed}
-      rescue
-      onRetry={retryable.length > 0 ? () => void saveFeedback.retryAll(retryable) : undefined}
-    />
-  );
+  const clearable = targets.filter((t) => saveFeedback.canClear(t));
+  return {
+    onRetry:
+      retryable.length === 0 ? undefined : (retry ?? (() => void saveFeedback.retryAll(retryable))),
+    onClear: clearable.length === 0 ? undefined : () => saveFeedback.clear(clearable),
+  };
 }
 
 /**
- * The top of every screen: "2 changes not saved on this phone." for failures no field on the
- * screen shows (a new Concert, Start logging, an added Artist, a move, a first pick backed out
- * of, values from before a relaunch), and "The Export couldn't be made on this phone." when an
- * Export failed outright.
+ * "Not saved on this phone." in destructive, with Try again, Export and Clear, until a retry
+ * works. `onRetry` replaces the replayed write where the screen must also act on success (a
+ * sheet that closes, a name that is picked).
+ */
+export function NotSavedLine({ targets, onRetry }: { targets: Target[]; onRetry?: () => void }) {
+  useShowsFailures(targets);
+  useSaveFeedback();
+  return <FailureLine text={MESSAGES.saveFailed} rescue {...lineActions(targets, onRetry)} />;
+}
+
+/**
+ * Under the top bar of every screen: "2 changes not saved on this phone." for failures no field
+ * on the screen shows (a new Concert, Start logging, an added Artist, a move, a first pick backed
+ * out of, values from before a relaunch); "The Export couldn't be made on this phone." when an
+ * Export failed outright; and, after a rescue Export from a store that couldn't be read, the line
+ * saying it holds only the changes not saved.
  */
 export function SeasonFeedback() {
   const feedback = useSaveFeedback();
-  const exportFailure = useExportFailure();
+  const exported = useExportState();
   const unshown = feedback.unshown();
-  const retryable = unshown.filter((t) => feedback.canRetry(t));
-  if (unshown.length === 0 && !exportFailure) return null;
+  if (unshown.length === 0 && !exported.failed && !exported.storeUnreadable) return null;
   return (
     <div className="border-b border-border">
       {unshown.length > 0 && (
         <FailureLine
           text={MESSAGES.notSavedCount(unshown.length)}
           rescue
-          onRetry={retryable.length > 0 ? () => void feedback.retryAll(retryable) : undefined}
+          {...lineActions(unshown)}
         />
       )}
-      {exportFailure && (
+      <ExportLines />
+    </div>
+  );
+}
+
+/** The Export's own lines: its outright failure, with Try again, and the store-unreadable note. */
+export function ExportLines() {
+  const { failed, storeUnreadable } = useExportState();
+  return (
+    <>
+      {failed && (
         <FailureLine
           text={MESSAGES.exportFailed}
           onRetry={() => {
             dismissExportFailure();
-            void exportSeason(exportFailure);
+            void exportSeason(failed);
           }}
         />
       )}
-    </div>
+      {storeUnreadable && <FailureLine text={MESSAGES.exportStoreUnreadable} />}
+    </>
   );
 }

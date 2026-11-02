@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type BrowserContext, type Page } from '@playwright/test';
 
 /**
  * Go through first launch as it stands before sign-in exists (design D10): Welcome, then
@@ -39,15 +39,18 @@ export function readMeta(page: Page, key: string) {
 
 /**
  * Make IndexedDB writes fail on demand, as a full disk would: from the next page load, every
- * put and add throws while `setFailingWrites(page, true)` is in force.
+ * put and add throws while `setFailingWrites(page, true)` is in force, and never finishes while
+ * `setHangingWrites(page, true)` is (a write still running when the page is killed).
  */
-export async function failWritesOnDemand(page: Page): Promise<void> {
+export async function failWritesOnDemand(page: Page | BrowserContext): Promise<void> {
   await page.addInitScript(() => {
-    const flag = window as unknown as { failWrites?: boolean };
+    const flag = window as unknown as { failWrites?: boolean; hangWrites?: boolean };
     for (const name of ['put', 'add'] as const) {
       const original = IDBObjectStore.prototype[name] as (...args: unknown[]) => IDBRequest;
       IDBObjectStore.prototype[name] = function (this: IDBObjectStore, ...args: unknown[]) {
         if (flag.failWrites) throw new DOMException('The disk is full', 'QuotaExceededError');
+        // A request that never succeeds or fails: the write's transaction never settles.
+        if (flag.hangWrites) return {} as IDBRequest;
         return original.apply(this, args);
       };
     }
@@ -58,6 +61,12 @@ export async function setFailingWrites(page: Page, failing: boolean): Promise<vo
   await page.evaluate((failing) => {
     (window as unknown as { failWrites: boolean }).failWrites = failing;
   }, failing);
+}
+
+export async function setHangingWrites(page: Page, hanging: boolean): Promise<void> {
+  await page.evaluate((hanging) => {
+    (window as unknown as { hangWrites: boolean }).hangWrites = hanging;
+  }, hanging);
 }
 
 /** Every row of one table, straight from IndexedDB. */

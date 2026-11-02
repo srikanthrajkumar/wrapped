@@ -4,12 +4,14 @@
 import { Link } from 'wouter';
 import { cn } from '@/lib/utils';
 import { setTheme, useTheme, type Theme } from '../theme';
+import { SeasonFeedback } from './components/feedback';
 
 export function SettingsScreen() {
   const theme = useTheme();
   return (
     <>
       <h1 className="pt-4 pb-4 text-title font-semibold">Settings</h1>
+      <SeasonFeedback />
       <div role="radiogroup" aria-label="Theme" className="flex flex-col gap-1">
         <span className="text-sub text-muted-foreground">Theme</span>
         <div className="flex gap-2">

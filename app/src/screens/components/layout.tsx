@@ -14,6 +14,7 @@ import {
 import { createPortal } from 'react-dom';
 import { Link } from 'wouter';
 import { cn } from '@/lib/utils';
+import { SeasonFeedback } from './feedback';
 
 /** Where a screen's bottom action goes: the shell's sticky footer, above the tab bar. */
 export const BottomSlot = createContext<HTMLElement | null>(null);
@@ -30,6 +31,7 @@ export function BottomDock({ children }: { children: ReactNode }) {
 /**
  * The top bar of a pushed screen (design D5): only a back chevron labelled with its destination
  * at the left, and at most one item at the right. The top centre belongs to the Dynamic Island.
+ * The season-wide line, when there is one, sits under it (DESIGN.md "Status").
  */
 export function TopBar({
   back,
@@ -41,17 +43,20 @@ export function TopBar({
   onBack?: () => void;
 }) {
   return (
-    <div className="flex min-h-12 items-center justify-between gap-2">
-      <Link
-        href={back.href}
-        onClick={onBack}
-        className="-ml-2 flex min-h-12 min-w-0 items-center gap-1 rounded-xl pr-2 text-body text-foreground"
-      >
-        <IconChevronLeft className="size-[22px] shrink-0" stroke={2} aria-hidden />
-        <span className="break-words">{back.label}</span>
-      </Link>
-      {right}
-    </div>
+    <>
+      <div className="flex min-h-12 items-center justify-between gap-2">
+        <Link
+          href={back.href}
+          onClick={onBack}
+          className="-ml-2 flex min-h-12 min-w-0 items-center gap-1 rounded-xl pr-2 text-body text-foreground"
+        >
+          <IconChevronLeft className="size-[22px] shrink-0" stroke={2} aria-hidden />
+          <span className="break-words">{back.label}</span>
+        </Link>
+        {right}
+      </div>
+      <SeasonFeedback />
+    </>
   );
 }
 
