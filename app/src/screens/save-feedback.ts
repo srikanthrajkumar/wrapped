@@ -1,18 +1,18 @@
-// What the rasika sees after a save (design D15; eng review D5, D6). Framework-free, so its
-// rules are unit-tested against a failing store (tests/screens/save-feedback.test.ts):
-// - the save highlight plays only after the write to the phone succeeded;
-// - a failed write keeps the value as entered, marked "Not saved on this phone", until a retry
-//   (or a later edit of the same field) succeeds, across navigation, since this lives outside
-//   any screen;
-// - feedback is tracked per record, field and edit: the latest edit of a field decides what
-//   that field shows, whatever order earlier writes settle in;
-// - attempts of one intent (two taps of "Log a Concert now") are one change: when one succeeds,
-//   the failed others go, and Try again replays only the latest;
-// - the failed values can be exported, read from here, without touching the database;
-// - each value is copied to localStorage, one key per field, from the moment it is typed or its
-//   write starts until the write succeeds, so a reload, a force-close or iOS ending the page
-//   loses nothing: it comes back for Export (only Export: the write itself can't be replayed),
-//   and once an Export holding it was handed over, it can be cleared;
+// What the rasika sees after a save (design D15), and the journal that keeps every value until
+// the phone store is seen holding it (docs/adr/0007-one-journal-for-values-not-saved.md).
+// Framework-free, so its rules are unit-tested (tests/screens/save-feedback.test.ts):
+// - every value entered is copied to localStorage at once, one key per field (or per new record),
+//   while typed, while its write runs, after it fails, and after a write that succeeded until the
+//   store is read back holding it (`confirm`); so a reload, a force-close or iOS ending the page
+//   loses nothing, and the values come back for Export;
+// - the save highlight plays only after the write succeeded; a failed value stays on screen as
+//   entered, marked "Not saved", until a retry or a later edit of the same field succeeds;
+// - the latest edit of a field decides what it shows, whatever order earlier writes settle in;
+// - Try again re-applies the absolute value entered, through the same action, one entry at a time
+//   in the order entered; a move or a repick is never retried, and a move is not journalled;
+// - each new record is its own entry, never merged with another attempt;
+// - Clear removes only what an Export the rasika confirmed as saved holds, matched by value and
+//   time entered;
 // - screens say which targets they show, so the failures shown nowhere get the season-wide line.
 
 import type { RasikaTable } from '../model';
@@ -24,9 +24,15 @@ export interface Target {
   field: string;
 }
 
+/**
+ * What a write does: set a value (`value`), make a record (`create`), or change a place or a
+ * pick, which depend on the moment of the tap and so are never retried (`move`, `repick`).
+ */
+export type WriteKind = 'value' | 'create' | 'move' | 'repick';
+
 export type FieldFeedback =
-  /** Typed, waiting for the autosave's pause: copied to storage, no write yet. */
-  | { status: 'pending'; edit: number; value: unknown }
+  /** Typed, waiting for the autosave's pause: journalled, no write yet. */
+  | { status: 'typed'; edit: number; value: unknown }
   | { status: 'saving'; edit: number; value: unknown }
   /**
    * `edit` changes with every successful write, so a screen plays the highlight once for each;
@@ -35,56 +41,45 @@ export type FieldFeedback =
   | { status: 'saved'; edit: number; at: number; value: unknown }
   | { status: 'failed'; edit: number; value: unknown; enteredAt: string };
 
-/** A value the phone could not store (contracts/season-export.md, `notSaved`). */
-export interface NotSavedEntry {
+/** A journal entry as it is exported (contracts/season-export.md, `notSaved`). */
+export interface JournalEntry {
   table: RasikaTable;
   id: string;
   field: string;
   value: unknown;
   enteredAt: string;
+  /** Typed, being written, failed, or written and not yet seen in the store. */
+  state: 'typed' | 'saving' | 'failed' | 'unconfirmed';
 }
 
-/** What a retried write is told: the fields of its record saved since it failed. */
-export interface Replay {
-  changedSince: string[];
-}
-
-type Write = (replay?: Replay) => Promise<unknown>;
-
-export interface TrackOptions {
-  /** Attempts of one intent each have their own id; one that succeeds supersedes the others. */
-  intent?: string;
-}
+type Write = () => Promise<unknown>;
 
 interface Entry {
   target: Target;
   feedback: FieldFeedback;
+  kind: WriteKind;
   /** Null for a value copied back from storage, or typed and not yet written. */
   write: Write | null;
-  intent?: string;
   /** A rule refused the write, so Try again would fail the same way. */
   refused?: boolean;
-  /** An Export holding this value was handed over. */
-  exported?: boolean;
+  /** Written, and the store was read back holding it: no longer journalled. */
+  confirmed?: boolean;
   enteredAt: string;
 }
 
-/** Where values are copied, one key per field (A9 of the first review; B1, B4 of the second). */
+/** Where entries are journalled, one key per field or new record. */
 export const NOT_SAVED_PREFIX = 'wrapped.notSaved.v1:';
-/** The one list an earlier build kept, read once and moved. */
-const LEGACY_KEY = 'wrapped.notSaved';
 
 /** How long a just-saved value is shown while the screen still holds the record read before. */
 export const SETTLE_MS = 1000;
 
 type Storage = Pick<globalThis.Storage, 'getItem' | 'setItem' | 'removeItem' | 'key' | 'length'>;
-/** Hear another tab copy (a value) or drop (null) a key. */
-type Listen = (onChange: (key: string, value: string | null) => void) => void;
+/** Whether the phone store holds the entry's value (store/journal-check.ts). */
+type Confirm = (entry: JournalEntry) => Promise<boolean>;
 
-interface Copy extends NotSavedEntry {
-  exported?: boolean;
-  /** Typed or being written, not failed: another tab leaves it alone; a relaunch keeps it. */
-  pending?: boolean;
+interface Copy extends Omit<JournalEntry, 'state'> {
+  state?: JournalEntry['state'];
+  kind?: WriteKind;
 }
 
 const keyOf = ({ table, id, field }: Target) => `${table}\u0000${id}\u0000${field}`;
@@ -101,25 +96,13 @@ function browserStorage(): Storage | null {
   }
 }
 
-function browserListen(): Listen | null {
-  if (typeof window === 'undefined') return null;
-  return (onChange) =>
-    window.addEventListener('storage', (event) => {
-      if (event.key) onChange(event.key, event.newValue);
-    });
-}
-
 /** A copy as stored, checked field by field; null for anything damaged. */
-function toCopy(raw: unknown): Copy | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const copy = raw as Partial<Copy>;
-  const strings = [copy.table, copy.id, copy.field, copy.enteredAt];
-  return strings.every((value) => typeof value === 'string') ? (copy as Copy) : null;
-}
-
 function parseCopy(text: string | null): Copy | null {
   try {
-    return toCopy(JSON.parse(text ?? ''));
+    const copy = JSON.parse(text ?? '') as Partial<Copy> | null;
+    if (!copy || typeof copy !== 'object') return null;
+    const strings = [copy.table, copy.id, copy.field, copy.enteredAt];
+    return strings.every((value) => typeof value === 'string') ? (copy as Copy) : null;
   } catch {
     return null;
   }
@@ -133,14 +116,20 @@ export class SaveFeedback {
   private nextEdit = 1;
   private version = 0;
   private storage: Storage | null;
+  private confirm: Confirm;
 
   constructor({
     storage = browserStorage(),
-    listen = browserListen(),
-  }: { storage?: Storage | null; listen?: Listen | null } = {}) {
+    confirm = async () => true,
+  }: { storage?: Storage | null; confirm?: Confirm } = {}) {
     this.storage = storage;
-    for (const copy of this.readStored()) this.adopt(copy);
-    listen?.((key, value) => this.heard(key, value));
+    this.confirm = confirm;
+    this.reload();
+  }
+
+  /** The app's check against the phone store, set once the store module is loaded. */
+  confirmWith(confirm: Confirm): void {
+    this.confirm = confirm;
   }
 
   /**
@@ -150,50 +139,45 @@ export class SaveFeedback {
   track<T>(
     target: Target,
     value: unknown,
-    write: (replay?: Replay) => Promise<T>,
-    { intent }: TrackOptions = {},
+    write: () => Promise<T>,
+    { kind = 'value' }: { kind?: WriteKind } = {},
   ): Promise<T | undefined> {
-    return this.run(target, value, write, intent);
+    return this.run(target, value, write, kind);
   }
 
-  /** "Try again": the failed write runs again as a new edit, told what changed since. */
+  /** "Try again": the failed value is written again, as entered, as a new edit. */
   retry(target: Target): Promise<unknown> {
     const entry = this.entries.get(keyOf(target));
     if (entry?.feedback.status !== 'failed' || !this.canRetry(target)) {
       return Promise.resolve(undefined);
     }
-    const replay = { changedSince: this.changedSince(entry) };
-    return this.run(
-      target,
-      entry.feedback.value,
-      entry.write!,
-      entry.intent,
-      replay,
-      entry.enteredAt,
-    );
+    return this.run(target, entry.feedback.value, entry.write!, entry.kind, entry.enteredAt);
   }
 
-  /** Retry the failed writes, as "Try again" on a line with several: one per intent. */
-  retryAll(targets: Target[] = this.failed().map((entry) => entry.target)): Promise<unknown[]> {
-    const latest = new Map<string, Entry>();
-    for (const target of targets) {
-      const entry = this.entries.get(keyOf(target));
-      if (!entry || entry.feedback.status !== 'failed' || !this.canRetry(target)) continue;
-      const group = entry.intent ?? keyOf(target);
-      const seen = latest.get(group);
-      if (!seen || seen.feedback.edit < entry.feedback.edit) latest.set(group, entry);
-    }
-    return Promise.all([...latest.values()].map((entry) => this.retry(entry.target)));
+  /** Try again on a line with several: one at a time, in the order they were entered. */
+  async retryAll(targets: Target[]): Promise<void> {
+    const entries = targets
+      .map((target) => this.entries.get(keyOf(target)))
+      .filter((entry): entry is Entry => entry !== undefined && this.canRetry(entry.target))
+      .sort((a, b) => a.feedback.edit - b.feedback.edit);
+    for (const entry of entries) await this.retry(entry.target);
   }
 
-  /** Whether "Try again" can replay `target`'s write: not after a relaunch or a rule's refusal. */
+  /** Whether Try again can write `target` again: not after a relaunch, a refusal, a move or a repick. */
   canRetry(target: Target): boolean {
     const entry = this.entries.get(keyOf(target));
-    return entry?.write != null && !entry.refused;
+    return (
+      entry?.write != null && !entry.refused && (entry.kind === 'value' || entry.kind === 'create')
+    );
   }
 
   get(target: Target): FieldFeedback | undefined {
     return this.entries.get(keyOf(target))?.feedback;
+  }
+
+  /** What `target`'s write does, for the line that reports its failure. */
+  kindOf(target: Target): WriteKind | undefined {
+    return this.entries.get(keyOf(target))?.kind;
   }
 
   /**
@@ -203,24 +187,22 @@ export class SaveFeedback {
    */
   shown<T>(target: Target, stored: T): T {
     const feedback = this.get(target);
-    if (!feedback || feedback.status === 'pending') return stored;
+    if (!feedback || feedback.status === 'typed') return stored;
     if (feedback.status !== 'saved') return feedback.value as T;
     const settling = Date.now() - feedback.at < SETTLE_MS && !sameValue(feedback.value, stored);
     return settling ? (feedback.value as T) : stored;
   }
 
-  /**
-   * Text typed and not yet written (the autosave's pause): copied to storage at once, so a kill
-   * before the write starts loses nothing.
-   */
+  /** Text typed and not yet written (the autosave's pause): journalled at once. */
   hold(target: Target, value: unknown): void {
     const key = keyOf(target);
     const was = this.entries.get(key)?.feedback.status;
     const entry: Entry = {
       target,
+      kind: 'value',
       write: null,
       enteredAt: new Date().toISOString(),
-      feedback: { status: 'pending', edit: this.nextEdit++, value },
+      feedback: { status: 'typed', edit: this.nextEdit++, value },
     };
     this.entries.set(key, entry);
     this.copy(entry);
@@ -231,89 +213,96 @@ export class SaveFeedback {
   /** The held text came back to what is stored: nothing to write after all. */
   release(target: Target): void {
     const key = keyOf(target);
-    if (this.entries.get(key)?.feedback.status !== 'pending') return;
+    if (this.entries.get(key)?.feedback.status !== 'typed') return;
     this.entries.delete(key);
     this.uncopy(target);
   }
 
-  /** Every failed value, for the "Not saved" section of a rescue Export. */
-  notSaved(): NotSavedEntry[] {
-    return this.failed().map(({ target, feedback }) => ({
-      ...target,
-      value: feedback.value,
-      enteredAt: (feedback as { enteredAt: string }).enteredAt,
-    }));
+  /** Every journal entry, in the order entered, for an Export's "Not saved" section. */
+  notSaved(): JournalEntry[] {
+    return [...this.entries.values()]
+      .filter((entry) => this.journalled(entry))
+      .sort((a, b) => a.feedback.edit - b.feedback.edit)
+      .map((entry) => this.toJournal(entry));
   }
 
-  /** Whether anything on `recordId` (or anywhere, without one) failed to save. */
-  hasFailures(recordId?: string): boolean {
-    return this.failed().some((entry) => recordId === undefined || entry.target.id === recordId);
-  }
-
-  /**
-   * Whether a failed write is still held in memory for Try again: a reload would leave it
-   * Export-only. Values copied back or refused by a rule lose nothing to a reload.
-   */
+  /** Whether a failed write is still held in memory for Try again: a reload would lose it. */
   hasRetryableFailures(): boolean {
     return this.failed().some((entry) => this.canRetry(entry.target));
   }
 
-  /** An Export holding these values was handed over: those Try again can't save may be cleared. */
-  markExported(values: readonly { table: string; id: string; field: string }[]): void {
-    for (const value of values) {
-      const entry = this.entries.get(keyOf(value as Target));
-      if (entry?.feedback.status !== 'failed') continue;
-      entry.exported = true;
-      this.copy(entry);
+  /** Whether Clear may remove `target`: Try again can't save it, and `saved` holds it as it is. */
+  canClear(target: Target, saved: readonly JournalEntry[]): boolean {
+    const entry = this.entries.get(keyOf(target));
+    if (entry?.feedback.status !== 'failed' || this.canRetry(target)) return false;
+    return saved.some(
+      (held) =>
+        keyOf(held) === keyOf(target) &&
+        held.enteredAt === entry.enteredAt &&
+        sameValue(held.value, entry.feedback.value),
+    );
+  }
+
+  /** Clear, once the rasika confirmed the Export holding `saved` is saved. */
+  clearSaved(saved: readonly JournalEntry[]): void {
+    for (const entry of [...this.entries.values()]) {
+      if (!this.canClear(entry.target, saved)) continue;
+      this.entries.delete(keyOf(entry.target));
+      this.uncopy(entry.target);
     }
     this.notify();
   }
 
-  /** Whether "Clear" may remove `target`: in an Export, and beyond Try again. */
-  canClear(target: Target): boolean {
-    const entry = this.entries.get(keyOf(target));
-    return entry?.feedback.status === 'failed' && entry.exported === true && !this.canRetry(target);
-  }
-
-  /** "Clear": forget the values an Export holds and Try again can't save. */
-  clear(targets: Target[]): void {
-    for (const target of targets.filter((t) => this.canClear(t))) {
-      this.entries.delete(keyOf(target));
-      this.uncopy(target);
-    }
+  /** Dismiss: a move or repick that didn't happen, which the rasika will do again. */
+  dismiss(target: Target): void {
+    if (this.entries.get(keyOf(target))?.feedback.status !== 'failed') return;
+    this.entries.delete(keyOf(target));
+    this.uncopy(target);
     this.notify();
   }
 
   /**
-   * After a relaunch, drop the copied values the store already holds: the page was killed after
-   * their write committed and before it was marked saved.
+   * Let go of the entries the store is seen holding: copied back from before a relaunch, or
+   * written and not yet read back.
    */
-  async reconcile(
-    read: (table: RasikaTable, id: string) => Promise<Record<string, unknown> | undefined>,
-  ): Promise<void> {
+  async reconcile(): Promise<void> {
     let changed = false;
     for (const [key, entry] of [...this.entries]) {
-      if (entry.write !== null || entry.feedback.status !== 'failed') continue;
-      const { table, id, field } = entry.target;
-      try {
-        const record = await read(table, id);
-        const held =
-          record !== undefined &&
-          (field === '*'
-            ? record.deletedAt == null
-            : field === 'deletedAt'
-              ? record.deletedAt != null
-              : sameValue(record[field], entry.feedback.value));
-        if (held && this.entries.get(key) === entry) {
-          this.entries.delete(key);
-          this.uncopy(entry.target);
-          changed = true;
-        }
-      } catch {
-        // Unreadable now: the copy stays, for Export.
-      }
+      const copiedBack = entry.write === null && entry.feedback.status === 'failed';
+      const unread = entry.feedback.status === 'saved' && !entry.confirmed;
+      if (!copiedBack && !unread) continue;
+      const edit = entry.feedback.edit;
+      const holds = await this.confirm(this.toJournal(entry)).catch(() => false);
+      if (!holds || this.entries.get(key)?.feedback.edit !== edit) continue;
+      if (copiedBack) this.entries.delete(key);
+      else entry.confirmed = true;
+      this.uncopy(entry.target);
+      changed = true;
     }
     if (changed) this.notify();
+  }
+
+  /** Read the journal again (the page shown again): entries written meanwhile come in. */
+  reload(): void {
+    const storage = this.storage;
+    if (!storage) return;
+    let added = false;
+    try {
+      const keys: string[] = [];
+      for (let i = 0; i < storage.length; i += 1) {
+        const key = storage.key(i);
+        if (key?.startsWith(NOT_SAVED_PREFIX)) keys.push(key);
+      }
+      for (const key of keys) {
+        const copy = parseCopy(storage.getItem(key));
+        if (!copy || this.entries.has(keyOf(copy))) continue;
+        this.adopt(copy);
+        added = true;
+      }
+    } catch {
+      // Storage blocked: only this page's memory holds values.
+    }
+    if (added) this.notify();
   }
 
   /**
@@ -336,10 +325,11 @@ export class SaveFeedback {
     };
   }
 
-  /** The failed targets no mounted screen shows: the season-wide line counts these. */
+  /** The failed targets no mounted screen shows, in the order entered: the season-wide line. */
   unshown(): Target[] {
     return this.failed()
       .filter((entry) => !this.shownCounts.has(keyOf(entry.target)))
+      .sort((a, b) => a.feedback.edit - b.feedback.edit)
       .map((entry) => entry.target);
   }
 
@@ -354,24 +344,17 @@ export class SaveFeedback {
   private async run<T>(
     target: Target,
     value: unknown,
-    write: (replay?: Replay) => Promise<T>,
-    intent: string | undefined,
-    replay?: Replay,
+    write: () => Promise<T>,
+    kind: WriteKind,
     enteredAt = new Date().toISOString(),
   ): Promise<T | undefined> {
     const edit = this.nextEdit++;
     const key = keyOf(target);
-    const base = { target, write: write as Write, intent, enteredAt };
+    const base = { target, write: write as Write, kind, enteredAt };
     this.set(key, { ...base, feedback: { status: 'saving', edit, value } });
+    let result: T;
     try {
-      const result = await write(replay);
-      if (this.entries.get(key)?.feedback.edit === edit) {
-        this.set(key, { ...base, feedback: { status: 'saved', edit, at: Date.now(), value } });
-        // Redraw once the stored value has had its moment to catch up (shown()).
-        setTimeout(() => this.notify(), SETTLE_MS);
-      }
-      if (intent !== undefined) this.supersede(intent, key);
-      return result;
+      result = await write();
     } catch (error) {
       if (this.entries.get(key)?.feedback.edit === edit) {
         const failed: FieldFeedback = { status: 'failed', edit, value, enteredAt };
@@ -379,38 +362,33 @@ export class SaveFeedback {
       }
       return undefined;
     }
-  }
-
-  /** One attempt of `intent` succeeded: its failed siblings were the same change. */
-  private supersede(intent: string, saved: string) {
-    for (const [key, entry] of [...this.entries]) {
-      if (key === saved || entry.intent !== intent || entry.feedback.status !== 'failed') continue;
-      this.entries.delete(key);
-      this.uncopy(entry.target);
+    if (this.entries.get(key)?.feedback.edit === edit) {
+      this.set(key, { ...base, feedback: { status: 'saved', edit, at: Date.now(), value } });
+      // Redraw once the stored value has had its moment to catch up (shown()).
+      setTimeout(() => this.notify(), SETTLE_MS);
+      // The entry leaves the journal only once the store is read back holding the value.
+      const holds = await this.confirm(this.toJournal(this.entries.get(key)!)).catch(() => false);
+      const now = this.entries.get(key);
+      if (holds && now?.feedback.edit === edit) {
+        now.confirmed = true;
+        this.uncopy(target);
+      }
     }
-    this.notify();
+    return result;
   }
 
-  /** The other fields of `failed`'s record saved after it failed. */
-  private changedSince(failed: Entry): string[] {
-    const { table, id, field } = failed.target;
-    return [...this.entries.values()]
-      .filter(
-        (entry) =>
-          entry.target.table === table &&
-          entry.target.id === id &&
-          entry.target.field !== field &&
-          entry.feedback.status === 'saved' &&
-          entry.feedback.edit > failed.feedback.edit,
-      )
-      .map((entry) => entry.target.field);
+  private failed(): Entry[] {
+    return [...this.entries.values()].filter((entry) => entry.feedback.status === 'failed');
   }
 
-  private failed(): (Entry & { feedback: { status: 'failed' } })[] {
-    return [...this.entries.values()].filter(
-      (entry): entry is Entry & { feedback: { status: 'failed' } } =>
-        entry.feedback.status === 'failed',
-    );
+  /** Whether an entry is in the journal: anything not yet seen in the store, except a move. */
+  private journalled(entry: Entry): boolean {
+    return entry.kind !== 'move' && !(entry.feedback.status === 'saved' && entry.confirmed);
+  }
+
+  private toJournal({ target, feedback, enteredAt }: Entry): JournalEntry {
+    const state = feedback.status === 'saved' ? 'unconfirmed' : feedback.status;
+    return { ...target, value: feedback.value, enteredAt, state };
   }
 
   private set(key: string, entry: Entry) {
@@ -424,13 +402,13 @@ export class SaveFeedback {
     this.listeners.forEach((listener) => listener());
   }
 
-  /** A value copied back after a relaunch, or from another tab: Export only. */
+  /** A value copied back from storage: Export only, until the store is seen holding it. */
   private adopt(copy: Copy) {
     const target: Target = { table: copy.table, id: copy.id, field: copy.field };
     this.entries.set(keyOf(target), {
       target,
+      kind: copy.kind ?? 'value',
       write: null,
-      exported: copy.exported === true,
       enteredAt: copy.enteredAt,
       feedback: {
         status: 'failed',
@@ -441,75 +419,13 @@ export class SaveFeedback {
     });
   }
 
-  /** Another tab copied or dropped a value. A field this tab is writing stays this tab's. */
-  private heard(key: string, value: string | null) {
-    if (!key.startsWith(NOT_SAVED_PREFIX)) return;
-    const copy = value === null ? null : parseCopy(value);
-    for (const [own, entry] of this.entries) {
-      if (storageKey(entry.target) !== key) continue;
-      if (entry.write !== null || entry.feedback.status === 'pending') return;
-      if (copy === null) {
-        this.entries.delete(own);
-        this.notify();
-        return;
-      }
-    }
-    if (copy && !copy.pending) {
-      this.adopt(copy);
-      this.notify();
-    }
-  }
-
-  /** Every copy in storage, each checked on its own; the legacy list is moved to keys. */
-  private readStored(): Copy[] {
-    const storage = this.storage;
-    if (!storage) return [];
-    const copies: Copy[] = [];
-    try {
-      const keys: string[] = [];
-      for (let i = 0; i < storage.length; i += 1) {
-        const key = storage.key(i);
-        if (key?.startsWith(NOT_SAVED_PREFIX)) keys.push(key);
-      }
-      for (const key of keys) {
-        const copy = parseCopy(storage.getItem(key));
-        if (copy) copies.push(copy);
-      }
-      const legacy = storage.getItem(LEGACY_KEY);
-      if (legacy !== null) {
-        let listed: unknown = [];
-        try {
-          listed = JSON.parse(legacy);
-        } catch {
-          // Damaged: nothing to move.
-        }
-        for (const raw of Array.isArray(listed) ? listed : []) {
-          const copy = toCopy(raw);
-          if (!copy) continue;
-          copies.push(copy);
-          storage.setItem(storageKey(copy), JSON.stringify(copy));
-        }
-        storage.removeItem(LEGACY_KEY);
-      }
-    } catch {
-      // Storage blocked: only this page's memory holds values.
-    }
-    return copies;
-  }
-
-  /** Copy one value to storage, or drop it once saved; full or blocked storage never breaks a save. */
+  /** Journal one entry; full or blocked storage never breaks a save. */
   private copy(entry: Entry) {
-    if (entry.feedback.status === 'saved') {
+    if (!this.journalled(entry)) {
       this.uncopy(entry.target);
       return;
     }
-    const copy: Copy = {
-      ...entry.target,
-      value: entry.feedback.value,
-      enteredAt: entry.enteredAt,
-      ...(entry.exported ? { exported: true } : {}),
-      ...(entry.feedback.status === 'failed' ? {} : { pending: true }),
-    };
+    const copy: Copy = { ...this.toJournal(entry), kind: entry.kind };
     try {
       this.storage?.setItem(storageKey(entry.target), JSON.stringify(copy));
     } catch {

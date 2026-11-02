@@ -3,14 +3,15 @@
 // written. A second delete replaces the bar with Undo for the latest; earlier deletes in the same
 // Event stay undoable from its "⋯" menu (their receipts, store/receipts.ts) until the rasika
 // leaves the Event. An Undo that fails keeps its own bar, with Try again and Dismiss, until it
-// works or is dismissed, even after leaving the Event; a new delete's bar stacks under it.
+// works or is dismissed, even after leaving the Event or a reload: failed offers are kept in
+// localStorage, and their receipts with them (store/receipts.ts pruneReceipts).
 
 import { readyCatalog } from '../catalog/use-catalog';
 import { restoreEvent } from '../store/events';
 import { restoreItem } from '../store/items';
 import { restoreAppearance } from '../store/people';
 import { dropReceipt, type DeletionReceipt } from '../store/receipts';
-import { RuleError } from '../store/rules';
+import { EVENT_DELETED, RuleError } from '../store/rules';
 import { db } from '../store/db';
 import { MESSAGES } from './messages';
 
@@ -30,12 +31,55 @@ export interface UndoOffer {
   inFlight?: boolean;
 }
 
+/** Where failed Undos are kept, one key per receipt, so their bars survive a reload. */
+const FAILED_PREFIX = 'wrapped.undo.v1:';
+
+function storage(): Pick<Storage, 'getItem' | 'setItem' | 'removeItem' | 'key' | 'length'> | null {
+  try {
+    return typeof localStorage === 'undefined' ? null : localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function readFailed(): UndoOffer[] {
+  const store = storage();
+  const offers: UndoOffer[] = [];
+  try {
+    for (let i = 0; store && i < store.length; i += 1) {
+      const key = store.key(i);
+      if (!key?.startsWith(FAILED_PREFIX)) continue;
+      const offer = JSON.parse(store.getItem(key) ?? 'null') as UndoOffer | null;
+      if (offer?.receipt?.id) offers.push({ ...offer, failed: true, inFlight: false });
+    }
+  } catch {
+    // A damaged copy, or blocked storage: the bars come back only from this page's memory.
+  }
+  return offers.sort((a, b) => a.receipt.at.localeCompare(b.receipt.at));
+}
+
+function keepFailed(offer: UndoOffer) {
+  try {
+    storage()?.setItem(`${FAILED_PREFIX}${offer.receipt.id}`, JSON.stringify(offer));
+  } catch {
+    // Kept in memory for this page's life.
+  }
+}
+
+function forgetFailed(receiptId: string) {
+  try {
+    storage()?.removeItem(`${FAILED_PREFIX}${receiptId}`);
+  } catch {
+    // Nothing more to do.
+  }
+}
+
 /** The latest delete's offer, counting down. */
 let live: UndoOffer | null = null;
 /** Failed Undos, oldest first. */
-let failed: UndoOffer[] = [];
+let failed: UndoOffer[] = readFailed();
 /** Failed offers, then the live one: one array per change, for useSyncExternalStore. */
-let offers: UndoOffer[] = [];
+let offers: UndoOffer[] = failed;
 let timer: ReturnType<typeof setTimeout> | null = null;
 let paused = false;
 const listeners = new Set<() => void>();
@@ -52,10 +96,26 @@ export function undoMessage(receipt: DeletionReceipt): string {
   return MESSAGES.undo.concertDeleted;
 }
 
-/** What an offer's bar says, failed or refused included. */
+/** What a failed Undo's bar names. */
+export function undoSubject(receipt: DeletionReceipt): string {
+  if (receipt.kind === 'item') return MESSAGES.undo.subject.item(receipt.position ?? 0);
+  if (receipt.kind === 'appearance') return MESSAGES.undo.subject.artist;
+  return MESSAGES.undo.subject.concert;
+}
+
+/** What an offer's bar says in full, failed or refused included. */
 export function undoText(offer: UndoOffer): string {
-  if (offer.refused) return MESSAGES.undo.refused(offer.message, offer.refused);
-  return offer.failed ? MESSAGES.undo.failed(offer.message) : offer.message;
+  const subject = undoSubject(offer.receipt);
+  if (offer.refused) return MESSAGES.undo.refused(subject, offer.refused);
+  return offer.failed ? MESSAGES.undo.failed(subject) : offer.message;
+}
+
+/** A failed or refused offer's short label, shown on its bar. */
+export function undoLabel(offer: UndoOffer): string {
+  const subject = undoSubject(offer.receipt);
+  return offer.refused
+    ? MESSAGES.undo.refusedShort(subject, offer.refused)
+    : MESSAGES.undo.failedShort(subject);
 }
 
 function arm() {
@@ -99,6 +159,7 @@ export function dismissUndo(receiptId?: string): void {
   const dismissed = failed.find((offer) => offer.receipt.id === receiptId);
   if (dismissed) {
     failed = failed.filter((offer) => offer !== dismissed);
+    forgetFailed(dismissed.receipt.id);
     forget(dismissed.receipt);
   }
   notify();
@@ -140,6 +201,7 @@ export async function undo(receipt: DeletionReceipt): Promise<boolean> {
           : await restoreEvent(receipt.id, { catalog });
     if (live?.receipt.id === receipt.id) live = null;
     failed = failed.filter((offer) => offer.receipt.id !== receipt.id);
+    forgetFailed(receipt.id);
     arm();
     notify();
     return restored !== null;
@@ -161,6 +223,7 @@ export async function undo(receipt: DeletionReceipt): Promise<boolean> {
     failed = failed.some((offer) => offer.receipt.id === receipt.id)
       ? failed.map((offer) => (offer.receipt.id === receipt.id ? next : offer))
       : [...failed, next];
+    keepFailed(next);
     notify();
     return false;
   }
@@ -171,9 +234,14 @@ export function undoOffers(): UndoOffer[] {
   return offers;
 }
 
-/** The live offer, else the latest failed one. */
-export function currentUndo(): UndoOffer | null {
-  return live ?? failed.at(-1) ?? null;
+/** The receipts failed Undo bars still offer: kept by pruneReceipts and clearReceipts. */
+export function failedUndoReceipts(): Set<string> {
+  return new Set(failed.map((offer) => offer.receipt.id));
+}
+
+/** Whether Try again can work: not while the Concert the Item or Artist was in is deleted. */
+export function canRetryUndo(offer: UndoOffer): boolean {
+  return offer.refused !== EVENT_DELETED;
 }
 
 export function subscribeUndo(listener: () => void): () => void {

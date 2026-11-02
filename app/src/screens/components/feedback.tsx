@@ -1,7 +1,8 @@
 // The screens' side of save feedback (save-feedback.ts; design D15): the highlight after a
-// successful write, the persistent "Not saved on this phone" line with Try again, Export and,
-// once an Export holds what Try again can't save, Clear; and, under the top bar of every
-// screen, the season-wide line for failures no field shows.
+// successful write, and the icon-led safety rows (decided 2026-11-02): an alert mark, a short
+// label ("Not saved", "Not moved", "Not changed", "Export failed") and icon buttons for Try
+// again, Export, Clear and Dismiss, whose accessible names carry the full sentence. Under the top
+// bar of every screen, the season-wide row lists the failures no field shows.
 
 import {
   useEffect,
@@ -11,11 +12,22 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from 'react';
+import {
+  IconAlertCircle,
+  IconCircleCheckFilled,
+  IconDownload,
+  IconLoader2,
+  IconRefresh,
+  IconTrash,
+  IconX,
+} from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { dayText, timeText } from '../format';
 import { MESSAGES } from '../messages';
-import { saveFeedback, type Replay, type Target, type TrackOptions } from '../save-feedback';
+import { saveFeedback, type Target, type WriteKind } from '../save-feedback';
 import { dismissExportFailure, exportSeason, useExportState } from './export-file';
+import { SheetFrame } from './sheet-frame';
 
 /** The save highlight's length (DESIGN.md "Saving"). */
 const HIGHLIGHT_MS = 1200;
@@ -30,8 +42,8 @@ export function useSaveFeedback(): typeof saveFeedback {
 export function saveWith<T>(
   target: Target,
   value: unknown,
-  write: (replay?: Replay) => Promise<T>,
-  options?: TrackOptions,
+  write: () => Promise<T>,
+  options?: { kind?: WriteKind },
 ) {
   return saveFeedback.track(target, value, write, options);
 }
@@ -99,43 +111,78 @@ export function Saved({
   );
 }
 
-export function FailureLine({
-  text,
+const ICON_BUTTON = 'size-12 text-destructive';
+
+/**
+ * One safety row: the alert mark and a short label, with the full sentence for screen readers,
+ * and icon buttons named by what they do and the sentence they act on. A `waiting` row (the store
+ * still opening) is no failure: a muted spinner and muted text, announced politely.
+ */
+export function SafetyRow({
+  label,
+  sentence,
   onRetry,
-  rescue,
-  onClear,
+  exportable,
+  clearable,
+  onDismiss,
+  waiting,
+  className,
 }: {
-  text: string;
+  label: string;
+  sentence: string;
   onRetry?: () => void;
   /** Offer the rescue Export. */
-  rescue?: boolean;
-  /** Offer Clear: an Export holds what Try again can't save. */
-  onClear?: () => void;
+  exportable?: boolean;
+  /** Targets Clear may remove once the rasika confirms the Export is saved. */
+  clearable?: Target[];
+  onDismiss?: () => void;
+  waiting?: boolean;
+  className?: string;
 }) {
   return (
     <div
-      role="alert"
-      className="flex flex-wrap items-center gap-x-2 py-1 text-sub text-destructive"
+      role={waiting ? 'status' : 'alert'}
+      className={cn(
+        'flex flex-wrap items-center gap-x-1 text-sub',
+        waiting ? 'text-muted-foreground' : 'text-destructive',
+        className,
+      )}
     >
-      <span className="py-2">{text}</span>
-      <span className="flex flex-wrap gap-1">
+      {waiting ? (
+        <IconLoader2
+          aria-hidden
+          className="size-5 shrink-0 animate-spin motion-reduce:animate-none"
+        />
+      ) : (
+        <IconAlertCircle aria-hidden className="size-5 shrink-0" />
+      )}
+      <span className="min-w-0 flex-1 py-3 break-words">
+        <span aria-hidden>{label}</span>
+        <span className="sr-only">{sentence}</span>
+      </span>
+      <span className="flex">
         {onRetry && (
-          <Button variant="ghost" className="text-sub text-destructive" onClick={onRetry}>
-            {MESSAGES.actions.tryAgain}
-          </Button>
-        )}
-        {rescue && (
           <Button
             variant="ghost"
-            className="text-sub text-destructive"
-            onClick={() => void exportSeason({ rescue: true })}
+            size="icon"
+            className={ICON_BUTTON}
+            aria-label={`${MESSAGES.actions.tryAgain}. ${sentence}`}
+            onClick={onRetry}
           >
-            {MESSAGES.actions.export}
+            <IconRefresh aria-hidden />
           </Button>
         )}
-        {onClear && (
-          <Button variant="ghost" className="text-sub text-destructive" onClick={onClear}>
-            {MESSAGES.actions.clear}
+        {exportable && <ExportButton sentence={sentence} muted={waiting} />}
+        {clearable && clearable.length > 0 && <ClearButton targets={clearable} />}
+        {onDismiss && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className={ICON_BUTTON}
+            aria-label={`${MESSAGES.actions.dismiss}. ${sentence}`}
+            onClick={onDismiss}
+          >
+            <IconX aria-hidden />
           </Button>
         )}
       </span>
@@ -143,69 +190,193 @@ export function FailureLine({
   );
 }
 
-/** A line's actions for `targets`: Try again for what can be replayed, Clear once exported. */
-function lineActions(targets: Target[], retry?: () => void) {
-  const retryable = targets.filter((t) => saveFeedback.canRetry(t));
-  const clearable = targets.filter((t) => saveFeedback.canClear(t));
-  return {
-    onRetry:
-      retryable.length === 0 ? undefined : (retry ?? (() => void saveFeedback.retryAll(retryable))),
-    onClear: clearable.length === 0 ? undefined : () => saveFeedback.clear(clearable),
-  };
-}
-
 /**
- * "Not saved on this phone." in destructive, with Try again, Export and Clear, until a retry
- * works. `onRetry` replaces the replayed write where the screen must also act on success (a
- * sheet that closes, a name that is picked).
+ * The Export icon: always the download arrow, since tapping exports again; once a file has been
+ * handed over, a small check badge sits on it (decided 2026-11-02). The badge is no button.
  */
-export function NotSavedLine({ targets, onRetry }: { targets: Target[]; onRetry?: () => void }) {
-  useShowsFailures(targets);
-  useSaveFeedback();
-  return <FailureLine text={MESSAGES.saveFailed} rescue {...lineActions(targets, onRetry)} />;
-}
-
-/**
- * Under the top bar of every screen: "2 changes not saved on this phone." for failures no field
- * on the screen shows (a new Concert, Start logging, an added Artist, a move, a first pick backed
- * out of, values from before a relaunch); "The Export couldn't be made on this phone." when an
- * Export failed outright; and, after a rescue Export from a store that couldn't be read, the line
- * saying it holds only the changes not saved.
- */
-export function SeasonFeedback() {
-  const feedback = useSaveFeedback();
-  const exported = useExportState();
-  const unshown = feedback.unshown();
-  if (unshown.length === 0 && !exported.failed && !exported.storeUnreadable) return null;
+export function ExportIcon({ exported }: { exported: boolean }) {
   return (
-    <div className="border-b border-border">
-      {unshown.length > 0 && (
-        <FailureLine
-          text={MESSAGES.notSavedCount(unshown.length)}
-          rescue
-          {...lineActions(unshown)}
+    <span className="relative inline-flex">
+      <IconDownload aria-hidden className="size-6" />
+      {exported && (
+        <IconCircleCheckFilled
+          aria-hidden
+          className="absolute -right-1.5 -bottom-1 size-3.5 rounded-full bg-background"
         />
       )}
-      <ExportLines />
-    </div>
+    </span>
   );
 }
 
-/** The Export's own lines: its outright failure, with Try again, and the store-unreadable note. */
-export function ExportLines() {
-  const { failed, storeUnreadable } = useExportState();
+/** The rescue Export, with the check badge once a file has been handed over. */
+function ExportButton({ sentence, muted }: { sentence: string; muted?: boolean }) {
+  const { handover } = useExportState();
+  const name = handover
+    ? `${MESSAGES.short.exported}. ${handover.storeUnreadable ? MESSAGES.exportStoreUnreadable : sentence}`
+    : `${MESSAGES.actions.export}. ${sentence}`;
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className={muted ? 'size-12 text-muted-foreground' : ICON_BUTTON}
+      aria-label={name}
+      onClick={() => void exportSeason({ rescue: true })}
+    >
+      <ExportIcon exported={handover !== null} />
+    </Button>
+  );
+}
+
+/**
+ * Clear, shown once an Export has been handed over that holds values Try again can't save. It
+ * asks first: a download may not have been kept, so only the rasika can say the file is saved.
+ */
+function ClearButton({ targets }: { targets: Target[] }) {
+  const { handover } = useExportState();
+  const [asking, setAsking] = useState(false);
+  const saved = handover?.entries ?? [];
+  const clearable = targets.filter((target) => saveFeedback.canClear(target, saved));
+  if (clearable.length === 0) return null;
   return (
     <>
-      {failed && (
-        <FailureLine
-          text={MESSAGES.exportFailed}
+      <Button
+        variant="ghost"
+        size="icon"
+        className={ICON_BUTTON}
+        aria-label={`${MESSAGES.actions.clear}. ${MESSAGES.clearConfirm.detail(clearable.length)}`}
+        onClick={() => setAsking(true)}
+      >
+        <IconTrash aria-hidden />
+      </Button>
+      <SheetFrame
+        open={asking}
+        onOpenChange={setAsking}
+        title={MESSAGES.clearConfirm.question}
+        description={MESSAGES.clearConfirm.detail(clearable.length)}
+      >
+        <div className="flex flex-col gap-2">
+          <Button
+            size="lg"
+            variant="destructive"
+            onClick={() => {
+              setAsking(false);
+              saveFeedback.clearSaved(saved);
+            }}
+          >
+            {MESSAGES.clearConfirm.yes}
+          </Button>
+          <Button size="lg" variant="outline" onClick={() => setAsking(false)}>
+            {MESSAGES.clearConfirm.no}
+          </Button>
+        </div>
+      </SheetFrame>
+    </>
+  );
+}
+
+/** The short label and sentence for a failed write of `kind`. */
+function wordsFor(kind: WriteKind | undefined) {
+  if (kind === 'move') return { label: MESSAGES.short.notMoved, sentence: MESSAGES.moveFailed };
+  if (kind === 'repick') {
+    return { label: MESSAGES.short.notChanged, sentence: MESSAGES.repickFailed };
+  }
+  return { label: MESSAGES.short.notSaved, sentence: MESSAGES.saveFailed };
+}
+
+/**
+ * The row beside a failed field: "Not saved" with Try again, Export and (after an Export) Clear;
+ * "Not moved" with Dismiss; "Not changed" with Export and Dismiss. A move or repick is never
+ * retried: the rasika does it again (docs/adr/0007). `onRetry` replaces the retried write where
+ * the screen must also act on success (a sheet that closes, a name that is picked).
+ */
+export function NotSavedLine({ targets, onRetry }: { targets: Target[]; onRetry?: () => void }) {
+  useShowsFailures(targets);
+  const feedback = useSaveFeedback();
+  const failed = targets.filter((target) => feedback.get(target)?.status === 'failed');
+  if (failed.length === 0) return null;
+  const kind = feedback.kindOf(failed[0]!);
+  const { label, sentence } = wordsFor(kind);
+  const retryable = failed.filter((target) => feedback.canRetry(target));
+  const dismissable = kind === 'move' || kind === 'repick';
+  return (
+    <SafetyRow
+      label={label}
+      sentence={sentence}
+      onRetry={
+        retryable.length === 0 ? undefined : (onRetry ?? (() => void feedback.retryAll(retryable)))
+      }
+      exportable={kind !== 'move'}
+      clearable={failed}
+      onDismiss={
+        dismissable ? () => failed.forEach((target) => feedback.dismiss(target)) : undefined
+      }
+    />
+  );
+}
+
+/** What a failed new record was, for the season-wide row: "Concert, Mon 2 Nov, 9:17 am". */
+function describe(target: Target, value: unknown): string | null {
+  if (target.field !== '*') return null;
+  if (target.table === 'events') {
+    const { date, startTime } = (value ?? {}) as { date?: string; startTime?: string | null };
+    return [MESSAGES.short.concert, date && dayText(date), startTime && timeText(startTime)]
+      .filter(Boolean)
+      .join(', ');
+  }
+  if (typeof value === 'string') return value;
+  const named = value as { name?: string; label?: string } | null;
+  return named?.name ?? named?.label ?? null;
+}
+
+/**
+ * Under the top bar of every screen: the failures no field on the screen shows (a new record, a
+ * move, a value from before a relaunch), as "Not saved · Concert, Mon 2 Nov, 9:17 am" for one
+ * or "3 not saved" for several; and "Export failed" when an Export couldn't be made at all.
+ */
+export function SeasonFeedback() {
+  const feedback = useSaveFeedback();
+  const { failed: exportFailed } = useExportState();
+  const unshown = feedback.unshown();
+  if (unshown.length === 0 && !exportFailed) return null;
+  const only = unshown.length === 1 ? unshown[0]! : null;
+  const kind = only ? feedback.kindOf(only) : undefined;
+  const words = wordsFor(kind);
+  const what = only ? describe(only, feedback.get(only)?.value) : null;
+  const retryable = unshown.filter((target) => feedback.canRetry(target));
+  return (
+    <div className="border-b border-border">
+      {unshown.length > 0 && (
+        <SafetyRow
+          label={
+            only
+              ? what
+                ? `${words.label} · ${what}`
+                : words.label
+              : MESSAGES.short.count(unshown.length)
+          }
+          sentence={
+            only
+              ? [what, words.sentence].filter(Boolean).join(': ')
+              : MESSAGES.notSavedCount(unshown.length)
+          }
+          onRetry={retryable.length > 0 ? () => void feedback.retryAll(retryable) : undefined}
+          exportable
+          clearable={unshown}
+          onDismiss={
+            kind === 'move' || kind === 'repick' ? () => feedback.dismiss(only!) : undefined
+          }
+        />
+      )}
+      {exportFailed && (
+        <SafetyRow
+          label={MESSAGES.short.exportFailed}
+          sentence={MESSAGES.exportFailed}
           onRetry={() => {
             dismissExportFailure();
-            void exportSeason(failed);
+            void exportSeason(exportFailed);
           }}
         />
       )}
-      {storeUnreadable && <FailureLine text={MESSAGES.exportStoreUnreadable} />}
-    </>
+    </div>
   );
 }

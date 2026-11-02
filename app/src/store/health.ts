@@ -1,47 +1,56 @@
-// Whether the phone's database opened (second review of PR #5, A3). When it won't (WebKit's
-// "Connection to Indexed Database server lost", a refused open, or one still waiting after
-// OPEN_TIMEOUT_MS), Dexie's live queries never answer, so the screens would stay blank: the app
-// shows the rescue screen instead (screens/RescueScreen.tsx), which needs no database.
+// Whether the phone's database opened. When the open is refused (WebKit's "Connection to Indexed
+// Database server lost"), Dexie's live queries never answer, so the screens would stay blank: the
+// app shows the rescue screen (screens/RescueScreen.tsx), which needs no database. An open still
+// waiting after OPEN_TIMEOUT_MS is only slow: the screens stay, with "Still opening your
+// season…" and Export at the top, until it opens or fails.
 
 import { useSyncExternalStore } from 'react';
 import type { WrappedDB } from './db';
 
 export const OPEN_TIMEOUT_MS = 10_000;
 
-let failure: unknown = null;
+export type StoreHealth =
+  | { state: 'opening' }
+  | { state: 'slow' }
+  | { state: 'open' }
+  | { state: 'failed'; error: unknown };
+
+let health: StoreHealth = { state: 'opening' };
 const listeners = new Set<() => void>();
 
-function set(next: unknown) {
-  failure = next;
+function set(next: StoreHealth) {
+  health = next;
   listeners.forEach((listener) => listener());
 }
 
-/** Open `db` in the background and remember whether it failed. Never awaited by the first render. */
+/** Open `db` in the background and follow how it goes. Never awaited by the first render. */
 export function watchStore(db: WrappedDB, timeoutMs = OPEN_TIMEOUT_MS): void {
+  health = { state: 'opening' };
   const timer = setTimeout(() => {
-    set(new Error(`the phone store didn't open within ${timeoutMs / 1000} s`));
+    if (health.state === 'opening') set({ state: 'slow' });
   }, timeoutMs);
   db.open().then(
     () => {
       clearTimeout(timer);
-      // A slow open that got there after all: the screens come back.
-      if (failure) set(null);
+      set({ state: 'open' });
     },
     (error: unknown) => {
       clearTimeout(timer);
       console.error('the phone store did not open', error);
-      set(error);
+      set({ state: 'failed', error });
     },
   );
 }
 
-/** The reason the store didn't open, or null while it is open or opening. */
-export function useStoreFailure(): unknown {
-  return useSyncExternalStore(
-    (listener) => {
-      listeners.add(listener);
-      return () => void listeners.delete(listener);
-    },
-    () => failure,
-  );
+export function storeHealth(): StoreHealth {
+  return health;
+}
+
+export function subscribeStoreHealth(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => void listeners.delete(listener);
+}
+
+export function useStoreHealth(): StoreHealth {
+  return useSyncExternalStore(subscribeStoreHealth, storeHealth);
 }

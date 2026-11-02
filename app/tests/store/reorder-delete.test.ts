@@ -334,7 +334,8 @@ describe('Undo (required)', () => {
     const item = (await removeItem(items[1]!.id, { db }))!;
     const concert = (await deleteEvent(event.id, { db }))!;
 
-    expect(await restoreItem(item.receipt.id, { db })).toBeNull();
+    // Blocked, and said so: the Undo bar must not read as done.
+    await expect(restoreItem(item.receipt.id, { db })).rejects.toThrow('its Concert is deleted');
     await restoreEvent(concert.receipt.id, { db });
     await restoreItem(item.receipt.id, { db });
 
@@ -416,7 +417,9 @@ describe('Undo (required)', () => {
     const removed = (await removeAppearance(vocal.id, { db }))!;
     const concert = (await deleteEvent(event.id, { db }))!;
 
-    expect(await restoreAppearance(removed.receipt.id, { db })).toBeNull();
+    await expect(restoreAppearance(removed.receipt.id, { db })).rejects.toThrow(
+      'its Concert is deleted',
+    );
     expect(await listReceipts(event.id, db)).toHaveLength(1);
     await restoreEvent(concert.receipt.id, { db });
     await restoreAppearance(removed.receipt.id, { db });
@@ -449,6 +452,21 @@ describe('Undo (required)', () => {
     await pruneReceipts(day, db);
 
     expect((await listReceipts(event.id, db)).map((r) => r.id)).toEqual([fresh.receipt.id]);
+  });
+
+  it('third review: keeps an old receipt while its failed Undo bar still offers it', async () => {
+    const db = freshDb();
+    const { event, items } = await concertOfEight(db);
+    const old = (await removeItem(items[0]!.id, { db }))!;
+    const day = 24 * 60 * 60 * 1000;
+    await db.meta.put({
+      key: `receipt:${old.receipt.id}`,
+      value: { ...old.receipt, at: new Date(Date.now() - day - 60_000).toISOString() },
+    });
+
+    await pruneReceipts(day, db, Date.now(), new Set([old.receipt.id]));
+
+    expect((await listReceipts(event.id, db)).map((r) => r.id)).toEqual([old.receipt.id]);
   });
 
   it('refuses to restore a fourth presenter to a Lecdem, keeping the receipt', async () => {

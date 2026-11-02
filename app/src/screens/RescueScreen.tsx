@@ -1,32 +1,44 @@
-// The one screen left when the phone's database won't open (second review of PR #5, A3;
-// DESIGN.md "The store can't be opened"). It needs no database: Export writes the values not
-// saved, from save feedback and their localStorage copies, into a file marked store-unreadable.
+// The one screen left when the phone's database won't open (DESIGN.md "The store can't be
+// opened"). It needs no database: Export writes the journal of values not saved into a file
+// marked store-unreadable, and the Export icon then carries a check badge. A store that is only slow
+// to open keeps the screens, with "Still opening your season…" (muted, a spinner, no alert) and
+// Export at the top.
 
-import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { IconAlertCircle } from '@tabler/icons-react';
+import { Component, useEffect, type ErrorInfo, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
-import { useStoreFailure } from '../store/health';
-import { exportSeason } from './components/export-file';
-import { ExportLines } from './components/feedback';
+import { useStoreHealth } from '../store/health';
+import { exportSeason, storeOpened, useExportState } from './components/export-file';
+import { ExportIcon, SafetyRow } from './components/feedback';
 import { MESSAGES } from './messages';
 
+/** Back to the app's start, never the screen that broke, so one broken screen can't trap it. */
+const restart = () => window.location.assign(import.meta.env.BASE_URL);
+
 export function RescueScreen() {
+  const { handover } = useExportState();
   return (
     <div className="flex min-h-dvh flex-col pt-[env(safe-area-inset-top)] pr-[calc(16px+env(safe-area-inset-right))] pb-[calc(16px+env(safe-area-inset-bottom))] pl-[calc(16px+env(safe-area-inset-left))]">
-      <div role="alert" className="flex flex-1 flex-col justify-center gap-4 py-8">
-        <h1 className="text-title font-semibold">{MESSAGES.rescue.title}</h1>
-        <p>{MESSAGES.rescue.sentence}</p>
-        <ExportLines />
+      <div role="alert" className="flex flex-1 flex-col items-center justify-center gap-3 py-8">
+        <IconAlertCircle aria-hidden className="size-10 text-destructive" />
+        <h1 className="text-center text-title font-semibold">{MESSAGES.rescue.title}</h1>
       </div>
       <div className="flex flex-col gap-2">
-        <Button size="lg" className="w-full" onClick={() => window.location.reload()}>
+        <Button size="lg" className="w-full" onClick={restart}>
           {MESSAGES.actions.tryAgain}
         </Button>
         <Button
           size="lg"
           variant="outline"
           className="w-full"
+          aria-label={
+            handover
+              ? `${MESSAGES.short.exported}. ${MESSAGES.exportStoreUnreadable}`
+              : MESSAGES.actions.export
+          }
           onClick={() => void exportSeason({ rescue: true })}
         >
+          <ExportIcon exported={handover !== null} />
           {MESSAGES.actions.export}
         </Button>
       </div>
@@ -34,10 +46,31 @@ export function RescueScreen() {
   );
 }
 
-/** The app, or the rescue screen when the store didn't open or the screens broke. */
+/**
+ * The app, or the rescue screen when the store didn't open or the screens broke. While a slow
+ * open is still pending, the screens stay, under a row offering the Export.
+ */
 export function StoreGate({ children }: { children: ReactNode }) {
-  const failure = useStoreFailure();
-  return failure ? <RescueScreen /> : <RescueBoundary>{children}</RescueBoundary>;
+  const health = useStoreHealth();
+  useEffect(() => {
+    if (health.state === 'open') storeOpened();
+  }, [health.state]);
+  if (health.state === 'failed') return <RescueScreen />;
+  return (
+    <>
+      {health.state === 'slow' && (
+        <div className="border-b border-border pt-[env(safe-area-inset-top)] pr-[calc(16px+env(safe-area-inset-right))] pl-[calc(16px+env(safe-area-inset-left))]">
+          <SafetyRow
+            label={MESSAGES.short.stillOpening}
+            sentence={MESSAGES.short.stillOpening}
+            exportable
+            waiting
+          />
+        </div>
+      )}
+      <RescueBoundary>{children}</RescueBoundary>
+    </>
+  );
 }
 
 /** Whatever breaks the screens leaves the rescue screen, never a blank page. */

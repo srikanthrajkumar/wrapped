@@ -17,7 +17,7 @@ import { renumber, type Deleted } from './items';
 import { getLive, newTimestamps, remove, save, type WriteOptions } from './mutate';
 import { entryResolver, loadEntries, type ResolvedEntry } from './queries';
 import { peekReceipt, takeReceipt, writeReceipt } from './receipts';
-import { appearanceProblems, check, RuleError } from './rules';
+import { appearanceProblems, check, EVENT_DELETED, RuleError } from './rules';
 
 type Kind = 'artist' | 'sabha';
 
@@ -252,7 +252,8 @@ export async function removeAppearance(
 
 /**
  * Undo an Appearance removal: back at its old place in billing order, the others renumbered,
- * in one transaction. A used or stale receipt, or one whose Event is deleted, restores nothing.
+ * in one transaction. A used or stale receipt restores nothing; one whose Event is deleted is
+ * refused with EVENT_DELETED, its receipt kept.
  * A restore that would break a rule (a fourth presenter at a Lecdem) is refused with the
  * receipt kept, so it can be undone once the rasika has changed a Role.
  */
@@ -263,7 +264,8 @@ export async function restoreAppearance(
   return db.transaction('rw', [db.events, db.appearances, db.outbox, db.meta], async () => {
     const pending = await peekReceipt(db, receiptId);
     const event = pending && (await db.events.get(pending.eventId));
-    if (!event || event.deletedAt !== null) return null;
+    if (!event) return null;
+    if (event.deletedAt !== null) throw new RuleError([EVENT_DELETED]);
     const receipt = await takeReceipt(db, receiptId, 'appearance');
     const record = receipt?.records[0];
     const tombstone = record && (await db.appearances.get(record.id));
@@ -309,10 +311,7 @@ export async function moveAppearance(
   });
 }
 
-/**
- * Move an Appearance `by` places from where it is now: a retried move starts from the billing
- * order as it stands, not from the one it was tapped in (second review of PR #5, B3).
- */
+/** Move an Appearance `by` places from where it is now in billing order. */
 export async function moveAppearanceBy(
   id: string,
   by: number,

@@ -7,7 +7,6 @@
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useRef, useState, type ReactNode } from 'react';
-import { fold } from '../../catalog/fold';
 import { newId, ROLES, type Role } from '../../model';
 import {
   createArtist,
@@ -80,7 +79,7 @@ export function NamePicker({
     const create = kind === 'artist' ? createArtist : createSabha;
     try {
       const created = await saveWith({ table, id, field: '*' }, name, () => create(name, { id }), {
-        intent: `${table}:${fold(name)}`,
+        kind: 'create',
       });
       setFailedAdd(created ? null : { id, name });
       if (created) pick(created);

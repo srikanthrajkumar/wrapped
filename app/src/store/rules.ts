@@ -22,6 +22,9 @@ export class RuleError extends Error {
   }
 }
 
+/** Why an Undo of an Item or Artist can't run: the Concert it belonged to is deleted. */
+export const EVENT_DELETED = 'its Concert is deleted';
+
 export function check(problems: string[]): void {
   if (problems.length > 0) throw new RuleError(problems);
 }

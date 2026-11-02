@@ -148,15 +148,15 @@ export function EventScreen({ eventId }: { eventId: string }) {
     setFocusAfter({ list: 'stage', index });
   };
 
-  // Each add has its own id, so a second failure never hides the first; attempts for one Artist
-  // are one change, so a retry never adds the Artist twice. The Role chips follow only an add
-  // made in this sheet, never one replayed from the season-wide line.
+  // Each add has its own id, so a second failure never hides the first, and a retry adds it
+  // once. The Role chips follow only an add made in this sheet, never one retried from the
+  // season-wide row.
   const addArtist = async (entry: { id: string; name: string }, id = newId()) => {
     const appearance = await saveWith(
       appearanceTarget(id, '*'),
       { eventId, artistId: entry.id, name: entry.name },
       () => addAppearance(eventId, entry.id, {}, { id }),
-      { intent: `appearances:${eventId}:${entry.id}` },
+      { kind: 'create' },
     );
     setArtistFailed(appearance ? null : { id, entry });
     if (appearance) setRolesFor(appearance.id);
@@ -242,12 +242,12 @@ export function EventScreen({ eventId }: { eventId: string }) {
                         first={index === 0}
                         last={index === items.length - 1}
                         onMove={(by) =>
-                          // Moved from where it is when written, so a retry never replays a stale
-                          // place (B3).
+                          // A move is never retried: "Not moved", and the rasika moves it again.
                           void saveWith(
                             { table: 'items', id: item.id, field: 'position' },
                             index + by + 1,
                             () => moveItemBy(item.id, by),
+                            { kind: 'move' },
                           )
                         }
                       />
@@ -323,8 +323,11 @@ export function EventScreen({ eventId }: { eventId: string }) {
               onOpen={() => setAppearanceFor(appearance.id)}
               onColours={() => setColoursFor(appearance.id)}
               onMove={(by) =>
-                void saveWith(appearanceTarget(appearance.id, 'position'), index + by + 1, () =>
-                  moveAppearanceBy(appearance.id, by),
+                void saveWith(
+                  appearanceTarget(appearance.id, 'position'),
+                  index + by + 1,
+                  () => moveAppearanceBy(appearance.id, by),
+                  { kind: 'move' },
                 )
               }
             />

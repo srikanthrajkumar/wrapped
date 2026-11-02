@@ -23,8 +23,24 @@ vi.mock('../../src/store/items', () => ({ restoreItem: mocks.restoreItem }));
 vi.mock('../../src/store/people', () => ({ restoreAppearance: mocks.restoreAppearance }));
 vi.mock('../../src/store/receipts', () => ({ dropReceipt: mocks.dropReceipt }));
 
-const { currentUndo, dismissUndo, leaveEvent, offerUndo, undo, undoOffers, undoText, UNDO_MS } =
+/** localStorage, shared by the Undo module and its reload. */
+const storage = new Map<string, string>();
+vi.stubGlobal('localStorage', {
+  get length() {
+    return storage.size;
+  },
+  key: (index: number) => [...storage.keys()][index] ?? null,
+  getItem: (key: string) => storage.get(key) ?? null,
+  setItem: (key: string, value: string) => void storage.set(key, value),
+  removeItem: (key: string) => void storage.delete(key),
+});
+
+const { dismissUndo, leaveEvent, offerUndo, undo, undoOffers, undoText, UNDO_MS } =
   await import('../../src/screens/undo');
+
+/** The live offer, else the latest failed one: what the bar shows first. */
+const currentUndo = () =>
+  undoOffers().find((offer) => !offer.failed) ?? undoOffers().at(-1) ?? null;
 
 const receipt = (kind: DeletionReceipt['kind']): DeletionReceipt => ({
   id: `r-${kind}`,
@@ -102,7 +118,8 @@ describe('Undo (required)', () => {
     // Tapped just before the end: on iOS the tap doesn't focus the bar, so nothing pauses it.
     await vi.advanceTimersByTimeAsync(UNDO_MS - 100);
     const undoing = undo(concert);
-    await vi.advanceTimersByTimeAsync(1000);
+    // Well past where a running 5 seconds would have ended.
+    await vi.advanceTimersByTimeAsync(UNDO_MS + 1000);
     expect(mocks.dropReceipt).not.toHaveBeenCalled();
     expect(currentUndo()?.receipt).toBe(concert);
 
@@ -156,14 +173,40 @@ describe('Undo (required)', () => {
 
     const offer = currentUndo()!;
     expect(offer).toMatchObject({ failed: true, refused: 'a Lecdem has at most 3 presenters' });
-    expect(undoText(offer)).toBe("Artist removed. Can't undo: a Lecdem has at most 3 presenters.");
+    expect(undoText(offer)).toBe('Undo failed: Artist, a Lecdem has at most 3 presenters.');
     expect(logged).not.toHaveBeenCalled();
 
     // Any other failure is a write that didn't happen, and is logged.
     mocks.restoreAppearance.mockRejectedValue(new Error('disk full'));
     await undo(artist);
-    expect(undoText(currentUndo()!)).toBe('Artist removed. Not saved on this phone.');
+    expect(undoText(currentUndo()!)).toBe('Undo failed: Artist. Not saved on this phone.');
     expect(logged).toHaveBeenCalled();
     logged.mockRestore();
+  });
+
+  it('third review: a failed Undo bar survives a reload, receipt and all', async () => {
+    const concert = receipt('event');
+    offerUndo(concert);
+    mocks.restoreEvent.mockRejectedValue(new Error('disk full'));
+    await undo(concert);
+
+    vi.resetModules();
+    const reloaded = await import('../../src/screens/undo');
+    expect(reloaded.undoOffers()).toEqual([
+      expect.objectContaining({ receipt: concert, failed: true }),
+    ]);
+    expect(reloaded.failedUndoReceipts()).toEqual(new Set([concert.id]));
+
+    reloaded.dismissUndo(concert.id);
+    expect(storage.size).toBe(0);
+  });
+
+  it('third review: an Undo blocked by its deleted Concert says so, never "undone"', async () => {
+    const item = receipt('item');
+    offerUndo(item);
+    mocks.restoreItem.mockRejectedValue(new RuleError(['its Concert is deleted']));
+
+    expect(await undo(item)).toBe(false);
+    expect(undoText(currentUndo()!)).toBe('Undo failed: Item 3, its Concert is deleted.');
   });
 });

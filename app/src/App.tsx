@@ -83,11 +83,32 @@ function useReceiptsClearedOnLeave() {
   }, [path]);
 }
 
+/**
+ * The page keeps the sticky footer's height (its bottom action, any Undo bars, the tab bar) as
+ * scroll padding, so a field focused behind the footer scrolls up above it.
+ */
+function useFooterRoom(footer: HTMLElement | null, inset: number) {
+  useEffect(() => {
+    if (!footer) return;
+    const root = document.documentElement;
+    const observer = new ResizeObserver(() => {
+      root.style.scrollPaddingBottom = `${footer.offsetHeight + inset}px`;
+    });
+    observer.observe(footer);
+    return () => {
+      observer.disconnect();
+      root.style.scrollPaddingBottom = '';
+    };
+  }, [footer, inset]);
+}
+
 export function App() {
   const done = useFirstLaunchDone();
   const [inItemEditor] = useRoute(ITEM_ROUTE);
   const [slot, setSlot] = useState<HTMLElement | null>(null);
   const inset = useKeyboardInset();
+  const [footer, setFooter] = useState<HTMLElement | null>(null);
+  useFooterRoom(footer, inset);
   useReceiptsClearedOnLeave();
 
   // Until the store answers, only the dark background shows (no flash of the wrong screen).
@@ -129,7 +150,7 @@ export function App() {
           )}
         </main>
         {done && (
-          <footer className="sticky z-10" style={{ bottom: inset }}>
+          <footer ref={setFooter} className="sticky z-10" style={{ bottom: inset }}>
             <div ref={setSlot} />
             {inItemEditor ? (
               <div className="h-[env(safe-area-inset-bottom)] bg-background" />

@@ -40,6 +40,13 @@ describe('catalog search', () => {
     const typed = buildIndex(catalog);
     const ids = (results: SearchResult[]) =>
       results.map((r) => (r.kind === 'song' ? r.song.kritiId : `raga:${r.raga.key}`));
+    // What a fresh index answers, built once per distinct query: backspacing and the shared
+    // "kalyani" tail repeat many.
+    const answers = new Map<string, string[]>();
+    const fresh = (query: string) => {
+      if (!answers.has(query)) answers.set(query, ids(buildIndex(catalog).search(query, 100)));
+      return answers.get(query)!;
+    };
     // Words crossing the four-to-five letter line, extra words, a single-letter word that
     // switches to unordered matching, and backspacing.
     const sessions = [
@@ -59,10 +66,11 @@ describe('catalog search', () => {
       const keystrokes = [...session].map((_, i) => session.slice(0, i + 1));
       keystrokes.push(...keystrokes.slice(0, -1).reverse(), 'kalyani', 'kalyan', 'kaly');
       for (const query of keystrokes) {
-        expect(ids(typed.search(query, 100)), query).toEqual(
-          ids(buildIndex(catalog).search(query, 100)),
-        );
+        expect(ids(typed.search(query, 100)), query).toEqual(fresh(query));
       }
     }
-  });
+    // Hundreds of fresh indexes are built, so the default 5 s is too tight on a loaded machine.
+    // Measured 2026-11-02 with the answers cached: 2.6 to 10.3 s on a 2-vCPU host at load
+    // average 13 to 17.
+  }, 30_000);
 });

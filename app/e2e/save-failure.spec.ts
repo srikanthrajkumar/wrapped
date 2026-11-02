@@ -23,13 +23,13 @@ test('a failed save stays on screen as "Not saved", exports, and retries', async
   await page.getByRole('button', { name: 'Not applicable' }).click();
 
   // The value stays as entered, marked not saved, with no highlight.
-  await expect(page.getByText('Not saved on this phone.')).toBeVisible();
+  await expect(page.getByText('Not saved', { exact: true })).toBeVisible();
   await expect(tala).toHaveAccessibleName('Tala, not applicable');
   await expect(tala.locator('xpath=..')).not.toHaveClass(/save-highlight/);
   // Leaving and coming back keeps it (feedback lives outside the screen).
   await page.getByRole('link', { name: 'Done' }).click();
   await page.getByRole('link', { name: /^1/ }).click();
-  await expect(page.getByText('Not saved on this phone.')).toBeVisible();
+  await expect(page.getByText('Not saved', { exact: true })).toBeVisible();
 
   // Export, while writes still fail: the stored season plus the stranded value.
   const download = page.waitForEvent('download');
@@ -45,13 +45,14 @@ test('a failed save stays on screen as "Not saved", exports, and retries', async
       field: 'tala',
       value: { state: 'na', key: null, text: '', guess: false },
       enteredAt: expect.any(String),
+      state: 'failed',
     },
   ]);
 
   // The phone can write again: Try again saves it, and the line goes.
   await setFailingWrites(page, false);
   await page.getByRole('button', { name: 'Try again' }).click();
-  await expect(page.getByText('Not saved on this phone.')).toHaveCount(0);
+  await expect(page.getByText('Not saved', { exact: true })).toHaveCount(0);
   await expect(tala).toHaveAccessibleName('Tala, not applicable');
   expect(file.unsyncedOps).toBeGreaterThan(0);
   expect(await readMeta(page, 'firstLaunch')).toMatchObject({ doneAt: expect.any(String) });

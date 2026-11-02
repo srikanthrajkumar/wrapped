@@ -11,6 +11,8 @@ import type {
   ToServiceWorker,
 } from './precache-phases';
 import { ReadinessTracker, type Readiness } from './readiness';
+import { appliesWaitingUpdate } from './screens/update-offer';
+import { isFirstLaunchDone } from './store/first-launch';
 import { recordOfflineReady, recordReadyToLog } from './store/offline-ready';
 
 /** The catalog this build ships, set by vite.config.ts; null when it has none. */
@@ -59,8 +61,16 @@ async function askReadyStatus(): Promise<ReadyStatus | null> {
 
 const SW_URL = `${import.meta.env.BASE_URL}sw.js`;
 
-/** Set when Try again found a newer build: it is installed and applied, not mixed in. */
+/** Set when first launch's Try again found a newer build: it is installed and applied whole. */
 let applyWhenWaiting = false;
+
+/** Apply the waiting build if first launch's Try again asked for it and first launch isn't done. */
+async function applyRequestedUpdate(): Promise<void> {
+  const firstLaunchDone = await isFirstLaunchDone().catch(() => true);
+  if (!appliesWaitingUpdate({ requested: applyWhenWaiting, firstLaunchDone })) return;
+  applyWhenWaiting = false;
+  updateNow();
+}
 
 const readiness = new ReadinessTracker({
   ask: askReadyStatus,
@@ -71,11 +81,11 @@ const readiness = new ReadinessTracker({
     if (registration && worker) {
       // The worker refills its precache and answers once done; progress comes meanwhile.
       const answer = await askWithin<ReadyStatus>(worker, { type: 'REPAIR' }, REPAIR_TIMEOUT_MS);
-      if (answer?.newBuild) {
-        // Only first launch offers Try again, so nothing is lost to the reload that follows.
-        applyWhenWaiting = true;
+      // A request lasts only for this attempt: a later one that finds this build current drops it.
+      applyWhenWaiting = answer?.newBuild === true;
+      if (applyWhenWaiting) {
         await registration.update();
-        if (registration.waiting) updateNow();
+        if (registration.waiting) await applyRequestedUpdate();
       }
     } else if (registration) {
       await registration.update();
@@ -149,7 +159,7 @@ export function startServiceWorker(): void {
           newCatalog: status !== null && status.catalogFile !== CATALOG_FILE,
         };
         listeners.forEach((listener) => listener());
-        if (applyWhenWaiting) updateNow();
+        await applyRequestedUpdate();
       })();
     },
     onRegisterError() {

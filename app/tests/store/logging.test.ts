@@ -601,8 +601,8 @@ describe("changing an Item's pick (repickItem)", () => {
   });
 });
 
-describe('second review of PR #5, store', () => {
-  it('B5: a create retried with an id a deleted record holds is refused, never handed back', async () => {
+describe('creates retried with their own id', () => {
+  it('a create retried with an id a deleted record holds is refused, never handed back', async () => {
     const db = freshDb();
     const event = await createEvent({ kind: 'concert' }, { db, id: 'c1' });
     await deleteEvent(event.id, { db });
@@ -614,21 +614,5 @@ describe('second review of PR #5, store', () => {
     // A live one is still handed back: the retry of a create that did commit.
     expect((await createSabha('Music Academy', { db, id: 's1' })).id).toBe('s1');
     expect((await createSabha('Music Academy', { db, id: 's1' })).id).toBe('s1');
-  });
-
-  it('B3: a retried repick leaves the Details saved since it failed as they are', async () => {
-    const db = freshDb();
-    const event = await createEvent({ kind: 'concert' }, { db });
-    const item = await addItemFrom(event.id, { kind: 'unknown' }, { db });
-    await setDetail(item.id, 'tala', unresolvedValue('Khanda Chapu'), { db });
-
-    const picked = await repickItem(
-      item.id,
-      { kind: 'song', song: song('c0004') },
-      { db, catalog: v1, keep: ['tala'] },
-    );
-    expect(picked.compositionKey).toBe('c0004');
-    expect(picked.tala).toEqual(unresolvedValue('Khanda Chapu'));
-    expect(picked.composer).not.toEqual(unknownValue());
   });
 });

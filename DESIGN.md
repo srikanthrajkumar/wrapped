@@ -193,7 +193,9 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
 - **Spacing** on a 4px base: 4, 8, 12, 16, 20, 24, 32, 40, 48. The screen gutter is 16px plus
   the safe-area inset. Related lines sit 4px apart; rows 8px; sections 24–32px.
 - **Thumb zone.** Primary actions sit in the bottom third: the fixed "Add Item" bar, the
-  docked search box, "Done" and "Next Item →".
+  docked search box, "Done" and "Next Item →". The page keeps room for everything docked at the
+  bottom (the action, any Undo bars, the tab bar): a field moved to behind them scrolls up above
+  them.
 - **Pushed screens' top bar** (decided 2026-11-01). The top centre belongs to the Dynamic Island,
   so there is no centred bar title. Below the safe area, the bar holds only a back chevron at
   the left, labelled with its destination ("‹ Season", "‹ Music Academy"), and at most one
@@ -352,24 +354,24 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   discards it.
 - **Saving:** no Save button and no toast. A changed or new row takes a surface-raised
   highlight that fades out over 1.2s, played only after the write to the phone has succeeded.
-- **Save failure** (decided 2026-11-01, reopening the eng review's D9): if a write to the phone
-  fails, the value stays on screen as entered, and a persistent line "Not saved on this phone"
-  appears beside it in `destructive`, with "Try again" and "Export". It stays until a retry
-  succeeds. It never plays the save highlight. That Export includes a labelled "Not saved"
-  section with the values the phone couldn't store, read from the screen (eng review D6).
-  Once an Export holding them has been handed over, the values Try again can no longer save
-  (copied back after a relaunch, or refused by a rule) get a third button, "Clear", which
-  removes them from the phone; a share sheet the rasika closed doesn't count as handed over
-  (decided 2026-11-02, second review of PR #5). A failure inside an open sheet (adding an
-  Artist or a new name, removing an Artist) shows its line in the sheet, above the search or
-  the sheet's buttons.
+- **Save failure** (decided 2026-11-01, reopening the eng review's D9; simplified 2026-11-02,
+  docs/adr/0007): every value is journalled on the phone the moment it is entered and leaves
+  only once the store is read back holding it. If a write fails, the value stays on screen as
+  entered, with an icon-led row in `destructive`: the alert mark, "Not saved", and icon buttons
+  for Try again and Export, whose names carry the sentence ("Not saved on this phone."). It never
+  plays the save highlight. Try again writes the value as entered, one at a time in the order
+  entered. A move or a repick is never retried: "Not moved" or "Not changed", with Dismiss, and
+  the rasika does it again. The Export holds every journal entry, labelled "Not saved". Once an
+  Export has been handed over, its download icon carries a check badge, and values Try again can no longer save
+  get Clear, which first asks "Is the Export saved where you can find it?" and then removes only
+  what that file holds. A failure inside an open sheet shows its row in the sheet.
 - **The store can't be opened** (decided 2026-11-02): when the phone's database won't open,
-  every screen gives way to one rescue screen that needs no database: "Your season can't be
-  opened on this phone just now." with "It's still stored here. Close the app and open it
-  again." under it, Try again (reloads) and Export. That Export holds only the values not
-  saved; it is named `carnatic-wrapped-<day>-store-unreadable.json`, and once handed over the
-  line "This Export holds only the changes not saved. The stored season couldn't be read; it's
-  still on this phone." shows at the top.
+  every screen gives way to one rescue screen that needs no database: the alert mark, "Can't open
+  your season", Try again (back to the start) and Export. That Export holds only the journal; it
+  is named `carnatic-wrapped-<day>-store-unreadable.json`, and once handed over the button keeps
+  "Export" and its download icon, with a small check badge (screen readers hear "Exported"). An open still waiting after 10 seconds leaves the screen in place, under the row
+  "Still opening your season…" with Export. It is a slow start, not a failure: a muted spinner
+  (Tabler IconLoader2, still when reduced motion is asked for) and muted text, no alert mark.
 - **Deleting:** removes at once and shows an Undo bar above the bottom actions for 5 seconds.
   No "Are you sure?". Behaviour (decided 2026-11-01):
   - The bar sits directly above the screen's bottom action (the Add Item bar, the editor's
@@ -381,11 +383,13 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   - After a delete, focus moves to the row that took the deleted one's place (or the list's
     heading if none), and screen readers hear "Item 5 deleted. Undo available."
   - Deleting the Event itself from its "⋯" menu returns to home with the Undo bar there.
-  - An Undo that fails to save keeps its bar, in destructive, with "Try again" and "Dismiss",
-    until it works or the rasika dismisses it; leaving the Event doesn't remove it. A new
-    delete's bar stacks under it (decided 2026-11-02, second review of PR #5). When a rule
-    refuses the Undo, the bar says which: "Artist removed. Can't undo: a Lecdem has at most 3
-    presenters." Its 5 seconds stop while the Undo is being written.
+  - An Undo that fails to save keeps an icon-led bar in destructive, "Undo failed · Concert" with
+    Try again and Dismiss, until it works or the rasika dismisses it, across leaving the Event and a
+    reload. Only the newest failed bar shows, with "+1" when older ones wait; "+1" brings the
+    next forward, and on the Event screen they are also under "⋯" (decided 2026-11-02). When a
+    rule refuses the Undo, the bar says which ("Undo failed · Artist · a Lecdem has at most 3
+    presenters"); when the Item's or Artist's Concert is deleted, it says so, with Dismiss
+    only. Its 5 seconds stop while the Undo is being written.
 - **Reordering:** a separate edit mode on the Event screen with explicit move controls. No drag
   during a Concert. It opens from a muted "Edit order" text button at the right of the "Running
   order" heading, shown once there are two or more Items. In edit mode each row has 48px move-up
@@ -465,17 +469,22 @@ voice: plain, short, the glossary's words, no exclamation marks, never blaming t
 | Home status | All synced | "All backed up" | |
 | Any screen | Session ended (FR-050) | "Sign in again to keep backing up. Logging still works." | Sign in |
 | Any screen | Another phone writes (FR-022) | "Your season is now being logged on another phone. Changes here are kept." | Details |
-| Item or Event | Save failed; Clear once an Export holds a value Try again can't save | "Not saved on this phone." | Try again · Export · Clear |
-| Any screen, top | Saves failed with no field on screen (a new Concert, Start logging, an added Artist, a move); after a relaunch, Export only; Clear once an Export holds them | "2 changes not saved on this phone." | Try again · Export · Clear |
-| Any screen, top | The Export file can't be made at all | "The Export couldn't be made on this phone." | Try again |
-| Any screen, top | After a rescue Export from a store that couldn't be read | "This Export holds only the changes not saved. The stored season couldn't be read; it's still on this phone." | |
-| Rescue screen | The phone's database won't open | "Your season can't be opened on this phone just now." · "It's still stored here. Close the app and open it again." | Try again · Export |
+| Item or Event | Save failed. An icon-led row: the alert mark and the short label; Try again, Export and Clear are icon buttons whose names carry the sentence. Clear only after an Export, and it asks first | "Not saved" · "Not saved on this phone." | Try again · Export · Clear |
+| Item | A move failed; never retried, the rasika moves it again | "Not moved" · "Not moved on this phone." | Dismiss |
+| Item | A repick failed; never retried, the pick is kept for Export | "Not changed" · "Not changed on this phone." | Export · Dismiss |
+| Any screen, top | Failures no field on screen shows (a new Concert, Start logging, an added Artist, values from before a relaunch). One is named by what it was, as Not saved · Concert, Mon 2 Nov, 9:17 am; several are counted | "2 not saved" · "2 changes not saved on this phone." | Try again · Export · Clear |
+| Clear's sheet | Before Clear removes anything | "Is the Export saved where you can find it?" · "Clearing removes 2 changes from this phone." | Yes, clear · Not yet |
+| Any screen, top | The Export file can't be made at all | "Export failed" · "The Export couldn't be made on this phone." | Try again |
+| Export button | Handed over: a check on the button; from a store that couldn't be read, its name says so | "Exported" · "This Export holds only the changes not saved. The stored season couldn't be read; it's still on this phone." | |
+| Any screen, top | The phone's database is still opening after 10 s; the screen stays | "Still opening your season…" | Export |
+| Rescue screen | The phone's database won't open; the alert mark above the title | "Can't open your season" | Try again · Export |
 | Home | New catalog (FR-038) | "An updated song catalog is ready." | Update · Later |
 | Item search | No match | "No match in the catalog" | |
 | Item search | No catalog | "Catalog not on this phone yet. What you type is kept and can be matched later in Tidy." | |
 | Undo bar | After a delete | "Item 5 deleted" (or "Artist removed", "Concert deleted") | Undo |
-| Undo bar | The Undo itself failed to save | "Concert deleted. Not saved on this phone." | Try again · Dismiss |
-| Undo bar | A rule refuses the Undo | "Artist removed. Can't undo: a Lecdem has at most 3 presenters." | Try again · Dismiss |
+| Undo bar | The Undo itself failed to save. Only the newest failed bar shows, with "+1" for older ones | "Undo failed · Concert" (or "Item 5", "Artist") · "Undo failed: Concert. Not saved on this phone." · "+1" | Try again · Dismiss |
+| Undo bar | A rule refuses the Undo | "Undo failed · Artist · a Lecdem has at most 3 presenters" · "Undo failed: Artist, a Lecdem has at most 3 presenters." | Try again · Dismiss |
+| Undo bar | The Item's or Artist's Concert is deleted | "Undo failed · Item 3 · its Concert is deleted" · "Undo failed: Item 3, its Concert is deleted." | Dismiss |
 | Screen reader | After a delete | "Item 5 deleted. Undo available." | |
 | Screen reader | Search pauses | "5 results" / "No matches" | |
 
@@ -510,3 +519,5 @@ in the phase that builds it):
 | 2026-11-01 | Design review (`/plan-design-review`, D3 to D29): Now and Done, the Event and Item editor bars, top bars, first launch, states, save failure, Undo, rows not cards, softened dark text, larger text, focus, Detail input, pickers, Colour sheet, Messages. The record is in `specs/001-season-logger/reviews.md`. |
 | 2026-11-02 | Review of PR #5, the Maintainer's answers: "2 changes not saved on this phone." at the top of any screen for failures no field shows; "The Export couldn't be made on this phone."; "Offline logging isn't available in this browser. You can still log while you have signal." with Start; a failed Undo keeps its bar ("Concert deleted. Not saved on this phone." with Try again); failed values also copied to localStorage for Export after a relaunch; at 150% text and up, the Item search's form chips scroll in one row. |
 | 2026-11-02 | Second review of PR #5, the Maintainer's answers: "Clear" after an Export for values Try again can't save; the rescue screen when the store won't open, and the `-store-unreadable` Export with its line; a failed Undo stays, with "Dismiss", and a new Undo bar stacks under it; a rule's refusal shown on the bar; a failure in an open sheet shows in the sheet. With the same review, the form chips scroll in one row whenever they don't fit, decided by the row itself rather than the text size (Android scales text by zoom); the light `destructive` darkened from 0.577 to 0.55 lightness, so it passes AA on surface-raised (4.6:1); the season-wide line moved under the top bar (under the title on home and Settings). |
+| 2026-11-02 | Third review of PR #5, the Maintainer's answers: the rescue model simplified to one journal (docs/adr/0007); icon-led safety rows (Tabler IconAlertCircle, IconRefresh, IconDownload, IconTrash, IconX) with the short labels "Not saved", "Not moved", "Not changed", "Export failed"; Clear asks "Is the Export saved where you can find it?"; the rescue screen "Can't open your season" with a check on Export; "Still opening your season…"; only the newest failed Undo bar, with "+1"; "Can't undo: its Concert is deleted". |
+| 2026-11-02 | After the round-3 screenshots, the Maintainer's answers: a failed Undo bar names what failed, "Undo failed · Item 2" (not "Item 2 deleted" in red), and never covers a field; "Still opening your season…" is muted, with a spinner and no alert mark; after an Export the download icon stays the button, with a small check badge that is no button of its own, on the rows and the rescue screen. |

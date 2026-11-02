@@ -3,7 +3,7 @@
 // one primary action; then Next and Season so far, each shown only once it has something in it.
 
 import { IconChevronRight } from '@tabler/icons-react';
-import { useState, useSyncExternalStore } from 'react';
+import { useRef, useState, useSyncExternalStore } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { updateNow, useUpdate } from '../pwa';
@@ -39,6 +39,8 @@ export function HomeScreen() {
   const [, navigate] = useLocation();
   const feedback = useSaveFeedback();
   const undos = useSyncExternalStore(subscribeUndo, undoOffers);
+  // One Concert per tap: a double tap must not make two.
+  const creating = useRef(false);
 
   if (summaries === undefined || notes === undefined) return null;
 
@@ -68,18 +70,24 @@ export function HomeScreen() {
         (b.event.startTime ?? '').localeCompare(a.event.startTime ?? ''),
     );
 
-  // Each attempt has its own id, so a failure is listed on its own; the attempts are one
-  // intent, so once one succeeds the failed others go, and Try again makes one Concert.
+  // Each attempt is its own Concert with its own id: a failed one stays listed, by its date and
+  // time, whatever later taps do, and its Try again makes it once (docs/adr/0007).
   const logNow = async () => {
-    const id = newId();
-    const concert = { kind: 'concert' as const, date: today(), startTime: nowTime() };
-    const event = await saveWith(
-      { table: 'events', id, field: '*' },
-      concert,
-      () => createEvent(concert, { id }),
-      { intent: 'events:log-now' },
-    );
-    if (event) navigate(`/event/${event.id}`);
+    if (creating.current) return;
+    creating.current = true;
+    try {
+      const id = newId();
+      const concert = { kind: 'concert' as const, date: today(), startTime: nowTime() };
+      const event = await saveWith(
+        { table: 'events', id, field: '*' },
+        concert,
+        () => createEvent(concert, { id }),
+        { kind: 'create' },
+      );
+      if (event) navigate(`/event/${event.id}`);
+    } finally {
+      creating.current = false;
+    }
   };
 
   const startLogging = async (id: string) => {

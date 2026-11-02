@@ -10,6 +10,11 @@ export async function finishFirstLaunch(db: WrappedDB = defaultDb): Promise<void
   await db.meta.put({ key: FIRST_LAUNCH_KEY, value: { doneAt: new Date().toISOString() } });
 }
 
+/** Whether first launch is done, read once. */
+export async function isFirstLaunchDone(db: WrappedDB = defaultDb): Promise<boolean> {
+  return (await db.meta.get(FIRST_LAUNCH_KEY)) !== undefined;
+}
+
 /** True once first launch is done, false before, undefined while the store is read. */
 export function useFirstLaunchDone(): boolean | undefined {
   return useLiveQuery(async () => (await defaultDb.meta.get(FIRST_LAUNCH_KEY)) !== undefined);
