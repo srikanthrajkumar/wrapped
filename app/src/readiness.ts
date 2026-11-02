@@ -2,8 +2,9 @@
 // trusted from a stored flag: the page asks the service worker, which checks its precache for
 // every first-phase file of its build. While the worker installs it posts real progress, per
 // file and as bytes arrive; 15 s with neither asks again, and an incomplete answer then means the
-// download stopped. Try again asks the worker to fetch what its precache is missing. Without a
-// service worker there is no offline logging, and the rasika is told so and let in.
+// download stopped. Try again asks the worker to fetch what its precache is missing, under the
+// same 15 s rule, so a fetch that hangs comes back to Try again. Without a service worker there
+// is no offline logging, and the rasika is told so and let in.
 // Framework-free, with the worker injected, so tests/readiness.test.ts drives it.
 
 import type { ReadyStatus } from './precache-phases';
@@ -72,7 +73,7 @@ export class ReadinessTracker {
 
   /** Bytes of a first-phase file arrived: one slow file is still a download, not a stall. */
   bytes(): void {
-    if (this.current.state === 'downloading') this.arm();
+    if (this.current.state === 'downloading' || this.current.state === 'checking') this.arm();
   }
 
   /** The browser has no service worker, or refused to register one. */
@@ -87,11 +88,13 @@ export class ReadinessTracker {
     await this.check({ stopIfIncomplete: false });
   }
 
-  /** "Try again" after the download stopped. */
+  /** "Try again" after the download stopped: a repair with no progress for 15 s stops again. */
   async retry(): Promise<void> {
     this.set({ state: 'checking' });
+    this.arm();
     await this.deps.repair().catch(() => undefined);
-    await this.check({ stopIfIncomplete: false });
+    // A repair that finished after the stall stopped it still turns "stopped" into ready.
+    await this.check({ stopIfIncomplete: this.current.state === 'stopped' });
   }
 
   private async check({ stopIfIncomplete }: { stopIfIncomplete: boolean }): Promise<void> {

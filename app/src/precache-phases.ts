@@ -34,6 +34,8 @@ export interface ReadyStatus {
   total: number;
   /** The catalog file this worker precaches, or null when the build has none. */
   catalogFile: string | null;
+  /** In answer to REPAIR: the server serves a newer build, so nothing was mixed in. */
+  newBuild?: boolean;
 }
 
 /** Posted by an installing service worker as each first-phase file is cached (eng review D4). */
@@ -61,6 +63,49 @@ export async function countCached(
   let cached = 0;
   for (const url of urls) if (await isCached(url)) cached += 1;
   return cached;
+}
+
+/** A precached file as the build lists it: hashed files have no revision. */
+export interface PrecacheFile {
+  url: string;
+  revision?: string | null;
+}
+
+export interface RepairDeps {
+  isCached(file: PrecacheFile): Promise<boolean>;
+  fetch(url: string): Promise<Response>;
+  put(file: PrecacheFile, response: Response): Promise<void>;
+  /** The server's service worker script, which lists the revisions of the build it serves. */
+  serverWorker(): Promise<string>;
+}
+
+/**
+ * Fetch each file missing from the precache and store it under its precache key, only from the
+ * build this worker holds (second review of PR #5, A7). An unhashed file (index.html) is fetched
+ * by its bare URL, so it is stored only while the server's worker still lists its revision; a
+ * hashed file the server no longer has belongs to an older build. Either way the server has
+ * moved on: nothing more is stored, and the caller installs the new build whole instead.
+ */
+export async function repairMissing(
+  files: readonly PrecacheFile[],
+  deps: RepairDeps,
+): Promise<'repaired' | 'new-build'> {
+  let serverWorker: string | null = null;
+  for (const file of files) {
+    if (await deps.isCached(file)) continue;
+    if (file.revision != null) {
+      serverWorker ??= await deps.serverWorker();
+      if (!serverWorker.includes(file.revision)) return 'new-build';
+    }
+    const response = await deps.fetch(file.url);
+    if (!response.ok) {
+      const gone = response.status === 404 || response.status === 410;
+      if (gone && file.revision == null) return 'new-build';
+      throw new Error(`${file.url}: HTTP ${response.status}`);
+    }
+    await deps.put(file, response);
+  }
+  return 'repaired';
 }
 
 /** The service worker's answer to CACHE_PHASE_2. */

@@ -35,8 +35,17 @@ function ask<T>(worker: ServiceWorker, message: ToServiceWorker): Promise<T> {
   });
 }
 
-// A worker that never answers (stopped mid-update) must not leave the page waiting.
+/** Ask, but give up after `ms`: a worker that never answers must not leave the page waiting. */
+function askWithin<T>(worker: ServiceWorker, message: ToServiceWorker, ms: number) {
+  return Promise.race([
+    ask<T>(worker, message),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+  ]);
+}
+
+// A status check is quick; a repair downloads files, and its stalls are the tracker's 15 s rule.
 const STATUS_TIMEOUT_MS = 3000;
+const REPAIR_TIMEOUT_MS = 120_000;
 
 /** The controlling service worker's own check of its first-phase files (eng review D8). */
 async function askReadyStatus(): Promise<ReadyStatus | null> {
@@ -45,13 +54,13 @@ async function askReadyStatus(): Promise<ReadyStatus | null> {
     (await navigator.serviceWorker.getRegistration())?.active ??
     null;
   if (!worker) return null;
-  return Promise.race([
-    ask<ReadyStatus>(worker, { type: 'READY_STATUS' }),
-    new Promise<null>((resolve) => setTimeout(() => resolve(null), STATUS_TIMEOUT_MS)),
-  ]);
+  return askWithin<ReadyStatus>(worker, { type: 'READY_STATUS' }, STATUS_TIMEOUT_MS);
 }
 
 const SW_URL = `${import.meta.env.BASE_URL}sw.js`;
+
+/** Set when Try again found a newer build: it is installed and applied, not mixed in. */
+let applyWhenWaiting = false;
 
 const readiness = new ReadinessTracker({
   ask: askReadyStatus,
@@ -59,9 +68,15 @@ const readiness = new ReadinessTracker({
   async repair() {
     const registration = await navigator.serviceWorker.getRegistration();
     const worker = registration?.active;
-    if (worker) {
+    if (registration && worker) {
       // The worker refills its precache and answers once done; progress comes meanwhile.
-      await ask<ReadyStatus>(worker, { type: 'REPAIR' });
+      const answer = await askWithin<ReadyStatus>(worker, { type: 'REPAIR' }, REPAIR_TIMEOUT_MS);
+      if (answer?.newBuild) {
+        // Only first launch offers Try again, so nothing is lost to the reload that follows.
+        applyWhenWaiting = true;
+        await registration.update();
+        if (registration.waiting) updateNow();
+      }
     } else if (registration) {
       await registration.update();
     } else {
@@ -127,16 +142,14 @@ export function startServiceWorker(): void {
       void (async () => {
         const waiting = registered?.waiting;
         const status = waiting
-          ? await Promise.race([
-              ask<ReadyStatus>(waiting, { type: 'READY_STATUS' }),
-              new Promise<null>((resolve) => setTimeout(() => resolve(null), STATUS_TIMEOUT_MS)),
-            ])
+          ? await askWithin<ReadyStatus>(waiting, { type: 'READY_STATUS' }, STATUS_TIMEOUT_MS)
           : null;
         update = {
           available: true,
           newCatalog: status !== null && status.catalogFile !== CATALOG_FILE,
         };
         listeners.forEach((listener) => listener());
+        if (applyWhenWaiting) updateNow();
       })();
     },
     onRegisterError() {

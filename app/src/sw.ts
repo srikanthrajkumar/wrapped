@@ -18,6 +18,7 @@ import {
   countCached,
   isPhase2,
   PHASE_2_CACHE,
+  repairMissing,
   type InstallBytes,
   type InstallProgress,
   type OfflineStatus,
@@ -150,18 +151,23 @@ async function cachePhase2(): Promise<boolean> {
 /**
  * Fetch each first-phase file missing from the precache (the phone evicted it, or the install
  * stopped part-way) and store it under its precache key. An unchanged worker is never installed
- * again by `registration.update()`, so this is what "Try again" relies on.
+ * again by `registration.update()`, so this is what "Try again" relies on. When the server has
+ * moved to a newer build, nothing is mixed in: the answer says so, and the page updates.
  */
-async function repairPhase1(): Promise<void> {
+async function repairPhase1(): Promise<'repaired' | 'new-build'> {
   const cache = await caches.open(cacheNames.precache);
-  for (const entry of phase1) {
-    const key = getCacheKeyForURL(entry.url);
-    if (key === undefined || (await cache.match(key))) continue;
-    const response = await fetch(absolute(entry.url), { cache: 'reload' });
-    if (!response.ok) throw new Error(`${entry.url}: HTTP ${response.status}`);
-    await cache.put(key, countingBytes(response));
-    await postProgress();
-  }
+  return repairMissing(phase1, {
+    async isCached(file) {
+      const key = getCacheKeyForURL(file.url);
+      return key === undefined || (await cache.match(key)) !== undefined;
+    },
+    fetch: (url) => fetch(absolute(url), { cache: 'reload' }),
+    async put(file, response) {
+      await cache.put(getCacheKeyForURL(file.url)!, countingBytes(response));
+      await postProgress();
+    },
+    serverWorker: async () => (await fetch(self.location.href, { cache: 'reload' })).text(),
+  });
 }
 
 self.addEventListener('message', (event) => {
@@ -171,19 +177,18 @@ self.addEventListener('message', (event) => {
   } else if (message?.type === 'READY_STATUS' || message?.type === 'REPAIR') {
     // Checked against the cache each time, never trusted from a stored flag (eng review D8).
     event.waitUntil(
-      (message.type === 'REPAIR' ? repairPhase1() : Promise.resolve())
-        .catch(() => undefined)
-        .then(() => phase1Cached())
-        .catch(() => 0)
-        .then((cached) => {
-          const status: ReadyStatus = {
-            type: 'READY_STATUS',
-            cached,
-            total: phase1.length,
-            catalogFile,
-          };
-          event.ports[0]?.postMessage(status);
-        }),
+      (async () => {
+        const repaired =
+          message.type === 'REPAIR' ? await repairPhase1().catch(() => 'failed') : null;
+        const status: ReadyStatus = {
+          type: 'READY_STATUS',
+          cached: await phase1Cached().catch(() => 0),
+          total: phase1.length,
+          catalogFile,
+          ...(repaired === 'new-build' ? { newBuild: true } : {}),
+        };
+        event.ports[0]?.postMessage(status);
+      })(),
     );
   } else if (message?.type === 'CACHE_PHASE_2') {
     // Always answer, even when the cache itself fails (quota, storage errors), so the page
