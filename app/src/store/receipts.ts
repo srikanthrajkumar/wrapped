@@ -75,9 +75,18 @@ export async function listReceipts(eventId: string, db: WrappedDB): Promise<Dele
     .sort((a, b) => b.at.localeCompare(a.at));
 }
 
-/** Forget an Event's Item and Appearance receipts: the rasika has left the Event (D7). */
-export async function clearReceipts(eventId: string, db: WrappedDB): Promise<void> {
-  const keys = (await listReceipts(eventId, db)).map((receipt) => keyOf(receipt.id));
+/**
+ * Forget an Event's Item and Appearance receipts: the rasika has left the Event (D7). Those in
+ * `keep` stay: a failed Undo's bar still needs its receipt.
+ */
+export async function clearReceipts(
+  eventId: string,
+  db: WrappedDB,
+  keep: ReadonlySet<string> = new Set(),
+): Promise<void> {
+  const keys = (await listReceipts(eventId, db))
+    .filter((receipt) => !keep.has(receipt.id))
+    .map((receipt) => keyOf(receipt.id));
   await db.meta.bulkDelete(keys);
 }
 

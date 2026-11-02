@@ -71,10 +71,12 @@ export async function createEvent(
     ...newTimestamps(),
   };
   check(eventProblems(event));
-  // With `id` (one per attempt), a create retried after a failure never makes a second Event.
+  // With `id` (one per attempt), a create retried after a failure never makes a second Event;
+  // an id a deleted Event holds is refused, never handed back.
   return db.transaction('rw', [db.events, db.outbox], async () => {
     const existing = await db.events.get(id);
-    if (existing) return existing;
+    if (existing?.deletedAt === null) return existing;
+    if (existing) throw new RuleError([`event id ${id} is already used`]);
     return save('events', event, { db });
   });
 }
