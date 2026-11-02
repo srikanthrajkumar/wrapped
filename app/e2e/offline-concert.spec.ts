@@ -53,6 +53,11 @@ async function openOffline(context: BrowserContext): Promise<Page> {
 test('a Concert logged offline survives closing the browser (SC-001)', async ({
   baseURL,
 }, testInfo) => {
+  // Two browser launches are inherent to SC-001 (log, close, relaunch), so the default 30 s is
+  // too tight on a loaded machine. Measured 2026-11-02: 56 serial runs on a 2-vCPU host at load
+  // average 9 to 11 took 6.5 to 20.2 s, every step slowing under load and none stalling. No
+  // retries: a flaky data-loss test must fail loudly (playwright.config.ts).
+  test.setTimeout(60_000);
   const profile = testInfo.outputPath('profile');
   const launch = () => chromium.launchPersistentContext(profile, { ...phone, baseURL });
 
