@@ -15,11 +15,12 @@ import { acknowledge, claimBatch } from '../../src/store/outbox';
 import {
   addAppearance,
   createArtist,
+  editAppearance,
   removeAppearance,
   restoreAppearance,
 } from '../../src/store/people';
 import { listAppearances, listItems } from '../../src/store/queries';
-import { clearReceipts, listReceipts } from '../../src/store/receipts';
+import { clearReceipts, listReceipts, pruneReceipts } from '../../src/store/receipts';
 import { RuleError } from '../../src/store/rules';
 import { fixtureCatalog, freshDb, reopen } from '../helpers';
 
@@ -370,5 +371,94 @@ describe('Undo (required)', () => {
 
     expect(await listReceipts(event.id, db)).toEqual([]);
     expect(await restoreItem(deleted.receipt.id, { db })).toBeNull();
+  });
+
+  it('restores nothing when an Appearance Undo is replayed or stale', async () => {
+    const db = freshDb();
+    const event = await createEvent({ kind: 'concert' }, { db });
+    const artist = await createArtist('Vocal', { db });
+    const vocal = await addAppearance(event.id, artist.id, {}, { db });
+    const first = (await removeAppearance(vocal.id, { db }))!;
+    expect(await restoreAppearance(first.receipt.id, { db })).toMatchObject({ id: vocal.id });
+    expect(await restoreAppearance(first.receipt.id, { db })).toBeNull();
+
+    // Removed again: the first receipt is stale and must not undo the second removal.
+    const second = (await removeAppearance(vocal.id, { db }))!;
+    expect(await restoreAppearance(first.receipt.id, { db })).toBeNull();
+    expect(await listAppearances(event.id, db)).toEqual([]);
+    expect(await restoreAppearance(second.receipt.id, { db })).toMatchObject({ id: vocal.id });
+  });
+
+  it('restores nothing when an Event Undo is stale', async () => {
+    const db = freshDb();
+    const { event } = await concertOfEight(db);
+    const first = (await deleteEvent(event.id, { db }))!;
+    await restoreEvent(first.receipt.id, { db });
+    const second = (await deleteEvent(event.id, { db }))!;
+
+    expect(await restoreEvent(first.receipt.id, { db })).toBeNull();
+    expect((await db.events.get(event.id))?.deletedAt).not.toBeNull();
+    expect(await restoreEvent(second.receipt.id, { db })).toMatchObject({ id: event.id });
+  });
+
+  it('keeps an Appearance receipt through its Event delete, usable once the Event is back', async () => {
+    const db = freshDb();
+    const event = await createEvent({ kind: 'concert' }, { db });
+    const vocal = await addAppearance(event.id, (await createArtist('V', { db })).id, {}, { db });
+    const violin = await addAppearance(event.id, (await createArtist('W', { db })).id, {}, { db });
+    const removed = (await removeAppearance(vocal.id, { db }))!;
+    const concert = (await deleteEvent(event.id, { db }))!;
+
+    expect(await restoreAppearance(removed.receipt.id, { db })).toBeNull();
+    expect(await listReceipts(event.id, db)).toHaveLength(1);
+    await restoreEvent(concert.receipt.id, { db });
+    await restoreAppearance(removed.receipt.id, { db });
+
+    expect((await listAppearances(event.id, db)).map((a) => a.id)).toEqual([vocal.id, violin.id]);
+  });
+
+  it("keeps an Event's own receipt when the rasika leaves it", async () => {
+    const db = freshDb();
+    const { event } = await concertOfEight(db);
+    const deleted = (await deleteEvent(event.id, { db }))!;
+
+    await clearReceipts(event.id, db);
+
+    expect(await restoreEvent(deleted.receipt.id, { db })).toMatchObject({ id: event.id });
+  });
+
+  it('prunes a day-old receipt and keeps a fresh one', async () => {
+    const db = freshDb();
+    const { event, items } = await concertOfEight(db);
+    const old = (await removeItem(items[0]!.id, { db }))!;
+    const fresh = (await removeItem(items[1]!.id, { db }))!;
+    const day = 24 * 60 * 60 * 1000;
+    // The old receipt was written a day and a minute before the fresh one.
+    await db.meta.put({
+      key: `receipt:${old.receipt.id}`,
+      value: { ...old.receipt, at: new Date(Date.now() - day - 60_000).toISOString() },
+    });
+
+    await pruneReceipts(day, db);
+
+    expect((await listReceipts(event.id, db)).map((r) => r.id)).toEqual([fresh.receipt.id]);
+  });
+
+  it('refuses to restore a fourth presenter to a Lecdem, keeping the receipt', async () => {
+    const db = freshDb();
+    const lecdem = await createEvent({ kind: 'lecdem', title: 'Ragas of Tyagaraja' }, { db });
+    const presenters = [];
+    for (const name of ['A', 'B', 'C']) {
+      const artist = await createArtist(name, { db });
+      presenters.push(await addAppearance(lecdem.id, artist.id, { role: 'presenter' }, { db }));
+    }
+    const removed = (await removeAppearance(presenters[0]!.id, { db }))!;
+    const d = await addAppearance(lecdem.id, (await createArtist('D', { db })).id, {}, { db });
+    await editAppearance(d.id, { role: 'presenter' }, { db });
+
+    await expect(restoreAppearance(removed.receipt.id, { db })).rejects.toThrow(RuleError);
+
+    expect((await db.appearances.get(presenters[0]!.id))?.deletedAt).not.toBeNull();
+    expect((await listReceipts(lecdem.id, db)).map((r) => r.id)).toEqual([removed.receipt.id]);
   });
 });

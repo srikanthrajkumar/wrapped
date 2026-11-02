@@ -82,7 +82,7 @@ export function SectionHead({
   headRef?: RefObject<HTMLHeadingElement | null>;
 }) {
   return (
-    <div className={cn('flex min-h-12 items-end justify-between gap-2 pb-1', className)}>
+    <div className={cn('flex min-h-12 items-center justify-between gap-2', className)}>
       <h2
         id={id}
         ref={headRef}
@@ -102,7 +102,7 @@ export function QuietButton({ className, ...props }: React.ComponentProps<'butto
     <button
       type="button"
       className={cn(
-        'inline-flex min-h-12 items-center rounded-xl px-2 text-sub text-muted-foreground',
+        'inline-flex min-h-12 items-center rounded-xl px-2 text-sub whitespace-nowrap text-muted-foreground',
         className,
       )}
       {...props}

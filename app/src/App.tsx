@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, Route, Switch, useLocation, useRoute } from 'wouter';
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 import { cn } from '@/lib/utils';
+import { SeasonFeedback } from './screens/components/feedback';
 import { BottomSlot } from './screens/components/layout';
 import { EventScreen } from './screens/EventScreen';
 import { FirstLaunch } from './screens/FirstLaunch';
@@ -97,6 +98,7 @@ export function App() {
     <BottomSlot.Provider value={slot}>
       <div className="flex min-h-dvh flex-col pt-[env(safe-area-inset-top)]">
         <main className="flex flex-1 flex-col pr-[calc(16px+env(safe-area-inset-right))] pl-[calc(16px+env(safe-area-inset-left))]">
+          {done && <SeasonFeedback />}
           {!done ? (
             <FirstLaunch />
           ) : (

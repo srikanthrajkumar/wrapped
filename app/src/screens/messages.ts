@@ -40,6 +40,10 @@ export const MESSAGES = {
   sessionEnded: 'Sign in again to keep backing up. Logging still works.',
   anotherPhone: 'Your season is now being logged on another phone. Changes here are kept.',
   saveFailed: 'Not saved on this phone.',
+  /** Failed saves with no field on screen to show them (a new Concert, a move, an Artist added). */
+  notSavedCount: (count: number) =>
+    `${count} ${count === 1 ? 'change' : 'changes'} not saved on this phone.`,
+  exportFailed: "The Export couldn't be made on this phone.",
   newCatalog: 'An updated song catalog is ready.',
   /** Not in the table: the app update without a new catalog (T028's wording, kept). */
   appUpdate: 'A new version is ready.',
@@ -57,6 +61,8 @@ export const MESSAGES = {
     concertDeleted: 'Concert deleted',
     /** What a screen reader hears after a delete. */
     spoken: (bar: string) => `${bar}. Undo available.`,
+    /** The Undo itself could not be written: the bar stays, with Try again. */
+    failed: (bar: string) => `${bar}. Not saved on this phone.`,
   },
   actions: {
     tryAgain: 'Try again',

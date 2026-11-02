@@ -3,7 +3,7 @@
 // for the latest; earlier deletes in the same Event stay undoable from its "⋯" menu (their
 // receipts, store/receipts.ts) until the rasika leaves the Event.
 
-import { currentCatalog } from '../catalog/use-catalog';
+import { readyCatalog } from '../catalog/use-catalog';
 import { restoreEvent } from '../store/events';
 import { restoreItem } from '../store/items';
 import { restoreAppearance } from '../store/people';
@@ -17,6 +17,8 @@ export interface UndoOffer {
   receipt: DeletionReceipt;
   /** What the bar says: "Item 5 deleted", "Artist removed", "Concert deleted". */
   message: string;
+  /** The Undo itself failed to write: the bar stays, with Try again, until it works. */
+  failed?: boolean;
 }
 
 let offer: UndoOffer | null = null;
@@ -37,7 +39,7 @@ export function undoMessage(receipt: DeletionReceipt): string {
 
 function arm() {
   if (timer) clearTimeout(timer);
-  timer = paused ? null : setTimeout(expire, UNDO_MS);
+  timer = paused || offer?.failed ? null : setTimeout(expire, UNDO_MS);
 }
 
 function expire() {
@@ -71,17 +73,29 @@ export function dismissUndo(): void {
   notify();
 }
 
-/** Undo a delete from its receipt; resolves to whether anything came back. */
+/**
+ * Undo a delete from its receipt; resolves to whether anything came back. The offer goes only
+ * once the restore succeeded (or found nothing to restore). When the restore fails, the offer
+ * stays, marked failed, with no countdown, even for an Undo started from the "⋯" menu: a deleted
+ * Concert's receipt is in no menu, so the bar is its only way back.
+ */
 export async function undo(receipt: DeletionReceipt): Promise<boolean> {
-  if (offer?.receipt.id === receipt.id) dismissUndo();
-  const catalog = currentCatalog();
-  switch (receipt.kind) {
-    case 'item':
-      return (await restoreItem(receipt.id, { catalog })) !== null;
-    case 'appearance':
-      return (await restoreAppearance(receipt.id)) !== null;
-    case 'event':
-      return (await restoreEvent(receipt.id, { catalog })) !== null;
+  try {
+    const catalog = await readyCatalog();
+    const restored =
+      receipt.kind === 'item'
+        ? await restoreItem(receipt.id, { catalog })
+        : receipt.kind === 'appearance'
+          ? await restoreAppearance(receipt.id)
+          : await restoreEvent(receipt.id, { catalog });
+    if (offer?.receipt.id === receipt.id) dismissUndo();
+    return restored !== null;
+  } catch {
+    if (timer) clearTimeout(timer);
+    timer = null;
+    offer = { receipt, message: undoMessage(receipt), failed: true };
+    notify();
+    return false;
   }
 }
 

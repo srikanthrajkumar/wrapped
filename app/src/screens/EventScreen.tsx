@@ -17,8 +17,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { cn } from '@/lib/utils';
-import type { Appearance, Colour, Item, Role } from '../model';
+import { useCatalog } from '../catalog/use-catalog';
+import { newId, type Appearance, type Colour, type Item, type Role } from '../model';
 import { deleteEvent, editEvent, setStatus } from '../store/events';
 import { moveItem, removeItem } from '../store/items';
 import { endLogging, isBeingLogged } from '../store/logging-note';
@@ -30,12 +30,14 @@ import {
   useLoggingNotes,
   useReceipts,
   useSabha,
+  countRagas,
   useWhatItAdded,
   type ResolvedAppearance,
 } from '../store/queries';
 import { ColourPicker, colourName, SwatchDot } from './components/ColourPicker';
 import { exportSeason } from './components/export-file';
-import { saveWith, Saved } from './components/feedback';
+import { saveWith, Saved, useSaveFeedback } from './components/feedback';
+import { useAutosave } from './components/autosave';
 import {
   BottomDock,
   QuietButton,
@@ -47,7 +49,7 @@ import {
 import { NamePicker, RoleChips } from './components/NamePicker';
 import { SheetFrame } from './components/sheet-frame';
 import { UndoBar } from './components/UndoBar';
-import { eventLine, itemCount, itemLine, itemTitle, ROLE_NAMES } from './format';
+import { eventLine, itemCount, itemLine, itemTitle } from './format';
 import { offerUndo, undo, undoMessage } from './undo';
 
 type Order = 'items' | 'stage' | null;
@@ -74,6 +76,7 @@ export function EventScreen({ eventId }: { eventId: string }) {
   const [coloursFor, setColoursFor] = useState<string | null>(null);
   const [appearanceFor, setAppearanceFor] = useState<string | null>(null);
   const head = useFocusOnOpen<HTMLHeadingElement>(eventId);
+  const feedback = useSaveFeedback();
   const rows = useRef(new Map<string, HTMLElement>());
   const runningHead = useRef<HTMLHeadingElement>(null);
   const stageHead = useRef<HTMLHeadingElement>(null);
@@ -107,7 +110,25 @@ export function EventScreen({ eventId }: { eventId: string }) {
   const logging = isBeingLogged(event, note, now);
   const firstArtist = appearances[0]?.artist?.name ?? null;
   const target = (field: string) => ({ table: 'events' as const, id: eventId, field });
-  const editing = (id: string) => appearances.find((a) => a.id === id) ?? null;
+  const appearanceTarget = (id: string, field: string) => ({
+    table: 'appearances' as const,
+    id,
+    field,
+  });
+  // A value waiting to save, or not saved, is shown as entered (design D15), so a second edit
+  // starts from it rather than from what the phone holds.
+  const shownAppearance = (appearance: ResolvedAppearance): ResolvedAppearance => ({
+    ...appearance,
+    role: feedback.shown(appearanceTarget(appearance.id, 'role'), appearance.role),
+    ...feedback.shown(appearanceTarget(appearance.id, 'colours'), {
+      colourPrimary: appearance.colourPrimary,
+      colourSecondary: appearance.colourSecondary,
+    }),
+  });
+  const editing = (id: string) => {
+    const found = appearances.find((a) => a.id === id);
+    return found ? shownAppearance(found) : null;
+  };
 
   const removeItemAt = async (item: Item, index: number) => {
     const deleted = await removeItem(item.id);
@@ -139,10 +160,13 @@ export function EventScreen({ eventId }: { eventId: string }) {
               <DropdownMenuItem
                 variant="destructive"
                 onSelect={() =>
-                  void deleteEvent(eventId).then((deleted) => {
-                    if (deleted) offerUndo(deleted.receipt);
-                    navigate('/');
-                  })
+                  void saveWith(target('deletedAt'), 'deleted', () => deleteEvent(eventId)).then(
+                    (deleted) => {
+                      if (!deleted) return;
+                      offerUndo(deleted.receipt);
+                      navigate('/');
+                    },
+                  )
                 }
               >
                 Delete Event
@@ -167,7 +191,11 @@ export function EventScreen({ eventId }: { eventId: string }) {
       <section className="pt-2 pb-6">
         <h1 ref={head} tabIndex={-1} className="text-title font-semibold break-words">
           {sabha ? (
-            <button type="button" className="text-left" onClick={() => setFactsOpen(true)}>
+            <button
+              type="button"
+              className="inline-flex min-h-12 items-center rounded-xl text-left"
+              onClick={() => setFactsOpen(true)}
+            >
               {sabha.name}
             </button>
           ) : (
@@ -209,7 +237,12 @@ export function EventScreen({ eventId }: { eventId: string }) {
           <ol className="border-t border-border">
             {items.map((item, index) => (
               <li key={item.id} className="border-b border-border">
-                <Saved target={{ table: 'items', id: item.id, field: '*' }}>
+                <Saved
+                  target={[
+                    { table: 'items', id: item.id, field: '*' },
+                    { table: 'items', id: item.id, field: 'position' },
+                  ]}
+                >
                   {order === 'items' ? (
                     // At large text the move and delete controls wrap under the title.
                     <div className="flex flex-wrap items-center justify-end gap-1 py-1">
@@ -220,7 +253,13 @@ export function EventScreen({ eventId }: { eventId: string }) {
                         name={`Item ${item.position}`}
                         first={index === 0}
                         last={index === items.length - 1}
-                        onMove={(by) => void moveItem(item.id, index + by)}
+                        onMove={(by) =>
+                          void saveWith(
+                            { table: 'items', id: item.id, field: 'position' },
+                            index + by + 1,
+                            () => moveItem(item.id, index + by),
+                          )
+                        }
                       />
                       <Button
                         variant="ghost"
@@ -249,13 +288,17 @@ export function EventScreen({ eventId }: { eventId: string }) {
           </ol>
           {order === null &&
             (logging ? (
-              <Button
-                variant="outline"
-                className="mt-4 w-full"
-                onClick={() => void endLogging(eventId)}
-              >
-                Done with this Concert
-              </Button>
+              <Saved target={target('logging')} className="mt-4">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() =>
+                    void saveWith(target('logging'), 'done', () => endLogging(eventId))
+                  }
+                >
+                  Done with this Concert
+                </Button>
+              </Saved>
             ) : (
               <Summary eventId={eventId} items={items} />
             ))}
@@ -276,14 +319,12 @@ export function EventScreen({ eventId }: { eventId: string }) {
           Stage
         </SectionHead>
         <ul className="border-t border-border">
-          {appearances.map((appearance, index) => (
+          {appearances.map(shownAppearance).map((appearance, index) => (
             <li key={appearance.id} className="border-b border-border">
               <Saved
-                target={[
-                  { table: 'appearances', id: appearance.id, field: '*' },
-                  { table: 'appearances', id: appearance.id, field: 'role' },
-                  { table: 'appearances', id: appearance.id, field: 'colours' },
-                ]}
+                target={['*', 'role', 'colours', 'position'].map((field) =>
+                  appearanceTarget(appearance.id, field),
+                )}
               >
                 <div className="flex flex-wrap items-center justify-end gap-x-1">
                   <button
@@ -298,9 +339,7 @@ export function EventScreen({ eventId }: { eventId: string }) {
                   >
                     <span className="break-words">{appearance.artist?.name ?? '?'}</span>
                     {appearance.role && (
-                      <span className="text-sub text-muted-foreground">
-                        {ROLE_NAMES[appearance.role]}
-                      </span>
+                      <span className="text-sub text-muted-foreground">{appearance.role}</span>
                     )}
                   </button>
                   {order === 'stage' ? (
@@ -308,7 +347,13 @@ export function EventScreen({ eventId }: { eventId: string }) {
                       name={appearance.artist?.name ?? 'Artist'}
                       first={index === 0}
                       last={index === appearances.length - 1}
-                      onMove={(by) => void moveAppearance(appearance.id, index + by)}
+                      onMove={(by) =>
+                        void saveWith(
+                          appearanceTarget(appearance.id, 'position'),
+                          index + by + 1,
+                          () => moveAppearance(appearance.id, index + by),
+                        )
+                      }
                     />
                   ) : (
                     <ColoursButton
@@ -335,7 +380,7 @@ export function EventScreen({ eventId }: { eventId: string }) {
         </ul>
       </section>
 
-      <NoteField eventId={eventId} stored={event.note} />
+      <NoteField eventId={eventId} stored={feedback.shown(target('note'), event.note)} />
 
       <BottomDock>
         <UndoBar />
@@ -345,15 +390,17 @@ export function EventScreen({ eventId }: { eventId: string }) {
               Done
             </Button>
           ) : event.status === 'planned' ? (
-            <Button
-              size="lg"
-              className="w-full"
-              onClick={() =>
-                void saveWith(target('status'), 'attended', () => setStatus(eventId, 'attended'))
-              }
-            >
-              Start logging
-            </Button>
+            <Saved target={target('status')}>
+              <Button
+                size="lg"
+                className="w-full"
+                onClick={() =>
+                  void saveWith(target('status'), 'attended', () => setStatus(eventId, 'attended'))
+                }
+              >
+                Start logging
+              </Button>
+            </Saved>
           ) : (
             <Button size="lg" className="w-full" asChild>
               <Link href={`/event/${eventId}/item/new`}>
@@ -402,16 +449,18 @@ export function EventScreen({ eventId }: { eventId: string }) {
           setArtistOpen(open);
           if (!open) setRolesFor(null);
         }}
-        onPick={(entry) =>
-          void saveWith(
-            { table: 'appearances', id: `new:${eventId}`, field: '*' },
-            entry.name,
-            () => addAppearance(eventId, entry.id),
-          ).then((appearance) => appearance && setRolesFor(appearance.id))
-        }
+        onPick={(entry) => {
+          // Each add has its own id, so a second failure never hides the first, and a retry
+          // never adds the Artist twice.
+          const id = newId();
+          void saveWith(appearanceTarget(id, '*'), entry.name, () =>
+            addAppearance(eventId, entry.id, {}, { id }),
+          ).then((appearance) => appearance && setRolesFor(appearance.id));
+        }}
         after={
           rolesFor && (
             <RoleChips
+              skippable
               onRole={(role) => {
                 const id = rolesFor;
                 setRolesFor(null);
@@ -431,7 +480,7 @@ export function EventScreen({ eventId }: { eventId: string }) {
           primary={editing(coloursFor)!.colourPrimary}
           secondary={editing(coloursFor)!.colourSecondary}
           onChange={(colours) =>
-            void saveWith({ table: 'appearances', id: coloursFor, field: 'colours' }, colours, () =>
+            void saveWith(appearanceTarget(coloursFor, 'colours'), colours, () =>
               editAppearance(coloursFor, colours),
             )
           }
@@ -446,6 +495,7 @@ export function EventScreen({ eventId }: { eventId: string }) {
         >
           <div className="flex flex-col gap-4">
             <RoleChips
+              value={editing(appearanceFor)!.role}
               onRole={(role) => {
                 const id = appearanceFor;
                 setAppearanceFor(null);
@@ -563,12 +613,15 @@ function ColoursButton({ appearance, onOpen }: { appearance: ResolvedAppearance;
 
 /** The summary at the end of a Concert no longer being logged (DESIGN.md "Finishing a Concert"). */
 function Summary({ eventId, items }: { eventId: string; items: Item[] }) {
-  const added = useWhatItAdded(eventId);
-  const ragas = new Set(items.flatMap((item) => item.ragas.map((raga) => raga.key ?? raga.text)));
+  const catalogState = useCatalog();
+  const catalog = catalogState.status === 'ready' ? catalogState.catalog : null;
+  const added = useWhatItAdded(eventId, catalog);
+  // Linked ragas count once (constitution: analytics aggregate on the linked pair).
+  const ragaCount = countRagas(items, catalog);
   return (
     <div className="mt-4 rounded-2xl border border-border bg-card p-4 dark:border-transparent">
       <p className="font-semibold">
-        {itemCount(items.length)} · {ragas.size} {ragas.size === 1 ? 'Raga' : 'Ragas'}
+        {itemCount(items.length)} · {ragaCount} {ragaCount === 1 ? 'Raga' : 'Ragas'}
       </p>
       {added && (added.ragas.length > 0 || added.composers.length > 0) && (
         <>
@@ -640,32 +693,25 @@ function EventFacts({
   );
 }
 
-/** The note, last on the screen, saved when the rasika pauses or leaves the field. */
+/** The note, last on the screen, saved as the rasika pauses, leaves the field or the app. */
 function NoteField({ eventId, stored }: { eventId: string; stored: string | null }) {
-  const [text, setText] = useState(stored ?? '');
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const target = { table: 'events' as const, id: eventId, field: 'note' };
-  const commit = (value: string) => {
-    if (timer.current) clearTimeout(timer.current);
-    if ((stored ?? '') === value) return;
-    void saveWith(target, value, () => editEvent(eventId, { note: value === '' ? null : value }));
-  };
+  const note = useAutosave(
+    stored ?? '',
+    (value) =>
+      void saveWith(target, value, () => editEvent(eventId, { note: value === '' ? null : value })),
+  );
   return (
     <section aria-labelledby="note" className="pb-6">
       <SectionHead id="note">Note</SectionHead>
       <Saved target={target}>
         <textarea
           aria-labelledby="note"
-          value={text}
+          value={note.text}
           rows={3}
-          onChange={(e) => {
-            setText(e.target.value);
-            if (timer.current) clearTimeout(timer.current);
-            const value = e.target.value;
-            timer.current = setTimeout(() => commit(value), 800);
-          }}
-          onBlur={() => commit(text)}
-          className={cn('w-full rounded-xl bg-secondary p-3 text-body')}
+          onChange={(e) => note.change(e.target.value)}
+          onBlur={note.flush}
+          className="w-full rounded-xl bg-secondary p-3 text-body"
         />
       </Saved>
     </section>

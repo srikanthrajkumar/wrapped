@@ -43,3 +43,12 @@ export function useCatalog(): CatalogState {
 export function currentCatalog(): Catalog | null {
   return state.status === 'ready' ? state.catalog : null;
 }
+
+/**
+ * The catalog once opened, for a store action that must not run without it when it exists
+ * (Undo brings a restored Item to the catalog in use). Opens it if no screen has yet.
+ */
+export async function readyCatalog(): Promise<Catalog | null> {
+  start();
+  return openCatalog().catch(() => null);
+}

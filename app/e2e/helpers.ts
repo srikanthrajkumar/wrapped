@@ -36,3 +36,47 @@ export function readMeta(page: Page, key: string) {
     key,
   );
 }
+
+/**
+ * Make IndexedDB writes fail on demand, as a full disk would: from the next page load, every
+ * put and add throws while `setFailingWrites(page, true)` is in force.
+ */
+export async function failWritesOnDemand(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const flag = window as unknown as { failWrites?: boolean };
+    for (const name of ['put', 'add'] as const) {
+      const original = IDBObjectStore.prototype[name] as (...args: unknown[]) => IDBRequest;
+      IDBObjectStore.prototype[name] = function (this: IDBObjectStore, ...args: unknown[]) {
+        if (flag.failWrites) throw new DOMException('The disk is full', 'QuotaExceededError');
+        return original.apply(this, args);
+      };
+    }
+  });
+}
+
+export async function setFailingWrites(page: Page, failing: boolean): Promise<void> {
+  await page.evaluate((failing) => {
+    (window as unknown as { failWrites: boolean }).failWrites = failing;
+  }, failing);
+}
+
+/** Every row of one table, straight from IndexedDB. */
+export function readTable<T = Record<string, unknown>>(page: Page, table: string): Promise<T[]> {
+  return page.evaluate(
+    (table) =>
+      new Promise<T[]>((resolve, reject) => {
+        const open = indexedDB.open('carnatic-wrapped');
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const db = open.result;
+          const all = db.transaction(table).objectStore(table).getAll();
+          all.onsuccess = () => {
+            db.close();
+            resolve(all.result as T[]);
+          };
+          all.onerror = () => reject(all.error);
+        };
+      }),
+    table,
+  );
+}

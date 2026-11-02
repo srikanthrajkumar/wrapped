@@ -1,12 +1,14 @@
 // Search inside one Detail (DESIGN.md "Detail input"): the Detail input's docked search offers
 // the catalog's Ragas, Talas, Composers, Languages, Subjects or forms, matched by their fold as
-// the rasika types. The lists are short beside the songs, so a plain ranked scan is enough.
+// the rasika types. The lists are short beside the songs, so a plain ranked scan is enough;
+// each name is folded once, when the options are built, not per keystroke.
 
+import { NADAIS } from '../model';
 import forms from '../reference/forms.json';
 import { fold } from './fold';
 import type { Catalog } from './load';
 
-export type DetailKind = 'raga' | 'tala' | 'composer' | 'language' | 'subject' | 'form';
+export type DetailKind = 'raga' | 'tala' | 'nadai' | 'composer' | 'language' | 'subject' | 'form';
 
 /** One value a Detail can take from the catalog. */
 export interface DetailOption {
@@ -14,11 +16,24 @@ export interface DetailOption {
   display: string;
   /** The other spellings it is known by. */
   aliases: string[];
+  /** The display name, key and aliases, folded, for matching. */
+  folded: string[];
 }
+
+type Named = Omit<DetailOption, 'folded'>;
+
+const withFolds = (option: Named): DetailOption => ({
+  ...option,
+  folded: [option.display, option.key, ...option.aliases].map(fold),
+});
 
 /** Every value the catalog offers for `kind`, in catalog order. */
 export function detailOptions(catalog: Catalog | null, kind: DetailKind): DetailOption[] {
-  const plain = (key: string): DetailOption => ({ key, display: key, aliases: [] });
+  return namedOptions(catalog, kind).map(withFolds);
+}
+
+function namedOptions(catalog: Catalog | null, kind: DetailKind): Named[] {
+  const plain = (key: string): Named => ({ key, display: key, aliases: [] });
   switch (kind) {
     case 'raga':
       return (catalog?.ragas ?? []).map(({ key, display, aliases }) => ({ key, display, aliases }));
@@ -30,6 +45,9 @@ export function detailOptions(catalog: Catalog | null, kind: DetailKind): Detail
       }));
     case 'tala':
       return (catalog?.talas ?? []).map(({ key, display }) => ({ key, display, aliases: [] }));
+    case 'nadai':
+      // The five nadais are the project's, not the catalog's: offered with or without one.
+      return NADAIS.map(plain);
     case 'language':
       return (catalog?.languages ?? []).map(plain);
     case 'subject':
@@ -43,8 +61,7 @@ export function detailOptions(catalog: Catalog | null, kind: DetailKind): Detail
   }
 }
 
-function rank(name: string, needle: string): number | null {
-  const folded = fold(name);
+function rank(folded: string, needle: string): number | null {
   if (folded === needle) return 0;
   if (folded.startsWith(needle)) return 1;
   if (folded.includes(` ${needle}`)) return 2;
@@ -63,7 +80,7 @@ export function searchDetail(
   const found: { option: DetailOption; rank: number; at: number }[] = [];
   options.forEach((option, at) => {
     let best: number | null = null;
-    for (const name of [option.display, option.key, ...option.aliases]) {
+    for (const name of option.folded) {
       const r = rank(name, needle);
       if (r !== null && (best === null || r < best)) best = r;
     }

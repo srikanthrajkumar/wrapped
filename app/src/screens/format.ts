@@ -1,8 +1,7 @@
 // How records read on the screens (DESIGN.md "Components", "Detail values and their six
 // states"). Names are shown as stored: the catalog's plain English spelling, or as typed.
 
-import { eventStart } from '../store/logging-note';
-import type { DetailValue, Event, Item, Nadai, Role } from '../model';
+import type { DetailValue, Event, Item } from '../model';
 
 /** A Detail as text: "?" when Unknown, "" when Not applicable, else its text. */
 export function detailText(value: DetailValue): string {
@@ -40,14 +39,6 @@ export function ragasText(ragas: readonly DetailValue[]): string | null {
   const texts = ragas.map(listText).filter((text): text is string => text !== null);
   return texts.length > 0 ? texts.join(', ') : null;
 }
-
-export const NADAI_NAMES: Record<Nadai, string> = {
-  tisra: 'tisra',
-  chatusra: 'chatusra',
-  khanda: 'khanda',
-  misra: 'misra',
-  sankeerna: 'sankeerna',
-};
 
 /** The Tala with its Nadai: "Adi (khanda nadai)"; a Nadai that is Not applicable adds nothing. */
 export function talaText(item: Pick<Item, 'tala' | 'nadai'>): string {
@@ -99,21 +90,6 @@ export function eventLine(event: Pick<Event, 'date' | 'startTime'>, firstArtist?
 export function nowTime(now = new Date()): string {
   return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 }
-
-export { eventStart };
-
-export const ROLE_NAMES: Record<Role, string> = {
-  vocal: 'vocal',
-  violin: 'violin',
-  veena: 'veena',
-  flute: 'flute',
-  mridangam: 'mridangam',
-  khanjira: 'khanjira',
-  ghatam: 'ghatam',
-  morsing: 'morsing',
-  other: 'other',
-  presenter: 'presenter',
-};
 
 /** "1 Item", "8 Items". */
 export const itemCount = (n: number) => `${n} ${n === 1 ? 'Item' : 'Items'}`;

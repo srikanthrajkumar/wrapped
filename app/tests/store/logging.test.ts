@@ -18,6 +18,8 @@ import {
   discardItemDraft,
   pickComposition,
   readItemDraft,
+  removeItem,
+  repickItem,
   saveItemDraft,
   setDetail,
   setImprovised,
@@ -475,5 +477,113 @@ describe('creating an Item from its first pick (eng D3, design D12)', () => {
     );
     expect(again).toEqual(item);
     expect(await listItems(event.id, db)).toHaveLength(1);
+  });
+
+  it('never writes a consumed draft back, so a late page-hide cannot revive it', async () => {
+    const { db, event } = await concert();
+    await saveItemDraft({ id: 'draft-1', eventId: event.id, text: 'Kama' }, { db });
+    await addItemFrom(event.id, { kind: 'song', song: song('c0004') }, { db, id: 'draft-1' });
+
+    // The pagehide handler still holds the old draft and fires after the pick committed.
+    await saveItemDraft({ id: 'draft-1', eventId: event.id, text: 'Kama' }, { db });
+
+    expect(await readItemDraft(event.id, { db })).toBeNull();
+  });
+
+  it('discards a stored draft whose id an Item already has', async () => {
+    const { db, event } = await concert();
+    await addItemFrom(event.id, { kind: 'unknown' }, { db, id: 'draft-1' });
+    // Written by an older build, before saveItemDraft checked.
+    await db.meta.put({
+      key: `itemDraft:${event.id}`,
+      value: { id: 'draft-1', eventId: event.id, text: 'Kama', at: new Date().toISOString() },
+    });
+
+    expect(await readItemDraft(event.id, { db })).toBeNull();
+    expect(await db.meta.get(`itemDraft:${event.id}`)).toBeUndefined();
+  });
+
+  it('replays a pick only onto a live Item of the same Event, never a tombstone or another', async () => {
+    const { db, event } = await concert();
+    const other = await createEvent({ kind: 'concert' }, { db });
+    const elsewhere = await addItemFrom(other.id, { kind: 'unknown' }, { db, id: 'taken' });
+    await expect(
+      addItemFrom(event.id, { kind: 'typed', text: 'Bhavayami' }, { db, id: 'taken' }),
+    ).rejects.toThrow(RuleError);
+    expect(await db.items.get('taken')).toEqual(elsewhere);
+
+    const gone = await addItemFrom(event.id, { kind: 'unknown' }, { db, id: 'gone' });
+    await removeItem(gone.id, { db });
+    await expect(
+      addItemFrom(event.id, { kind: 'typed', text: 'Bhavayami' }, { db, id: 'gone' }),
+    ).rejects.toThrow(RuleError);
+    expect(await listItems(event.id, db)).toEqual([]);
+  });
+});
+
+describe("changing an Item's pick (repickItem)", () => {
+  async function itemFromSong() {
+    const db = freshDb();
+    const event = await createEvent({ kind: 'concert' }, { db });
+    const item = await addItemFrom(event.id, { kind: 'song', song: song('c0004') }, { db });
+    await setLayaVinyasam(item.id, { nadai: notApplicableValue(), note: 'tisram' }, { db });
+    return { db, event, item: (await db.items.get(item.id))! };
+  }
+
+  it('turns a song into an RTP in one write, with no Composition', async () => {
+    const { db, item } = await itemFromSong();
+    const before = await db.outbox.count();
+    const rtp = await repickItem(item.id, { kind: 'form', form: 'rtp' }, { db, catalog: v1 });
+    expect(rtp).toMatchObject({
+      compositionKey: null,
+      title: 'RTP',
+      form: catalogValue('rtp', 'RTP'),
+      composer: notApplicableValue(),
+      tala: unknownValue(),
+      language: unknownValue(),
+    });
+    // The song's Raga came from the catalog; the RTP starts with "?" in its place.
+    expect(rtp.ragas).toEqual([unknownValue()]);
+    expect(rtp.layaVinyasam).toEqual({ nadai: notApplicableValue(), note: 'tisram' });
+    // One transaction: one outbox entry replaced, nothing half-written.
+    expect(await db.outbox.count()).toBe(before);
+  });
+
+  it('clears the old song\'s Composition and Details when a Raga, text or "?" is picked', async () => {
+    const { db, item } = await itemFromSong();
+    const raga = v1.ragaByKey.get('Todi')!;
+    const byRaga = await repickItem(item.id, { kind: 'raga', raga }, { db, catalog: v1 });
+    expect(byRaga).toMatchObject({
+      compositionKey: null,
+      title: '',
+      ragas: [catalogValue('Todi', 'Todi')],
+      composer: unknownValue(),
+      tala: unknownValue(),
+    });
+
+    const again = await addItemFrom(byRaga.eventId, { kind: 'song', song: song('c0004') }, { db });
+    const typed = await repickItem(again.id, { kind: 'typed', text: 'Bhavayami' }, { db });
+    expect(typed).toMatchObject({ compositionKey: null, title: 'Bhavayami', ragas: [] });
+    const unknown = await repickItem(again.id, { kind: 'unknown' }, { db });
+    expect(unknown).toMatchObject({ compositionKey: null, title: '?' });
+  });
+
+  it("keeps what the rasika changed from the old song's values", async () => {
+    const { db, item } = await itemFromSong();
+    await setDetail(item.id, 'tala', unresolvedValue('Khanda Chapu'), { db, catalog: v1 });
+    const changed = await repickItem(item.id, { kind: 'unknown' }, { db, catalog: v1 });
+    expect(changed.tala).toEqual(unresolvedValue('Khanda Chapu'));
+    expect(changed.composer).toEqual(unknownValue());
+  });
+
+  it('changes nothing when the write fails', async () => {
+    const { db, item } = await itemFromSong();
+    db.items.hook('updating', () => {
+      throw new Error('disk full');
+    });
+    await expect(
+      repickItem(item.id, { kind: 'form', form: 'rtp' }, { db, catalog: v1 }),
+    ).rejects.toThrow('disk full');
+    expect(await db.items.get(item.id)).toEqual(item);
   });
 });

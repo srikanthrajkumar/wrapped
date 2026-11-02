@@ -23,9 +23,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
+import { useTextScale } from '@/hooks/use-text-scale';
 import { cn } from '@/lib/utils';
 import { suggestedDetails, type Suggested } from '../catalog/details';
-import forms from '../reference/forms.json';
 import type { SearchResult } from '../catalog/search';
 import { currentCatalog, useCatalog } from '../catalog/use-catalog';
 import {
@@ -37,13 +37,13 @@ import {
   type ImprovisedKind,
   type Item,
 } from '../model';
+import { db } from '../store/db';
 import {
   addItemFrom,
   discardItemDraft,
-  editItem,
-  pickComposition,
   readItemDraft,
   removeItem,
+  repickItem,
   saveItemDraft,
   setDetail,
   setImprovised,
@@ -56,6 +56,7 @@ import {
 import { getEvent, listItems, useItem, useSabha } from '../store/queries';
 import { DetailInput, NadaiChips, type DetailField } from './components/DetailInput';
 import { Chip, DockedSearch, FixedRow, type SearchRow } from './components/DockedSearch';
+import { useAutosave } from './components/autosave';
 import { NotSavedLine, saveWith, Saved, useSaveFeedback } from './components/feedback';
 import { BottomDock, QuietButton, TopBar, useFocusOnOpen } from './components/layout';
 import { SheetFrame } from './components/sheet-frame';
@@ -119,14 +120,14 @@ function ItemSearch({
   autoFocus?: boolean;
 }) {
   const catalog = useCatalog();
+  const scale = useTextScale();
   const typed = query.trim();
-  const results = useMemo(
-    () =>
-      catalog.status === 'ready' && typed
-        ? catalog.index.search(typed, 12).map((result) => resultRow(result, onPick))
-        : [],
-    [catalog, typed, onPick],
+  // The search runs once per keystroke, not per render; turning its results into rows is cheap.
+  const found = useMemo(
+    () => (catalog.status === 'ready' && typed ? catalog.index.search(typed, 12) : []),
+    [catalog, typed],
   );
+  const results = found.map((result) => resultRow(result, onPick));
   const note =
     catalog.status === 'missing'
       ? MESSAGES.search.noCatalog
@@ -146,9 +147,19 @@ function ItemSearch({
       }
       fixed={
         <>
-          <div className="flex flex-wrap gap-2 pb-1">
+          {/* At large text the chips scroll sideways in one row, leaving room for results. */}
+          <div
+            className={cn(
+              'flex gap-2 pb-1',
+              scale >= 1.5 ? 'overflow-x-auto overscroll-x-contain' : 'flex-wrap',
+            )}
+          >
             {SPECIAL.map(({ form, label }) => (
-              <Chip key={form} onClick={() => onPick({ kind: 'form', form })}>
+              <Chip
+                key={form}
+                className="shrink-0 whitespace-nowrap"
+                onClick={() => onPick({ kind: 'form', form })}
+              >
                 {label}
               </Chip>
             ))}
@@ -215,18 +226,26 @@ function NewItem({ eventId }: { eventId: string }) {
     };
   }, [eventId]);
 
-  const pick = useMemo(
-    () => (choice: ItemPick) => {
-      const current = latest.current;
-      if (!current) return;
-      void saveWith({ table: 'items', id: current.id, field: '*' }, pickLabel(choice), () =>
-        addItemFrom(eventId, choice, { id: current.id }),
-      ).then((item) => {
-        if (item) navigate(`/event/${eventId}/item/${item.id}`, { replace: true });
-      });
-    },
-    [eventId, navigate],
+  // The editor moves on whenever the Item exists, whether the first pick or its Try again made
+  // it, so a consumed draft id is never picked again.
+  const created = useLiveQuery(
+    async () => (draft ? ((await db.items.get(draft.id)) ?? null) : null),
+    [draft?.id],
   );
+  const ready = created?.deletedAt === null && created.eventId === eventId;
+  useEffect(() => {
+    if (ready) navigate(`/event/${eventId}/item/${created.id}`, { replace: true });
+  }, [ready, created, eventId, navigate]);
+
+  const pick = (choice: ItemPick) => {
+    if (!draft) return;
+    const id = draft.id;
+    // From here a page-hide never writes the draft back (the store refuses it too).
+    latest.current = null;
+    void saveWith({ table: 'items', id, field: '*' }, pickLabel(choice), () =>
+      addItemFrom(eventId, choice, { id }),
+    );
+  };
 
   if (!draft) return null;
   const failed = feedback.get({ table: 'items', id: draft.id, field: '*' });
@@ -288,7 +307,11 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
   const catalog = catalogState.status === 'ready' ? catalogState.catalog : null;
   const [open, setOpen] = useState<Open>(null);
   const [query, setQuery] = useState('');
-  const [folds, setFolds] = useState({ laya: false, improvised: false });
+  // Null follows the content (open once filled); a tap decides from then on.
+  const [folds, setFolds] = useState<{ laya: boolean | null; improvised: boolean | null }>({
+    laya: null,
+    improvised: null,
+  });
   const [ragaOrder, setRagaOrder] = useState(false);
   const head = useFocusOnOpen<HTMLHeadingElement>(itemId);
   const feedback = useSaveFeedback();
@@ -325,37 +348,13 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
   const saveLaya = (next: Item['layaVinyasam']) =>
     void saveWith(target('layaVinyasam'), next, () => setLayaVinyasam(item.id, next));
 
+  // One write: the pick, the Details it clears and the logging note (store/items.ts repickItem).
   const repick = (choice: ItemPick) => {
     setOpen(null);
     setQuery('');
-    const write = () => {
-      switch (choice.kind) {
-        case 'song':
-          return pickComposition(item.id, choice.song);
-        case 'raga':
-          return editItem(item.id, { title: '' }).then(() =>
-            setRagas(item.id, [
-              { state: 'catalog', key: choice.raga.key, text: choice.raga.display, guess: false },
-            ]),
-          );
-        case 'typed':
-          return editItem(item.id, { title: choice.text.trim() });
-        case 'unknown':
-          return editItem(item.id, { title: '?' });
-        case 'form': {
-          const display = forms.find((form) => form.key === choice.form)?.display ?? choice.form;
-          return editItem(item.id, { title: display }).then(() =>
-            setDetail(item.id, 'form', {
-              state: 'catalog',
-              key: choice.form,
-              text: display,
-              guess: false,
-            }),
-          );
-        }
-      }
-    };
-    void saveWith(target('title'), pickLabel(choice), write);
+    void saveWith(target('title'), pickLabel(choice), () =>
+      repickItem(item.id, choice, { catalog: currentCatalog() ?? undefined }),
+    );
   };
 
   const title = shown('title', item.title) || ragasText(ragas) || '?';
@@ -366,10 +365,13 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
       value={shown(field, value)}
       text={text}
       suggested={suggested[field as keyof Suggested] as DetailValue | undefined}
-      target={target(field)}
+      // The Tala cell shows the Nadai too, so it carries the Nadai's feedback.
+      target={field === 'tala' ? [target('tala'), target('nadai')] : [target(field)]}
       onOpen={() => setOpen({ kind: 'detail', field })}
     />
   );
+  const layaOpen = folds.laya ?? laya !== null;
+  const improvisedOpen = folds.improvised ?? improvised.length > 0;
 
   return (
     <>
@@ -400,13 +402,17 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
       />
 
       <Saved target={[target('*'), target('title')]}>
-        <h1 ref={head} tabIndex={-1} className="pt-1 pb-4 text-title font-semibold break-words">
-          Item {item.position} ·{' '}
+        <h1
+          ref={head}
+          tabIndex={-1}
+          className="flex flex-wrap items-center gap-x-2 pt-1 pb-4 text-title font-semibold break-words"
+        >
+          <span>Item {item.position} ·</span>
           <button
             type="button"
             aria-label={`Composition, ${title}, change`}
             onClick={() => setOpen({ kind: 'composition' })}
-            className="text-left underline decoration-border underline-offset-4"
+            className="min-h-12 rounded-xl text-left underline decoration-border underline-offset-4"
           >
             {title}
           </button>
@@ -415,7 +421,7 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
 
       {/* Ragas first: an ordered row of chips with "+ Raga" (design D25). */}
       <Saved target={target('ragas')} className="pb-3">
-        <div className="flex items-end justify-between">
+        <div className="flex items-center justify-between">
           <span className="text-caption text-muted-foreground">
             {ragas.length > 1 ? 'Ragas' : 'Raga'}
           </span>
@@ -491,8 +497,8 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
 
       <Fold
         title="Laya vinyasam"
-        open={folds.laya || laya !== null}
-        onToggle={() => setFolds({ ...folds, laya: !(folds.laya || laya !== null) })}
+        open={layaOpen}
+        onToggle={() => setFolds({ ...folds, laya: !layaOpen })}
       >
         <Saved target={target('layaVinyasam')}>
           {laya === null ? (
@@ -513,7 +519,12 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
               />
               <LayaNote
                 stored={laya.note}
-                onSave={(note) => saveLaya({ ...laya, note: note === '' ? null : note })}
+                onSave={(note) => {
+                  // Saved against the latest Laya vinyasam, so a Nadai changed meanwhile stays;
+                  // a note still pending when the Laya vinyasam is removed goes with it.
+                  const current = shown('layaVinyasam', item.layaVinyasam);
+                  if (current) saveLaya({ ...current, note: note || null });
+                }}
               />
               <Button variant="ghost" className="self-start" onClick={() => saveLaya(null)}>
                 Remove Laya vinyasam
@@ -525,10 +536,8 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
 
       <Fold
         title="Improvised"
-        open={folds.improvised || improvised.length > 0}
-        onToggle={() =>
-          setFolds({ ...folds, improvised: !(folds.improvised || improvised.length > 0) })
-        }
+        open={improvisedOpen}
+        onToggle={() => setFolds({ ...folds, improvised: !improvisedOpen })}
       >
         <Saved target={target('improvised')}>
           <ul className="flex flex-col">
@@ -602,7 +611,9 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
                 <span className="text-caption text-muted-foreground">Nadai</span>
                 <NadaiChips
                   value={shown('nadai', item.nadai)}
+                  allowUnknown
                   onChange={(value) => save('nadai', value)}
+                  onOther={() => setOpen({ kind: 'detail', field: 'nadai' })}
                 />
               </div>
             ) : undefined
@@ -681,15 +692,18 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
         />
       )}
       {open?.kind === 'composition' && (
-        <CompositionSheet
-          query={query}
-          onQuery={setQuery}
-          onClose={() => {
+        <SheetFrame
+          open
+          onOpenChange={(next) => {
+            if (next) return;
             setOpen(null);
             setQuery('');
           }}
-          onPick={repick}
-        />
+          title="Composition"
+          tall
+        >
+          <ItemSearch query={query} onQuery={setQuery} onPick={repick} />
+        </SheetFrame>
       )}
     </>
   );
@@ -740,7 +754,7 @@ function DetailCell({
   value: DetailValue;
   text?: string;
   suggested?: DetailValue;
-  target: { table: 'items'; id: string; field: string } | null;
+  target: { table: 'items'; id: string; field: string }[] | null;
   onOpen(): void;
 }) {
   return (
@@ -797,53 +811,19 @@ function Fold({
   );
 }
 
+/** The Laya vinyasam's note, saved as the rasika pauses, leaves the field or the app. */
 function LayaNote({ stored, onSave }: { stored: string | null; onSave(note: string): void }) {
-  const [text, setText] = useState(stored ?? '');
+  const note = useAutosave(stored ?? '', onSave);
   return (
     <label className="flex flex-col gap-1">
       <span className="text-caption text-muted-foreground">Note</span>
       <textarea
-        value={text}
+        value={note.text}
         rows={2}
-        onChange={(e) => setText(e.target.value)}
-        onBlur={() => text !== (stored ?? '') && onSave(text)}
+        onChange={(e) => note.change(e.target.value)}
+        onBlur={note.flush}
         className="w-full rounded-xl bg-secondary p-3 text-body"
       />
     </label>
-  );
-}
-
-/** Change the Item's Composition: the same search, as a sheet. */
-function CompositionSheet({
-  query,
-  onQuery,
-  onClose,
-  onPick,
-}: {
-  query: string;
-  onQuery(query: string): void;
-  onClose(): void;
-  onPick(pick: ItemPick): void;
-}) {
-  return (
-    <SheetFrameLazy title="Composition" onClose={onClose}>
-      <ItemSearch query={query} onQuery={onQuery} onPick={onPick} />
-    </SheetFrameLazy>
-  );
-}
-
-function SheetFrameLazy({
-  title,
-  onClose,
-  children,
-}: {
-  title: string;
-  onClose(): void;
-  children: ReactNode;
-}) {
-  return (
-    <SheetFrame open onOpenChange={(next) => !next && onClose()} title={title} tall>
-      {children}
-    </SheetFrame>
   );
 }

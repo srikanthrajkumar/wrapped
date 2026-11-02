@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { unresolvedValue } from '../../src/model';
-import { SaveFeedback } from '../../src/screens/save-feedback';
+import { NOT_SAVED_KEY, SaveFeedback } from '../../src/screens/save-feedback';
 import { createEvent } from '../../src/store/events';
 import { buildExport } from '../../src/store/export';
 import { addItem, editItem, setDetail } from '../../src/store/items';
@@ -151,4 +151,65 @@ describe('save feedback (required)', () => {
     // The stored Item is untouched: the rescue never wrote anything.
     expect((file.items[0] as { tala: unknown }).tala).toEqual(item.tala);
   });
+
+  it('copies a failed value to storage, and drops it once it saves', async () => {
+    const storage = memoryStorage();
+    const feedback = new SaveFeedback({ storage });
+    const target = { table: 'items', id: 'i1', field: 'tala' } as const;
+    await feedback.track(target, 'Adi', () => Promise.reject(new Error('disk full')));
+
+    expect(JSON.parse(storage.getItem(NOT_SAVED_KEY)!)).toEqual([
+      { ...target, value: 'Adi', enteredAt: expect.any(String) },
+    ]);
+
+    await feedback.track(target, 'Adi', () => Promise.resolve('ok'));
+    expect(storage.getItem(NOT_SAVED_KEY)).toBeNull();
+  });
+
+  it('after a relaunch, offers the copied values for Export, with nothing to replay', async () => {
+    const storage = memoryStorage();
+    const before = new SaveFeedback({ storage });
+    const target = { table: 'events', id: 'new-1', field: '*' } as const;
+    await before.track(target, 'concert', () => Promise.reject(new Error('disk full')));
+
+    const after = new SaveFeedback({ storage });
+
+    expect(after.notSaved()).toEqual(before.notSaved());
+    expect(after.hasFailures()).toBe(true);
+    expect(after.canRetry(target)).toBe(false);
+    await after.retryAll();
+    expect(after.notSaved()).toHaveLength(1);
+  });
+
+  it('counts the failures no screen is showing, for the season-wide line', async () => {
+    const feedback = new SaveFeedback();
+    const shown = { table: 'items', id: 'i1', field: 'tala' } as const;
+    const hidden = { table: 'appearances', id: 'new-1', field: '*' } as const;
+    const fail = () => Promise.reject(new Error('disk full'));
+    await feedback.track(shown, 'Adi', fail);
+    await feedback.track(hidden, 'T M Krishna', fail);
+
+    const stop = feedback.showing([shown]);
+    expect(feedback.unshown()).toEqual([hidden]);
+
+    stop();
+    expect(feedback.unshown()).toEqual([shown, hidden]);
+  });
+
+  it('keeps each attempt of a new record apart, so a second failure never hides the first', async () => {
+    const feedback = new SaveFeedback();
+    const fail = () => Promise.reject(new Error('disk full'));
+    await feedback.track({ table: 'appearances', id: 'a1', field: '*' }, 'Vocal', fail);
+    await feedback.track({ table: 'appearances', id: 'a2', field: '*' }, 'Violin', fail);
+    expect(feedback.notSaved().map((entry) => entry.value)).toEqual(['Vocal', 'Violin']);
+  });
 });
+
+function memoryStorage() {
+  const values = new Map<string, string>();
+  return {
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => void values.set(key, value),
+    removeItem: (key: string) => void values.delete(key),
+  };
+}

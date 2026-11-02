@@ -13,10 +13,10 @@ import {
   type SharedEntry,
 } from '../model';
 import { db as defaultDb, type WrappedDB } from './db';
-import type { Deleted } from './items';
+import { renumber, type Deleted } from './items';
 import { getLive, newTimestamps, remove, save, type WriteOptions } from './mutate';
-import { resolveArtist, resolveSabha, type ResolvedEntry } from './queries';
-import { takeReceipt, writeReceipt, type DeletionReceipt } from './receipts';
+import { entryResolver, type ResolvedEntry } from './queries';
+import { peekReceipt, takeReceipt, writeReceipt } from './receipts';
 import { appearanceProblems, check, RuleError } from './rules';
 
 type Kind = 'artist' | 'sabha';
@@ -61,7 +61,7 @@ async function findNames(
   if (needle === '') return [];
   const own = kind === 'artist' ? db.artists : db.sabhas;
   const shared = kind === 'artist' ? db.sharedArtists : db.sharedSabhas;
-  const resolve = kind === 'artist' ? resolveArtist : resolveSabha;
+  const resolve = await entryResolver(kind, db);
 
   // Merged-away entries are skipped: their names are Aliases of the one that survived.
   const ownEntries = (await own.toArray()).filter(
@@ -82,7 +82,7 @@ async function findNames(
   for (const entry of ownEntries) {
     // An own entry the Maintainer promoted reads as the shared one (ADR 0005), so the two are
     // offered once; the name the rasika typed still finds it.
-    const resolved = await resolve(entry.id, db);
+    const resolved = resolve(entry.id);
     if (!resolved) continue;
     offer(resolved, resolved.shared, [
       entry.name,
@@ -113,11 +113,11 @@ export function findSabhas(
   return findNames('sabha', query, limit, db);
 }
 
-function ownEntry(name: string): OwnEntry {
+function ownEntry(name: string, id: string): OwnEntry {
   const trimmed = name.trim();
   if (fold(trimmed) === '') throw new RuleError(['a name needs at least one letter or digit']);
   return {
-    id: newId(),
+    id,
     name: trimmed,
     // Groups promotion candidates (outside voice 9).
     nameKey: fold(trimmed),
@@ -127,14 +127,31 @@ function ownEntry(name: string): OwnEntry {
   };
 }
 
+/** With `id`, a create retried after a failure, or tapped twice, never makes a second entry. */
+export interface CreateOptions extends WriteOptions {
+  id?: string;
+}
+
+async function createOwn(
+  table: 'artists' | 'sabhas',
+  name: string,
+  { db = defaultDb, id = newId() }: CreateOptions,
+): Promise<OwnEntry> {
+  return db.transaction('rw', [db.table(table), db.outbox], async () => {
+    const existing = (await db.table(table).get(id)) as OwnEntry | undefined;
+    if (existing) return existing;
+    return save(table, ownEntry(name, id), { db });
+  });
+}
+
 /** A new own Artist, with the name as typed (FR-005). */
-export function createArtist(name: string, options: WriteOptions = {}) {
-  return save('artists', ownEntry(name), options);
+export function createArtist(name: string, options: CreateOptions = {}) {
+  return createOwn('artists', name, options);
 }
 
 /** A new own Sabha, with the name as typed (FR-005). */
-export function createSabha(name: string, options: WriteOptions = {}) {
-  return save('sabhas', ownEntry(name), options);
+export function createSabha(name: string, options: CreateOptions = {}) {
+  return createOwn('sabhas', name, options);
 }
 
 export interface AppearanceFields {
@@ -174,13 +191,17 @@ export async function addAppearance(
   eventId: string,
   artistId: string,
   fields: AppearanceFields = {},
-  { db = defaultDb }: WriteOptions = {},
+  { db = defaultDb, id = newId() }: CreateOptions = {},
 ): Promise<Appearance> {
   return db.transaction('rw', [db.events, db.appearances, db.outbox], async () => {
+    // A retried add (each attempt has its own id) never adds the Artist twice.
+    const existing = await db.appearances.get(id);
+    if (existing?.deletedAt === null && existing.eventId === eventId) return existing;
+    if (existing) throw new RuleError([`appearance id ${id} is already used`]);
     await getLive('events', eventId, { db });
     const positions = (await liveAppearances(eventId, db)).map((a) => a.position);
     const appearance: Appearance = {
-      id: newId(),
+      id,
       eventId,
       artistId,
       role: fields.role ?? null,
@@ -232,35 +253,35 @@ export async function removeAppearance(
 /**
  * Undo an Appearance removal: back at its old place in billing order, the others renumbered,
  * in one transaction. A used or stale receipt, or one whose Event is deleted, restores nothing.
+ * A restore that would break a rule (a fourth presenter at a Lecdem) is refused with the
+ * receipt kept, so it can be undone once the rasika has changed a Role.
  */
 export async function restoreAppearance(
   receiptId: string,
   { db = defaultDb }: WriteOptions = {},
 ): Promise<Appearance | null> {
   return db.transaction('rw', [db.events, db.appearances, db.outbox, db.meta], async () => {
-    const pending = (await db.meta.get(`receipt:${receiptId}`))?.value as
-      DeletionReceipt | undefined;
+    const pending = await peekReceipt(db, receiptId);
     const event = pending && (await db.events.get(pending.eventId));
     if (!event || event.deletedAt !== null) return null;
     const receipt = await takeReceipt(db, receiptId, 'appearance');
     const record = receipt?.records[0];
     const tombstone = record && (await db.appearances.get(record.id));
     if (!tombstone) return null;
+    // Throwing rolls the transaction back, receipt included.
+    await checkPresenters(tombstone, db);
     const live = (await liveAppearances(tombstone.eventId, db)).sort(
       (a, b) => a.position - b.position,
     );
     const index = live.filter((other) => other.position < tombstone.position).length;
+    const restored = await save(
+      'appearances',
+      { ...tombstone, position: index + 1 },
+      { db, restore: true },
+    );
     const order = [...live];
-    order.splice(index, 0, tombstone);
-    let restored: Appearance | null = null;
-    for (const [i, appearance] of order.entries()) {
-      const position = i + 1;
-      if (appearance.id === tombstone.id) {
-        restored = await save('appearances', { ...appearance, position }, { db, restore: true });
-      } else if (appearance.position !== position) {
-        await save('appearances', { ...appearance, position }, { db });
-      }
-    }
+    order.splice(index, 0, restored);
+    await renumber('appearances', order, db);
     return restored;
   });
 }
@@ -284,11 +305,7 @@ export async function moveAppearance(
     }
     const order = live.filter((appearance) => appearance.id !== id);
     order.splice(index, 0, moving);
-    for (const [i, appearance] of order.entries()) {
-      if (appearance.position !== i + 1) {
-        await save('appearances', { ...appearance, position: i + 1 }, { db });
-      }
-    }
+    await renumber('appearances', order, db);
   });
 }
 
@@ -312,11 +329,11 @@ export async function recentNames(
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     for (const appearance of appearances) ids.push(appearance.artistId);
   }
-  const resolve = kind === 'artist' ? resolveArtist : resolveSabha;
+  const resolve = await entryResolver(kind, db);
   const found = new Map<string, NameMatch>();
   for (const id of ids) {
     if (found.size >= limit) break;
-    const entry = await resolve(id, db);
+    const entry = resolve(id);
     if (!entry || found.has(entry.id)) continue;
     found.set(entry.id, {
       id: entry.id,
@@ -333,9 +350,10 @@ export async function usualRoles({ db = defaultDb }: WriteOptions = {}): Promise
   Map<string, Role>
 > {
   const counts = new Map<string, Map<Role, number>>();
+  const resolve = await entryResolver('artist', db);
   for (const appearance of await db.appearances.toArray()) {
     if (appearance.deletedAt !== null || appearance.role === null) continue;
-    const entry = (await resolveArtist(appearance.artistId, db))?.id ?? appearance.artistId;
+    const entry = resolve(appearance.artistId)?.id ?? appearance.artistId;
     const roles = counts.get(entry) ?? new Map<Role, number>();
     roles.set(appearance.role, (roles.get(appearance.role) ?? 0) + 1);
     counts.set(entry, roles);
