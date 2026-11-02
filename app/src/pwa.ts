@@ -56,23 +56,30 @@ const SW_URL = `${import.meta.env.BASE_URL}sw.js`;
 const readiness = new ReadinessTracker({
   ask: askReadyStatus,
   remember: recordReadyToLog,
-  async reinstall() {
+  async repair() {
     const registration = await navigator.serviceWorker.getRegistration();
-    if (registration) await registration.update();
-    else await navigator.serviceWorker.register(SW_URL, { scope: import.meta.env.BASE_URL });
+    const worker = registration?.active;
+    if (worker) {
+      // The worker refills its precache and answers once done; progress comes meanwhile.
+      await ask<ReadyStatus>(worker, { type: 'REPAIR' });
+    } else if (registration) {
+      await registration.update();
+    } else {
+      await navigator.serviceWorker.register(SW_URL, { scope: import.meta.env.BASE_URL });
+    }
   },
-  setTimer: (run, ms) => setTimeout(run, ms),
-  clearTimer: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
 });
 
-// Without a service worker (the dev server, an old browser) there is nothing to wait for.
-const noWorker: Readiness = { state: 'ready' };
+// The dev server has no service worker to wait for; a browser without one (Firefox private
+// mode) can log, but not offline, and is told so (FirstLaunch).
+const devReady: Readiness = { state: 'ready' };
 const hasWorker = () => !import.meta.env.DEV && 'serviceWorker' in navigator;
+if (!import.meta.env.DEV && !('serviceWorker' in navigator)) readiness.unavailable();
 
 /** Where the first download stands, for "Getting ready to log offline" (design D10). */
 export function useReadiness(): Readiness {
   return useSyncExternalStore(readiness.subscribe, () =>
-    hasWorker() ? readiness.getSnapshot() : noWorker,
+    import.meta.env.DEV ? devReady : readiness.getSnapshot(),
   );
 }
 
@@ -85,6 +92,7 @@ function followFirstDownload() {
   navigator.serviceWorker.addEventListener('message', (event) => {
     const message = event.data as FromServiceWorker | undefined;
     if (message?.type === 'INSTALL_PROGRESS') readiness.progress(message.cached, message.total);
+    else if (message?.type === 'INSTALL_BYTES') readiness.bytes();
   });
   // Messages from an installing worker reach a page it doesn't control yet only once enabled.
   navigator.serviceWorker.startMessages();
@@ -130,6 +138,10 @@ export function startServiceWorker(): void {
         };
         listeners.forEach((listener) => listener());
       })();
+    },
+    onRegisterError() {
+      // Registration refused (private browsing, a blocked worker): no offline logging here.
+      readiness.unavailable();
     },
     onRegisteredSW(_url, registration) {
       if (!registration) return;

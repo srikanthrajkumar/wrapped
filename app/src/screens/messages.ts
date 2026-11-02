@@ -29,6 +29,8 @@ export const MESSAGES = {
     downloading: 'Getting ready to log offline…',
     done: 'Ready to log offline.',
     stopped: 'The download stopped. Logging needs it once, with a connection.',
+    unavailable:
+      "Offline logging isn't available in this browser. You can still log while you have signal.",
   },
   homeStatus: {
     changesWaiting: (count: number) =>

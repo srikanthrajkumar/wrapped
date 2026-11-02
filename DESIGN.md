@@ -437,6 +437,7 @@ voice: plain, short, the glossary's words, no exclamation marks, never blaming t
 | Getting ready | Downloading | "Getting ready to log offline…" with a progress bar | |
 | Getting ready | Done | "Ready to log offline." | Start |
 | Getting ready | Stopped | "The download stopped. Logging needs it once, with a connection." | Try again |
+| Getting ready | No service worker (Firefox private mode) | "Offline logging isn't available in this browser. You can still log while you have signal." | Start |
 | Home status | Changes waiting | "Saved on this phone · 4 changes not yet backed up" | (opens sync details) |
 | Home status | All synced | "All backed up" | |
 | Any screen | Session ended (FR-050) | "Sign in again to keep backing up. Logging still works." | Sign in |

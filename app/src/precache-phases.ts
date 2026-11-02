@@ -18,7 +18,11 @@ export const PHASE_2_CACHE = 'phase-2';
 
 /** Messages the page sends the service worker. */
 export type ToServiceWorker =
-  { type: 'SKIP_WAITING' } | { type: 'CACHE_PHASE_2' } | { type: 'READY_STATUS' };
+  | { type: 'SKIP_WAITING' }
+  | { type: 'CACHE_PHASE_2' }
+  | { type: 'READY_STATUS' }
+  /** "Try again": fetch the first-phase files missing from the precache; answered as READY_STATUS. */
+  | { type: 'REPAIR' };
 
 /**
  * The service worker's answer to READY_STATUS (eng review D8): what it found in its own
@@ -39,7 +43,15 @@ export interface InstallProgress {
   total: number;
 }
 
-export type FromServiceWorker = ReadyStatus | InstallProgress;
+/**
+ * Posted at most once a second while a first-phase file's bytes arrive, so one slow file on a
+ * weak signal is not taken for a stalled download.
+ */
+export interface InstallBytes {
+  type: 'INSTALL_BYTES';
+}
+
+export type FromServiceWorker = ReadyStatus | InstallProgress | InstallBytes;
 
 /** How many of `urls` `isCached` finds, checked one by one. */
 export async function countCached(

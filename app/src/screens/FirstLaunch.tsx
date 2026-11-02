@@ -43,6 +43,8 @@ function GettingReady() {
   const readiness = useReadiness();
   const ready = readiness.state === 'ready';
   const stopped = readiness.state === 'stopped';
+  // No service worker here: logging works, offline doesn't, and the rasika is let in anyway.
+  const unavailable = readiness.state === 'unavailable';
   const progress =
     readiness.state === 'downloading' && readiness.total > 0
       ? readiness.cached / readiness.total
@@ -50,7 +52,7 @@ function GettingReady() {
   return (
     <Screen
       action={
-        ready ? (
+        ready || unavailable ? (
           <Button size="lg" className="w-full" onClick={() => void finishFirstLaunch()}>
             {MESSAGES.actions.start}
           </Button>
@@ -65,12 +67,14 @@ function GettingReady() {
         <h1 className="text-title font-semibold">
           {ready
             ? MESSAGES.gettingReady.done
-            : stopped
-              ? MESSAGES.gettingReady.stopped
-              : MESSAGES.gettingReady.downloading}
+            : unavailable
+              ? MESSAGES.gettingReady.unavailable
+              : stopped
+                ? MESSAGES.gettingReady.stopped
+                : MESSAGES.gettingReady.downloading}
         </h1>
       </div>
-      {!ready && !stopped && (
+      {!ready && !stopped && !unavailable && (
         <div
           role="progressbar"
           aria-label={MESSAGES.gettingReady.downloading}
@@ -79,9 +83,10 @@ function GettingReady() {
           aria-valuenow={Math.round(progress * 100)}
           className="h-2 overflow-hidden rounded-full bg-secondary"
         >
+          {/* Scaled, not resized, so the bar moves on the compositor alone. */}
           <div
-            className="h-full rounded-full bg-primary transition-[width] duration-150 ease-out"
-            style={{ width: `${Math.round(progress * 100)}%` }}
+            className="h-full origin-left rounded-full bg-primary transition-transform duration-150 ease-out"
+            style={{ transform: `scaleX(${progress})` }}
           />
         </div>
       )}

@@ -18,6 +18,7 @@ import {
   countCached,
   isPhase2,
   PHASE_2_CACHE,
+  type InstallBytes,
   type InstallProgress,
   type OfflineStatus,
   type ReadyStatus,
@@ -48,19 +49,50 @@ async function phase1Cached(): Promise<number> {
   );
 }
 
+async function tellWindows(message: InstallProgress | InstallBytes) {
+  const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  windows.forEach((client) => client.postMessage(message));
+}
+
+async function postProgress() {
+  await tellWindows({
+    type: 'INSTALL_PROGRESS',
+    cached: await phase1Cached(),
+    total: phase1.length,
+  });
+}
+
+const BYTES_EVERY_MS = 1000;
+let bytesPostedAt = 0;
+
+/** The response with its body passed through a counter that reports bytes as they arrive. */
+function countingBytes(response: Response): Response {
+  if (!response.body) return response;
+  const counter = new TransformStream<Uint8Array, Uint8Array>({
+    transform(chunk, controller) {
+      controller.enqueue(chunk);
+      const now = Date.now();
+      if (now - bytesPostedAt >= BYTES_EVERY_MS) {
+        bytesPostedAt = now;
+        void tellWindows({ type: 'INSTALL_BYTES' });
+      }
+    },
+  });
+  return new Response(response.body.pipeThrough(counter), {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+  });
+}
+
 // Real progress for "Getting ready to log offline" (eng review D4): after each first-phase file
-// is cached, tell every window, including one this worker doesn't control yet.
+// is cached, tell every window, including one this worker doesn't control yet; while a file
+// downloads, say that bytes are still arriving.
 addPlugins([
   {
+    fetchDidSucceed: async ({ response }) => countingBytes(response),
     cacheDidUpdate: async ({ cacheName }) => {
-      if (cacheName !== cacheNames.precache) return;
-      const progress: InstallProgress = {
-        type: 'INSTALL_PROGRESS',
-        cached: await phase1Cached(),
-        total: phase1.length,
-      };
-      const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-      windows.forEach((client) => client.postMessage(progress));
+      if (cacheName === cacheNames.precache) await postProgress();
     },
   },
 ]);
@@ -115,14 +147,33 @@ async function cachePhase2(): Promise<boolean> {
   return complete;
 }
 
+/**
+ * Fetch each first-phase file missing from the precache (the phone evicted it, or the install
+ * stopped part-way) and store it under its precache key. An unchanged worker is never installed
+ * again by `registration.update()`, so this is what "Try again" relies on.
+ */
+async function repairPhase1(): Promise<void> {
+  const cache = await caches.open(cacheNames.precache);
+  for (const entry of phase1) {
+    const key = getCacheKeyForURL(entry.url);
+    if (key === undefined || (await cache.match(key))) continue;
+    const response = await fetch(absolute(entry.url), { cache: 'reload' });
+    if (!response.ok) throw new Error(`${entry.url}: HTTP ${response.status}`);
+    await cache.put(key, countingBytes(response));
+    await postProgress();
+  }
+}
+
 self.addEventListener('message', (event) => {
   const message = event.data as ToServiceWorker;
   if (message?.type === 'SKIP_WAITING') {
     void self.skipWaiting();
-  } else if (message?.type === 'READY_STATUS') {
+  } else if (message?.type === 'READY_STATUS' || message?.type === 'REPAIR') {
     // Checked against the cache each time, never trusted from a stored flag (eng review D8).
     event.waitUntil(
-      phase1Cached()
+      (message.type === 'REPAIR' ? repairPhase1() : Promise.resolve())
+        .catch(() => undefined)
+        .then(() => phase1Cached())
         .catch(() => 0)
         .then((cached) => {
           const status: ReadyStatus = {

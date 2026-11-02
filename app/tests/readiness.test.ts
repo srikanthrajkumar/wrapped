@@ -19,15 +19,13 @@ function setup(first: ReadyStatus | null) {
   vi.useFakeTimers();
   const worker = { answer: first };
   const remembered: (ReadyStatus | null)[] = [];
-  const reinstall = vi.fn(async () => undefined);
+  const repair = vi.fn(async () => undefined);
   const tracker = new ReadinessTracker({
     ask: async () => worker.answer,
     remember: async (s) => void remembered.push(s),
-    reinstall,
-    setTimer: (run, ms) => setTimeout(run, ms),
-    clearTimer: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
+    repair,
   });
-  return { tracker, worker, remembered, reinstall };
+  return { tracker, worker, remembered, repair };
 }
 
 const settle = () => vi.advanceTimersByTimeAsync(0);
@@ -50,7 +48,7 @@ describe('first-launch readiness', () => {
   });
 
   it('an interrupted install: 15 s without progress asks again, then stops; Try again resumes', async () => {
-    const { tracker, worker, reinstall } = setup(null);
+    const { tracker, worker, repair } = setup(null);
     await tracker.start();
     tracker.progress(3, 5);
     await vi.advanceTimersByTimeAsync(STALL_MS - 1);
@@ -60,7 +58,7 @@ describe('first-launch readiness', () => {
 
     worker.answer = status(5);
     await tracker.retry();
-    expect(reinstall).toHaveBeenCalledOnce();
+    expect(repair).toHaveBeenCalledOnce();
     expect(tracker.get()).toEqual({ state: 'ready' });
   });
 
@@ -123,5 +121,29 @@ describe('first-launch readiness', () => {
     const second = tracker.workerChanged();
     await Promise.all([first, second]);
     expect(tracker.get()).toEqual({ state: 'ready' });
+  });
+
+  it('one slow file: bytes still arriving never stop the download', async () => {
+    const { tracker } = setup(null);
+    await tracker.start();
+    tracker.progress(4, 5);
+    for (let second = 0; second < 40; second += 1) {
+      await vi.advanceTimersByTimeAsync(1000);
+      tracker.bytes();
+    }
+    expect(tracker.get()).toEqual({ state: 'downloading', cached: 4, total: 5 });
+    // Then the connection drops: no bytes for 15 s.
+    await vi.advanceTimersByTimeAsync(STALL_MS);
+    expect(tracker.get()).toEqual({ state: 'stopped' });
+  });
+
+  it('no service worker: says offline is unavailable, and nothing changes that', async () => {
+    const { tracker } = setup(null);
+    const starting = tracker.start();
+    tracker.unavailable();
+    await starting;
+    tracker.progress(1, 5);
+    await vi.advanceTimersByTimeAsync(STALL_MS);
+    expect(tracker.get()).toEqual({ state: 'unavailable' });
   });
 });
