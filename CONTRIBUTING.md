@@ -59,6 +59,23 @@ it: it is built from karnatik.com and is not published here.
   - The full-catalog checks (search accuracy against the golden set, the size budget with the
     snapshot in) need the private snapshot, so they run locally and before each deploy.
 
+## Deploying
+
+The app is served by Cloudflare Workers Static Assets, at a test address for now (ADR 0008).
+Deploys run from the Maintainer's machine, because it holds the snapshot.
+
+- **Sign in once**, in your own terminal: `npx wrangler login` from `app/`. On a remote
+  machine, create an API token instead and keep it in your own shell (`CLOUDFLARE_API_TOKEN`),
+  never in the repository.
+- **Deploy** from the repository root, naming the snapshot:
+  `tools/deploy/deploy.sh /opt/carnatic/logger/pipeline/karnatik/catalog-snapshots/catalog.<hash>.json`
+  - It prints the snapshot's version, copies it into `app/public/catalog/`, builds, runs the
+    golden set and `npm run check` with it, and deploys only if all of them pass.
+  - `--dry-run` does everything but the upload.
+  - Until the golden set is reviewed (T027) it fails, so the deploy needs
+    `--without-golden-set`, which it repeats at the end.
+- **Cache rules** are in `app/public/_headers`; the Worker's config is `app/wrangler.jsonc`.
+
 ## Secrets
 
 - `.env` files are never committed. `.env.example` lists the names, with no values.
@@ -75,7 +92,7 @@ it: it is built from karnatik.com and is not published here.
 Not open yet. Issues and ideas are welcome. Pull requests wait until after the 2026-27 season,
 because the design is still moving fast.
 
-## Still to decide
+## Decided
 
-1. **Where the snapshot comes from at build time**: a local path to the logger's export, or
-   a release file in the private logger repository.
+1. **Where the snapshot comes from at build time**: a local path to the logger's export,
+   given to the deploy script (ADR 0008, 2026-11-03).

@@ -1,5 +1,17 @@
 import { expect, test } from '@playwright/test';
+import { readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { finishFirstLaunch, readMeta } from './helpers';
+
+// The snapshot the build under test holds: none in CI, the real one before a deploy (ADR 0008).
+const builtCatalog = (() => {
+  try {
+    const dir = join(import.meta.dirname, '../public/catalog');
+    return readdirSync(dir).find((name) => /^catalog\.[0-9a-f]{64}\.json$/.test(name)) ?? null;
+  } catch {
+    return null;
+  }
+})();
 
 test('first launch leads to the empty home at phone width', async ({ page }) => {
   await page.goto('/');
@@ -42,7 +54,7 @@ test('once ready for offline, the app reopens in airplane mode', async ({ page, 
   await page.evaluate(() => navigator.serviceWorker.ready);
   await expect
     .poll(() => readMeta(page, 'readyForOffline'), { timeout: 15_000 })
-    .toMatchObject({ catalogFile: null });
+    .toMatchObject({ catalogFile: builtCatalog });
   expect(await readMeta(page, 'storagePersist')).toMatchObject({ askedAt: expect.any(String) });
   await finishFirstLaunch(page);
 
