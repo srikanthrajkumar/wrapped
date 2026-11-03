@@ -253,7 +253,10 @@ find every record in the file.
 - [X] T053 [P] [US2] Build the Settings screen with storage-persisted state, Export, and the app and catalog versions in `app/src/screens/SettingsScreen.tsx`
   - *Laid out by the Maintainer 2026-11-03 (DESIGN.md "Settings"):* the season first (Ready offline, Storage protected, Export with its last date), then the theme, then the app and catalog versions
   - *Built 2026-11-03:* storage asks `navigator.storage.persisted()` when Settings opens (`storagePersisted`, `app/src/store/persist.ts`); amber is a new `--warning` token in `app/src/styles/app.css`. Tests in `app/e2e/settings.spec.ts`
-- [ ] T054 [US2] The Maintainer decides where the PWA's static files are hosted, needed before the phone-only fallback can ship (ADR 0001 covers sign-in and the database, not the static site; research.md notes free static hosting on Cloudflare Workers Static Assets). Record it in `docs/adr/0008-static-hosting.md` (0007 is the one journal)
+- [X] T054 [US2] The Maintainer decides where the PWA's static files are hosted, needed before the phone-only fallback can ship (ADR 0001 covers sign-in and the database, not the static site; research.md notes free static hosting on Cloudflare Workers Static Assets). Record it in `docs/adr/0008-static-hosting.md` (0007 is the one journal)
+  - *Decided by the Maintainer 2026-11-03 (ADR 0008):* Cloudflare Workers Static Assets; a `workers.dev` test address for the Maintainer's phones now, the real domain once the name is settled (T088a) and before any rasika installs; deploys run from the Maintainer's machine, not CI
+- [ ] T054a [US2] Set up the deploy to the test address (ADR 0008): the Workers Static Assets config in `app/wrangler.jsonc`; cache rules in `app/public/_headers` (the service worker and `index.html` always revalidated, content-hashed files including the snapshot kept for a year); and one script, `tools/deploy/deploy.sh`, that builds with the real snapshot, runs the full-catalog checks (the size budget with the snapshot in, and the golden set once T027 exists), and deploys only if they pass. The Maintainer runs `wrangler login` in their own terminal; no Cloudflare token goes in the repository or CI. Then install from the test address on the Redmi Note 5 and the iPhone 16, check logging in airplane mode, and run T033
+- [ ] T054b [US2] Before sign-up opens on 1 December and before any rasika installs: the Maintainer chooses the real domain once the name is settled (T088a); add it to the Worker, and to Google sign-in's allowed origins and Supabase's redirect URLs (ADR 0008, "A test address first")
 
 **Checkpoint**: logging plus export can ship alone if the server is late.
 
@@ -519,7 +522,8 @@ Merge the Artists, match the raga, and confirm all Appearances and the Wrapped u
   - T033 (on-device timing) needs the Redmi Note 5, the iPhone 16 and the real snapshot.
 - **US1 (Phase 3)**: after Foundational.
 - **US2 part 1 (Phase 4)**: after Foundational; it exports whatever exists. T054 (static
-  hosting) must be decided before the phone-only fallback ships.
+  hosting) is decided (ADR 0008); T054a puts the app on the test address for the device
+  check, and T054b, the real domain, waits on T088a and must land before any rasika installs.
 - **US3 (Phase 5)**: after US1, since it opens planned Events into the Event screen. T058 to
   T061 wait on T057, the logger project's agreement.
 - **US4 (Phase 6)**: after US1, since it extends the Event screen.
@@ -533,7 +537,8 @@ Merge the Artists, match the raga, and confirm all Appearances and the Wrapped u
 ### Maintainer decisions inside the task list
 
 - T030: the design system.
-- T054: static hosting.
+- T054: static hosting (decided 2026-11-03, ADR 0008).
+- T054b: the real domain, once the name is settled.
 - T057: the schedule feed, with the logger project.
 - T066: where push and pull run.
 - T088a: the motif and the logo.
