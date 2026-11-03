@@ -13,7 +13,13 @@ import type {
 import { ReadinessTracker, type Readiness } from './readiness';
 import { appliesWaitingUpdate } from './screens/update-offer';
 import { isFirstLaunchDone } from './store/first-launch';
-import { recordOfflineReady, recordReadyToLog } from './store/offline-ready';
+import {
+  READY_KEY,
+  recordOfflineReady,
+  recordReadyToLog,
+  type ReadyForOffline,
+} from './store/offline-ready';
+import { useMeta } from './store/queries';
 
 /** The catalog this build ships, set by vite.config.ts; null when it has none. */
 export const CATALOG_FILE: string | null = import.meta.env.VITE_CATALOG_FILE ?? null;
@@ -106,6 +112,21 @@ export function useReadiness(): Readiness {
   return useSyncExternalStore(readiness.subscribe, () =>
     import.meta.env.DEV ? devReady : readiness.getSnapshot(),
   );
+}
+
+/**
+ * Whether the app is ready for offline (DESIGN.md "Status"): both downloads cached for this
+ * build's catalog; "unavailable" in a browser with no service worker, where it never will be.
+ * Undefined while the store is read.
+ */
+export function useOfflineState(): 'ready' | 'getting-ready' | 'unavailable' | undefined {
+  const readiness = useReadiness();
+  const ready = useMeta<ReadyForOffline>(READY_KEY);
+  // The dev server has no service worker, so nothing is ever cached: it counts as ready.
+  if (import.meta.env.DEV) return 'ready';
+  if (readiness.state === 'unavailable') return 'unavailable';
+  if (ready === undefined) return undefined;
+  return ready !== null && ready.catalogFile === CATALOG_FILE ? 'ready' : 'getting-ready';
 }
 
 /** "Try again" on "The download stopped". */

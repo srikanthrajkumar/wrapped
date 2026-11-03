@@ -131,6 +131,10 @@ karnatik's "tODi" (catalog-snapshot contract).
 - **Restrained.** The app uses greys, the near-white (dark) or near-black (light) primary for
   actions, and the destructive red only for delete. **Rose appears only in charts** on the Wrapped
   screen. Rose replaced the preset's emerald because black with green is Spotify's look.
+- **Amber means "something to fix"** (decided 2026-11-03), and only on Settings' season rows
+  ("Storage not protected", offline logging not available): the `warning` token, oklch(0.8 0.15
+  75) in dark and oklch(0.53 0.12 62) in light. It is never used for a failure to save, which
+  stays `destructive`.
 - **Depth by lightness, not shadow** (dark): background → surface (the Now block, the best
   search result) → surface-raised (chips, the search field, sheets). List rows have no fill
   (Shapes).
@@ -144,6 +148,8 @@ Contrast, measured (WCAG 2.x ratios):
 | muted-foreground on surface-raised | 6.0 | 5.4 |
 | destructive on background | 6.8 | 5.2 |
 | destructive on surface-raised (the failed Undo bar, chips) | 5.1 | 4.6 |
+| warning on background | 10.3 | 5.5 |
+| warning on surface-raised | 7.8 | 4.9 |
 
 **Browser surfaces are themed** (decided 2026-11-01): the text caret uses `foreground`;
 selected text gets `foreground` at 25%; the focus ring is a 2px `ring` outline with a 2px
@@ -241,7 +247,7 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
 - **Event (DD3):** the concert as the first block (decided 2026-11-01, replacing DD3's one-line
   header): the Sabha on its own line in `title`, wrapping rather than truncating, then "Sat 14
   Dec · 6:30 pm · first-billed Artist" in `secondary`; tapping the block edits the Event's facts.
-  The top bar's "⋯" holds Export and Delete Event. "Log a Concert now" opens this screen at once,
+  The top bar's "⋯" holds Delete Event (its Export moved to Settings on 2026-11-03). "Log a Concert now" opens this screen at once,
   started, with the date and time set to now and the Add Item bar ready (decided 2026-11-01);
   the concert block shows a tappable "Add Sabha" and Stage an "Add Artist" row, both filled in
   whenever the rasika likes. Lists show such a Concert as "No Sabha yet". → running order (numbered rows: title, then
@@ -278,7 +284,19 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   protected" when the browser hasn't promised to keep it), and Export with the date of the last
   one ("Last: 2 Nov", or "—" before the first). Then the theme. Then the app and catalog
   versions, small and muted, at the bottom. Sync, account and consent join in Phase 7; the
-  Maintainer's `/admin` link stays.
+  Maintainer's `/admin` link stays. As built and accepted 2026-11-03:
+  - **Ready offline** leads with an airplane mark. "Getting ready for offline…" has a muted
+    spinner and is not amber, since it clears on its own. In a browser with no service worker
+    the row is amber, with the alert mark and "Offline logging isn't available in this
+    browser…".
+  - **Storage** leads with a shield, with a check when protected and the exclamation when not.
+    It is asked of the browser each time Settings opens.
+  - **Export** leads with the download mark, which takes the check badge once a file goes out
+    from this page; its name is then "Exported. Last: 3 Nov". It is never amber. The date is
+    kept once a file holding the season is handed over, a rescue Export from a readable store
+    included.
+  - **Versions:** "App 0.1.0" and "Catalog …" on their own lines; the catalog line shows once a
+    catalog version is recorded.
 - **Export lives in Settings** (decided 2026-11-03). It is the only thing a rasika does with
   their data before sync, so it isn't pressed on them elsewhere: the Event's "⋯" holds only
   Delete Event. The safety rows keep their own Export, which rescues values not saved
@@ -455,7 +473,16 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   Safari's steps as marks (the Share glyph, then Add to Home Screen); on Android it has one
   Install button that opens the browser's prompt. Installed, or on a desktop, it shows nothing.
   Why it stays: Safari can clear a website's storage after 7 days without a visit, and leaves
-  installed apps alone.
+  installed apps alone. As built and accepted 2026-11-03:
+  - **iPhone** (and iPad): "Add to Home Screen:", then Tabler IconShare2 (Safari's Share glyph),
+    a small › for "then", and IconSquarePlus (Add to Home Screen). The marks grow with the text
+    and wrap together. The row is read as "Install the app so your season stays on this phone.
+    Tap Share, then Add to Home Screen."
+  - **Android:** IconSquarePlus, "Install on this phone", and an Install button named "Install.
+    Install the app so your season stays on this phone.", without Safari's steps. The row shows
+    only while Chrome offers its install prompt; once the prompt is used (or before Chrome
+    offers it), there is nothing to tap, so the row waits for the next offer.
+  - Not on first launch or the rescue screen, which come before the app's own screens.
 
 ## Motion
 
@@ -510,10 +537,12 @@ voice: plain, short, the glossary's words, no exclamation marks, never blaming t
 | Getting ready | No service worker (Firefox private mode) | "Offline logging isn't available in this browser. You can still log while you have signal." | Start |
 | Home status | Changes waiting, once sync exists (Phase 7) | "Saved on this phone · 4 changes not yet backed up" | (opens sync details) |
 | Home | Not ready for offline yet; clears on its own | "Getting ready for offline…" (muted, a spinner) | |
-| Any screen, top | Open in a phone's browser tab, not installed | iPhone: "Add to Home Screen:" with the Share and Add marks. Android: "Install on this phone". Accessible name: "Install the app so your season stays on this phone. Tap Share, then Add to Home Screen." | Install (Android) |
-| Settings | Offline readiness | "Ready offline" · not ready: "Getting ready for offline…" | |
+| Any screen, top | Open in a phone's browser tab, not installed | iPhone: "Add to Home Screen:" with the Share and Add marks. Android: the Add mark and "Install on this phone". Accessible name: "Install the app so your season stays on this phone. Tap Share, then Add to Home Screen." | Install (Android) |
+| Any screen, top | Android's Install button, its name after "Install." | "Install the app so your season stays on this phone." | |
+| Settings | Offline readiness | "Ready offline" · not ready: "Getting ready for offline…" · amber, no service worker: "Offline logging isn't available in this browser. You can still log while you have signal." | |
 | Settings | Persisted storage | "Storage protected" · amber: "Storage not protected" | |
-| Settings | Export | "Export" with "Last: 2 Nov", or "—" before the first | Export |
+| Settings | Export | "Export" with "Last: 2 Nov", or "—" before the first; after a handover its name begins "Exported" | Export |
+| Settings | Versions, small and muted, each label before its version | "App" · "Catalog" | |
 | Home status | All synced | "All backed up" | |
 | Any screen | Session ended (FR-050) | "Sign in again to keep backing up. Logging still works." | Sign in |
 | Any screen | Another phone writes (FR-022) | "Your season is now being logged on another phone. Changes here are kept." | Details |
@@ -581,3 +610,4 @@ in the phase that builds it):
 | 2026-11-02 | Direction, not yet designed: the ethereal rose motif, generated per Concert from its instruments, is the logo and the ground of the Cards, and stays out of the logging surfaces. "Prefer a mark to a sentence." Rose is allowed in the motif as well as charts. |
 | 2026-11-03 | After the round-4 screenshots, the Maintainer's answer: a "Not deleted" row offers Try again and Dismiss, not Export; Dismiss keeps the record after all, taking only the delete entry and leaving the store as it is. |
 | 2026-11-03 | Phase 4 design, the Maintainer's answers: Export lives in Settings, with its last date, and the Event's "⋯" keeps only Delete; home shows no status line until sync, and only "Getting ready for offline…" while the app isn't ready; the install row is persistent and drawn as Safari's marks on iPhone and an Install button on Android; Settings puts the season first (offline, storage protected, Export), then the theme, then the versions. |
+| 2026-11-03 | After the Phase 4 screenshots, the Maintainer's answers: the Settings Export row is never amber; Android's install row leads with the same Add mark as the iPhone row; accepted as built: Android's Install button named without Safari's steps, the row hidden while Chrome offers no install, the › between the iPhone marks, the amber `warning` token (oklch(0.8 0.15 75) dark, oklch(0.53 0.12 62) light), "Getting ready for offline…" with a muted spinner and an amber row where there is no service worker, and the "App" and "Catalog" version lines. |

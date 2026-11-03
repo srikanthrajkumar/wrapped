@@ -28,7 +28,8 @@ function stringsOf(text: string, action: string): string[] {
   const quoted = [...text.matchAll(/"([^"]+)"|\*\*([^*]+)\*\*/g)].map((m) => m[1] ?? m[2]!);
   const actions = action
     .split(' · ')
-    .map((a) => a.trim())
+    // "Install (Android)": the action, with where it shows.
+    .map((a) => a.replace(/\s*\([^)]*\)$/, '').trim())
     .filter((a) => a !== '' && !a.startsWith('('));
   return [...quoted, ...actions];
 }
@@ -47,7 +48,7 @@ function produced(): Set<string> {
   const fromNumbers = functions.flatMap((fn) => numbers.map((n) => fn(n as never)));
   const all = [...strings, ...fromNumbers];
   const fromStrings = functions.flatMap((fn) => all.map((s) => fn(s as never)));
-  // Messages made of two values, on the sample the table shows.
+  // Messages made of two values or a day, on the sample the table shows.
   const presenters = 'a Lecdem has at most 3 presenters';
   const twoValues = [
     MESSAGES.undo.refused(MESSAGES.undo.subject.artist, presenters),
@@ -55,7 +56,8 @@ function produced(): Set<string> {
     MESSAGES.undo.refusedShort(MESSAGES.undo.subject.artist, presenters),
     MESSAGES.undo.refusedShort(MESSAGES.undo.subject.item(3), 'its Concert is deleted'),
   ];
-  return new Set([...all, ...fromStrings, ...twoValues]);
+  const days = [MESSAGES.lastExport('2 Nov')];
+  return new Set([...all, ...fromStrings, ...twoValues, ...days]);
 }
 
 describe('messages.ts', () => {

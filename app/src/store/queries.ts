@@ -258,6 +258,14 @@ export function useItem(id: string | null, { withDeleted = false } = {}) {
   }, [id, withDeleted]);
 }
 
+/** One `meta` row's value, null when there is none. */
+export function useMeta<T>(key: string): T | null | undefined {
+  return useLiveQuery(
+    async () => ((await defaultDb.meta.get(key))?.value as T | undefined) ?? null,
+    [key],
+  );
+}
+
 /** Writes not yet on the server (FR-016): the outbox's length. */
 export function useUnsyncedCount() {
   return useLiveQuery(() => defaultDb.outbox.count());

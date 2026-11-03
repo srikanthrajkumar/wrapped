@@ -15,6 +15,7 @@ import { createPortal } from 'react-dom';
 import { Link } from 'wouter';
 import { cn } from '@/lib/utils';
 import { SeasonFeedback } from './feedback';
+import { InstallRow } from './InstallRow';
 
 /** Where a screen's bottom action goes: the shell's sticky footer, above the tab bar. */
 export const BottomSlot = createContext<HTMLElement | null>(null);
@@ -31,7 +32,8 @@ export function BottomDock({ children }: { children: ReactNode }) {
 /**
  * The top bar of a pushed screen (design D5): only a back chevron labelled with its destination
  * at the left, and at most one item at the right. The top centre belongs to the Dynamic Island.
- * The season-wide line, when there is one, sits under it (DESIGN.md "Status").
+ * The install row and the season-wide line, when there are any, sit under it (DESIGN.md
+ * "Install", "Status").
  */
 export function TopBar({
   back,
@@ -55,6 +57,7 @@ export function TopBar({
         </Link>
         {right}
       </div>
+      <InstallRow />
       <SeasonFeedback />
     </>
   );

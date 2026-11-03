@@ -32,10 +32,35 @@ export const MESSAGES = {
     unavailable:
       "Offline logging isn't available in this browser. You can still log while you have signal.",
   },
+  /** Kept for sync (Phase 7): until then home shows no status line (decided 2026-11-03). */
   homeStatus: {
     changesWaiting: (count: number) =>
       `Saved on this phone · ${count} ${count === 1 ? 'change' : 'changes'} not yet backed up`,
     allSynced: 'All backed up',
+  },
+  /** Home, while the app isn't ready for offline; Settings shows it always. */
+  offline: {
+    ready: 'Ready offline',
+    gettingReady: 'Getting ready for offline…',
+  },
+  /** Settings: whether the browser has promised to keep the phone's storage. */
+  storage: {
+    protected: 'Storage protected',
+    notProtected: 'Storage not protected',
+  },
+  /** Settings' Export row: the day of the last Export, as "2 Nov". */
+  lastExport: (day: string) => `Last: ${day}`,
+  neverExported: '—',
+  /** Settings' version lines, each label before its version: "App 0.1.0". */
+  versions: { app: 'App', catalog: 'Catalog' },
+  /** The install row, on a phone with the app open in a browser tab (eng review D15). */
+  install: {
+    iPhone: 'Add to Home Screen:',
+    android: 'Install on this phone',
+    name: 'Install the app so your season stays on this phone. Tap Share, then Add to Home Screen.',
+    /** Android's Install button: the name without Safari's steps. */
+    why: 'Install the app so your season stays on this phone.',
+    action: 'Install',
   },
   sessionEnded: 'Sign in again to keep backing up. Logging still works.',
   anotherPhone: 'Your season is now being logged on another phone. Changes here are kept.',

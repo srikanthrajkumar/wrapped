@@ -72,6 +72,12 @@ export function dayText(date: string): string {
   return `${WEEKDAYS[day.getDay()]} ${d} ${MONTHS[m - 1]}`;
 }
 
+/** "2 Nov", from the date part of "2026-11-02" or a timestamp. */
+export function shortDayText(date: string): string {
+  const [, m, d] = date.slice(0, 10).split('-').map(Number) as [number, number, number];
+  return `${d} ${MONTHS[m - 1]}`;
+}
+
 /** "6:30 pm". */
 export function timeText(time: string): string {
   const [h, m] = time.split(':').map(Number) as [number, number];
