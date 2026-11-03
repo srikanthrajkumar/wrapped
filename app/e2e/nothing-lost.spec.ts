@@ -173,6 +173,8 @@ test('A2: a value whose Try again is still running survives a force-close', asyn
   await newConcert(page);
   await page.getByRole('link', { name: 'Add Item' }).click();
   await page.getByRole('button', { name: '? Don’t know' }).click();
+  // The Item's details show once its first pick is stored.
+  await expect(page.getByRole('button', { name: /^Tala,/ })).toBeVisible();
 
   await setFailingWrites(page, true);
   await page.getByRole('button', { name: /^Tala,/ }).click();
@@ -319,6 +321,8 @@ test('a failed Undo bar never covers a field the rasika moves to', async ({ page
   await page.getByRole('button', { name: 'vocal' }).click();
   await page.getByRole('button', { name: /^Sanjay/ }).click();
   await page.getByRole('button', { name: 'Remove from Stage' }).click();
+  // The Undo bar shows once the remove is stored.
+  await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeVisible();
   await setFailingWrites(page, true);
   await page.getByRole('button', { name: 'Undo', exact: true }).click();
   await expect(page.getByText('Undo failed · Artist', { exact: true })).toBeVisible();
@@ -358,10 +362,13 @@ test('Dismiss on a failed move leaves a failed delete of the same Item in place'
   await newConcert(page);
   await page.getByRole('link', { name: 'Add Item' }).click();
   await page.getByRole('button', { name: '? Don’t know' }).click();
+  await expect(page.getByRole('button', { name: /^Tala,/ })).toBeVisible();
   await page.getByRole('link', { name: 'Next Item' }).click();
   await page.getByRole('button', { name: '? Don’t know' }).click();
+  await expect(page.getByRole('button', { name: /^Tala,/ })).toBeVisible();
   await page.getByRole('link', { name: 'Done' }).click();
   await page.getByRole('button', { name: 'Edit order' }).first().click();
+  await expect(page.getByRole('button', { name: 'Delete Item 2' })).toBeVisible();
 
   await setFailingWrites(page, true);
   await page.getByRole('button', { name: /^Move Item 1 down/ }).click();
@@ -387,6 +394,10 @@ test('a Laya note typed over a failed Nadai keeps the Nadai entered', async ({ p
   await page.getByRole('button', { name: 'Laya vinyasam' }).click();
   await page.getByRole('button', { name: 'Laya vinyasam after this Item' }).click();
   await expect(page.getByRole('textbox', { name: 'Note' })).toBeVisible();
+  // The screen shows the Laya vinyasam as entered, before it is stored: wait for the store.
+  await expect
+    .poll(async () => (await readTable<{ layaVinyasam: unknown }>(page, 'items'))[0]?.layaVinyasam)
+    .toBeTruthy();
 
   await setFailingWrites(page, true);
   await page.getByRole('button', { name: /^Nadai/ }).click();
