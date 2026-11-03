@@ -36,7 +36,6 @@ import {
   type ResolvedEvent,
 } from '../store/queries';
 import { ColourPicker, colourName, SwatchDot } from './components/ColourPicker';
-import { exportSeason } from './components/export-file';
 import { NotSavedLine, saveWith, Saved, useSaveFeedback } from './components/feedback';
 import { useAutosave } from './components/autosave';
 import {
@@ -166,7 +165,6 @@ export function EventScreen({ eventId }: { eventId: string }) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => void exportSeason()}>Export</DropdownMenuItem>
               <DropdownMenuItem variant="destructive" onSelect={() => void deleteConcert(event)}>
                 Delete Event
               </DropdownMenuItem>

@@ -1,22 +1,20 @@
 // The Season home (DESIGN.md "Season (home, DD2)"; design D3, D11, D14, D17, D29). Under the title,
-// one muted status line; the new-catalog row when there is one; then Now, one large block with
-// one primary action; then Next and Season so far, each shown only once it has something in it.
+// the install row in a phone's browser tab, and "Getting ready for offline…" while the app isn't
+// ready; no status line until sync exists (decided 2026-11-03). Then the new-catalog row when
+// there is one; then Now, one large block with one primary action; then Next and Season so far,
+// each shown only once it has something in it.
 
-import { IconChevronRight } from '@tabler/icons-react';
+import { IconChevronRight, IconLoader2 } from '@tabler/icons-react';
 import { useRef, useState, useSyncExternalStore } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
-import { updateNow, useUpdate } from '../pwa';
+import { updateNow, useOfflineState, useUpdate } from '../pwa';
 import { createEvent, setStatus, today } from '../store/events';
 import { eventStart, isBeingLogged, nowEvent } from '../store/logging-note';
-import {
-  useEventSummaries,
-  useLoggingNotes,
-  useUnsyncedCount,
-  type EventSummary,
-} from '../store/queries';
+import { useEventSummaries, useLoggingNotes, type EventSummary } from '../store/queries';
 import { newId } from '../model';
 import { saveWith, SeasonFeedback, useSaveFeedback } from './components/feedback';
+import { InstallRow } from './components/InstallRow';
 import { BottomDock, useNow } from './components/layout';
 import { UndoBar } from './components/UndoBar';
 import { dayText, eventLine, itemCount, nowTime, timeText } from './format';
@@ -32,7 +30,7 @@ const sabhaName = (summary: EventSummary) => summary.sabha?.name ?? 'No Sabha ye
 export function HomeScreen() {
   const summaries = useEventSummaries();
   const notes = useLoggingNotes();
-  const unsynced = useUnsyncedCount();
+  const offline = useOfflineState();
   const now = useNow();
   const update = useUpdate();
   const [later, setLater] = useState(updateLater);
@@ -103,11 +101,21 @@ export function HomeScreen() {
 
   return (
     <>
-      <h1 className="pt-4 text-title font-semibold">Season</h1>
-      <Link href="/settings" className="flex min-h-12 items-center text-sub text-muted-foreground">
-        {unsynced ? MESSAGES.homeStatus.changesWaiting(unsynced) : MESSAGES.homeStatus.allSynced}
-      </Link>
-      {/* Home has no top bar: the season-wide line goes under its title and status. */}
+      <h1 className="pt-4 pb-2 text-title font-semibold">Season</h1>
+      <InstallRow />
+      {offline === 'getting-ready' && (
+        <p
+          role="status"
+          className="flex min-h-12 items-center gap-2 text-sub text-muted-foreground"
+        >
+          <IconLoader2
+            aria-hidden
+            className="size-5 shrink-0 animate-spin motion-reduce:animate-none"
+          />
+          {MESSAGES.offline.gettingReady}
+        </p>
+      )}
+      {/* Home has no top bar: the season-wide line goes under its title. */}
       <SeasonFeedback />
 
       {showUpdate && (

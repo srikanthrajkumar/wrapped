@@ -89,3 +89,44 @@ export function readTable<T = Record<string, unknown>>(page: Page, table: string
     table,
   );
 }
+
+/**
+ * Keep the app from becoming ready for offline: from the next page load, the page's request to
+ * the service worker for the second download is held back until `releaseOfflineReady(page)`.
+ */
+export async function holdOfflineReady(page: Page | BrowserContext): Promise<void> {
+  await page.addInitScript(() => {
+    const held: (() => void)[] = [];
+    let holding = true;
+    const original = ServiceWorker.prototype.postMessage as (...args: unknown[]) => void;
+    ServiceWorker.prototype.postMessage = function (this: ServiceWorker, ...args: unknown[]) {
+      const message = args[0] as { type?: string } | undefined;
+      if (holding && message?.type === 'CACHE_PHASE_2') {
+        held.push(() => original.apply(this, args));
+        return;
+      }
+      original.apply(this, args);
+    };
+    (window as unknown as { releaseOfflineReady: () => void }).releaseOfflineReady = () => {
+      holding = false;
+      held.splice(0).forEach((send) => send());
+    };
+  });
+}
+
+export async function releaseOfflineReady(page: Page): Promise<void> {
+  await page.evaluate(() =>
+    (window as unknown as { releaseOfflineReady: () => void }).releaseOfflineReady(),
+  );
+}
+
+/** From the next page load, the browser answers that it has (or hasn't) promised to keep storage. */
+export async function storagePersisted(
+  page: Page | BrowserContext,
+  persisted: boolean,
+): Promise<void> {
+  await page.addInitScript((persisted) => {
+    StorageManager.prototype.persisted = () => Promise.resolve(persisted);
+    StorageManager.prototype.persist = () => Promise.resolve(persisted);
+  }, persisted);
+}

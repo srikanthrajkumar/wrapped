@@ -7,11 +7,17 @@
 // read, only a rescue Export is made, named `-store-unreadable`; a plain one fails instead. One
 // from a store still opening that doesn't answer in time holds the journal alone, named
 // `-not-saved` and marked `storeTimedOut`. Never throws: a file that can't be made at all shows
-// "Export failed" with Try again, and takes away the check of an earlier handover.
+// "Export failed" with Try again, and takes away the check of an earlier handover. Once a file
+// holding the season is handed over, its day is kept in the store for Settings ("Last: 2 Nov").
 
 import { useSyncExternalStore } from 'react';
 import type { WrappedDB } from '../../store/db';
-import { buildExport, exportOrRescue, type SeasonExport } from '../../store/export';
+import {
+  buildExport,
+  exportOrRescue,
+  recordLastExport,
+  type SeasonExport,
+} from '../../store/export';
 import { saveFeedback, type JournalEntry } from '../save-feedback';
 
 export const APP_VERSION: string = import.meta.env.VITE_APP_VERSION ?? '0.0.0';
@@ -24,9 +30,11 @@ interface ExportState {
    * because the store was unreadable or still opening.
    */
   handover: { entries: JournalEntry[]; storeUnreadable: boolean; storeTimedOut: boolean } | null;
+  /** A file holding the season, plain or rescue, was handed over: Settings' Export shows a check. */
+  seasonHandedOver: boolean;
 }
 
-let state: ExportState = { failed: null, handover: null };
+let state: ExportState = { failed: null, handover: null, seasonHandedOver: false };
 const listeners = new Set<() => void>();
 
 function update(next: Partial<ExportState>) {
@@ -76,10 +84,19 @@ async function handOver(name: string, file: SeasonExport): Promise<boolean> {
 /** Export the season; resolves to whether a file was handed over. */
 export async function exportSeason({
   rescue = false,
-}: { rescue?: boolean } = {}): Promise<boolean> {
+  db,
+}: { rescue?: boolean; db?: WrappedDB } = {}): Promise<boolean> {
   try {
-    const { name, file } = await makeExportFile({ rescue });
+    const { name, file } = await makeExportFile({ rescue, db });
     const handed = await handOver(name, file);
+    const holdsSeason = !file.storeUnreadable && !file.storeTimedOut;
+    // The day is only shown, so it is never waited for: a store that can't write it now (or
+    // never answers) keeps the day before, and the handover below still stands.
+    if (handed && holdsSeason) {
+      void recordLastExport(file.exportedAt, db).catch((error: unknown) =>
+        console.error('last export not recorded', error),
+      );
+    }
     const handover =
       handed && rescue
         ? {
@@ -88,12 +105,16 @@ export async function exportSeason({
             storeTimedOut: file.storeTimedOut !== undefined,
           }
         : state.handover;
-    update({ failed: null, handover });
+    update({
+      failed: null,
+      handover,
+      seasonHandedOver: state.seasonHandedOver || (handed && holdsSeason),
+    });
     return handed;
   } catch (error) {
     console.error('export failed', error);
     // The check of an earlier handover would read as if this one went out.
-    update({ failed: { rescue }, handover: null });
+    update({ failed: { rescue }, handover: null, seasonHandedOver: false });
     return false;
   }
 }

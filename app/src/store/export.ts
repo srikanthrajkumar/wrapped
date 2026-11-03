@@ -51,6 +51,22 @@ export function localTimestamp(date = new Date()): string {
   );
 }
 
+export const LAST_EXPORT_KEY = 'lastExport';
+
+/** The last Export that held the season and was handed over, by its `exportedAt`. */
+export interface LastExport {
+  at: string;
+}
+
+/** Recorded once a file holding the season has been handed over, never before (Settings). */
+export async function recordLastExport(at: string, db: WrappedDB = defaultDb): Promise<void> {
+  await db.meta.put({ key: LAST_EXPORT_KEY, value: { at } satisfies LastExport });
+}
+
+export async function readLastExport(db: WrappedDB = defaultDb): Promise<LastExport | null> {
+  return ((await db.meta.get(LAST_EXPORT_KEY))?.value as LastExport | undefined) ?? null;
+}
+
 /** How long an Export waits for the store: a db.open blocked by another tab never answers. */
 export const EXPORT_TIMEOUT_MS = 10_000;
 

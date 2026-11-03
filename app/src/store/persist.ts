@@ -46,3 +46,13 @@ export async function ensurePersistentStorage(
   await db.meta.put({ key: PERSIST_KEY, value: state });
   return state;
 }
+
+/**
+ * Whether the browser has promised to keep this site's storage, asked now: it can change after
+ * the app is installed. False where there is no storage API, since nothing was promised.
+ */
+export async function storagePersisted(
+  storage: StorageManager | undefined = globalThis.navigator?.storage,
+): Promise<boolean> {
+  return storage?.persisted ? await storage.persisted().catch(() => false) : false;
+}

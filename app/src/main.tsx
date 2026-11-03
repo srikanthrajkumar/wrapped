@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { openCatalog } from './catalog/current';
+import { watchInstall } from './install';
 import { startServiceWorker } from './pwa';
 import { StoreGate } from './screens/RescueScreen';
 import { saveFeedback } from './screens/save-feedback';
@@ -15,6 +16,9 @@ import './styles/app.css';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing #root element');
+
+// Android's install prompt can come before the first render; it is kept for the install row.
+watchInstall();
 
 // The home screen renders first, with nothing awaited (constitution I). If the store won't open,
 // the rescue screen still offers the values not saved for Export.

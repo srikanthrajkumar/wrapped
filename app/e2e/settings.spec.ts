@@ -1,0 +1,225 @@
+// Phase 4, safe on the phone (T051 to T053; DESIGN.md "Settings", "Export lives in Settings",
+// "Status", "Install"): Export lives in Settings with the day of the last one, and the Event's
+// "⋯" holds only Delete Event; home stays quiet until sync, but for "Getting ready for offline…";
+// Settings shows the season first; and a phone with the app open in a browser tab shows the
+// install row on every screen, which an installed app and a desktop never show.
+
+import { devices, expect, test, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import {
+  failWritesOnDemand,
+  finishFirstLaunch,
+  holdOfflineReady,
+  readMeta,
+  releaseOfflineReady,
+  setFailingWrites,
+  storagePersisted,
+} from './helpers';
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** "2 Nov", from the "2026-11-02T…" of a file's exportedAt. */
+const shortDay = (iso: string) => {
+  const [, m, d] = iso.slice(0, 10).split('-').map(Number) as [number, number, number];
+  return `${d} ${MONTHS[m - 1]}`;
+};
+
+/** A device's screen and browser, without the browser type a describe group can't change. */
+const device = (name: string) => {
+  const { userAgent, viewport, deviceScaleFactor, isMobile, hasTouch } = devices[name]!;
+  return { userAgent, viewport, deviceScaleFactor, isMobile, hasTouch };
+};
+
+const INSTALL_NAME =
+  'Install the app so your season stays on this phone. Tap Share, then Add to Home Screen.';
+
+/** A bottom tab, not a back link to the same place. */
+const tab = (page: Page, name: string) =>
+  page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name, exact: true });
+
+async function newConcert(page: Page) {
+  await page.goto('/');
+  await finishFirstLaunch(page);
+  await page.getByRole('button', { name: 'Log a Concert now' }).click();
+  await expect(page.getByRole('link', { name: 'Add Item' })).toBeVisible();
+}
+
+// Required test (constitution IV, "export"): the Export the rasika reaches before sync exists.
+test('Export from Settings carries every record and the values not saved, and keeps its day', async ({
+  page,
+}) => {
+  await failWritesOnDemand(page);
+  await newConcert(page);
+  await page.getByRole('link', { name: 'Add Item' }).click();
+  await page.getByRole('button', { name: '? Don’t know' }).click();
+  // The Item's details show once its first pick is stored.
+  const tala = page.getByRole('button', { name: /^Tala,/ });
+  await expect(tala).toBeVisible();
+
+  // One value the phone can't store.
+  await setFailingWrites(page, true);
+  await tala.click();
+  await page.getByRole('button', { name: 'Not applicable' }).click();
+  await expect(page.getByText('Not saved', { exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await setFailingWrites(page, false);
+
+  await page.getByRole('link', { name: 'Done' }).click();
+  await tab(page, 'Settings').click();
+  const exportRow = page.getByRole('button', { name: 'Export', exact: true });
+  await expect(exportRow).toContainText('—');
+
+  const download = page.waitForEvent('download');
+  await exportRow.click();
+  const file = JSON.parse(readFileSync((await (await download).path())!, 'utf8'));
+  expect(file.format).toBe(1);
+  expect(file.events).toHaveLength(1);
+  expect(file.items).toHaveLength(1);
+  expect(file.items[0].tala).toMatchObject({ state: 'unknown' });
+  expect(file.unsyncedOps).toBeGreaterThan(0);
+  expect(file.notSaved).toEqual([
+    expect.objectContaining({
+      table: 'items',
+      id: file.items[0].id,
+      field: 'tala',
+      value: expect.objectContaining({ state: 'na' }),
+      state: 'failed',
+    }),
+  ]);
+  expect(file).not.toHaveProperty('storeUnreadable');
+
+  // Handed over: the day is kept, and the row carries the check.
+  const last = `Last: ${shortDay(file.exportedAt)}`;
+  const exported = page.getByRole('button', { name: `Exported. ${last}` });
+  await expect(exported).toContainText(last);
+  expect(await readMeta(page, 'lastExport')).toEqual({ at: file.exportedAt });
+
+  // A relaunch keeps the day.
+  await page.reload();
+  await expect(page.getByRole('button', { name: `Export. ${last}` })).toContainText(last);
+});
+
+test('the Event’s “⋯” holds only Delete Event', async ({ page }) => {
+  await newConcert(page);
+  await page.getByRole('button', { name: 'Concert actions' }).click();
+  await expect(page.getByRole('menuitem')).toHaveText(['Delete Event']);
+});
+
+test('home is quiet, and says "Getting ready for offline…" only until it is ready', async ({
+  page,
+}) => {
+  await holdOfflineReady(page);
+  await page.goto('/');
+  await finishFirstLaunch(page);
+
+  const gettingReady = page.getByRole('status').filter({ hasText: 'Getting ready for offline…' });
+  await expect(gettingReady).toBeVisible();
+  // Until sync exists, there is no status line.
+  await expect(page.getByText(/backed up/)).toHaveCount(0);
+  await tab(page, 'Settings').click();
+  await expect(page.getByText('Getting ready for offline…')).toBeVisible();
+  await tab(page, 'Season').click();
+
+  // It clears on its own.
+  await releaseOfflineReady(page);
+  await expect(gettingReady).toHaveCount(0);
+  await expect(page.getByText(/backed up/)).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Season', exact: true })).toBeVisible();
+});
+
+test.describe('Settings puts the season first', () => {
+  test('ready offline, storage protected, then Export', async ({ page }) => {
+    await storagePersisted(page, true);
+    await page.goto('/');
+    await finishFirstLaunch(page);
+    await tab(page, 'Settings').click();
+
+    await expect(page.getByText('Ready offline', { exact: true })).toBeVisible();
+    await expect(page.getByText('Storage protected', { exact: true })).toBeVisible();
+    const rows = page.getByRole('listitem');
+    await expect(rows).toHaveText([/^Ready offline/, /^Storage protected/, /^Export/]);
+    await expect(page.getByRole('radiogroup', { name: 'Theme' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Maintainer' })).toBeVisible();
+  });
+
+  test('storage the browser hasn’t promised to keep reads "Storage not protected"', async ({
+    page,
+  }) => {
+    await storagePersisted(page, false);
+    await page.goto('/');
+    await finishFirstLaunch(page);
+    await tab(page, 'Settings').click();
+    const row = page.getByRole('listitem').filter({ hasText: 'Storage not protected' });
+    await expect(row).toBeVisible();
+    await expect(row).toHaveClass(/text-warning/);
+  });
+});
+
+test.describe('the install row', () => {
+  test('an iPhone browser tab shows Safari’s steps on every screen', async ({ page }) => {
+    await newConcert(page);
+    // The Event screen, home and Settings.
+    for (const name of [null, 'Season', 'Settings']) {
+      if (name) await tab(page, name).click();
+      await expect(page.getByText(INSTALL_NAME)).toHaveCount(1);
+      await expect(page.getByText('Add to Home Screen:')).toBeVisible();
+    }
+    // No dismiss, and it never stands in front of Add Item.
+    await page.goBack();
+    await page.goBack();
+    const addItem = page.getByRole('link', { name: 'Add Item' });
+    await expect(addItem).toBeVisible();
+    await expect(addItem).toBeEnabled();
+    await expect(page.getByRole('button', { name: /dismiss/i })).toHaveCount(0);
+  });
+
+  test('an installed app shows nothing', async ({ page }) => {
+    await page.addInitScript(() => {
+      const original = window.matchMedia.bind(window);
+      window.matchMedia = (query: string) =>
+        query.includes('display-mode: standalone')
+          ? ({ ...original(query), matches: true, media: query } as MediaQueryList)
+          : original(query);
+    });
+    await page.goto('/');
+    await finishFirstLaunch(page);
+    await expect(page.getByText(INSTALL_NAME)).toHaveCount(0);
+    await expect(page.getByText('Add to Home Screen:')).toHaveCount(0);
+  });
+
+  test.describe('on Android', () => {
+    test.use(device('Pixel 7'));
+
+    test('one Install button opens the browser’s prompt', async ({ page }) => {
+      await page.goto('/');
+      await finishFirstLaunch(page);
+      // Chrome offers to install: the page keeps the prompt for the button.
+      await page.evaluate(() => {
+        const event = Object.assign(new Event('beforeinstallprompt', { cancelable: true }), {
+          prompt: () => {
+            (window as unknown as { prompted: boolean }).prompted = true;
+            return Promise.resolve();
+          },
+          userChoice: Promise.resolve({ outcome: 'dismissed' }),
+        });
+        window.dispatchEvent(event);
+      });
+      await expect(page.getByText('Install on this phone')).toBeVisible();
+      await expect(page.getByText('Add to Home Screen:')).toHaveCount(0);
+      await page.getByRole('button', { name: /^Install\b/ }).click();
+      expect(
+        await page.evaluate(() => (window as unknown as { prompted?: boolean }).prompted),
+      ).toBe(true);
+    });
+  });
+
+  test.describe('on a desktop', () => {
+    test.use(device('Desktop Chrome'));
+
+    test('shows nothing', async ({ page }) => {
+      await page.goto('/');
+      await finishFirstLaunch(page);
+      await expect(page.getByText(INSTALL_NAME)).toHaveCount(0);
+      await expect(page.getByText('Install on this phone')).toHaveCount(0);
+    });
+  });
+});

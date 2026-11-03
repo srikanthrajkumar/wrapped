@@ -80,6 +80,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-warning: var(--warning);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -121,6 +122,9 @@
   --accent-foreground: var(--foreground);
   /* Darker than the preset's 0.577, so "Not saved" reads at AA on surface-raised too (4.6:1). */
   --destructive: oklch(0.55 0.245 27.325);
+  /* Amber, for Settings rows when something is wrong ("Storage not protected"): 5.5:1 on the
+     background, 4.9:1 on surface-raised. */
+  --warning: oklch(0.53 0.12 62);
   --border: oklch(0.925 0.005 214.3);
   --input: oklch(0.925 0.005 214.3);
   --ring: oklch(0.723 0.014 214.4);
@@ -158,6 +162,8 @@
   --accent: oklch(0.275 0.011 216.9);
   --accent-foreground: var(--foreground);
   --destructive: oklch(0.704 0.191 22.216);
+  /* 10.3:1 on the background, 7.8:1 on surface-raised. */
+  --warning: oklch(0.8 0.15 75);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.56 0.021 213.5);
