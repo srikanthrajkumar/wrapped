@@ -52,8 +52,9 @@ Maintainer's end-of-season report, reading Postgres read-only.
 (`context.setOffline`); a real installed PWA on the iPhone 16 and the Redmi Note 5 before each release.
 Both tools are named in `docs/skills-router.md`.
 
-**Static hosting**: pending, task T054. The PWA's static files need a host before the
-phone-only fallback can ship; ADR 0001 covers sign-in and the database only.
+**Static hosting**: Cloudflare Workers Static Assets, deployed from the Maintainer's machine
+by one script that builds with the real snapshot, runs the full-catalog checks and stops if
+any fails. A `workers.dev` test address first; the real domain before sign-up (ADR 0008, T054).
 
 **Target Platform**: current iOS Safari and Android Chrome, installed to the home screen or in a
 browser tab. Test phones: iPhone 16 (primary) and Redmi Note 5 (Android; speed budgets judged on
