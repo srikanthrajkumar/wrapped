@@ -272,8 +272,17 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   shows only once the catalog is stored. Each failure (sign-in cancelled, no signal, a Google
   error, the download stopping) is one line of text and one "Try again", on the step it
   happened, keeping the answers already given.
-- **Settings:** theme, offline readiness, Export, sync and account, consent; the Maintainer's
-  `/admin` link. *Outline only; laid out in the review.*
+- **Settings** (laid out 2026-11-03 for Phase 4): the season first, as three icon-led rows,
+  each with its words in its accessible name and amber when something is wrong: offline
+  readiness ("Ready offline"), persisted storage ("Storage protected", amber "Storage not
+  protected" when the browser hasn't promised to keep it), and Export with the date of the last
+  one ("Last: 2 Nov", or "—" before the first). Then the theme. Then the app and catalog
+  versions, small and muted, at the bottom. Sync, account and consent join in Phase 7; the
+  Maintainer's `/admin` link stays.
+- **Export lives in Settings** (decided 2026-11-03). It is the only thing a rasika does with
+  their data before sync, so it isn't pressed on them elsewhere: the Event's "⋯" holds only
+  Delete Event. The safety rows keep their own Export, which rescues values not saved
+  (docs/adr/0007).
 
 - **Screen-reader and keyboard focus** (decided 2026-11-01):
   1. A pushed screen moves focus to its first block (the concert's name, or "Item 8"). The Item
@@ -430,13 +439,23 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   Wrapped. It is optional (decided 2026-11-01, D17): tapping it also releases Now at once, but
   nothing else depends on it. The same "What it added" lines show at the end of the running
   order of any Concert no longer being logged, so the summary is never missed.
-- **Status** (decided 2026-11-01, settling DD6's placement): home shows one muted line under its
-  title, "Saved on this phone · 4 changes not yet backed up" or "All backed up" (FR-016), which
-  opens the sync details in Settings. The Event screen and Item editor show nothing while all is
+- **Status** (decided 2026-11-01, settling DD6's placement; narrowed 2026-11-03): until sync
+  exists (Phase 7), home shows no status line, since every change would count as not backed up.
+  With sync it shows one muted line under its title, "Saved on this phone · 4 changes not yet
+  backed up" or "All backed up" (FR-016), which opens the sync details in Settings. While the
+  app isn't ready for offline (a first download or an update still coming), home shows one muted
+  line with a spinner, "Getting ready for offline…", which clears on its own; Settings always
+  shows the state. The Event screen and Item editor show nothing while all is
   well. When something needs the rasika ("Sign in again", "This phone is no longer the writer"),
   one line with its action button appears under the top bar on every screen until it is
   resolved; it never covers or disables Add Item. Its exact wording is settled with the rest of
   the system messages.
+- **Install** (eng review D15, drawn 2026-11-03): on a phone with the app open in a browser tab,
+  every screen shows one persistent row under its title, with no dismiss. On iPhone it draws
+  Safari's steps as marks (the Share glyph, then Add to Home Screen); on Android it has one
+  Install button that opens the browser's prompt. Installed, or on a desktop, it shows nothing.
+  Why it stays: Safari can clear a website's storage after 7 days without a visit, and leaves
+  installed apps alone.
 
 ## Motion
 
@@ -489,7 +508,12 @@ voice: plain, short, the glossary's words, no exclamation marks, never blaming t
 | Getting ready | Done | "Ready to log offline." | Start |
 | Getting ready | Stopped | "The download stopped. Logging needs it once, with a connection." | Try again |
 | Getting ready | No service worker (Firefox private mode) | "Offline logging isn't available in this browser. You can still log while you have signal." | Start |
-| Home status | Changes waiting | "Saved on this phone · 4 changes not yet backed up" | (opens sync details) |
+| Home status | Changes waiting, once sync exists (Phase 7) | "Saved on this phone · 4 changes not yet backed up" | (opens sync details) |
+| Home | Not ready for offline yet; clears on its own | "Getting ready for offline…" (muted, a spinner) | |
+| Any screen, top | Open in a phone's browser tab, not installed | iPhone: "Add to Home Screen:" with the Share and Add marks. Android: "Install on this phone". Accessible name: "Install the app so your season stays on this phone. Tap Share, then Add to Home Screen." | Install (Android) |
+| Settings | Offline readiness | "Ready offline" · not ready: "Getting ready for offline…" | |
+| Settings | Persisted storage | "Storage protected" · amber: "Storage not protected" | |
+| Settings | Export | "Export" with "Last: 2 Nov", or "—" before the first | Export |
 | Home status | All synced | "All backed up" | |
 | Any screen | Session ended (FR-050) | "Sign in again to keep backing up. Logging still works." | Sign in |
 | Any screen | Another phone writes (FR-022) | "Your season is now being logged on another phone. Changes here are kept." | Details |
@@ -528,7 +552,6 @@ in the phase that builds it):
 - Smaller states: cancelled versus "schedule changed" (with the Schedule, T061), consent
   toggles offline (with Settings, T082), Share in progress or failed (with the Cards).
 - The Lecdem variant of the Event screen (T063).
-- The Settings layout.
 - The Maintainer's edits to the drafted Messages table above, and the wording of messages for
   the screens deferred here.
 - The product's name and where its logo appears (deferred 2026-11-01: the Maintainer is
@@ -557,3 +580,4 @@ in the phase that builds it):
 | 2026-11-02 | Fourth review of PR #5, the Maintainer's answers: fixed by class, not per finding; a failed delete reads "Not deleted" ("Not deleted · Concert, Mon 2 Nov"), and its Try again deletes and offers Undo; a row shows one kind of failure; Dismiss acts only on moves and repicks; "Not kept on this phone" when the phone can't keep a copy of values entered; an Export from "Still opening" that times out is named `-not-saved`, marked `storeTimedOut`, and gets no check badge. |
 | 2026-11-02 | Direction, not yet designed: the ethereal rose motif, generated per Concert from its instruments, is the logo and the ground of the Cards, and stays out of the logging surfaces. "Prefer a mark to a sentence." Rose is allowed in the motif as well as charts. |
 | 2026-11-03 | After the round-4 screenshots, the Maintainer's answer: a "Not deleted" row offers Try again and Dismiss, not Export; Dismiss keeps the record after all, taking only the delete entry and leaving the store as it is. |
+| 2026-11-03 | Phase 4 design, the Maintainer's answers: Export lives in Settings, with its last date, and the Event's "⋯" keeps only Delete; home shows no status line until sync, and only "Getting ready for offline…" while the app isn't ready; the install row is persistent and drawn as Safari's marks on iPhone and an Install button on Android; Settings puts the season first (offline, storage protected, Export), then the theme, then the versions. |
