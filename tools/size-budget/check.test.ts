@@ -61,6 +61,21 @@ describe('size budget', () => {
     expect(run(dist).status).toBe(0);
   });
 
+  it("skips the host's own files at the root, which the phone never downloads", () => {
+    const files = {
+      'index.html': 'a',
+      _headers: '/\n  Cache-Control: no-cache\n',
+      '.assetsignore': 'precache-phases.json\n',
+      'precache-phases.json': manifest({ phase1: ['index.html'], phase2: [] }),
+    };
+    expect(run(makeDist(files)).status).toBe(0);
+
+    // Anywhere else, a file of that name is served like any other, so it must be in a phase.
+    const result = run(makeDist({ ...files, 'assets/_headers': 'b' }));
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('assets/_headers');
+  });
+
   it('fails a manifest that is not JSON', () => {
     const result = run(makeDist({ 'index.html': 'a', 'precache-phases.json': '{' }));
     expect(result.status).toBe(1);

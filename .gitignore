@@ -26,3 +26,6 @@ coverage/
 
 # gstack scratch files
 .gstack/
+
+# Wrangler's local state (ADR 0008)
+.wrangler/

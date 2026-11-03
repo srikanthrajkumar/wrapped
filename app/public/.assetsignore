@@ -1,0 +1,2 @@
+# Build files Cloudflare never uploads (ADR 0008). The phase list is for the size check only.
+precache-phases.json

@@ -16,6 +16,10 @@ import { brotliCompressSync, constants } from 'node:zlib';
 // Decimal megabytes, the stricter reading of "2 MB" and "3 MB".
 const BUDGETS = { phase1: 2_000_000, phase2: 3_000_000 };
 const MANIFEST = 'precache-phases.json';
+// Files in the build the phone never downloads: the phase list, and the host's own files
+// (ADR 0008), which Cloudflare reads at deploy and never serves. The precache skips them too
+// (globIgnores in app/vite.config.ts).
+const NOT_DOWNLOADED = new Set([MANIFEST, '_headers', '.assetsignore']);
 
 const root = resolve(import.meta.dirname, '../..');
 const distDir = resolve(process.argv[2] ?? join(root, 'app/dist'));
@@ -58,7 +62,7 @@ function brotliSize(path) {
   }).length;
 }
 
-const built = listFiles(distDir).filter((path) => path !== MANIFEST);
+const built = listFiles(distDir).filter((path) => !NOT_DOWNLOADED.has(path));
 if (built.length === 0) fail(`the build at ${distDir} has no files.`);
 
 /** @returns {{ phase1: string[], phase2: string[] }} */

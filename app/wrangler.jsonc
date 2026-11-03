@@ -1,0 +1,15 @@
+// Cloudflare Workers Static Assets for the app's files (ADR 0008). Files only, no Worker script.
+// Deployed by tools/deploy/deploy.sh from the Maintainer's machine; no account id or token here.
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "wrapped",
+  "compatibility_date": "2026-10-26",
+  // The test address, wrapped.<account subdomain>.workers.dev, until the real domain (T054b).
+  "workers_dev": true,
+  "assets": {
+    "directory": "./dist",
+    // A path that is no file (a wouter route such as /event/…) gets index.html with a 200. Once
+    // installed, the service worker answers navigations from its precache before this is asked.
+    "not_found_handling": "single-page-application",
+  },
+}

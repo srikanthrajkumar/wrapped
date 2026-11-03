@@ -71,6 +71,9 @@ export default defineConfig({
       },
       injectManifest: {
         globPatterns: ['**/*'],
+        // Cloudflare's own files (ADR 0008), never served: precached, they would come back as
+        // the app page. tools/size-budget/check.mjs skips the same list.
+        globIgnores: ['_headers', '.assetsignore'],
         maximumFileSizeToCacheInBytes: MAX_PRECACHED_FILE_BYTES,
         // Record the two phases for the size check (tools/size-budget/check.mjs). The service
         // worker itself is downloaded at install, so it belongs to the first phase.
