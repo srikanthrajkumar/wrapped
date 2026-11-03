@@ -41,7 +41,8 @@ it: it is built from karnatik.com and is not published here.
 - **Every commit passes `npm run check`** (types, lint, tests, size budget) once the app
   exists.
 - **No AI attribution.** Commit messages and pull requests carry no `Co-Authored-By` or
-  "Generated with" lines. `.claude/settings.json` turns these off for Claude Code.
+  "Generated with" lines. For Claude Code, turn these off in your own `.claude/settings.json`
+  (`"attribution": { "commit": "", "pr": "" }`); `.claude/` is not in git.
 - **Commit email.** Commits use the GitHub noreply address, never a personal email.
 
 ## Branches
