@@ -40,10 +40,10 @@ gstack skills are large (7–13K words each); invoke them explicitly by name rat
 
 ## 2. Approved — installed 2026-10-26 (stack-agnostic)
 
-All project-scoped (no `-g`), copied (not symlinked) into `.claude/skills/` and tracked in git, so they are versioned with this repo and don't leak into other projects.
+All project-scoped (no `-g`) and copied (not symlinked) into `.claude/skills/`, so they don't leak into other projects. `.claude/` is kept out of git (2026-11-03): the skills are pinned by `skills-lock.json` and `specify` 1.2.3, which are tracked, and are restored on each machine from those.
 
 **Installed state**
-- spec-kit CLI `specify` 1.2.3 via `uv` 0.13.5 (`~/.local/bin`, release binary checksum-verified). Scaffold in `.specify/`; 10 `speckit-*` skills in `.claude/skills/`, all `disable-model-invocation: true` (call them by name).
+- spec-kit CLI `specify` 1.2.3 via `uv` 0.13.5 (`~/.local/bin`, release binary checksum-verified). Scaffold in `.specify/`; 10 `speckit-*` skills in `.claude/skills/`, all `disable-model-invocation: true` (call them by name). Restore them on a new box by running the `specify init` command below in an empty folder and copying its `.claude/skills/speckit-*` across (run here, it would touch `.specify/`).
 - 10 skills via `npx skills add … -a claude-code -y --copy`, pinned by content hash in `skills-lock.json`. The tenth, `vitest`, was added 2026-10-31 (T009) once the plan locked Vite + React. Restore on a new box with `npx skills experimental_install`; update deliberately with `npx skills update -p` and re-read the diff.
 - `tdd` sends refactoring to "the `code-review` skill" — in this project that means gstack `/review` (mattpocock `code-review` is not approved).
 

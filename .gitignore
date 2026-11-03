@@ -1,5 +1,5 @@
-# Claude Code: commit .claude/skills, keep personal settings and local state out
-.claude/settings.local.json
+# Claude Code: skills, settings and worktrees stay on each machine
+.claude/
 
 # Environment and secrets
 .env
