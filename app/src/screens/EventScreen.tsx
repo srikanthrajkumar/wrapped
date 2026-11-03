@@ -6,7 +6,7 @@
 import { IconArrowDown, IconArrowUp, IconDots, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation } from 'wouter';
+import { Link } from 'wouter';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,10 +19,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useCatalog } from '../catalog/use-catalog';
 import { newId, type Colour, type Item, type Role } from '../model';
-import { deleteEvent, editEvent, setStatus } from '../store/events';
-import { moveItemBy, removeItem } from '../store/items';
+import { editEvent, setStatus } from '../store/events';
+import { moveItemBy } from '../store/items';
 import { endLogging, isBeingLogged } from '../store/logging-note';
-import { addAppearance, editAppearance, moveAppearanceBy, removeAppearance } from '../store/people';
+import { addAppearance, editAppearance, moveAppearanceBy } from '../store/people';
 import {
   getEvent,
   useAppearances,
@@ -51,7 +51,8 @@ import { NamePicker, RoleChips } from './components/NamePicker';
 import { SheetFrame } from './components/sheet-frame';
 import { UndoBar } from './components/UndoBar';
 import { eventLine, itemCount, itemLine, itemTitle } from './format';
-import { offerUndo, undo, undoMessage } from './undo';
+import { deleteConcert, deleteItem, removeArtist } from './deletes';
+import { undo, undoMessage } from './undo';
 
 type Order = 'items' | 'stage' | null;
 
@@ -79,7 +80,6 @@ export function EventScreen({ eventId }: { eventId: string }) {
   const notes = useLoggingNotes();
   const receipts = useReceipts(eventId);
   const now = useNow();
-  const [, navigate] = useLocation();
   const [order, setOrder] = useState<Order>(null);
   const [artistOpen, setArtistOpen] = useState(false);
   const [artistFailed, setArtistFailed] = useState<{
@@ -124,27 +124,20 @@ export function EventScreen({ eventId }: { eventId: string }) {
   const target = (field: string) => eventTarget(eventId, field);
   const appearanceById = (id: string | null) => appearances.find((a) => a.id === id);
 
-  // Deletes go through save feedback: a failed one says so, and nothing is thrown.
+  // Deletes go through save feedback as their own kind (screens/deletes.ts): a failed one reads
+  // "Not deleted", its Try again offers Undo too, and nothing is thrown.
   const removeItemAt = async (item: Item, index: number) => {
-    const deleted = await saveWith(
-      { table: 'items', id: item.id, field: 'deletedAt' },
-      'deleted',
-      () => removeItem(item.id),
-    );
-    if (!deleted) return;
-    offerUndo(deleted.receipt);
+    if (!(await deleteItem(item))) return;
     setFocusAfter({ list: 'items', index });
   };
 
   // The sheet closes only once the Artist is removed; a failure stays in it.
   const removeFromStage = async (id: string) => {
     const index = appearances.findIndex((a) => a.id === id);
-    const removed = await saveWith(appearanceTarget(id, 'deletedAt'), 'deleted', () =>
-      removeAppearance(id),
-    );
-    if (!removed) return;
+    const appearance = appearances[index];
+    if (!appearance) return;
+    if (!(await removeArtist({ id, name: appearance.artist?.name ?? null }))) return;
     setAppearanceFor(null);
-    offerUndo(removed.receipt);
     setFocusAfter({ list: 'stage', index });
   };
 
@@ -156,7 +149,6 @@ export function EventScreen({ eventId }: { eventId: string }) {
       appearanceTarget(id, '*'),
       { eventId, artistId: entry.id, name: entry.name },
       () => addAppearance(eventId, entry.id, {}, { id }),
-      { kind: 'create' },
     );
     setArtistFailed(appearance ? null : { id, entry });
     if (appearance) setRolesFor(appearance.id);
@@ -175,18 +167,7 @@ export function EventScreen({ eventId }: { eventId: string }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onSelect={() => void exportSeason()}>Export</DropdownMenuItem>
-              <DropdownMenuItem
-                variant="destructive"
-                onSelect={() =>
-                  void saveWith(target('deletedAt'), 'deleted', () => deleteEvent(eventId)).then(
-                    (deleted) => {
-                      if (!deleted) return;
-                      offerUndo(deleted.receipt);
-                      navigate('/');
-                    },
-                  )
-                }
-              >
+              <DropdownMenuItem variant="destructive" onSelect={() => void deleteConcert(event)}>
                 Delete Event
               </DropdownMenuItem>
               {receipts && receipts.length > 0 && (

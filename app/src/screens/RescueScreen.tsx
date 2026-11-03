@@ -5,10 +5,15 @@
 // Export at the top.
 
 import { IconAlertCircle } from '@tabler/icons-react';
-import { Component, useEffect, type ErrorInfo, type ReactNode } from 'react';
+import { Component, useEffect, type CSSProperties, type ErrorInfo, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { useStoreHealth } from '../store/health';
-import { exportSeason, storeOpened, useExportState } from './components/export-file';
+import {
+  dismissExportFailure,
+  exportSeason,
+  storeOpened,
+  useExportState,
+} from './components/export-file';
 import { ExportIcon, SafetyRow } from './components/feedback';
 import { MESSAGES } from './messages';
 
@@ -16,7 +21,7 @@ import { MESSAGES } from './messages';
 const restart = () => window.location.assign(import.meta.env.BASE_URL);
 
 export function RescueScreen() {
-  const { handover } = useExportState();
+  const { handover, failed } = useExportState();
   return (
     <div className="flex min-h-dvh flex-col pt-[env(safe-area-inset-top)] pr-[calc(16px+env(safe-area-inset-right))] pb-[calc(16px+env(safe-area-inset-bottom))] pl-[calc(16px+env(safe-area-inset-left))]">
       <div role="alert" className="flex flex-1 flex-col items-center justify-center gap-3 py-8">
@@ -24,6 +29,16 @@ export function RescueScreen() {
         <h1 className="text-center text-title font-semibold">{MESSAGES.rescue.title}</h1>
       </div>
       <div className="flex flex-col gap-2">
+        {failed && (
+          <SafetyRow
+            label={MESSAGES.short.exportFailed}
+            sentence={MESSAGES.exportFailed}
+            onRetry={() => {
+              dismissExportFailure();
+              void exportSeason({ rescue: true });
+            }}
+          />
+        )}
         <Button size="lg" className="w-full" onClick={restart}>
           {MESSAGES.actions.tryAgain}
         </Button>
@@ -32,13 +47,15 @@ export function RescueScreen() {
           variant="outline"
           className="w-full"
           aria-label={
-            handover
-              ? `${MESSAGES.short.exported}. ${MESSAGES.exportStoreUnreadable}`
-              : MESSAGES.actions.export
+            !handover
+              ? MESSAGES.actions.export
+              : handover.storeTimedOut
+                ? `${MESSAGES.actions.export}. ${MESSAGES.exportStoreSlow}`
+                : `${MESSAGES.short.exported}. ${MESSAGES.exportStoreUnreadable}`
           }
           onClick={() => void exportSeason({ rescue: true })}
         >
-          <ExportIcon exported={handover !== null} />
+          <ExportIcon exported={handover !== null && !handover.storeTimedOut} />
           {MESSAGES.actions.export}
         </Button>
       </div>
@@ -56,9 +73,11 @@ export function StoreGate({ children }: { children: ReactNode }) {
     if (health.state === 'open') storeOpened();
   }, [health.state]);
   if (health.state === 'failed') return <RescueScreen />;
+  const slow = health.state === 'slow';
   return (
-    <>
-      {health.state === 'slow' && (
+    // While the row shows, it takes the top safe area, and the app below adds none of its own.
+    <div style={slow ? ({ '--app-top-inset': '0px' } as CSSProperties) : undefined}>
+      {slow && (
         <div className="border-b border-border pt-[env(safe-area-inset-top)] pr-[calc(16px+env(safe-area-inset-right))] pl-[calc(16px+env(safe-area-inset-left))]">
           <SafetyRow
             label={MESSAGES.short.stillOpening}
@@ -69,7 +88,7 @@ export function StoreGate({ children }: { children: ReactNode }) {
         </div>
       )}
       <RescueBoundary>{children}</RescueBoundary>
-    </>
+    </div>
   );
 }
 

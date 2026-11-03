@@ -116,7 +116,7 @@ export function App() {
 
   return (
     <BottomSlot.Provider value={slot}>
-      <div className="flex min-h-dvh flex-col pt-[env(safe-area-inset-top)]">
+      <div className="flex min-h-dvh flex-col pt-[var(--app-top-inset,env(safe-area-inset-top))]">
         <main className="flex flex-1 flex-col pr-[calc(16px+env(safe-area-inset-right))] pl-[calc(16px+env(safe-area-inset-left))]">
           {!done ? (
             <FirstLaunch />

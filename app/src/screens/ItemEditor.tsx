@@ -41,11 +41,12 @@ import {
   describePick,
   discardItemDraft,
   readItemDraft,
-  removeItem,
   repickItem,
   saveItemDraft,
   setDetail,
   setImprovised,
+  setLayaNadai,
+  setLayaNote,
   setLayaVinyasam,
   setRagas,
   type DetailField as ItemField,
@@ -60,9 +61,10 @@ import { NotSavedLine, saveWith, Saved, useSaveFeedback } from './components/fee
 import { BottomDock, QuietButton, TopBar, useFocusOnOpen } from './components/layout';
 import { SheetFrame } from './components/sheet-frame';
 import { UndoBar } from './components/UndoBar';
+import { deleteItem } from './deletes';
+import { WriteGate } from './write-gate';
 import { detailText, ragasText, spokenDetail, talaText } from './format';
 import { MESSAGES } from './messages';
-import { offerUndo } from './undo';
 
 /** The Event's name for the back chevron: its Sabha, or "Concert" until it has one. */
 function useBack(eventId: string) {
@@ -212,11 +214,23 @@ function NewItem({ eventId }: { eventId: string }) {
   useEffect(() => {
     latest.current = draft;
   }, [draft]);
+  // What is typed is journalled at once, like a note, and stored as the draft when the page is
+  // hidden; the journal lets it go once the draft (or the Item) is stored.
+  const draftTarget = (id: string) => ({ table: 'items' as const, id, field: 'draft' });
+  const type = (text: string) => {
+    if (!draft) return;
+    setDraft({ ...draft, text });
+    if (text.trim()) feedback.hold(draftTarget(draft.id), { eventId, text });
+    else feedback.release(draftTarget(draft.id));
+  };
   useEffect(() => {
     const keep = () => {
       const current = latest.current;
       if (document.visibilityState === 'hidden' && current && current.text.trim()) {
-        void saveItemDraft({ id: current.id, eventId, text: current.text });
+        const typed = { id: current.id, eventId, text: current.text };
+        void saveWith(draftTarget(current.id), { eventId, text: current.text }, () =>
+          saveItemDraft(typed),
+        );
       }
     };
     document.addEventListener('visibilitychange', keep);
@@ -240,17 +254,26 @@ function NewItem({ eventId }: { eventId: string }) {
   }, [ready, current, eventId, navigate]);
   if (taken && draft) setDraft({ ...draft, id: newId() });
 
-  const pick = (choice: ItemPick) => {
-    if (!draft) return;
+  // One first pick at a time: a second tap while one is written would make the same Item with
+  // another pick, and only one of the two could be kept.
+  const picking = useRef(false);
+  const pick = async (choice: ItemPick) => {
+    if (!draft || picking.current) return;
+    picking.current = true;
     const id = draft.id;
-    // From here a page-hide never writes the draft back (the store refuses it too).
+    // From here a page-hide never writes the draft back (the store refuses it too); the pick's
+    // own entry holds what was chosen.
     latest.current = null;
-    void saveWith(
-      { table: 'items', id, field: '*' },
-      { eventId, pick: describePick(choice), label: pickLabel(choice) },
-      () => addItemFrom(eventId, choice, { id }),
-      { kind: 'create' },
-    );
+    feedback.drop(draftTarget(id));
+    try {
+      await saveWith(
+        { table: 'items', id, field: '*' },
+        { eventId, pick: describePick(choice), label: pickLabel(choice) },
+        () => addItemFrom(eventId, choice, { id }),
+      );
+    } finally {
+      picking.current = false;
+    }
   };
 
   if (!draft) return null;
@@ -265,7 +288,13 @@ function NewItem({ eventId }: { eventId: string }) {
       }}
     >
       {/* Backing out discards what was typed (design D12). */}
-      <TopBar back={back} onBack={() => void discardItemDraft(eventId)} />
+      <TopBar
+        back={back}
+        onBack={() => {
+          feedback.drop(draftTarget(draft.id));
+          void discardItemDraft(eventId);
+        }}
+      />
       <h1 className="pt-1 pb-2 text-title font-semibold">
         Item {number ?? ''}
         {failedLabel !== undefined && ` · ${failedLabel}`}
@@ -275,8 +304,8 @@ function NewItem({ eventId }: { eventId: string }) {
       )}
       <ItemSearch
         query={draft.text}
-        onQuery={(text) => setDraft({ ...draft, text })}
-        onPick={pick}
+        onQuery={type}
+        onPick={(choice) => void pick(choice)}
         autoFocus
       />
     </div>
@@ -310,7 +339,6 @@ const IMPROVISED_NAMES: Record<ImprovisedKind, string> = {
 function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
   const item = useItem(itemId);
   const back = useBack(eventId);
-  const [, navigate] = useLocation();
   const catalogState = useCatalog();
   const catalog = catalogState.status === 'ready' ? catalogState.catalog : null;
   const [open, setOpen] = useState<Open>(null);
@@ -323,6 +351,8 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
   const [ragaOrder, setRagaOrder] = useState(false);
   const head = useFocusOnOpen<HTMLHeadingElement>(itemId);
   const feedback = useSaveFeedback();
+  // Details set while a repick is written are written after it (screens/write-gate.ts).
+  const [gate] = useState(() => new WriteGate());
 
   if (item === undefined) return null;
   if (item === null) {
@@ -342,40 +372,66 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
   const ragas = shown('ragas', item.ragas);
 
   const save = (field: ItemField, value: DetailValue) =>
-    void saveWith(target(field), value, () =>
-      setDetail(item.id, field, value, { catalog: currentCatalog() ?? undefined }),
+    void saveWith(
+      target(field),
+      value,
+      gate.after(() =>
+        setDetail(item.id, field, value, { catalog: currentCatalog() ?? undefined }),
+      ),
     );
   const saveRagas = (next: DetailValue[]) =>
-    void saveWith(target('ragas'), next, () =>
-      setRagas(item.id, next, { catalog: currentCatalog() ?? undefined }),
+    void saveWith(
+      target('ragas'),
+      next,
+      gate.after(() => setRagas(item.id, next, { catalog: currentCatalog() ?? undefined })),
     );
   const improvised = shown('improvised', item.improvised);
   const saveImprovised = (next: Item['improvised']) =>
-    void saveWith(target('improvised'), next, () => setImprovised(item.id, next));
-  const laya = shown('layaVinyasam', item.layaVinyasam);
-  const saveLaya = (next: Item['layaVinyasam']) =>
-    void saveWith(target('layaVinyasam'), next, () => setLayaVinyasam(item.id, next));
+    void saveWith(
+      target('improvised'),
+      next,
+      gate.after(() => setImprovised(item.id, next)),
+    );
+  // The Laya vinyasam is whether there is one, with its Nadai; its note has its own target and
+  // write, so typing the note never rebuilds the Nadai from a value not yet saved.
+  const laya = shown<{ nadai: DetailValue } | null>('layaVinyasam', item.layaVinyasam);
+  const layaNote = shown('layaNote', item.layaVinyasam?.note ?? null);
+  const saveLayaNadai = (nadai: DetailValue) =>
+    void saveWith(
+      target('layaVinyasam'),
+      { nadai },
+      gate.after(() => setLayaNadai(item.id, nadai)),
+    );
+  const removeLaya = () =>
+    void saveWith(
+      target('layaVinyasam'),
+      null,
+      gate.after(() => setLayaVinyasam(item.id, null)),
+    );
 
   // One write: the pick, the Details it clears and the logging note (store/items.ts repickItem).
-  // It waits for the catalog, so a Guess is never taken for the old song's value. A failed
+  // It waits for the catalog (for a while at most), so a Guess is never taken for the old song's
+  // value; a Detail set meanwhile is written after it, so the repick never clears it. A failed
   // repick is never retried ("Not changed"): the rasika picks again; the pick is journalled for
   // Export.
   const repick = (choice: ItemPick) => {
     setOpen(null);
     setQuery('');
-    void saveWith(
-      target('pick'),
-      { eventId, pick: describePick(choice), label: pickLabel(choice) },
-      async () => repickItem(item.id, choice, { catalog: (await readyCatalog()) ?? undefined }),
-      { kind: 'repick' },
+    gate.hold(
+      saveWith(
+        target('pick'),
+        { eventId, pick: describePick(choice), label: pickLabel(choice) },
+        async () => repickItem(item.id, choice, { catalog: (await readyCatalog()) ?? undefined }),
+        { kind: 'repick' },
+      ),
     );
   };
 
   // A pick being written shows at once; a failed one didn't happen, so the title stays.
-  const picking =
-    feedback.get(target('pick'))?.status === 'failed'
-      ? null
-      : shown<{ label: string } | null>('pick', null);
+  // It shows until the Item read back holds the pick (store/journal-check.ts storedHolds).
+  const pickShown =
+    feedback.get(target('pick'))?.status === 'failed' ? item : shown<unknown>('pick', item);
+  const picking = pickShown === item ? null : (pickShown as { label: string });
   const title = picking?.label || item.title || ragasText(ragas) || '?';
   const cell = (field: ItemField, value: DetailValue, text?: string) => (
     <DetailCell
@@ -406,16 +462,8 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
             <DropdownMenuContent align="end">
               <DropdownMenuItem
                 variant="destructive"
-                onSelect={() =>
-                  // A failed delete stays here, with "Not saved" under the title.
-                  void saveWith(target('deletedAt'), 'deleted', () => removeItem(item.id)).then(
-                    (deleted) => {
-                      if (!deleted) return;
-                      offerUndo(deleted.receipt);
-                      navigate(`/event/${eventId}`);
-                    },
-                  )
-                }
+                // A failed delete stays here, with "Not deleted" under the title.
+                onSelect={() => void deleteItem(item)}
               >
                 Delete Item
               </DropdownMenuItem>
@@ -523,12 +571,9 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
         open={layaOpen}
         onToggle={() => setFolds({ ...folds, laya: !layaOpen })}
       >
-        <Saved target={target('layaVinyasam')}>
+        <Saved target={[target('layaVinyasam'), target('layaNote')]}>
           {laya === null ? (
-            <Button
-              variant="outline"
-              onClick={() => saveLaya({ nadai: notApplicableValue(), note: null })}
-            >
+            <Button variant="outline" onClick={() => saveLayaNadai(notApplicableValue())}>
               <IconPlus aria-hidden /> Laya vinyasam after this Item
             </Button>
           ) : (
@@ -541,20 +586,26 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
                 onOpen={() => setOpen({ kind: 'laya' })}
               />
               <LayaNote
-                stored={laya.note}
+                stored={layaNote}
                 onSave={(note) => {
-                  // Saved against the latest Laya vinyasam, so a Nadai changed meanwhile stays;
-                  // a note still pending when the Laya vinyasam is removed goes with it.
-                  const current = shown('layaVinyasam', item.layaVinyasam);
-                  if (current) saveLaya({ ...current, note: note || null });
+                  // A note still pending when the Laya vinyasam is removed goes with it.
+                  if (shown('layaVinyasam', item.layaVinyasam) === null) {
+                    feedback.release(target('layaNote'));
+                    return;
+                  }
+                  void saveWith(
+                    target('layaNote'),
+                    note,
+                    gate.after(() => setLayaNote(item.id, note)),
+                  );
                 }}
-                onPending={(note) => {
-                  const current = shown('layaVinyasam', item.layaVinyasam);
-                  if (note === null) feedback.release(target('layaVinyasam'));
-                  else if (current) feedback.hold(target('layaVinyasam'), { ...current, note });
-                }}
+                onPending={(note) =>
+                  note === null
+                    ? feedback.release(target('layaNote'))
+                    : feedback.hold(target('layaNote'), note)
+                }
               />
-              <Button variant="ghost" className="self-start" onClick={() => saveLaya(null)}>
+              <Button variant="ghost" className="self-start" onClick={removeLaya}>
                 Remove Laya vinyasam
               </Button>
             </div>
@@ -716,7 +767,7 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
           field="nadai"
           title="Laya vinyasam nadai"
           value={laya.nadai}
-          onChange={(nadai) => saveLaya({ ...laya, nadai })}
+          onChange={(nadai) => saveLayaNadai(nadai)}
         />
       )}
       {open?.kind === 'composition' && (
@@ -847,7 +898,7 @@ function LayaNote({
 }: {
   stored: string | null;
   onSave(note: string): void;
-  onPending(note: string | null): void;
+  onPending(note: string | null): boolean | void;
 }) {
   const note = useAutosave(stored ?? '', onSave, onPending);
   return (

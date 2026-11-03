@@ -1,7 +1,9 @@
 // When home offers the waiting update (FR-038; design D29). Never while a Concert is being
-// logged, and never while a failed write is waiting for Try again or a failed Undo is on its bar:
-// the update reloads the page, and a write to try again lives only in memory. Journal entries
-// Try again can't write (copied back, refused, a repick) lose nothing to a reload.
+// logged, while a failed write is waiting for Try again, or while any Undo bar shows: the update
+// reloads the page, a write to try again lives only in memory, and a live Undo's 5 seconds would
+// end with it. A failed Undo, or one being written, is kept in localStorage and comes back after
+// a reload, but its bar still holds the update back until it is done. Journal entries Try again
+// can't write (copied back, refused, a repick) lose nothing to a reload.
 
 export function offersUpdate({
   available,
@@ -13,7 +15,7 @@ export function offersUpdate({
   /** "Later" was tapped this launch. */
   later: boolean;
   logging: boolean;
-  /** A failed write still held for Try again, or a failed Undo still on its bar. */
+  /** A failed write still held for Try again, or an Undo bar showing (live, being written or failed). */
   unsaved: boolean;
 }): boolean {
   return available && !later && !logging && !unsaved;

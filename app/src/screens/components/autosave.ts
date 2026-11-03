@@ -3,7 +3,9 @@
 // a field on lock, app switch or kill, but does fire pagehide and visibilitychange) and when the
 // field goes away. A newer stored value replaces the text only while nothing typed is pending.
 // Until it is written, typed text is handed to `onPending`, which copies it to save feedback's
-// storage at once, so a kill inside the pause loses nothing (null: nothing to write after all).
+// storage at once, so a kill inside the pause loses nothing (null: nothing to write after all;
+// when `onPending` answers false, a write for the field is still running and may land after, so
+// the text is written anyway).
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -12,7 +14,7 @@ const PAUSE_MS = 800;
 export function useAutosave(
   stored: string,
   save: (text: string) => void,
-  onPending?: (text: string | null) => void,
+  onPending?: (text: string | null) => boolean | void,
 ) {
   const [text, setText] = useState(stored);
   const [dirty, setDirty] = useState(false);
@@ -38,7 +40,7 @@ export function useAutosave(
     setDirty(false);
     if (value === null) return;
     if (value !== latest.current.stored) latest.current.save(value);
-    else latest.current.onPending?.(null);
+    else if (latest.current.onPending?.(null) === false) latest.current.save(value);
   }, []);
 
   useEffect(() => {

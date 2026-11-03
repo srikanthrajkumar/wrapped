@@ -9,6 +9,7 @@ import { RuleError } from '../../src/store/rules';
 
 const mocks = vi.hoisted(() => ({
   catalog: { version: 'test' } as unknown as Catalog,
+  ready: vi.fn(),
   restoreEvent: vi.fn(),
   restoreItem: vi.fn(),
   restoreAppearance: vi.fn(),
@@ -16,7 +17,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('../../src/catalog/use-catalog', () => ({
-  readyCatalog: () => Promise.resolve(mocks.catalog),
+  readyCatalog: () => mocks.ready(),
 }));
 vi.mock('../../src/store/events', () => ({ restoreEvent: mocks.restoreEvent }));
 vi.mock('../../src/store/items', () => ({ restoreItem: mocks.restoreItem }));
@@ -35,7 +36,7 @@ vi.stubGlobal('localStorage', {
   removeItem: (key: string) => void storage.delete(key),
 });
 
-const { dismissUndo, leaveEvent, offerUndo, undo, undoOffers, undoText, UNDO_MS } =
+const { canRetryUndo, dismissUndo, leaveEvent, offerUndo, undo, undoOffers, undoText, UNDO_MS } =
   await import('../../src/screens/undo');
 
 /** The live offer, else the latest failed one: what the bar shows first. */
@@ -53,6 +54,7 @@ const receipt = (kind: DeletionReceipt['kind']): DeletionReceipt => ({
 
 beforeEach(() => {
   mocks.dropReceipt.mockResolvedValue(undefined);
+  mocks.ready.mockResolvedValue(mocks.catalog);
 });
 
 afterEach(() => {
@@ -208,5 +210,84 @@ describe('Undo (required)', () => {
 
     expect(await undo(item)).toBe(false);
     expect(undoText(currentUndo()!)).toBe('Undo failed: Item 3, its Concert is deleted.');
+  });
+});
+
+describe('Undo, fourth review (required)', () => {
+  /** A restore whose settling the test controls. */
+  function deferred() {
+    let reject!: (error: Error) => void;
+    let resolve!: (value: unknown) => void;
+    const promise = new Promise((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    return { promise, resolve, reject };
+  }
+
+  it('Try again on a failed Undo runs once, and a Dismiss meanwhile holds', async () => {
+    const concert = receipt('event');
+    mocks.restoreEvent.mockRejectedValueOnce(new Error('disk full'));
+    await undo(concert);
+    const retry = deferred();
+    mocks.restoreEvent.mockReturnValue(retry.promise);
+
+    const first = undo(concert);
+    const second = undo(concert);
+    dismissUndo(concert.id);
+    retry.reject(new Error('disk full'));
+    await Promise.all([first, second]);
+
+    expect(mocks.restoreEvent).toHaveBeenCalledTimes(2);
+    expect(undoOffers()).toEqual([]);
+  });
+
+  it('an Undo being written survives a reload as a bar, so the Concert keeps its way back', async () => {
+    const concert = receipt('event');
+    offerUndo(concert);
+    mocks.restoreEvent.mockReturnValue(new Promise(() => undefined));
+    void undo(concert);
+    await vi.waitFor(() => expect(mocks.restoreEvent).toHaveBeenCalled());
+
+    vi.resetModules();
+    const reloaded = await import('../../src/screens/undo');
+    expect(reloaded.undoOffers()).toEqual([
+      expect.objectContaining({ receipt: concert, failed: true }),
+    ]);
+    reloaded.dismissUndo(concert.id);
+  });
+
+  it('a damaged copy of a failed Undo is skipped, and the others still come back', async () => {
+    storage.set('wrapped.undo.v1:bad', '{not json');
+    storage.set(
+      'wrapped.undo.v1:no-at',
+      JSON.stringify({ receipt: { id: 'no-at', kind: 'event' } }),
+    );
+    const concert = receipt('event');
+    storage.set(
+      `wrapped.undo.v1:${concert.id}`,
+      JSON.stringify({ receipt: concert, message: 'Concert deleted', failed: true, attempt: 1 }),
+    );
+
+    vi.resetModules();
+    const reloaded = await import('../../src/screens/undo');
+    expect(reloaded.undoOffers().map((offer) => offer.receipt.id)).toEqual([concert.id]);
+    for (const offer of reloaded.undoOffers()) reloaded.dismissUndo(offer.receipt.id);
+    storage.clear();
+  });
+
+  it('an Artist comes back without waiting for the catalog', async () => {
+    mocks.ready.mockReturnValue(new Promise(() => undefined));
+    mocks.restoreAppearance.mockResolvedValue({ id: 'a1' });
+    expect(await undo(receipt('appearance'))).toBe(true);
+  });
+
+  it('an Undo refused for its deleted Concert can be tried again once the Concert is back', async () => {
+    const item = receipt('item');
+    mocks.restoreItem.mockRejectedValue(new RuleError(['its Concert is deleted']));
+    await undo(item);
+    const offer = currentUndo()!;
+    expect(canRetryUndo(offer, { eventLive: false })).toBe(false);
+    expect(canRetryUndo(offer, { eventLive: true })).toBe(true);
   });
 });

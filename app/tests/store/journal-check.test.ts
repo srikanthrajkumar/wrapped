@@ -3,11 +3,23 @@
 // column the way the store keeps it, so an entry is neither dropped too soon nor kept forever.
 
 import { describe, expect, it } from 'vitest';
-import { catalogValue, unresolvedValue } from '../../src/model';
+import { catalogValue, notApplicableValue, unresolvedValue } from '../../src/model';
 import type { JournalEntry } from '../../src/screens/save-feedback';
-import { createEvent, editEvent } from '../../src/store/events';
-import { addItemFrom, repickItem, setDetail } from '../../src/store/items';
-import { holdsValue } from '../../src/store/journal-check';
+import { createEvent, editEvent, setStatus } from '../../src/store/events';
+import {
+  addItemFrom,
+  describePick,
+  removeItem,
+  repickItem,
+  saveItemDraft,
+  setDetail,
+  setImprovised,
+  setLayaNadai,
+  setLayaNote,
+  setLayaVinyasam,
+  setRagas,
+} from '../../src/store/items';
+import { holdsValue, storedHolds } from '../../src/store/journal-check';
 import { endLogging } from '../../src/store/logging-note';
 import { addAppearance, createArtist, createSabha, editAppearance } from '../../src/store/people';
 import { fixtureCatalog, freshDb } from '../helpers';
@@ -72,5 +84,174 @@ describe('the journal, checked against the store', () => {
     expect(
       await holdsValue(entry('items', item.id, 'tala', unresolvedValue('Khanda Chapu')), db),
     ).toBe(false);
+  });
+});
+
+describe('the journal, checked against each writer (fourth review)', () => {
+  /** Whether `check` is held after `write` and not before. */
+  async function heldOnlyAfter(
+    check: JournalEntry,
+    write: () => Promise<unknown>,
+    db: ReturnType<typeof freshDb>,
+  ) {
+    expect(await holdsValue(check, db)).toBe(false);
+    await write();
+    expect(await holdsValue(check, db)).toBe(true);
+  }
+
+  it('a new Item is held only with the pick entered, not another made with its id', async () => {
+    const db = freshDb();
+    const event = await createEvent({ kind: 'concert' }, { db });
+    const item = await addItemFrom(event.id, { kind: 'unknown' }, { db });
+    const typed = {
+      eventId: event.id,
+      pick: { kind: 'typed', text: 'Bhavayami' },
+      label: 'Bhavayami',
+    };
+    expect(await holdsValue(entry('items', item.id, '*', typed), db)).toBe(false);
+    const unknown = { eventId: event.id, pick: { kind: 'unknown' }, label: '?' };
+    expect(await holdsValue(entry('items', item.id, '*', unknown), db)).toBe(true);
+  });
+
+  it('Ragas, Improvised in any order, the Laya vinyasam and its note, a delete', async () => {
+    const db = freshDb();
+    const event = await createEvent({ kind: 'concert' }, { db });
+    const item = await addItemFrom(event.id, { kind: 'unknown' }, { db });
+    const ragas = [unresolvedValue('Todi'), unresolvedValue('Kalyani')];
+    await heldOnlyAfter(
+      entry('items', item.id, 'ragas', ragas),
+      () => setRagas(item.id, ragas, { db }),
+      db,
+    );
+
+    // Entered tanam first; the store keeps the concert order.
+    const heard = [
+      { kind: 'tanam', raga: null },
+      { kind: 'alapana', raga: unresolvedValue('Todi') },
+    ] as const;
+    await heldOnlyAfter(
+      entry('items', item.id, 'improvised', heard),
+      () => setImprovised(item.id, [...heard], { db }),
+      db,
+    );
+
+    const nadai = { nadai: notApplicableValue() };
+    await heldOnlyAfter(
+      entry('items', item.id, 'layaVinyasam', nadai),
+      () => setLayaNadai(item.id, notApplicableValue(), { db }),
+      db,
+    );
+    await heldOnlyAfter(
+      entry('items', item.id, 'layaNote', 'tisram'),
+      () => setLayaNote(item.id, 'tisram', { db }),
+      db,
+    );
+    // An emptied note is stored as null; a note never changes the Nadai, nor the Nadai the note.
+    await setLayaNote(item.id, '', { db });
+    expect(await holdsValue(entry('items', item.id, 'layaNote', ''), db)).toBe(true);
+    await setLayaNote(item.id, 'khanda', { db });
+    await setLayaNadai(item.id, unresolvedValue('khanda'), { db });
+    expect((await db.items.get(item.id))?.layaVinyasam).toEqual({
+      nadai: unresolvedValue('khanda'),
+      note: 'khanda',
+    });
+    await heldOnlyAfter(
+      entry('items', item.id, 'layaVinyasam', null),
+      () => setLayaVinyasam(item.id, null, { db }),
+      db,
+    );
+
+    await heldOnlyAfter(
+      entry('items', item.id, 'deletedAt', { label: 'Item 1' }),
+      () => removeItem(item.id, { db }),
+      db,
+    );
+  });
+
+  it('a repick of each kind', async () => {
+    const db = freshDb();
+    const event = await createEvent({ kind: 'concert' }, { db });
+    const item = await addItemFrom(event.id, { kind: 'typed', text: 'Bhavayami' }, { db });
+    const song = v1.songByKritiId.get('c0004')!;
+    const raga = [...v1.ragaByKey.values()][0]!;
+    const picks = [
+      { kind: 'song', song },
+      { kind: 'raga', raga },
+      { kind: 'form', form: 'rtp' },
+      { kind: 'unknown' },
+      { kind: 'typed', text: 'Nagumomu' },
+    ] as const;
+    for (const pick of picks) {
+      const check = entry('items', item.id, 'pick', { pick: describePick(pick) });
+      await heldOnlyAfter(check, () => repickItem(item.id, pick, { db, catalog: v1 }), db);
+    }
+  });
+
+  it('a new Artist and Sabha, the status, a role, the date and time', async () => {
+    const db = freshDb();
+    await heldOnlyAfter(
+      entry('artists', 'a1', '*', 'Sanjay'),
+      () => createArtist('Sanjay', { db, id: 'a1' }),
+      db,
+    );
+    await heldOnlyAfter(
+      entry('sabhas', 's1', '*', 'Music Academy'),
+      () => createSabha('Music Academy', { db, id: 's1' }),
+      db,
+    );
+    const event = await createEvent(
+      { kind: 'concert', date: '2026-12-14', source: 'plan' },
+      { db },
+    );
+    await heldOnlyAfter(
+      entry('events', event.id, 'status', 'attended'),
+      () => setStatus(event.id, 'attended', { db }),
+      db,
+    );
+    await heldOnlyAfter(
+      entry('events', event.id, 'date', '2026-12-20'),
+      () => editEvent(event.id, { date: '2026-12-20' }, { db }),
+      db,
+    );
+    await heldOnlyAfter(
+      entry('events', event.id, 'startTime', '18:30'),
+      () => editEvent(event.id, { startTime: '18:30' }, { db }),
+      db,
+    );
+    const appearance = await addAppearance(event.id, 'a1', {}, { db });
+    await heldOnlyAfter(
+      entry('appearances', appearance.id, 'role', 'vocal'),
+      () => editAppearance(appearance.id, { role: 'vocal' }, { db }),
+      db,
+    );
+  });
+
+  it('what a screen reads back is checked the same way, so a saved value stops showing over it', () => {
+    const target = { table: 'items', id: 'i1', field: 'tala' } as const;
+    const tala = catalogValue('rupakam', 'Rupakam');
+    expect(storedHolds(target, tala, { ...tala, state: 'override' })).toBe(true);
+    expect(storedHolds(target, tala, unresolvedValue('Adi'))).toBe(false);
+    const heard = { table: 'items', id: 'i1', field: 'improvised' } as const;
+    const tanam = { kind: 'tanam', raga: null };
+    const alapana = { kind: 'alapana', raga: null };
+    expect(storedHolds(heard, [tanam, alapana], [alapana, tanam])).toBe(true);
+  });
+
+  it("a new Item's search text is held once its draft is stored, or the Item is made", async () => {
+    const db = freshDb();
+    const event = await createEvent({ kind: 'concert' }, { db });
+    const typed = entry('items', 'd1', 'draft', { eventId: event.id, text: 'Bhava' });
+    await heldOnlyAfter(
+      typed,
+      () => saveItemDraft({ id: 'd1', eventId: event.id, text: 'Bhava' }, { db }),
+      db,
+    );
+    expect(await holdsValue({ ...typed, value: { eventId: event.id, text: 'Bhavay' } }, db)).toBe(
+      false,
+    );
+    await addItemFrom(event.id, { kind: 'typed', text: 'Bhavayami' }, { db, id: 'd1' });
+    expect(await holdsValue({ ...typed, value: { eventId: event.id, text: 'Bhavay' } }, db)).toBe(
+      true,
+    );
   });
 });
