@@ -42,3 +42,15 @@ jobs:
       - run: npx playwright install --with-deps chromium
 
       - run: npm run check
+
+      # The failed end-to-end tests' traces, kept for a week. The repository is public, so anyone
+      # can download them: test-results/ holds only the traces and the browser profiles of tests
+      # run on the handmade test data.
+      - name: Keep Playwright traces
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-traces
+          path: app/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
