@@ -107,3 +107,12 @@ describe('season export (required)', () => {
     );
   });
 });
+
+describe('season export, fourth review (required)', () => {
+  it('a rescue Export whose store is only slow is marked timed out, not unreadable', async () => {
+    const slow = { transaction: () => new Promise(() => undefined) } as unknown as WrappedDB;
+    const file = await exportOrRescue({ db: slow, appVersion: 'test', timeoutMs: 20 });
+    expect(file.storeUnreadable).toBeUndefined();
+    expect(file.storeTimedOut).toEqual({ error: expect.stringMatching(/didn't answer/) });
+  });
+});

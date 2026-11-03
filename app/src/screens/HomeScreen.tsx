@@ -78,11 +78,8 @@ export function HomeScreen() {
     try {
       const id = newId();
       const concert = { kind: 'concert' as const, date: today(), startTime: nowTime() };
-      const event = await saveWith(
-        { table: 'events', id, field: '*' },
-        concert,
-        () => createEvent(concert, { id }),
-        { kind: 'create' },
+      const event = await saveWith({ table: 'events', id, field: '*' }, concert, () =>
+        createEvent(concert, { id }),
       );
       if (event) navigate(`/event/${event.id}`);
     } finally {
@@ -101,7 +98,7 @@ export function HomeScreen() {
     available: update.available,
     later,
     logging,
-    unsaved: feedback.hasRetryableFailures() || undos.some((offer) => offer.failed),
+    unsaved: feedback.hasRetryableFailures() || undos.length > 0,
   });
 
   return (

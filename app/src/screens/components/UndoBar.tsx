@@ -3,11 +3,13 @@
 // A failed Undo keeps an icon-led row (decided 2026-11-02): the alert mark, "Undo failed ·
 // Concert", Try again and Dismiss. Only the newest failed one shows, with "+1" when older ones wait; the
 // "+1" brings the next forward, and on the Event screen they are also under "⋯". Each failure
-// mounts its row afresh, so it is announced.
+// mounts its row afresh, so its sentence (only the sentence, not the buttons) is announced. An
+// Undo refused because its Concert was deleted can be tried again once the Concert is back.
 
 import { IconAlertCircle, IconRefresh, IconX } from '@tabler/icons-react';
 import { useState, useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui/button';
+import { useEvent } from '../../store/queries';
 import { MESSAGES } from '../messages';
 import {
   canRetryUndo,
@@ -21,8 +23,7 @@ import {
   type UndoOffer,
 } from '../undo';
 
-const BAR =
-  'mx-4 mb-2 flex flex-wrap items-center gap-x-1 rounded-xl bg-secondary py-1 pl-3 text-body';
+const BAR = 'flex flex-wrap items-center gap-x-1 rounded-xl bg-secondary py-1 pl-3 text-body';
 
 export function UndoBar() {
   const offers = useSyncExternalStore(subscribeUndo, undoOffers);
@@ -32,7 +33,8 @@ export function UndoBar() {
   // The newest failed offer, or an older one brought forward with "+1".
   const shown = failed.length > 0 ? failed[failed.length - 1 - (back % failed.length)] : undefined;
   return (
-    <>
+    // One background behind the stacked bars, so the page never shows through between them.
+    <div className={shown || live ? 'flex flex-col gap-2 bg-background px-4 pb-2' : undefined}>
       <div aria-live="polite" className="sr-only">
         {live && MESSAGES.undo.spoken(live.message)}
       </div>
@@ -57,7 +59,7 @@ export function UndoBar() {
           </Button>
         </div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -72,12 +74,16 @@ function FailedUndo({
 }) {
   const sentence = undoText(offer);
   const label = undoLabel(offer);
+  // Read live, so Try again comes back once the Concert is restored.
+  const eventLive = useEvent(offer.receipt.eventId) != null;
   return (
-    <div role="alert" className={`${BAR} text-destructive`}>
+    <div className={`${BAR} text-destructive`}>
       <IconAlertCircle aria-hidden className="size-5 shrink-0" />
       <span className="min-w-0 flex-1 py-2 break-words">
         <span aria-hidden>{label}</span>
-        <span className="sr-only">{sentence}</span>
+        <span role="alert" className="sr-only">
+          {sentence}
+        </span>
       </span>
       <span className="flex items-center">
         {others > 0 && (
@@ -90,7 +96,7 @@ function FailedUndo({
             {MESSAGES.undo.more(others)}
           </Button>
         )}
-        {canRetryUndo(offer) && (
+        {canRetryUndo(offer, { eventLive }) && (
           <Button
             variant="ghost"
             size="icon"

@@ -360,11 +360,17 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   entered, with an icon-led row in `destructive`: the alert mark, "Not saved", and icon buttons
   for Try again and Export, whose names carry the sentence ("Not saved on this phone."). It never
   plays the save highlight. Try again writes the value as entered, one at a time in the order
-  entered. A move or a repick is never retried: "Not moved" or "Not changed", with Dismiss, and
-  the rasika does it again. The Export holds every journal entry, labelled "Not saved". Once an
-  Export has been handed over, its download icon carries a check badge, and values Try again can no longer save
-  get Clear, which first asks "Is the Export saved where you can find it?" and then removes only
-  what that file holds. A failure inside an open sheet shows its row in the sheet.
+  entered, one line at a time, stopping at the first that fails again. A saved value stays on
+  screen until the screen reads the store back holding it. A delete that fails reads "Not
+  deleted" ("Not deleted · Concert, Mon 2 Nov" where nothing else names it), and its Try again
+  deletes and offers Undo, as the first tap does (decided 2026-11-02); its Dismiss keeps the
+  record after all (decided 2026-11-03). A move or a repick is never retried: "Not moved" or "Not
+  changed", with Dismiss, and the rasika does it again. Dismiss never takes a failed value. A row shows one kind of failure: a record whose move and delete
+  both failed has two rows. Every Export holds every journal entry, labelled "Not saved". Once an
+  Export has been handed over, its download icon carries a check badge, and values Try again can
+  no longer save get Clear, which first asks "Is the Export saved where you can find it?" and
+  then removes only that row's entries the file holds. A failure inside an open sheet shows its
+  row in the sheet.
 - **The store can't be opened** (decided 2026-11-02): when the phone's database won't open,
   every screen gives way to one rescue screen that needs no database: the alert mark, "Can't open
   your season", Try again (back to the start) and Export. That Export holds only the journal; it
@@ -471,6 +477,9 @@ voice: plain, short, the glossary's words, no exclamation marks, never blaming t
 | Any screen | Another phone writes (FR-022) | "Your season is now being logged on another phone. Changes here are kept." | Details |
 | Item or Event | Save failed. An icon-led row: the alert mark and the short label; Try again, Export and Clear are icon buttons whose names carry the sentence. Clear only after an Export, and it asks first | "Not saved" · "Not saved on this phone." | Try again · Export · Clear |
 | Item | A move failed; never retried, the rasika moves it again | "Not moved" · "Not moved on this phone." | Dismiss |
+| Any screen, top | The phone can't keep a copy of values entered (storage full or blocked) | "Not kept on this phone" · "This phone can't keep a copy of what you enter until it's saved. Export now to keep it." | Export |
+| Any screen, top | An Export from "Still opening" timed out: the file holds only the changes not saved, and gets no check badge | The Export's name, after Export: "This Export holds only the changes not saved. Your season was still opening; export again once it opens." | Export |
+| Item, Artist, any screen top | A delete failed; Try again deletes it and offers Undo, Dismiss keeps it. At the top it is named by what it was, as Not deleted · Concert, Mon 2 Nov | "Not deleted" · "Not deleted on this phone." | Try again · Dismiss |
 | Item | A repick failed; never retried, the pick is kept for Export | "Not changed" · "Not changed on this phone." | Export · Dismiss |
 | Any screen, top | Failures no field on screen shows (a new Concert, Start logging, an added Artist, values from before a relaunch). One is named by what it was, as Not saved · Concert, Mon 2 Nov, 9:17 am; several are counted | "2 not saved" · "2 changes not saved on this phone." | Try again · Export · Clear |
 | Clear's sheet | Before Clear removes anything | "Is the Export saved where you can find it?" · "Clearing removes 2 changes from this phone." | Yes, clear · Not yet |
@@ -521,3 +530,5 @@ in the phase that builds it):
 | 2026-11-02 | Second review of PR #5, the Maintainer's answers: "Clear" after an Export for values Try again can't save; the rescue screen when the store won't open, and the `-store-unreadable` Export with its line; a failed Undo stays, with "Dismiss", and a new Undo bar stacks under it; a rule's refusal shown on the bar; a failure in an open sheet shows in the sheet. With the same review, the form chips scroll in one row whenever they don't fit, decided by the row itself rather than the text size (Android scales text by zoom); the light `destructive` darkened from 0.577 to 0.55 lightness, so it passes AA on surface-raised (4.6:1); the season-wide line moved under the top bar (under the title on home and Settings). |
 | 2026-11-02 | Third review of PR #5, the Maintainer's answers: the rescue model simplified to one journal (docs/adr/0007); icon-led safety rows (Tabler IconAlertCircle, IconRefresh, IconDownload, IconTrash, IconX) with the short labels "Not saved", "Not moved", "Not changed", "Export failed"; Clear asks "Is the Export saved where you can find it?"; the rescue screen "Can't open your season" with a check on Export; "Still opening your season…"; only the newest failed Undo bar, with "+1"; "Can't undo: its Concert is deleted". |
 | 2026-11-02 | After the round-3 screenshots, the Maintainer's answers: a failed Undo bar names what failed, "Undo failed · Item 2" (not "Item 2 deleted" in red), and never covers a field; "Still opening your season…" is muted, with a spinner and no alert mark; after an Export the download icon stays the button, with a small check badge that is no button of its own, on the rows and the rescue screen. |
+| 2026-11-02 | Fourth review of PR #5, the Maintainer's answers: fixed by class, not per finding; a failed delete reads "Not deleted" ("Not deleted · Concert, Mon 2 Nov"), and its Try again deletes and offers Undo; a row shows one kind of failure; Dismiss acts only on moves and repicks; "Not kept on this phone" when the phone can't keep a copy of values entered; an Export from "Still opening" that times out is named `-not-saved`, marked `storeTimedOut`, and gets no check badge. |
+| 2026-11-03 | After the round-4 screenshots, the Maintainer's answer: a "Not deleted" row offers Try again and Dismiss, not Export; Dismiss keeps the record after all, taking only the delete entry and leaving the store as it is. |

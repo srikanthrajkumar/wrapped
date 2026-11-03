@@ -207,15 +207,6 @@ export async function listItems(eventId: string, db: WrappedDB = defaultDb): Pro
   return items.filter(live);
 }
 
-/** How many live Items an Event has, counted on the index without building the Items. */
-export async function countItems(eventId: string, db: WrappedDB = defaultDb): Promise<number> {
-  return db.items
-    .where('[eventId+position]')
-    .between([eventId, -Infinity], [eventId, Infinity])
-    .filter((item) => item.deletedAt === null)
-    .count();
-}
-
 /** An Event's live Appearances in billing order, each with its Artist resolved. */
 export async function listAppearances(
   eventId: string,

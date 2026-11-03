@@ -7,8 +7,8 @@ import { StoreGate } from './screens/RescueScreen';
 import { saveFeedback } from './screens/save-feedback';
 import { failedUndoReceipts } from './screens/undo';
 import { db } from './store/db';
-import { watchStore } from './store/health';
-import { holdsValue } from './store/journal-check';
+import { storeHealth, subscribeStoreHealth, watchStore } from './store/health';
+import { holdsValue, storedHolds } from './store/journal-check';
 import { ensurePersistentStorage } from './store/persist';
 import { pruneReceipts } from './store/receipts';
 import './styles/app.css';
@@ -40,7 +40,14 @@ void pruneReceipts(24 * 60 * 60 * 1000, db, Date.now(), failedUndoReceipts()).ca
 );
 // A journal entry leaves once the store is read back holding its value (docs/adr/0007): those
 // from before a relaunch now, and each new one after its write.
-saveFeedback.confirmWith((entry) => holdsValue(entry, db));
+// Screens use the same projections to tell when what they read back is the value entered.
+saveFeedback.confirmWith((entry) => holdsValue(entry, db), storedHolds);
 void saveFeedback.reconcile().catch(() => undefined);
-// One window: the journal is read again only when the page is shown again.
+// A store slow to open is checked again once it opens.
+const unwatch = subscribeStoreHealth(() => {
+  if (storeHealth().state !== 'open') return;
+  unwatch();
+  void saveFeedback.reconcile().catch(() => undefined);
+});
+// One window: the journal is read again only when the page is shown again, and checked then.
 window.addEventListener('pageshow', () => saveFeedback.reload());

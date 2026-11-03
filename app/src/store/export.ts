@@ -32,6 +32,11 @@ export interface SeasonExport {
   notSaved?: NotSavedValue[];
   /** Present only when the store itself could not be read: the arrays are then empty. */
   storeUnreadable?: { error: string };
+  /**
+   * Present only when the store was still opening and didn't answer in time: the arrays are
+   * empty, but the season is likely still on the phone, readable once it opens.
+   */
+  storeTimedOut?: { error: string };
 }
 
 /** An ISO timestamp with the phone's own offset, as in "2026-12-14T21:30:00+05:30". */
@@ -111,7 +116,8 @@ function readSeason(
 /**
  * A rescue Export, whatever happens: the stored season when the store can be read, else (the
  * database closed, lost as in WebKit's "Connection to Indexed Database server lost", or not
- * answering) a file with empty arrays, the unsaved values and a `storeUnreadable` marker, so
+ * answering) a file with empty arrays, the unsaved values and a `storeUnreadable` marker (or
+ * `storeTimedOut`, when it was only slow to answer), so
  * values the phone could not store still leave it. Only a rescue Export comes here: a plain one
  * of an unreadable store fails visibly instead (screens/components/export-file.ts).
  */
@@ -126,6 +132,10 @@ export async function exportOrRescue(options: {
     return await buildExport(options);
   } catch (error) {
     const { appVersion, notSaved, now = new Date() } = options;
+    const reason = {
+      error: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+    };
+    const slow = error instanceof Error && error.name === 'TimeoutError';
     return {
       format: 1,
       exportedAt: localTimestamp(now),
@@ -139,9 +149,7 @@ export async function exportOrRescue(options: {
       sabhas: [],
       links: [],
       ...(notSaved && notSaved.length > 0 ? { notSaved } : {}),
-      storeUnreadable: {
-        error: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
-      },
+      ...(slow ? { storeTimedOut: reason } : { storeUnreadable: reason }),
     };
   }
 }

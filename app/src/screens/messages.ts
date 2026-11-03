@@ -45,8 +45,15 @@ export const MESSAGES = {
   notSavedCount: (count: number) =>
     `${count} ${count === 1 ? 'change' : 'changes'} not saved on this phone.`,
   moveFailed: 'Not moved on this phone.',
+  deleteFailed: 'Not deleted on this phone.',
   repickFailed: 'Not changed on this phone.',
   exportFailed: "The Export couldn't be made on this phone.",
+  /** The journal can't be written (storage full or blocked): values live only in memory. */
+  journalBlocked:
+    "This phone can't keep a copy of what you enter until it's saved. Export now to keep it.",
+  /** After a rescue Export made while the store was still opening: the Export button's name. */
+  exportStoreSlow:
+    'This Export holds only the changes not saved. Your season was still opening; export again once it opens.',
   /** After a rescue Export from a store that couldn't be read: the Export button's name. */
   exportStoreUnreadable:
     "This Export holds only the changes not saved. The stored season couldn't be read; it's still on this phone.",
@@ -54,6 +61,8 @@ export const MESSAGES = {
   short: {
     notSaved: 'Not saved',
     notMoved: 'Not moved',
+    notDeleted: 'Not deleted',
+    notKept: 'Not kept on this phone',
     notChanged: 'Not changed',
     exportFailed: 'Export failed',
     count: (count: number) => `${count} not saved`,

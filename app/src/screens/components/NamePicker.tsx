@@ -78,9 +78,7 @@ export function NamePicker({
     const table = kind === 'artist' ? 'artists' : 'sabhas';
     const create = kind === 'artist' ? createArtist : createSabha;
     try {
-      const created = await saveWith({ table, id, field: '*' }, name, () => create(name, { id }), {
-        kind: 'create',
-      });
+      const created = await saveWith({ table, id, field: '*' }, name, () => create(name, { id }));
       setFailedAdd(created ? null : { id, name });
       if (created) pick(created);
     } finally {

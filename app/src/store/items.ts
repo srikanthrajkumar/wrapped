@@ -200,6 +200,44 @@ export function setLayaVinyasam(
   return changeItem(id, (item) => ({ ...item, layaVinyasam }), db);
 }
 
+/**
+ * The Laya vinyasam's Nadai alone, adding the Laya vinyasam if there is none: a note written
+ * meanwhile stays (the note has its own write, setLayaNote).
+ */
+export function setLayaNadai(
+  id: string,
+  nadai: DetailValue,
+  { db = defaultDb }: WriteOptions = {},
+): Promise<Item> {
+  return changeItem(
+    id,
+    (item) => ({ ...item, layaVinyasam: { note: null, ...item.layaVinyasam, nadai } }),
+    db,
+  );
+}
+
+/**
+ * The Laya vinyasam's note alone (emptied, it is stored as null), adding the Laya vinyasam with
+ * the Tala's usual nadai if there is none: a Nadai written meanwhile stays.
+ */
+export function setLayaNote(
+  id: string,
+  note: string,
+  { db = defaultDb }: WriteOptions = {},
+): Promise<Item> {
+  return changeItem(
+    id,
+    (item) => ({
+      ...item,
+      layaVinyasam: {
+        nadai: item.layaVinyasam?.nadai ?? notApplicableValue(),
+        note: note === '' ? null : note,
+      },
+    }),
+    db,
+  );
+}
+
 /** The improvised Details heard (FR-051), kept in the usual concert order, not the order heard. */
 export function setImprovised(
   id: string,
@@ -534,7 +572,7 @@ export interface ItemDraft {
   at: string;
 }
 
-const draftKey = (eventId: string) => `itemDraft:${eventId}`;
+export const draftKey = (eventId: string) => `itemDraft:${eventId}`;
 
 /**
  * Keep the typed text, so it survives the phone locking or the app being closed. A draft whose

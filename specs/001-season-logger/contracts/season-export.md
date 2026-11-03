@@ -27,12 +27,13 @@ Built entirely from the phone store, then handed to the share sheet or saved.
 - `unsyncedOps` tells the rasika whether the server is behind.
 - Shared lists and the catalog are referenced by id and key, not copied.
 - No account details are included.
-- `notSaved` (optional; eng review D6, 2026-11-01; docs/adr/0007, 2026-11-02): present only in
-  an Export started from a "Not saved" row or the rescue screen. It is the whole journal of
+- `notSaved` (optional; eng review D6, 2026-11-01; docs/adr/0007, 2026-11-02): present in every
+  Export, plain or rescue, whenever the journal holds anything. It is the whole journal of
   values not yet seen in the phone store, in the order entered, each with the record it belongs
   to (`table`, `id`, `field`, `value`, `enteredAt`) and its `state`: `typed` (waiting for the
   autosave's pause), `saving` (its write running), `failed`, or `unconfirmed` (written, and the
-  store not yet read back holding it). It is read from the journal, without writing to the
+  store not yet read back holding it); an entry from before a relaunch keeps the state it was
+  journalled in. It is read from the journal, without writing to the
   database. Every other array still comes from the store, so the file is the stored season plus
   what is not yet in it, clearly separated. A move is not journalled. `field` is a field of the
   record, or one of these, whose `value` is shaped so the change can be placed back by hand:
@@ -42,12 +43,15 @@ Built entirely from the phone store, then handed to the share sheet or saved.
   | `events` / `*` | A new Concert ("Log a Concert now") | `{ "kind", "date", "startTime" }` |
   | `items` / `*` | A new Item's first pick | `{ "eventId", "pick", "label" }` |
   | `items` / `pick` | A changed pick (not retried; kept for Export) | `{ "eventId", "pick", "label" }` |
+  | `items` / `draft` | A new Item's search text, before any pick | `{ "eventId", "text" }` |
+  | `items` / `layaVinyasam` | A Laya vinyasam added (with its Nadai), its Nadai changed, or removed (`null`) | `{ "nadai" }` or `null` |
+  | `items` / `layaNote` | The Laya vinyasam's note, kept apart from its Nadai | the note as typed |
   | `appearances` / `*` | An Artist added to a Concert | `{ "eventId", "artistId", "name" }` |
   | `artists` / `*`, `sabhas` / `*` | A new own Artist or Sabha | the name as typed |
   | `events` / `sabhaId` | A changed Sabha | `{ "id", "name" }` |
   | `events` / `logging` | "Done with this Concert" | `"done"` |
   | `appearances` / `colours` | Changed Colours | `{ "colourPrimary", "colourSecondary" }` |
-  | any / `deletedAt` | A delete | `"deleted"` |
+  | any / `deletedAt` | A delete | `{ "label" }`, what it deleted, as `"Concert, Mon 2 Nov"` |
 
   A `pick` is `{ "kind": "song", "kritiId", "title" }`, `{ "kind": "raga", "key", "display" }`,
   `{ "kind": "form", "form" }`, `{ "kind": "unknown" }` or `{ "kind": "typed", "text" }`.
@@ -60,12 +64,16 @@ Built entirely from the phone store, then handed to the share sheet or saved.
   stored season: it is still on the phone, unread. Only a rescue Export is ever written this
   way, named `carnatic-wrapped-<day>-store-unreadable.json`; a plain Export of an unreadable
   store fails visibly instead of handing over empty arrays.
+- `storeTimedOut` (optional; fourth review of PR #5, 2026-11-02): in place of `storeUnreadable`
+  when the store was still opening and didn't answer within 10 seconds. Same shape and the same
+  empty arrays, but the store is only slow, not broken: the season is still on the phone and an
+  Export once it opens holds it. The file is named `carnatic-wrapped-<day>-not-saved.json`.
 - The journal lives in `localStorage`, one key per field or new record
   (`wrapped.notSaved.v1:<table>:<id>:<field>`), from the moment a value is entered until the
   store is read back holding it, so a reload, a force-close or iOS ending the page doesn't lose
   it. Each copy is checked as it is read; a damaged one is skipped. An Export never removes
   anything: the rasika's Clear does, after confirming the file is saved, and only for the
-  entries that file holds, matched by value and `enteredAt`.
+  entries of the row it was tapped on that the file holds, matched by value and `enteredAt`.
 
 Importing an export is out of scope this season (YAGNI). The format keeps every field an import
 would need.

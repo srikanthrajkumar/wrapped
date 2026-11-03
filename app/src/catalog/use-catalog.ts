@@ -44,11 +44,23 @@ export function currentCatalog(): Catalog | null {
   return state.status === 'ready' ? state.catalog : null;
 }
 
+/** How long a write waits for the catalog to open before going ahead without it. */
+export const CATALOG_WAIT_MS = 10_000;
+
 /**
  * The catalog once opened, for a store action that must not run without it when it exists
  * (Undo brings a restored Item to the catalog in use; a repick tells a Guess from the song's
- * value). Opens it if no screen has yet, without building the search index.
+ * value). Opens it if no screen has yet, without building the search index. Past
+ * `CATALOG_WAIT_MS` it answers null, as with no catalog, so the write is never stuck.
  */
-export async function readyCatalog(): Promise<Catalog | null> {
-  return openCatalog().catch(() => null);
+export async function readyCatalog(timeoutMs = CATALOG_WAIT_MS): Promise<Catalog | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const giveUp = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), timeoutMs);
+  });
+  try {
+    return await Promise.race([openCatalog().catch(() => null), giveUp]);
+  } finally {
+    clearTimeout(timer);
+  }
 }

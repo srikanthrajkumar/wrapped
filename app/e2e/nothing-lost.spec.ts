@@ -254,7 +254,7 @@ test('A8: a failed date edit shows as entered, in the header and when the sheet 
   await expect(page.getByLabel('Date')).toHaveValue('2026-12-20');
 });
 
-test('A8: a failed delete keeps what it deleted, says Not saved, and throws nothing', async ({
+test('A8: a failed delete keeps what it deleted, says Not deleted, and throws nothing', async ({
   page,
 }) => {
   const errors: Error[] = [];
@@ -271,7 +271,7 @@ test('A8: a failed delete keeps what it deleted, says Not saved, and throws noth
   await page.getByRole('button', { name: 'Remove from Stage' }).click();
   // The sheet stays, with the failure in it.
   const sheet = page.getByRole('dialog');
-  await expect(sheet.getByText('Not saved', { exact: true })).toBeVisible();
+  await expect(sheet.getByText('Not deleted', { exact: true })).toBeVisible();
   await expect(sheet.getByRole('button', { name: 'Remove from Stage' })).toBeVisible();
 
   await setFailingWrites(page, false);
@@ -332,4 +332,117 @@ test('a failed Undo bar never covers a field the rasika moves to', async ({ page
   const field = (await note.boundingBox())!;
   const footer = (await page.locator('footer').boundingBox())!;
   expect(field.y + field.height).toBeLessThanOrEqual(footer.y);
+});
+
+test('a failed Concert delete reads Not deleted, and Try again deletes it and offers Undo', async ({
+  page,
+}) => {
+  await failWritesOnDemand(page);
+  await newConcert(page);
+  await setFailingWrites(page, true);
+  await page.getByRole('button', { name: 'Concert actions' }).click();
+  await page.getByRole('menuitem', { name: 'Delete Event' }).click();
+  await expect(page.getByText(/^Not deleted · Concert, /)).toBeVisible();
+
+  await setFailingWrites(page, false);
+  await page.getByRole('button', { name: /^Try again/ }).click();
+  await expect(page.getByRole('heading', { name: 'Season', exact: true })).toBeVisible();
+  await expect(page.getByText('Concert deleted', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeVisible();
+});
+
+test('Dismiss on a failed move leaves a failed delete of the same Item in place', async ({
+  page,
+}) => {
+  await failWritesOnDemand(page);
+  await newConcert(page);
+  await page.getByRole('link', { name: 'Add Item' }).click();
+  await page.getByRole('button', { name: '? Don’t know' }).click();
+  await page.getByRole('link', { name: 'Next Item' }).click();
+  await page.getByRole('button', { name: '? Don’t know' }).click();
+  await page.getByRole('link', { name: 'Done' }).click();
+  await page.getByRole('button', { name: 'Edit order' }).first().click();
+
+  await setFailingWrites(page, true);
+  await page.getByRole('button', { name: /^Move Item 1 down/ }).click();
+  await expect(page.getByText('Not moved', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Delete Item 1' }).click();
+  await expect(page.getByText('Not deleted', { exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Dismiss. Not moved on this phone.' }).click();
+  await expect(page.getByText('Not moved', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Not deleted', { exact: true })).toBeVisible();
+
+  // Dismiss on the delete keeps the Item after all.
+  await page.getByRole('button', { name: 'Dismiss. Not deleted on this phone.' }).click();
+  await expect(page.getByText('Not deleted', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Delete Item 1' })).toBeVisible();
+});
+
+test('a Laya note typed over a failed Nadai keeps the Nadai entered', async ({ page }) => {
+  await failWritesOnDemand(page);
+  await newConcert(page);
+  await page.getByRole('link', { name: 'Add Item' }).click();
+  await page.getByRole('button', { name: '? Don’t know' }).click();
+  await page.getByRole('button', { name: 'Laya vinyasam' }).click();
+  await page.getByRole('button', { name: 'Laya vinyasam after this Item' }).click();
+  await expect(page.getByRole('textbox', { name: 'Note' })).toBeVisible();
+
+  await setFailingWrites(page, true);
+  await page.getByRole('button', { name: /^Nadai/ }).click();
+  await page.getByRole('group', { name: 'Nadai' }).getByRole('button', { name: 'khanda' }).click();
+  await page.keyboard.press('Escape');
+  await expect(page.getByText('Not saved', { exact: true })).toBeVisible();
+  await setFailingWrites(page, false);
+
+  // Typed key by key, as on a phone, after the failed Nadai.
+  await page.getByRole('textbox', { name: 'Note' }).click();
+  await page.keyboard.type('tisram');
+  await page.getByRole('textbox', { name: 'Note' }).blur();
+  await expect
+    .poll(
+      async () =>
+        (await readTable<{ layaVinyasam: { note: string | null } }>(page, 'items'))[0]?.layaVinyasam
+          .note,
+    )
+    .toBe('tisram');
+
+  // Khanda is still there to save: in the store, or in the journal as entered.
+  const [item] = await readTable<{ id: string; layaVinyasam: { nadai: { key: string | null } } }>(
+    page,
+    'items',
+  );
+  const journalled = await page.evaluate(
+    (id) => localStorage.getItem(`wrapped.notSaved.v1:items:${id}:layaVinyasam`),
+    item!.id,
+  );
+  const kept = item!.layaVinyasam.nadai.key === 'khanda' || (journalled ?? '').includes('khanda');
+  expect(kept).toBe(true);
+});
+
+test('a second first pick while the first is written makes no second Item', async ({ page }) => {
+  await failWritesOnDemand(page);
+  await newConcert(page);
+  await page.getByRole('link', { name: 'Add Item' }).click();
+  await page.getByRole('searchbox', { name: 'Search songs and Ragas' }).fill('Bhavayami');
+
+  // Both taps land before the first pick's write can finish.
+  await page.evaluate(() => {
+    const buttons = [...document.querySelectorAll('button')];
+    buttons.find((button) => button.textContent === '? Don’t know')!.click();
+    buttons.find((button) => button.textContent?.startsWith('Use what I typed'))!.click();
+  });
+
+  await expect(page.getByRole('button', { name: /^Tala,/ })).toBeVisible();
+  const items = await readTable<{ title: string }>(page, 'items');
+  expect(items.map((item) => item.title)).toEqual(['?']);
+  // Nothing is left in the journal claiming a pick the store doesn't hold.
+  await expect(page.getByText(/not saved/i)).toHaveCount(0);
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        Object.keys(localStorage).filter((key) => key.startsWith('wrapped.notSaved.v1:items:')),
+      ),
+    )
+    .toEqual([]);
 });
