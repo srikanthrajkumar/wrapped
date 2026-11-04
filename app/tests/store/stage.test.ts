@@ -1,23 +1,25 @@
 // The Stage after the iPhone walkthrough (S2, S4, S5): Artists listed by Role, the Artists a
-// Concert is known by, and correcting an Artist's name. A rename is a data-loss path (constitution IV): the
-// name must persist, the old one must stay findable, and neither an undo, a failure nor two
-// renames at once may lose a name.
+// Concert is known by, and correcting an Artist's name. A rename is a data-loss path
+// (constitution IV): the name must persist, the old one must stay findable, and neither an undo,
+// a failure nor two renames at once may lose a name.
 
 import { describe, expect, it } from 'vitest';
 import { fold } from '../../src/catalog/fold';
-import type { Role, SharedEntry } from '../../src/model';
+import { ROLES, type Role, type SharedEntry } from '../../src/model';
+import { SaveFeedback } from '../../src/screens/save-feedback';
 import { createEvent } from '../../src/store/events';
 import { holdsValue } from '../../src/store/journal-check';
 import {
   addAppearance,
   createArtist,
   findArtists,
+  MERGE_UNRESOLVED,
   renameArtist,
   SHARED_NAME,
 } from '../../src/store/people';
 import { listAppearances, listEventSummaries } from '../../src/store/queries';
 import { RuleError } from '../../src/store/rules';
-import { joinNames } from '../../src/store/stage';
+import { joinNames, STAGE_ORDER } from '../../src/store/stage';
 import { freshDb, reopen } from '../helpers';
 
 const shared = (id: string, name: string): SharedEntry => ({
@@ -56,6 +58,10 @@ describe('the Stage lists Artists by Role', () => {
       'Ghatam',
       'Nobody knows',
     ]);
+  });
+
+  it('has a place for every Role, once', () => {
+    expect([...STAGE_ORDER].sort()).toEqual([...ROLES].sort());
   });
 });
 
@@ -245,6 +251,58 @@ describe('renaming an Artist (S5)', () => {
       aliases: ['Akkarai Subbalakshmi'],
     });
     expect((await db.artists.get(merged.id))!.name).toBe('Akarai');
+    // The journal checks the rename where it was written, so its entry leaves.
+    const entered = { table: 'artists', id: merged.id, field: 'name' } as const;
+    expect(await holdsValue({ ...entered, value: 'Akkarai S. Subbalakshmi' }, db)).toBe(true);
+    expect(await holdsValue({ ...entered, value: 'Akarai' }, db)).toBe(false);
+  });
+
+  it('refuses a merge chain it cannot follow, and renames nothing', async () => {
+    const db = freshDb();
+    const a = await createArtist('Akkarai', { db });
+    const b = await createArtist('Akarai', { db });
+    await db.artists.update(a.id, { mergedIntoId: b.id });
+    await db.artists.update(b.id, { mergedIntoId: a.id });
+    const outbox = await db.outbox.count();
+    await expect(renameArtist(a.id, 'Akkarai Subbalakshmi', { db })).rejects.toThrow(
+      MERGE_UNRESOLVED,
+    );
+    expect((await db.artists.bulkGet([a.id, b.id])).map((x) => x!.name)).toEqual([
+      'Akkarai',
+      'Akarai',
+    ]);
+    expect(await db.outbox.count()).toBe(outbox);
+  });
+
+  it('a rename that fails stays journalled as entered, and Try again renames', async () => {
+    const { db, artist } = await akkarai();
+    const disk = { failing: true };
+    const fail = () => {
+      if (disk.failing) throw new Error('disk full');
+    };
+    db.outbox.hook('creating', fail);
+    db.outbox.hook('updating', fail);
+    const feedback = new SaveFeedback({ storage: null, confirm: (e) => holdsValue(e, db) });
+    const target = { table: 'artists', id: artist.id, field: 'name' } as const;
+    const rename = (name: string) => () => renameArtist(artist.id, name, { db });
+
+    // Typed, then left: the screen holds the text, then writes it (EventScreen's ArtistName).
+    feedback.hold(target, 'Akkarai Subbalakshmi');
+    expect(feedback.notSaved()).toEqual([
+      expect.objectContaining({ ...target, value: 'Akkarai Subbalakshmi' }),
+    ]);
+    await feedback.track(target, 'Akkarai Subbalakshmi', rename('Akkarai Subbalakshmi'));
+    expect(feedback.get(target)?.status).toBe('failed');
+    expect(feedback.shown(target, 'Akkarai')).toBe('Akkarai Subbalakshmi');
+    expect((await db.artists.get(artist.id))!.name).toBe('Akkarai');
+
+    disk.failing = false;
+    await feedback.retry(target);
+    expect(feedback.get(target)?.status).toBe('saved');
+    expect(await db.artists.get(artist.id)).toMatchObject({
+      name: 'Akkarai Subbalakshmi',
+      aliases: ['Akkarai'],
+    });
   });
 
   it('refuses a shared Artist, a promoted one, a deleted one and an empty name', async () => {

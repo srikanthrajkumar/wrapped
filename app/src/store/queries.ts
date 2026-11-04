@@ -281,9 +281,9 @@ export interface EventSummary {
 }
 
 /**
- * Every live Event with what home shows of it: Sabha, the Artists it is known by, Item count. The Appearances and
- * Items of all Events are read in one query each, and only the Artists and Sabhas named are
- * resolved, never the whole directories.
+ * Every live Event with what home shows of it: Sabha, the Artists it is known by, Item count.
+ * The Appearances and Items of all Events are read in one query each, and only the Artists and
+ * Sabhas named are resolved, never the whole directories.
  */
 export async function listEventSummaries(db: WrappedDB = defaultDb): Promise<EventSummary[]> {
   const events = await listEvents(db);
@@ -294,7 +294,9 @@ export async function listEventSummaries(db: WrappedDB = defaultDb): Promise<Eve
   ]);
   const stages = new Map<string, Appearance[]>();
   for (const appearance of appearances.filter(live)) {
-    stages.set(appearance.eventId, [...(stages.get(appearance.eventId) ?? []), appearance]);
+    const stage = stages.get(appearance.eventId);
+    if (stage) stage.push(appearance);
+    else stages.set(appearance.eventId, [appearance]);
   }
   const known = new Map(
     events.map((event) => [

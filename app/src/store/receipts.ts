@@ -13,7 +13,10 @@ export interface DeletionReceipt {
   kind: DeletionKind;
   /** The Event the deletion belongs to: the deleted Event itself for an Event delete. */
   eventId: string;
-  /** The Item's number or the Appearance's billing place when deleted; null for an Event. */
+  /**
+   * The Item's number, or the Appearance's place in the order added, when deleted; null for an
+   * Event.
+   */
   position: number | null;
   /** Every record the delete tombstoned, with the `deletedAt` it stamped. */
   records: { table: RasikaTable; id: string; deletedAt: string }[];

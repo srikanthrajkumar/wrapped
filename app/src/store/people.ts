@@ -157,6 +157,9 @@ export function createSabha(name: string, options: CreateOptions = {}) {
 /** Why a shared Artist's name can't change on the phone: the Maintainer curates it (FR-045). */
 export const SHARED_NAME = 'a shared Artist is named by the Maintainer';
 
+/** Why a rename is refused when the Artist's merges can't be followed to the one that survived. */
+export const MERGE_UNRESOLVED = 'the Artist this was merged into could not be found';
+
 /**
  * Correct an own Artist's name (walkthrough S5). Appearances point at the Artist, so the new
  * name shows in every Concert, and the name it replaces becomes an Alias, so search still finds
@@ -186,6 +189,8 @@ export async function renameArtist(
     for (let hops = 0; entry.mergedIntoId && hops < MAX_MERGE_HOPS; hops += 1) {
       entry = await getLive('artists', entry.mergedIntoId, { db });
     }
+    // A chain too long to follow (a cycle written by mistake) never renames a merged-away entry.
+    if (entry.mergedIntoId) throw new RuleError([MERGE_UNRESOLVED]);
     if (await db.links.where('[ownTable+ownId]').equals(['artist', entry.id]).first()) {
       throw new RuleError([SHARED_NAME]);
     }

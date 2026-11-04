@@ -92,7 +92,10 @@ export interface Appearance extends Timestamps {
   colourSecondary: Colour | null;
   /** Came from the Plan or the Schedule. */
   billed: boolean;
-  /** Billing order. The Event is shown under the Appearance at position 1 (FR-004). */
+  /**
+   * The order added. Stage lists by Role, then by this (store/stage.ts); kept so Undo puts a
+   * removed Artist back in place.
+   */
   position: number;
 }
 

@@ -395,8 +395,10 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     keeps it, another chip changes it, "Not sure" leaves the Role blank. A new Artist's chips
     start with none pressed, and can be skipped.
   - Tapping an Artist on Stage opens their sheet. Its title is the Artist's name as a field:
-    a corrected name is saved when the field is left or Done is pressed, applies in every
-    Concert, and keeps the old name as an Alias, so search still finds it (walkthrough S5). A
+    a corrected name is journalled as typed, saved when the field is left, Done is pressed or
+    the sheet closes (not when the page is hidden, so a half-typed name never stays as an Alias),
+    applies in every Concert, and keeps the old name as an Alias, so search still finds it
+    (walkthrough S5). A
     shared Artist's name is the Maintainer's and shows as plain text. Under it, the same Role
     chips with the current Role pressed (tapping it again clears it; "Not sure" appears only
     right after adding, 2026-11-02), then Colours, then "Remove" with the bin mark

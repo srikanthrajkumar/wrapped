@@ -1,5 +1,6 @@
-// The Stage's order and the Artists an Event is known by (walkthrough S2, S4). Artists are listed by Role, as
-// in a printed kutcheri listing, and ties keep the order added (the Appearance's `position`).
+// The Stage's order and the Artists an Event is known by (walkthrough S2, S4). Artists are
+// listed by Role, as in a printed kutcheri listing, and ties keep the order added (the
+// Appearance's `position`).
 // Derived each time, never stored: no Role ranks above another in the data (FR-004).
 
 import type { Appearance, EventKind, Role } from '../model';
@@ -29,7 +30,7 @@ export function byStage(a: Placed, b: Placed): number {
 }
 
 /** Whom each kind of Event is known by: vocal, veena or flute, or a Lecdem's presenters. */
-const MAIN: Record<EventKind, readonly Role[]> = {
+const KNOWN_BY: Record<EventKind, readonly Role[]> = {
   concert: ['vocal', 'veena', 'flute'],
   lecdem: ['presenter'],
 };
@@ -43,10 +44,10 @@ export function knownBy<T extends Pick<Appearance, 'role'>>(
   kind: EventKind,
   stage: readonly T[],
 ): T[] {
-  const main = stage.filter(
-    (appearance) => appearance.role && MAIN[kind].includes(appearance.role),
+  const known = stage.filter(
+    (appearance) => appearance.role && KNOWN_BY[kind].includes(appearance.role),
   );
-  return main.length > 0 ? main : stage.slice(0, 1);
+  return known.length > 0 ? known : stage.slice(0, 1);
 }
 
 /** Names joined as a listing reads them: "A", "A & B", "A, B & C". */

@@ -37,8 +37,11 @@ export function NamePicker({
   kind: Kind;
   open: boolean;
   onOpenChange(open: boolean): void;
-  /** Called with the picked or new entry's id and name. */
-  onPick(entry: { id: string; name: string }): void;
+  /**
+   * Called with the picked or new entry's id and name, and an Artist's usual Role (null: none;
+   * undefined: not read yet).
+   */
+  onPick(entry: { id: string; name: string }, usualRole: Role | null | undefined): void;
   /** Shown instead of the search once something is picked (the Role chips). */
   after?: ReactNode;
   /** The caller's own failure line, shown above the search (an Artist not added). */
@@ -60,14 +63,15 @@ export function NamePicker({
     [kind, typed, open],
   );
   const roles = useLiveQuery(
-    async (): Promise<Map<string, Role>> =>
-      open && kind === 'artist' ? await usualRoles() : new Map(),
+    // Undefined while closed, so a reopened picker reads as "not read yet" until they load.
+    async (): Promise<Map<string, Role> | undefined> =>
+      !open ? undefined : kind === 'artist' ? await usualRoles() : new Map(),
     [kind, open],
   );
 
   const pick = (entry: NameMatch | { id: string; name: string }) => {
     setQuery('');
-    onPick({ id: entry.id, name: entry.name });
+    onPick({ id: entry.id, name: entry.name }, roles && (roles.get(entry.id) ?? null));
   };
 
   // One add at a time: a double tap must not create the name twice. Each add has its own id;

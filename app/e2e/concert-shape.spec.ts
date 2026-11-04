@@ -43,6 +43,13 @@ test('the Artists it is known by, the Stage by Role, a rename, and a second Conc
     .click();
   const name = page.getByRole('dialog').getByRole('textbox', { name: 'Artist name' });
   await name.fill('Akkarai Subbalakshmi');
+  // Journalled as typed, before the field is left: a lock or kill now loses nothing (ADR 0007).
+  const journal = await page.evaluate(() =>
+    Object.keys(localStorage)
+      .filter((key) => key.startsWith('wrapped.notSaved.v1:'))
+      .map((key) => localStorage.getItem(key)),
+  );
+  expect(journal.join()).toContain('Akkarai Subbalakshmi');
   await name.press('Enter');
   await page.keyboard.press('Escape');
   await expect(stage.nth(1)).toContainText('Akkarai Subbalakshmi');
