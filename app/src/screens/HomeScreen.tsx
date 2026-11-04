@@ -198,10 +198,14 @@ function HomeView() {
           </h2>
           {days.map((day, i) => (
             <div key={day}>
-              {/* The day goes with the rows under it: no hairline between them. */}
-              {/* The first day sits 8px under "Next"; each later one 16px under the row above. */}
+              {/* The day goes with the rows under it: no hairline between, and its first row's
+                  name 4px under it. The first day sits 8px under "Next"; each later one 16px
+                  under the row above. */}
               <h3
-                className={cn('pb-1 text-sub font-semibold text-muted-foreground', i > 0 && 'pt-4')}
+                className={cn(
+                  '-mb-1.5 text-sub font-semibold text-muted-foreground',
+                  i > 0 && 'pt-4',
+                )}
               >
                 {dayText(day)}
               </h3>
@@ -222,7 +226,7 @@ function HomeView() {
           <h2 id="so-far" className="pb-2 text-heading font-bold">
             Season so far
           </h2>
-          <ul className="hairline-t">
+          <ul>
             {soFar.map((s) => (
               <EventRow
                 key={s.event.id}

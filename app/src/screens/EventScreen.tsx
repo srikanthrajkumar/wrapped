@@ -8,7 +8,9 @@
 import {
   IconArrowDown,
   IconArrowUp,
+  IconCalendar,
   IconChevronRight,
+  IconClock,
   IconDots,
   IconMetronome,
   IconPlus,
@@ -62,7 +64,7 @@ import {
 import { NamePicker, RoleChips } from './components/NamePicker';
 import { SheetFrame } from './components/sheet-frame';
 import { UndoBar } from './components/UndoBar';
-import { eventLine, itemCount, itemLine, itemTitle, roleName } from './format';
+import { dayText, eventLine, itemCount, itemLine, itemTitle, roleName, timeText } from './format';
 import { deleteConcert, deleteItem, removeArtist } from './deletes';
 import { undo, undoMessage } from './undo';
 import type { SaveFeedback } from './save-feedback';
@@ -742,6 +744,9 @@ function AppearanceSheet({
           }}
         />
         <Button variant="outline" onClick={onColours}>
+          {/* The button carries the mark it sets, as the Stage row does. */}
+          {appearance.colourPrimary && <SwatchDot colour={appearance.colourPrimary} />}
+          {appearance.colourSecondary && <SwatchDot colour={appearance.colourSecondary} />}
           Colours
         </Button>
         <Button variant="destructive" onClick={onRemove}>
@@ -914,22 +919,32 @@ function EventFacts({
         </div>
         <label className="flex flex-col gap-1">
           <span className="text-sub text-muted-foreground">Date</span>
-          <input
-            type="date"
-            required
-            defaultValue={date}
-            onChange={(e) => e.target.value && onChange({ date: e.target.value })}
-            className="min-h-12 rounded-xl bg-secondary px-3 text-body"
-          />
+          {/* The phone's own picker, transparent over the value as the app writes it. */}
+          <span className="relative flex min-h-12 items-center justify-between gap-2 rounded-xl bg-secondary px-3 text-body has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring">
+            <span aria-hidden>{dayText(date)}</span>
+            <IconCalendar aria-hidden className="size-5 shrink-0 text-muted-foreground" />
+            <input
+              type="date"
+              required
+              defaultValue={date}
+              onChange={(e) => e.target.value && onChange({ date: e.target.value })}
+              className="absolute inset-0 opacity-0"
+            />
+          </span>
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-sub text-muted-foreground">Start time</span>
-          <input
-            type="time"
-            defaultValue={startTime ?? ''}
-            onChange={(e) => onChange({ startTime: e.target.value || null })}
-            className="min-h-12 rounded-xl bg-secondary px-3 text-body"
-          />
+          {/* The phone's own picker, transparent over the value as the app writes it. */}
+          <span className="relative flex min-h-12 items-center justify-between gap-2 rounded-xl bg-secondary px-3 text-body has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring">
+            <span aria-hidden>{startTime ? timeText(startTime) : ''}</span>
+            <IconClock aria-hidden className="size-5 shrink-0 text-muted-foreground" />
+            <input
+              type="time"
+              defaultValue={startTime ?? ''}
+              onChange={(e) => onChange({ startTime: e.target.value || null })}
+              className="absolute inset-0 opacity-0"
+            />
+          </span>
         </label>
       </div>
     </SheetFrame>
@@ -959,7 +974,7 @@ function NoteField({ eventId, stored }: { eventId: string; stored: string | null
           rows={3}
           onChange={(e) => note.change(e.target.value)}
           onBlur={note.flush}
-          className="w-full rounded-xl bg-secondary p-3 text-body"
+          className="block w-full rounded-xl bg-secondary p-3 text-body"
         />
       </Saved>
     </section>

@@ -314,9 +314,10 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   each with its words in its accessible name and amber when something is wrong: offline
   readiness ("Ready offline"), persisted storage ("Storage protected", amber "Storage not
   protected" when the browser hasn't promised to keep it), and Export with the date of the last
-  one ("Last: 2 Nov", or "—" before the first). Then the theme. Then the app and catalog
-  versions, small and muted, at the bottom. Sync, account and consent join in Phase 7; the
-  Maintainer's `/admin` link stays. As built and accepted 2026-11-03:
+  one ("Last: 2 Nov", or "—" before the first). Then the theme, as one track holding both
+  choices. Then the Maintainer's `/admin` link, a row with a chevron, and last the app and
+  catalog versions, small and muted (reordered 2026-11-04, UI hill-climb). Sync, account and
+  consent join in Phase 7. As built and accepted 2026-11-03:
   - **Ready offline** leads with an airplane mark. "Getting ready for offline…" has a muted
     spinner and is not amber, since it clears on its own. In a browser with no service worker
     the row is amber, with the alert mark and "Offline logging isn't available in this
@@ -428,7 +429,8 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   its fill reaching 8px into the gutter. The fixed rows above ("? Don't know", "Use what I
   typed") are hairline rows too. A Raga result is one line with a "Raga" badge (the
   line "Start this Item with only its Raga" was cut on 2026-11-04: fewer words). Results that
-  scroll up under the fixed rows fade out over 24px.
+  scroll up under the fixed rows are gone in the first 12px and fade in over the next 20, so a
+  row half under them never shows a second rule.
 - **Search states** (decided 2026-11-01): before anything is typed, only the fixed rows show
   above the box. With no catalog match, one muted line "No match in the catalog" sits above the
   fixed rows, so "Use what I typed" is the next tap, and screen readers hear "No matches".
@@ -543,14 +545,17 @@ finicky"): every change of place now moves, briefly, in CSS only, and nothing wa
   from 24px to the right at 40% opacity, never from blank; coming back, from the left; 240ms,
   `cubic-bezier(0.32, 0.72, 0, 1)`, so the move is seen rather than over in its first 50ms. The
   bottom bar stays put and its contents fade in with the screen. The first screen, a tab switch
-  and a move at the same depth (a first pick, Next Item) just appear.
+  and a move at the same depth (a first pick, Next Item) just appear. The page clips what slides
+  past its sides, so a screen sliding in never widens it or scrolls it.
 - **Sheets** rise opaque from below the screen over 220ms with the same curve; only the scrim
   fades. A sheet never shows the page through it.
 - **Something opening in place** (a fold, the Laya vinyasam's fields) grows to its height over
   200ms as it fades in, so what's below slides down instead of jumping. The Laya vinyasam's
   fields grow from the height of the button they replace, so nothing moves up first.
-- **A swatch picked** settles from 88% as its ring draws out and its check grows in (180ms),
-  and one ring goes out from it and fades (360ms): the pick's own confirmation, in view.
+- **A swatch picked** settles from 88% and its check grows in (180ms) while the old ring fades
+  out and the new one in (150ms), so nothing is ever unchosen; one ring goes out from it and
+  fades (360ms): the pick's own confirmation, in view. Only a pick made in the sheet plays, not
+  the swatch already chosen when the sheet opens.
 - The save highlight: 1.2s, rising over its first 150ms and then fading (FB-28: starting at
   full strength read as a flash), drawn 8px past its block so the text inside keeps its edge.
   Where the change already shows itself, it doesn't play: marking the Laya vinyasam grows its
@@ -677,4 +682,4 @@ in the phase that builds it):
 | 2026-11-03 | Phase 4 design, the Maintainer's answers: Export lives in Settings, with its last date, and the Event's "⋯" keeps only Delete; home shows no status line until sync, and only "Getting ready for offline…" while the app isn't ready; the install row is persistent and drawn as Safari's marks on iPhone and an Install button on Android; Settings puts the season first (offline, storage protected, Export), then the theme, then the versions. |
 | 2026-11-04 | The iPhone walkthrough's shape decisions S1 to S12 (`docs/feedback/2026-11-iphone-walkthrough.md`): "+ Log a Concert" always in the Season page's bottom bar, the open Concert a card; Events known by their vocal, veena or flute Artists (a Lecdem's presenters), the Sabha, date and time on the line under them; the Event screen runs heading, Stage, Note, Items; Stage listed by Role with no "Edit order"; an Artist's name corrected from their sheet, the old name kept as an Alias; the usual Role chosen for a known Artist; "Remove" with the bin mark; Role chips capitalised; Done the filled main button at the right of the Item editor's bar; "Item 8" an eyebrow; more room under a field's label and a taller facts line; "Running order" now "Items". |
 | 2026-11-03 | After the Phase 4 screenshots, the Maintainer's answers: the Settings Export row is never amber; Android's install row leads with the same Add mark as the iPhone row; accepted as built: Android's Install button named without Safari's steps, the row hidden while Chrome offers no install, the › between the iPhone marks, the amber `warning` token (oklch(0.8 0.15 75) dark, oklch(0.53 0.12 62) light), "Getting ready for offline…" with a muted spinner and an amber row where there is no service worker, and the "App" and "Catalog" version lines. |
-| 2026-11-04 | The UI hill-climb (FB-30, themes 3 and 4): line heights on the 4px grid; 64px and 48px rows with the hairline drawn inside; section labels 32px under the block above; text on the 16px gutter with fills reaching past it; pushed screens and sheets that move; folds that grow open; a softer save highlight (FB-28); the Laya vinyasam as a mark in Item rows (FB-27); Raga results on one line. |
+| 2026-11-04 | The UI hill-climb (FB-30, themes 3 and 4), as built for the Maintainer to check on the iPhone: line heights on the 4px grid; 64px and 48px rows with the hairline drawn inside; section labels 32px under the block above; text on the 16px gutter with fills reaching past it; pushed screens and sheets that move; folds that grow open; a softer save highlight (FB-28); the Laya vinyasam as a mark in Item rows (FB-27); Raga results on one line; the facts sheet's date and time written as the app writes them ("Mon 14 Dec", "6:00 pm") over the phone's own pickers; the Artist sheet's Colours button showing the colours. |

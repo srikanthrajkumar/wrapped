@@ -88,8 +88,9 @@ export function DockedSearch({
       <div
         ref={list}
         // As wide as the rows' fill, which would otherwise be clipped by the scrolling. Rows
-        // scrolled up under the fixed rows fade out over 24px instead of being cut.
-        className="-mx-2 flex min-h-0 shrink flex-col overflow-y-auto overscroll-contain px-2 pt-2 pb-2 [mask-image:linear-gradient(to_bottom,transparent,black_24px)]"
+        // scrolled up under the fixed rows are gone in the first 12px and fade in over the next 20,
+        // so a row half under them shows no second rule.
+        className="-mx-2 flex min-h-0 shrink flex-col overflow-y-auto overscroll-contain px-2 pt-2 pb-2 [mask-image:linear-gradient(to_bottom,transparent_12px,black_32px)]"
       >
         {drawn.length > 0 && (
           // Rows divided by the hairline, as every list is (DESIGN.md "Shapes").
