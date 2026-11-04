@@ -52,6 +52,7 @@ const go = async (page: Page, path: string) => {
   }
   if (steps.length === 1) await page.locator(`a[href="${path}"]`).first().click();
   await page.waitForURL(BASE + path);
+  await page.evaluate(() => scrollTo(0, 0));
 };
 
 const concert = (page: Page, ids: SeedIds) => go(page, `/event/${ids.full}`);
@@ -340,14 +341,17 @@ async function motion(out: string) {
           };
         });
       const { end } = await timing();
-      for (let i = 0; i < 8; i++) {
+      // Dense early, where the short animations are, then out to the longest one's end.
+      for (const target of [0, 60, 120, 180, 300, 600, end]) {
         const { at } = await timing();
         if (at < 0) break;
+        if (target > at) await page.waitForTimeout((target - at) / SLOW);
+        const now = await timing();
+        if (now.at < 0) break;
         frames.push({
-          label: `${Math.round(at)} ms`,
+          label: `${Math.round(now.at)} ms`,
           png: await page.screenshot({ caret: 'hide' }),
         });
-        await page.waitForTimeout(Math.max(100, end / SLOW / 6));
       }
       await cdp.send('Animation.setPlaybackRate', { playbackRate: 1 });
       await page.waitForTimeout(Math.min(end, 1500) + 200);

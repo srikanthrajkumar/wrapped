@@ -11,6 +11,7 @@ import {
   IconChevronDown,
   IconDots,
   IconPlus,
+  IconTrash,
 } from '@tabler/icons-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -500,12 +501,12 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
       {/* Ragas first: an ordered row of chips with "+ Raga" (design D25). */}
       <Saved target={target('ragas')} className="pb-3">
         {/* The label and Edit order share one line; the button's 48px reaches past it. */}
-        <div className="flex min-h-6 items-center justify-between pb-2">
+        <div className="flex min-h-4 items-center justify-between pb-2">
           <span className="text-caption text-muted-foreground">
             {ragas.length > 1 ? 'Ragas' : 'Raga'}
           </span>
           {ragas.length >= 2 && (
-            <QuietButton className="-my-3 -mr-2" onClick={() => setRagaOrder(!ragaOrder)}>
+            <QuietButton className="-my-4 -mr-2" onClick={() => setRagaOrder(!ragaOrder)}>
               {ragaOrder ? 'Done' : 'Edit order'}
             </QuietButton>
           )}
@@ -618,7 +619,12 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
                       : feedback.hold(target('layaNote'), note)
                   }
                 />
-                <QuietButton className="-ml-2 self-start" onClick={removeLaya}>
+                {/* An action, with the bin mark the Artist sheet's Remove has, its mark on the gutter. */}
+                <QuietButton
+                  className="-ml-2 gap-2 self-start text-foreground"
+                  onClick={removeLaya}
+                >
+                  <IconTrash aria-hidden className="size-5 text-muted-foreground" />
                   Remove Laya vinyasam
                 </QuietButton>
               </div>

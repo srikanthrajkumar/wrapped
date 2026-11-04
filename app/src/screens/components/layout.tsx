@@ -95,7 +95,8 @@ export function TopBar({
           <IconChevronLeft className="size-[22px] shrink-0" stroke={2} aria-hidden />
           <span className="break-words">{back.label}</span>
         </Link>
-        {right}
+        {/* A 48px icon button's mark ends on the gutter, with the content below it. */}
+        {right && <div className="-mr-3.5">{right}</div>}
       </div>
       <InstallRow />
       <SeasonFeedback />
