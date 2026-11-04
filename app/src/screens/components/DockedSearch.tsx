@@ -6,7 +6,6 @@
 
 import { IconSearch } from '@tabler/icons-react';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { MESSAGES } from '../messages';
 
@@ -104,18 +103,21 @@ export function DockedSearch({
                   className={cn(
                     // The text sits on the gutter; the best match's fill reaches 8px past it.
                     '-mx-2 flex w-[calc(100%+16px)] flex-col items-stretch justify-center rounded-xl px-2 py-2 text-left',
-                    // The best match sits on surface; in light, its border does that job.
-                    // Inside a sheet, itself on surface, it rises to surface-raised.
                     // Two lines make a 64px row; one line, 48px.
                     row.line ? 'min-h-16' : 'min-h-12',
-                    i === drawn.length - 1 &&
-                      // Its 1px border comes out of the padding, so its text stays on the gutter.
-                      'border border-border bg-card px-[7px] in-data-[slot=sheet-content]:bg-secondary dark:border-transparent',
+                    // The best match is the one filled row, the same in both themes and on a
+                    // page or in a sheet: a fill means "this one is different".
+                    i === drawn.length - 1 && 'bg-secondary',
                   )}
                 >
                   <span className="flex flex-wrap items-center gap-2 font-semibold">
                     {row.title}
-                    {row.badge && <Badge variant="secondary">{row.badge}</Badge>}
+                    {/* A kind word, not a pill: a fill on every row would say nothing. */}
+                    {row.badge && (
+                      <span className="text-caption font-normal text-muted-foreground">
+                        {row.badge}
+                      </span>
+                    )}
                   </span>
                   {row.line && <span className="text-sub text-muted-foreground">{row.line}</span>}
                 </button>

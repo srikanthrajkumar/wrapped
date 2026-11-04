@@ -188,7 +188,7 @@ renderer (T088).
 
 | Role | Size / line height | Weight | Used for |
 |---|---|---|---|
-| caption | 13 / 16 | 400 | Badges ("Raga"), the "not matched" note, field labels |
+| caption | 13 / 16 | 400 | The "Raga" kind word, the "not matched" note, field labels |
 | secondary | 15 / 20 | 400 | Raga · Composer · Tala lines, Appearance roles, chips |
 | body | 17 / 24 | 400, 600 for titles | Everything else; Item titles in 600 |
 | title | 20 / 28 | 600 | Screen headers, the Now card's title |
@@ -424,13 +424,14 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
 - **Search box:** 48px, surface-raised fill, a 2px `ring` inset while focused. It is the one
   element allowed to autofocus on mobile: the Item editor opens with it focused (DD4, the
   recorded exception to T110's rule).
-- **Search result:** a row on the gutter, 64px with two lines and 48px with one, divided by
-  the hairline; title in body 600, then the secondary line. The best match sits on `surface`,
-  its fill reaching 8px into the gutter. The fixed rows above ("? Don't know", "Use what I
-  typed") are hairline rows too. A Raga result is one line with a "Raga" badge (the
-  line "Start this Item with only its Raga" was cut on 2026-11-04: fewer words). Results that
-  scroll up under the fixed rows are gone in the first 12px and fade in over the next 20, so a
-  row half under them never shows a second rule.
+- **Search result:** a row on the gutter, 64px with two lines and 48px with one, divided by the
+  hairline; title in body 600, then the secondary line. The best match is the one filled row, on
+  `surface-raised` in both themes, on a page or in a sheet, with no border, its fill reaching 8px
+  into the gutter. The fixed rows above ("? Don't know", "Use what I typed") are hairline rows too.
+  A Raga result is one line, the word "Raga" after its name in muted caption, not a filled badge (a
+  fill on every row says nothing; the line "Start this Item with only its Raga" was also cut on
+  2026-11-04: fewer words). Results that scroll up under the fixed rows are gone in the first 12px
+  and fade in over the next 20, so a row half under them never shows a second rule.
 - **Search states** (decided 2026-11-01): before anything is typed, only the fixed rows show
   above the box. With no catalog match, one muted line "No match in the catalog" sits above the
   fixed rows, so "Use what I typed" is the next tap, and screen readers hear "No matches".
@@ -542,17 +543,18 @@ finicky"): every change of place now moves, briefly, in CSS only, and nothing wa
 
 - Press feedback: 100ms. State changes (a value updating): 150ms ease-out.
 - **Pushed screens** (decided 2026-11-04): going into an Event or an Item, the screen enters
-  from 24px to the right at 80% opacity, so it never dims to a blink; coming back, from the left; 240ms,
-  `cubic-bezier(0.32, 0.72, 0, 1)`, so the move is seen rather than over in its first 50ms. The
-  bottom bar stays put and its contents fade in with the screen. The first screen, a tab switch
+  from 24px to the right at 60% opacity (from 40% it read as a blink, from 80% as a cut);
+  coming back, from the left; 240ms, `cubic-bezier(0.32, 0.72, 0, 1)`, so the move is seen
+  rather than over in its first 50ms. The bottom bar stays put and its contents fade in with
+  the screen. The first screen, a tab switch
   and a move at the same depth (a first pick, Next Item) just appear. The page clips what slides
   past its sides, so a screen sliding in never widens it or scrolls it.
 - **Sheets** rise opaque from below the screen over 220ms with the same curve; only the scrim
   fades. A sheet never shows the page through it.
 - **Something opening in place** (a fold, the Laya vinyasam's fields) grows to its height over
   200ms as it fades in, so what's below slides down instead of jumping. The Laya vinyasam's
-  fields grow from the height of the button they replace, showing from the first frame, so
-  nothing moves up first and no empty band shows.
+  fields grow from the height of the button they replace, showing at 30% from the first frame
+  and fading up as they grow, so nothing moves up first and no empty band shows.
 - **A swatch picked** settles from 88% and its check grows in (180ms) while the old ring fades
   out and the new one in (150ms), so nothing is ever unchosen; one ring goes out from it and
   fades (360ms): the pick's own confirmation, in view. Only a pick made in the sheet plays, not
