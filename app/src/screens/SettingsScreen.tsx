@@ -24,6 +24,7 @@ import { setTheme, useTheme, type Theme } from '../theme';
 import { APP_VERSION, exportSeason, useExportState } from './components/export-file';
 import { ExportIcon, SeasonFeedback } from './components/feedback';
 import { InstallRow } from './components/InstallRow';
+import { Screen } from './components/layout';
 import { shortDayText } from './format';
 import { MESSAGES } from './messages';
 
@@ -140,6 +141,14 @@ function ExportRow() {
 }
 
 export function SettingsScreen() {
+  return (
+    <Screen>
+      <SettingsView />
+    </Screen>
+  );
+}
+
+function SettingsView() {
   const theme = useTheme();
   const catalogVersion = useMeta<string>(CATALOG_VERSION_KEY);
   return (

@@ -72,13 +72,84 @@ button:active,
 /* Hover styles live only inside `@media (hover: hover) and (pointer: fine)` (app.css's hover
    variant), so a tap never leaves one stuck on. */
 
-/* The save highlight: a surface-raised fill fading out over 1.2s, played only after the write
-   succeeded (DESIGN.md "Saving"). Under reduced motion it still shows, without the fade. */
-@keyframes save-highlight {
+/* Fields keep the height they're drawn at: a resize grip is a desktop artefact. */
+textarea {
+  resize: none;
+}
+
+/* The search box's clear mark in the muted text colour, never the browser's blue. */
+input[type='search']::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background-color: var(--muted-foreground);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M18 6 6 18M6 6l12 12'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  cursor: pointer;
+}
+
+/* A pushed screen enters from the side it came from (DESIGN.md "Motion"; screens/components
+   layout.tsx decides the way). The bottom bar stays put, as a phone's own bars do. */
+@keyframes screen-forward {
   from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+@keyframes screen-back {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+}
+
+.screen[data-enter='forward'] {
+  animation: screen-forward 220ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.screen[data-enter='back'] {
+  animation: screen-back 220ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Something that appears in place (a fold opening, the Laya vinyasam's fields) fades in over
+   the state-change time, so it reads as arriving rather than popping. */
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.appear,
+[data-fold]:not([hidden]) {
+  animation: appear 150ms ease-out;
+}
+
+/* A swatch picked settles into place with its ring and check. */
+@keyframes swatch-pick {
+  from {
+    transform: scale(0.88);
+  }
+}
+
+[role='radio'][aria-checked='true'] > .swatch {
+  animation: swatch-pick 150ms ease-out;
+}
+
+/* The save highlight: a surface-raised fill that swells in and fades out over 1.2s, played only
+   after the write succeeded (DESIGN.md "Saving"). It rises over the first 150ms rather than
+   appearing at full strength, which read as a flash on a large block (FB-28). Under reduced
+   motion it still shows, without the fade. */
+@keyframes save-highlight {
+  0% {
+    background-color: transparent;
+  }
+  12% {
     background-color: var(--secondary);
   }
-  to {
+  100% {
     background-color: transparent;
   }
 }

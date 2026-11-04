@@ -31,7 +31,7 @@ interface View {
   name: string;
   /** A whole scrolling page, not just the first screen. */
   full?: boolean;
-  /** Types text: the next view waits out the autosave pause, so no write is cut off. */
+  /** Types into a search, cleared after the shot so no draft is left journalled. */
   typed?: boolean;
   open(page: Page, ids: SeedIds): Promise<void>;
 }
@@ -226,8 +226,12 @@ async function shots(out: string) {
       await shoot(page, join(dir, `${view.name}.${viewport.name}.${theme}.png`), view.full);
       if (await page.getByText(/not saved/i).count())
         console.error(`${view.name}: not saved shows`);
-      // Longer than the autosave pause (800ms), so the draft's write lands before a reload.
-      if (view.typed) await page.waitForTimeout(1500);
+      // Typed search text is journalled until it is cleared or picked; clear it, so the next
+      // load doesn't count it as a write cut off (a "Not saved" row in every later view).
+      if (view.typed) {
+        await page.getByRole('searchbox').first().fill('');
+        await page.waitForTimeout(1000);
+      }
       if (theme === 'dark') {
         measures[`${view.name}.${viewport.name}`] = await page.evaluate(measure, !!view.full);
       }

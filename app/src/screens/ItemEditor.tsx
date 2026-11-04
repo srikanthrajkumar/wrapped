@@ -58,7 +58,7 @@ import { DetailInput, NadaiChips, type DetailField } from './components/DetailIn
 import { Chip, DockedSearch, FixedRow, type SearchRow } from './components/DockedSearch';
 import { useAutosave } from './components/autosave';
 import { NotSavedLine, saveWith, Saved, useSaveFeedback } from './components/feedback';
-import { BottomDock, QuietButton, TopBar, useFocusOnOpen } from './components/layout';
+import { BottomDock, QuietButton, Screen, TopBar, useFocusOnOpen } from './components/layout';
 import { SheetFrame } from './components/sheet-frame';
 import { UndoBar } from './components/UndoBar';
 import { deleteItem } from './deletes';
@@ -74,10 +74,14 @@ function useBack(eventId: string) {
 }
 
 export function ItemEditor({ eventId, itemId }: { eventId: string; itemId: string }) {
-  return itemId === 'new' ? (
-    <NewItem key={eventId} eventId={eventId} />
-  ) : (
-    <EditItem key={itemId} eventId={eventId} itemId={itemId} />
+  return (
+    <Screen>
+      {itemId === 'new' ? (
+        <NewItem key={eventId} eventId={eventId} />
+      ) : (
+        <EditItem key={itemId} eventId={eventId} itemId={itemId} />
+      )}
+    </Screen>
   );
 }
 
@@ -495,12 +499,13 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
 
       {/* Ragas first: an ordered row of chips with "+ Raga" (design D25). */}
       <Saved target={target('ragas')} className="pb-3">
-        <div className="flex items-end justify-between pb-2">
+        {/* The label and Edit order share one line; the button's 48px reaches past it. */}
+        <div className="flex min-h-6 items-center justify-between pb-2">
           <span className="text-caption text-muted-foreground">
             {ragas.length > 1 ? 'Ragas' : 'Raga'}
           </span>
           {ragas.length >= 2 && (
-            <QuietButton onClick={() => setRagaOrder(!ragaOrder)}>
+            <QuietButton className="-my-3 -mr-2" onClick={() => setRagaOrder(!ragaOrder)}>
               {ragaOrder ? 'Done' : 'Edit order'}
             </QuietButton>
           )}
@@ -580,7 +585,7 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
               <IconPlus aria-hidden /> Laya vinyasam after this Item
             </Button>
           ) : (
-            <div className="flex flex-col gap-2">
+            <div className="appear flex flex-col gap-2">
               <DetailCell
                 name="Nadai"
                 value={laya.nadai}
@@ -608,9 +613,9 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
                     : feedback.hold(target('layaNote'), note)
                 }
               />
-              <Button variant="ghost" className="self-start" onClick={removeLaya}>
+              <QuietButton className="-ml-2 self-start" onClick={removeLaya}>
                 Remove Laya vinyasam
-              </Button>
+              </QuietButton>
             </div>
           )}
         </Saved>
@@ -718,16 +723,15 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
           }}
           extra={
             ragas.length > 1 && open.index < ragas.length ? (
-              <Button
-                variant="ghost"
-                className="self-start"
+              <QuietButton
+                className="-ml-2 self-start"
                 onClick={() => {
                   setOpen(null);
                   saveRagas(ragas.filter((_, i) => i !== open.index));
                 }}
               >
                 Remove this Raga
-              </Button>
+              </QuietButton>
             ) : undefined
           }
         />
@@ -747,9 +751,8 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
             )
           }
           extra={
-            <Button
-              variant="ghost"
-              className="self-start"
+            <QuietButton
+              className="-ml-2 self-start"
               onClick={() => {
                 setOpen(null);
                 saveImprovised(
@@ -760,7 +763,7 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
               }}
             >
               In the Item’s Raga
-            </Button>
+            </QuietButton>
           }
         />
       )}
@@ -887,7 +890,7 @@ function Fold({
           />
         </button>
       </h2>
-      <div id={id} hidden={!open} className="pb-4">
+      <div id={id} hidden={!open} data-fold className="pb-4">
         {children}
       </div>
     </section>

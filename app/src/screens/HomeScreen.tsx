@@ -17,7 +17,7 @@ import { useEventSummaries, useLoggingNotes, type EventSummary } from '../store/
 import { newId } from '../model';
 import { saveWith, SeasonFeedback, useSaveFeedback } from './components/feedback';
 import { InstallRow } from './components/InstallRow';
-import { BottomDock, useNow } from './components/layout';
+import { BottomDock, Screen, useNow } from './components/layout';
 import { UndoBar } from './components/UndoBar';
 import { dayText, itemCount, nowTime, timeText } from './format';
 import { MESSAGES } from './messages';
@@ -38,6 +38,14 @@ const time = (summary: EventSummary) =>
   summary.event.startTime !== null && timeText(summary.event.startTime);
 
 export function HomeScreen() {
+  return (
+    <Screen>
+      <HomeView />
+    </Screen>
+  );
+}
+
+function HomeView() {
   const summaries = useEventSummaries();
   const notes = useLoggingNotes();
   const offline = useOfflineState();
