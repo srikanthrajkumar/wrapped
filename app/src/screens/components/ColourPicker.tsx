@@ -104,7 +104,7 @@ function Grid({
           >
             <span
               className={cn(
-                'relative flex size-14 items-center justify-center rounded-full border border-border',
+                'swatch relative flex size-14 items-center justify-center rounded-full border border-border',
                 colour !== 'unknown' && EDGED.includes(colour) && 'border-2 border-ring',
                 picked && 'ring-2 ring-foreground ring-offset-2 ring-offset-popover',
               )}

@@ -12,10 +12,38 @@ import {
   type RefObject,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { cn } from '@/lib/utils';
 import { SeasonFeedback } from './feedback';
 import { InstallRow } from './InstallRow';
+
+/** How deep a screen sits: a tab's root, an Event, or an Item in it. */
+const depth = (path: string) =>
+  path.startsWith('/event/') ? (path.includes('/item/') ? 2 : 1) : 0;
+// The path of the screen shown last, so the next one knows which way the rasika went.
+let shownPath: string | null = null;
+
+/**
+ * A screen's root (DESIGN.md "Motion"): going into an Event or an Item, the screen enters from
+ * the right; coming back, from the left. The first screen and a switch between tabs, or within
+ * the same depth (a first pick, Next Item), just appear, so nothing waits on motion.
+ */
+export function Screen({ children }: { children: ReactNode }) {
+  const [path] = useLocation();
+  const [enter] = useState(() => {
+    if (shownPath === null) return undefined;
+    const by = depth(path) - depth(shownPath);
+    return by > 0 ? 'forward' : by < 0 ? 'back' : undefined;
+  });
+  useEffect(() => {
+    shownPath = path;
+  }, [path]);
+  return (
+    <div data-enter={enter} className="screen flex flex-1 flex-col">
+      {children}
+    </div>
+  );
+}
 
 /** Where a screen's bottom action goes: the shell's sticky footer, above the tab bar. */
 export const BottomSlot = createContext<HTMLElement | null>(null);

@@ -87,10 +87,12 @@ export function DockedSearch({
       </div>
       <div
         ref={list}
-        className="flex min-h-0 shrink flex-col overflow-y-auto overscroll-contain pb-2"
+        // As wide as the rows' fill, which would otherwise be clipped by the scrolling.
+        className="-mx-3 flex min-h-0 shrink flex-col overflow-y-auto overscroll-contain px-3 pb-2"
       >
         {drawn.length > 0 && (
-          <ul aria-label={resultsLabel} className="flex flex-col gap-1">
+          // Rows divided by the hairline, as every list is (DESIGN.md "Shapes").
+          <ul aria-label={resultsLabel} className="flex flex-col divide-y divide-border">
             {drawn.map((row, i) => (
               <li key={row.key}>
                 <button
@@ -98,7 +100,8 @@ export function DockedSearch({
                   aria-label={row.label}
                   onClick={row.onPick}
                   className={cn(
-                    'flex min-h-[60px] w-full flex-col items-stretch justify-center rounded-xl px-3 py-2 text-left',
+                    // The text sits on the gutter; the best match's fill reaches 12px past it.
+                    '-mx-3 flex min-h-[60px] w-[calc(100%+24px)] flex-col items-stretch justify-center rounded-xl px-3 py-2 text-left',
                     // The best match sits on surface; in light, its border does that job.
                     // Inside a sheet, itself on surface, it rises to surface-raised.
                     i === drawn.length - 1 &&
@@ -163,7 +166,7 @@ export function FixedRow({
       type="button"
       aria-label={label}
       onClick={onClick}
-      className="flex min-h-12 w-full items-center rounded-xl px-3 py-2 text-left text-body"
+      className="-mx-3 flex min-h-12 w-[calc(100%+24px)] items-center rounded-xl px-3 py-2 text-left text-body"
     >
       {children}
     </button>

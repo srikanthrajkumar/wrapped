@@ -46,6 +46,7 @@ import { useAutosave } from './components/autosave';
 import {
   BottomDock,
   QuietButton,
+  Screen,
   SectionHead,
   TopBar,
   useFocusOnOpen,
@@ -82,6 +83,14 @@ const appearanceTarget = (id: string, field: string) => ({
 });
 
 export function EventScreen({ eventId }: { eventId: string }) {
+  return (
+    <Screen>
+      <EventView eventId={eventId} />
+    </Screen>
+  );
+}
+
+function EventView({ eventId }: { eventId: string }) {
   const event = useEventOrNull(eventId);
   const items = useItems(eventId);
   const appearances = useAppearances(eventId);
