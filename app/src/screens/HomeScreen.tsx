@@ -226,7 +226,8 @@ function HomeView() {
           <h2 id="so-far" className="pb-2 text-heading font-bold">
             Season so far
           </h2>
-          <ul>
+          {/* Its first name 8px under the heading, as Next's first date is. */}
+          <ul className="-mt-2.5">
             {soFar.map((s) => (
               <EventRow
                 key={s.event.id}

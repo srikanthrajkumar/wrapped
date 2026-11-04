@@ -542,7 +542,7 @@ finicky"): every change of place now moves, briefly, in CSS only, and nothing wa
 
 - Press feedback: 100ms. State changes (a value updating): 150ms ease-out.
 - **Pushed screens** (decided 2026-11-04): going into an Event or an Item, the screen enters
-  from 24px to the right at 40% opacity, never from blank; coming back, from the left; 240ms,
+  from 24px to the right at 80% opacity, so it never dims to a blink; coming back, from the left; 240ms,
   `cubic-bezier(0.32, 0.72, 0, 1)`, so the move is seen rather than over in its first 50ms. The
   bottom bar stays put and its contents fade in with the screen. The first screen, a tab switch
   and a move at the same depth (a first pick, Next Item) just appear. The page clips what slides
@@ -551,7 +551,8 @@ finicky"): every change of place now moves, briefly, in CSS only, and nothing wa
   fades. A sheet never shows the page through it.
 - **Something opening in place** (a fold, the Laya vinyasam's fields) grows to its height over
   200ms as it fades in, so what's below slides down instead of jumping. The Laya vinyasam's
-  fields grow from the height of the button they replace, so nothing moves up first.
+  fields grow from the height of the button they replace, showing from the first frame, so
+  nothing moves up first and no empty band shows.
 - **A swatch picked** settles from 88% and its check grows in (180ms) while the old ring fades
   out and the new one in (150ms), so nothing is ever unchosen; one ring goes out from it and
   fades (360ms): the pick's own confirmation, in view. Only a pick made in the sheet plays, not
