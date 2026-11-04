@@ -223,7 +223,7 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   - A section label sits 32px under the block above it and 8px over its first row; an action
     beside it (Edit order) keeps its 48px tap area by reaching past the line, not by pushing it.
   - Text sits on the 16px gutter. A fill that marks one row (the best search match) reaches
-    12px past the text into the gutter instead of pushing the text in, and a text button's
+    8px past the text into the gutter instead of pushing the text in, and a text button's
     label (Remove Laya vinyasam, Edit order) starts or ends on the gutter.
 - **Thumb zone.** Primary actions sit in the bottom third: the fixed "Add Item" bar, the
   docked search box, "Done" and "Next Item →". The page keeps room for everything docked at the
@@ -425,9 +425,10 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   recorded exception to T110's rule).
 - **Search result:** a row on the gutter, 64px with two lines and 48px with one, divided by
   the hairline; title in body 600, then the secondary line. The best match sits on `surface`,
-  its fill reaching 12px into the gutter. A Raga result is one line with a "Raga" badge (the
+  its fill reaching 8px into the gutter. The fixed rows above ("? Don't know", "Use what I
+  typed") are hairline rows too. A Raga result is one line with a "Raga" badge (the
   line "Start this Item with only its Raga" was cut on 2026-11-04: fewer words). Results that
-  scroll up under the fixed rows fade out over 12px.
+  scroll up under the fixed rows fade out over 24px.
 - **Search states** (decided 2026-11-01): before anything is typed, only the fixed rows show
   above the box. With no catalog match, one muted line "No match in the catalog" sits above the
   fixed rows, so "Use what I typed" is the next tap, and screen readers hear "No matches".
@@ -539,16 +540,22 @@ finicky"): every change of place now moves, briefly, in CSS only, and nothing wa
 
 - Press feedback: 100ms. State changes (a value updating): 150ms ease-out.
 - **Pushed screens** (decided 2026-11-04): going into an Event or an Item, the screen enters
-  from 16px to the right at half opacity; coming back, from the left; 220ms,
-  `cubic-bezier(0.2, 0, 0, 1)`. The first screen, a tab switch and a move at the same depth (a
-  first pick, Next Item) just appear. The bottom bar stays put.
+  from 24px to the right at 40% opacity, never from blank; coming back, from the left; 240ms,
+  `cubic-bezier(0.32, 0.72, 0, 1)`, so the move is seen rather than over in its first 50ms. The
+  bottom bar stays put and its contents fade in with the screen. The first screen, a tab switch
+  and a move at the same depth (a first pick, Next Item) just appear.
 - **Sheets** rise opaque from below the screen over 220ms with the same curve; only the scrim
   fades. A sheet never shows the page through it.
 - **Something opening in place** (a fold, the Laya vinyasam's fields) grows to its height over
-  200ms as it fades in, so what's below slides down instead of jumping.
-- **A swatch picked** settles from 88% as its ring draws out and its check grows in (180ms).
+  200ms as it fades in, so what's below slides down instead of jumping. The Laya vinyasam's
+  fields grow from the height of the button they replace, so nothing moves up first.
+- **A swatch picked** settles from 88% as its ring draws out and its check grows in (180ms),
+  and one ring goes out from it and fades (360ms): the pick's own confirmation, in view.
 - The save highlight: 1.2s, rising over its first 150ms and then fading (FB-28: starting at
-  full strength read as a flash). The Undo bar: 5s, then it slides away.
+  full strength read as a flash), drawn 8px past its block so the text inside keeps its edge.
+  Where the change already shows itself, it doesn't play: marking the Laya vinyasam grows its
+  fields in, and that is the confirmation (a failure still shows "Not saved"). The Undo bar:
+  5s, then it slides away.
 - Under `prefers-reduced-motion: reduce`, nothing moves or grows, and the highlight still shows
   (it carries information), without the fade.
 - *Proposed, with the Cards:* one authored moment, a new stripe weaving into the season's

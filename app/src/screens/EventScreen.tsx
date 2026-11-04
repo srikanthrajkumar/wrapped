@@ -502,8 +502,9 @@ function ConcertBlock({
         )}
       </h1>
       <Saved target={[target('date'), target('startTime'), target('sabhaId')]}>
-        {/* 56px tall to tap (S11), with the text 4px under the title and flush above Stage. */}
-        <div className="-mt-3 -mb-4 flex flex-wrap items-center gap-x-4">
+        {/* 56px tall to tap (S11), its text 8px under the title (one step more than the title's
+            own line gap, so it never reads as a third line) and flush above Stage. */}
+        <div className="-mt-2 -mb-4 flex flex-wrap items-center gap-x-4">
           {!sabhaName && (
             <button
               type="button"

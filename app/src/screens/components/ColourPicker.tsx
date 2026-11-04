@@ -87,7 +87,11 @@ function Grid({
     <div
       role="radiogroup"
       aria-label={label}
-      className={cn('grid gap-x-2 gap-y-3', scale >= 1.5 ? 'grid-cols-3' : 'grid-cols-4')}
+      // The outer swatches sit on the gutters, with the title and the buttons.
+      className={cn(
+        'grid justify-between gap-x-2 gap-y-3',
+        scale >= 1.5 ? 'grid-cols-[repeat(3,auto)]' : 'grid-cols-[repeat(4,auto)]',
+      )}
     >
       {choices.map((colour) => {
         const picked = value === colour;

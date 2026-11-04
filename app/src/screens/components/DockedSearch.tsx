@@ -88,8 +88,8 @@ export function DockedSearch({
       <div
         ref={list}
         // As wide as the rows' fill, which would otherwise be clipped by the scrolling. Rows
-        // scrolled up under the fixed rows fade out over 12px instead of being cut.
-        className="-mx-3 flex min-h-0 shrink flex-col overflow-y-auto overscroll-contain px-3 pt-2 pb-2 [mask-image:linear-gradient(to_bottom,transparent,black_12px)]"
+        // scrolled up under the fixed rows fade out over 24px instead of being cut.
+        className="-mx-2 flex min-h-0 shrink flex-col overflow-y-auto overscroll-contain px-2 pt-2 pb-2 [mask-image:linear-gradient(to_bottom,transparent,black_24px)]"
       >
         {drawn.length > 0 && (
           // Rows divided by the hairline, as every list is (DESIGN.md "Shapes").
@@ -101,15 +101,15 @@ export function DockedSearch({
                   aria-label={row.label}
                   onClick={row.onPick}
                   className={cn(
-                    // The text sits on the gutter; the best match's fill reaches 12px past it.
-                    '-mx-3 flex w-[calc(100%+24px)] flex-col items-stretch justify-center rounded-xl px-3 py-2 text-left',
+                    // The text sits on the gutter; the best match's fill reaches 8px past it.
+                    '-mx-2 flex w-[calc(100%+16px)] flex-col items-stretch justify-center rounded-xl px-2 py-2 text-left',
                     // The best match sits on surface; in light, its border does that job.
                     // Inside a sheet, itself on surface, it rises to surface-raised.
                     // Two lines make a 64px row; one line, 48px.
                     row.line ? 'min-h-16' : 'min-h-12',
                     i === drawn.length - 1 &&
                       // Its 1px border comes out of the padding, so its text stays on the gutter.
-                      'border border-border bg-card px-[11px] in-data-[slot=sheet-content]:bg-secondary dark:border-transparent',
+                      'border border-border bg-card px-[7px] in-data-[slot=sheet-content]:bg-secondary dark:border-transparent',
                   )}
                 >
                   <span className="flex flex-wrap items-center gap-2 font-semibold">
@@ -170,7 +170,8 @@ export function FixedRow({
       type="button"
       aria-label={label}
       onClick={onClick}
-      className="-mx-3 flex min-h-12 w-[calc(100%+24px)] items-center rounded-xl px-3 py-2 text-left text-body"
+      // A row like the results: a hairline above it, its text on the gutter.
+      className="flex min-h-12 w-full items-center py-2 text-left text-body hairline-t"
     >
       {children}
     </button>

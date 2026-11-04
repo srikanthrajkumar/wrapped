@@ -76,8 +76,14 @@ export function Saved({
   target,
   children,
   className,
+  quiet = [],
 }: {
   target: Target | Target[] | null;
+  /**
+   * Targets whose save shows no highlight, where the change already shows itself (the Laya
+   * vinyasam's fields growing in, FB-28). Their failures still show.
+   */
+  quiet?: Target[];
   children: ReactNode;
   className?: string;
 }) {
@@ -88,8 +94,9 @@ export function Saved({
   useShowsFailures(targets);
   const states = targets.map((t) => feedback.get(t));
   // Only a write that just succeeded highlights; coming back to a screen later replays nothing.
+  const loud = (t: Target) => !quiet.some((q) => keyOf([q]) === keyOf([t]));
   const saved = states
-    .filter((s) => s?.status === 'saved' && s.at > openedAt - HIGHLIGHT_MS)
+    .filter((s, i) => s?.status === 'saved' && s.at > openedAt - HIGHLIGHT_MS && loud(targets[i]!))
     .map((s) => s!.edit);
   const failed = targets.filter((_, i) => states[i]?.status === 'failed');
   const lastSaved = saved.length > 0 ? Math.max(...saved) : 0;
