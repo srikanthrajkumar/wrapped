@@ -40,7 +40,7 @@ Built entirely from the phone store, then handed to the share sheet or saved.
 
   | `table` / `field` | What it is | `value` |
   |---|---|---|
-  | `events` / `*` | A new Concert ("Log a Concert now") | `{ "kind", "date", "startTime" }` |
+  | `events` / `*` | A new Concert ("Log a Concert") | `{ "kind", "date", "startTime" }` |
   | `items` / `*` | A new Item's first pick | `{ "eventId", "pick", "label" }` |
   | `items` / `pick` | A changed pick (not retried; kept for Export) | `{ "eventId", "pick", "label" }` |
   | `items` / `draft` | A new Item's search text, before any pick | `{ "eventId", "text" }` |

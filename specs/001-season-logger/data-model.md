@@ -124,8 +124,9 @@ A rasika's merge (P6) sets `mergedIntoId` on the old record and adds its name to
 
 A rename of an own Artist (walkthrough S5, 2026-11-04) sets `name` and `nameKey` and adds the
 name it replaced to `aliases`, so search still finds it; Appearances follow without being
-rewritten. It is one ordinary save of the row. A shared Artist, or an own one with a Link, is
-named by the Maintainer and is not renamed on the phone.
+rewritten. It is one ordinary save of the row, of the entry the id was merged into, if any (a
+merge chain that can't be followed is refused); the journal checks it there. A shared Artist,
+or an own one with a Link, is named by the Maintainer and is not renamed on the phone.
 
 ## Shared and server-written records (pulled, never pushed)
 

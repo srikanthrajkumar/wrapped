@@ -296,7 +296,8 @@ export async function moveItemBy(
 
 /**
  * Number `order` 1..n, saving only the records whose place changed, inside the caller's
- * transaction. Shared by the running order and Stage's billing order.
+ * transaction. Shared by the running order and an Appearance restored to its place in the order
+ * added.
  */
 export async function renumber<T extends 'items' | 'appearances'>(
   table: T,

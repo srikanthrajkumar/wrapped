@@ -6,11 +6,12 @@
 // Event's logging note, and a new Item is held only with its own pick. Screens use the same
 // projections (storedHolds) to tell when what they read back is the value entered.
 
-import type { DetailValue } from '../model';
+import type { DetailValue, OwnEntry } from '../model';
 import type { JournalEntry } from '../screens/save-feedback';
 import { db as defaultDb, type WrappedDB } from './db';
 import { draftKey } from './items';
 import { readLoggingNote } from './logging-note';
+import { MAX_MERGE_HOPS } from './queries';
 
 type Row = Record<string, unknown> & { deletedAt?: string | null };
 
@@ -109,6 +110,14 @@ export async function holdsValue(entry: Entered, db: WrappedDB = defaultDb): Pro
     const draft = (await db.meta.get(draftKey(typed?.eventId ?? '')))?.value as
       { id?: string; text?: string } | undefined;
     return draft?.id === id && draft.text === typed?.text;
+  }
+  // A rename writes the Artist the id was merged into (store/people.ts renameArtist): read there.
+  if (table === 'artists' && field === 'name') {
+    let artist = row as OwnEntry | undefined;
+    for (let hops = 0; artist?.mergedIntoId && hops < MAX_MERGE_HOPS; hops += 1) {
+      artist = await db.artists.get(artist.mergedIntoId);
+    }
+    return artist?.deletedAt === null && artist.mergedIntoId === null && artist.name === value;
   }
   if (!row) return false;
   if (field === 'deletedAt') return row.deletedAt != null;

@@ -85,7 +85,10 @@ export function timeText(time: string): string {
   return `${hour}:${String(m).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`;
 }
 
-/** "Music Academy · Sat 14 Dec · 6:30 pm": the line under the Artists an Event is known by (walkthrough S2). */
+/**
+ * "Music Academy · Sat 14 Dec · 6:30 pm": the line under the Artists an Event is known by
+ * (walkthrough S2).
+ */
 export function eventLine(event: Pick<Event, 'date' | 'startTime'>, sabha?: string | null) {
   return [sabha, dayText(event.date), event.startTime && timeText(event.startTime)]
     .filter(Boolean)

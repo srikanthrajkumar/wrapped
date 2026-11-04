@@ -7,7 +7,7 @@
 
 import { IconArrowDown, IconArrowUp, IconDots, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { Link } from 'wouter';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -57,8 +57,12 @@ import { UndoBar } from './components/UndoBar';
 import { eventLine, itemCount, itemLine, itemTitle, roleName } from './format';
 import { deleteConcert, deleteItem, removeArtist } from './deletes';
 import { undo, undoMessage } from './undo';
+import type { SaveFeedback } from './save-feedback';
 
 type Order = 'items' | null;
+
+/** An Artist picked to add, with their usual Role as the picker read it (undefined: not read). */
+type Picked = { id: string; name: string; usualRole?: Role | null };
 
 /** The Event, null once it is missing or deleted, undefined while loading. */
 function useEventOrNull(id: string) {
@@ -86,15 +90,14 @@ export function EventScreen({ eventId }: { eventId: string }) {
   const now = useNow();
   const [order, setOrder] = useState<Order>(null);
   const [artistOpen, setArtistOpen] = useState(false);
-  const [artistFailed, setArtistFailed] = useState<{
-    id: string;
-    entry: { id: string; name: string };
-  } | null>(null);
+  const [artistFailed, setArtistFailed] = useState<{ id: string; entry: Picked } | null>(null);
   // The Role chips after an add, with the Role chosen for the Artist (their usual one).
   const [rolesFor, setRolesFor] = useState<{ id: string; role: Role | null } | null>(null);
   const [coloursFor, setColoursFor] = useState<string | null>(null);
   const [appearanceFor, setAppearanceFor] = useState<string | null>(null);
+  const feedback = useSaveFeedback();
   const rows = useRef(new Map<string, HTMLElement>());
+  const concertHead = useRef<HTMLHeadingElement>(null);
   const itemsHead = useRef<HTMLHeadingElement>(null);
   const stageHead = useRef<HTMLHeadingElement>(null);
   // After a delete, focus the row that took the deleted one's place (design D16).
@@ -110,7 +113,10 @@ export function EventScreen({ eventId }: { eventId: string }) {
     const list = pending.list === 'items' ? items : appearances;
     const next = list?.[pending.index] ?? list?.[pending.index - 1];
     const target = next ? rows.current.get(next.id) : undefined;
-    (target ?? (pending.list === 'items' ? itemsHead : stageHead).current)?.focus();
+    // Stage goes once its last Artist is removed; the Concert's heading, "Add Artist", stays.
+    const head =
+      pending.list === 'items' ? itemsHead.current : (stageHead.current ?? concertHead.current);
+    (target ?? head)?.focus();
   }, [items, appearances]);
 
   if (event === undefined || items === undefined || appearances === undefined) return null;
@@ -126,7 +132,8 @@ export function EventScreen({ eventId }: { eventId: string }) {
   const note = notes?.get(eventId);
   const logging = isBeingLogged(event, note, now);
   const known = knownBy(event.kind, appearances);
-  const knownAs = known.length > 0 ? joinNames(known.map((a) => a.artist?.name ?? '?')) : null;
+  const knownAs =
+    known.length > 0 ? joinNames(known.map((a) => nameShown(feedback, a.artist))) : null;
   const target = (field: string) => eventTarget(eventId, field);
   const appearanceById = (id: string | null) => appearances.find((a) => a.id === id);
 
@@ -150,8 +157,17 @@ export function EventScreen({ eventId }: { eventId: string }) {
   // Each add has its own id, so a second failure never hides the first, and a retry adds it
   // once. The Role chips follow only an add made in this sheet, never one retried from the
   // season-wide row. An Artist logged before gets their usual Role at once (walkthrough S6), as
-  // its own write, so a Role a rule refuses never stops the add; the chips show it chosen.
-  const addArtist = async (entry: { id: string; name: string }, id = newId()) => {
+  // the picker read it (read here if it had not yet), as its own write, so a Role a rule refuses
+  // never stops the add. The chips show it chosen, as the Stage row does, saved or not; "Not
+  // sure" clears it.
+  const addArtist = async (entry: Picked, id = newId()) => {
+    const usual =
+      entry.usualRole !== undefined
+        ? entry.usualRole
+        : await usualRoles().then(
+            (roles) => roles.get(entry.id) ?? null,
+            () => null,
+          );
     const appearance = await saveWith(
       appearanceTarget(id, '*'),
       { eventId, artistId: entry.id, name: entry.name },
@@ -159,7 +175,6 @@ export function EventScreen({ eventId }: { eventId: string }) {
     );
     setArtistFailed(appearance ? null : { id, entry });
     if (!appearance) return;
-    const usual = (await usualRoles()).get(entry.id) ?? null;
     setRolesFor({ id: appearance.id, role: usual });
     if (usual) void saveRole(appearance.id, usual);
   };
@@ -195,7 +210,12 @@ export function EventScreen({ eventId }: { eventId: string }) {
         }
       />
 
-      <ConcertBlock event={event} knownBy={knownAs} onAddArtist={() => setArtistOpen(true)} />
+      <ConcertBlock
+        event={event}
+        knownBy={knownAs}
+        headRef={concertHead}
+        onAddArtist={() => setArtistOpen(true)}
+      />
 
       {appearances.length > 0 && (
         <section aria-labelledby="stage" className="pb-6">
@@ -361,7 +381,7 @@ export function EventScreen({ eventId }: { eventId: string }) {
             setArtistFailed(null);
           }
         }}
-        onPick={(entry) => void addArtist(entry)}
+        onPick={(entry, usualRole) => void addArtist({ ...entry, usualRole })}
         notice={
           artistFailed && (
             <NotSavedLine
@@ -378,7 +398,8 @@ export function EventScreen({ eventId }: { eventId: string }) {
               onRole={(role) => {
                 setRolesFor(null);
                 setArtistOpen(false);
-                if (role !== rolesFor.role) void saveRole(rolesFor.id, role);
+                // A tap saves even the Role already chosen, whose own write may yet fail.
+                if (role !== null || rolesFor.role !== null) void saveRole(rolesFor.id, role);
               }}
             />
           )
@@ -408,24 +429,33 @@ export function EventScreen({ eventId }: { eventId: string }) {
 }
 
 /**
- * The concert, as the first block (design D5, walkthrough S2): the Artists it is known by, or "Add Artist"
- * before any Artist, then its Sabha, date and start time, with the sheet that edits them. A
- * date, time or Sabha saving or not saved shows as entered, here and when the sheet reopens
- * (design D15).
+ * The concert, as the first block (design D5, walkthrough S2): the Artists it is known by, or
+ * "Add Artist" before any Artist, then its Sabha, date and start time, with the sheet that edits
+ * them. A date, time or Sabha saving or not saved shows as entered, here and when the sheet
+ * reopens (design D15). `headRef` is its heading, where focus goes when Stage empties.
  */
 function ConcertBlock({
   event,
   knownBy,
+  headRef,
   onAddArtist,
 }: {
   event: ResolvedEvent;
   knownBy: string | null;
+  headRef: RefObject<HTMLHeadingElement | null>;
   onAddArtist(): void;
 }) {
   const feedback = useSaveFeedback();
   const [factsOpen, setFactsOpen] = useState(false);
   const [sabhaOpen, setSabhaOpen] = useState(false);
-  const head = useFocusOnOpen<HTMLHeadingElement>(event.id);
+  const focusRef = useFocusOnOpen<HTMLHeadingElement>(event.id);
+  const head = useCallback(
+    (node: HTMLHeadingElement | null) => {
+      focusRef.current = node;
+      headRef.current = node;
+    },
+    [focusRef, headRef],
+  );
   const target = (field: string) => eventTarget(event.id, field);
   const date = feedback.shown(target('date'), event.date);
   const startTime = feedback.shown(target('startTime'), event.startTime);
@@ -534,16 +564,17 @@ function StageRow({
   const appearance = useShownAppearance(stored);
   const feedback = useSaveFeedback();
   const own = appearance.artist?.shared ? null : appearance.artist?.own;
-  // A name saving or not saved shows as entered (design D15).
-  const name = own
-    ? feedback.shown(artistName(own.id), own.name)
-    : (appearance.artist?.name ?? '?');
+  const name = nameShown(feedback, appearance.artist);
   return (
     <li className="border-b border-border">
       <Saved
-        target={['*', 'role', 'colours', 'deletedAt'].map((field) =>
-          appearanceTarget(appearance.id, field),
-        )}
+        target={[
+          ...['*', 'role', 'colours', 'deletedAt'].map((field) =>
+            appearanceTarget(appearance.id, field),
+          ),
+          // A rename not saved shows on the row that shows it.
+          ...(own ? [artistName(own.id)] : []),
+        ]}
       >
         <div className="flex flex-wrap items-center justify-end gap-x-1">
           <button
@@ -572,11 +603,12 @@ function ColoursSheet({
   onClose(): void;
 }) {
   const appearance = useShownAppearance(stored);
+  const feedback = useSaveFeedback();
   return (
     <ColourPicker
       open
       onOpenChange={(open) => !open && onClose()}
-      artistName={appearance.artist?.name ?? 'Artist'}
+      artistName={nameShown(feedback, appearance.artist)}
       primary={appearance.colourPrimary}
       secondary={appearance.colourSecondary}
       onChange={(colours) =>
@@ -590,27 +622,37 @@ function ColoursSheet({
 
 const artistName = (id: string) => ({ table: 'artists' as const, id, field: 'name' });
 
+/** An Artist's name, as entered while a rename of it is saving or not saved (design D15). */
+function nameShown(feedback: SaveFeedback, artist: ResolvedEntry | null): string {
+  const own = artist && !artist.shared ? artist.own : null;
+  return own ? feedback.shown(artistName(own.id), own.name) : (artist?.name ?? '?');
+}
+
 /**
  * The Artist's name at the top of their sheet, which corrects it in every Concert (walkthrough
- * S5): saved when the field is left or Done is pressed, never per keystroke, since each rename
- * keeps the name it replaces as an Alias. Emptied, it goes back to the name as it was. A shared
- * Artist's name belongs to the Maintainer, so it shows as plain text.
+ * S5). The field journals exactly what it shows as it is typed (ADR 0007), so a lock or kill
+ * loses nothing, and writes it when the field is left, Done is pressed or the sheet closes:
+ * never per keystroke, nor when the page is hidden, since each rename keeps the name it replaces
+ * as an Alias and a half-typed name would stay as one. Emptied, it goes back to the name as it
+ * was. The same name again writes nothing new, so what was typed always ends as what is shown.
+ * A shared Artist's name belongs to the Maintainer, and one whose merges can't be followed can't
+ * be renamed, so those show as plain text.
  */
 function ArtistName({ artist }: { artist: ResolvedEntry | null }) {
   const feedback = useSaveFeedback();
-  const own = artist && !artist.shared ? artist.own : null;
+  const own = artist && !artist.shared && !artist.own?.mergedIntoId ? artist.own : null;
   const shown = own ? feedback.shown(artistName(own.id), own.name) : null;
   const [draft, setDraft] = useState<string | null>(null);
-  // What is typed and the name it would replace, so a sheet closed while the field still has
-  // focus saves it too.
-  const typed = useRef<{ id: string; was: string | null; name: string } | null>(null);
+  // The name to write for what is typed, so a sheet closed while the field has focus writes it.
+  const typed = useRef<{ id: string; name: string } | null>(null);
   const commit = useCallback(() => {
     const pending = typed.current;
+    if (!pending) return;
     typed.current = null;
     setDraft(null);
-    const name = pending?.name.trim() ?? '';
-    if (!pending || fold(name) === '' || name === pending.was) return;
-    void saveWith(artistName(pending.id), name, () => renameArtist(pending.id, name));
+    void saveWith(artistName(pending.id), pending.name, () =>
+      renameArtist(pending.id, pending.name),
+    );
   }, []);
   useEffect(() => commit, [commit]);
 
@@ -623,16 +665,22 @@ function ArtistName({ artist }: { artist: ResolvedEntry | null }) {
         aria-label="Artist name"
         value={draft ?? shown ?? ''}
         onChange={(e) => {
-          typed.current = { id: own.id, was: shown, name: e.target.value };
-          setDraft(e.target.value);
+          const text = e.target.value;
+          // Emptied: back to the name the field showed.
+          const name = fold(text) === '' ? (shown ?? own.name) : text.trim();
+          typed.current = { id: own.id, name };
+          setDraft(text);
+          feedback.hold(artistName(own.id), name);
         }}
-        onBlur={commit}
+        // Leaving the app blurs the window, not the field, which keeps focus: a half-typed name
+        // is not written then, so it never stays as an Alias.
+        onBlur={(e) => document.activeElement !== e.currentTarget && commit()}
         onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
         enterKeyHint="done"
         autoComplete="off"
         autoCapitalize="words"
         spellCheck={false}
-        className="min-h-12 w-full rounded-xl bg-transparent text-title font-semibold underline decoration-border underline-offset-4 focus:bg-secondary focus:px-3 focus:no-underline"
+        className="-mx-3 min-h-12 w-[calc(100%+1.5rem)] rounded-xl bg-transparent px-3 text-title font-semibold underline decoration-border underline-offset-4 focus:bg-secondary focus:no-underline"
       />
     </Saved>
   );
@@ -657,7 +705,7 @@ function AppearanceSheet({
     <SheetFrame
       open
       onOpenChange={(open) => !open && onClose()}
-      title={appearance.artist?.name ?? 'Artist'}
+      title={nameShown(feedback, appearance.artist)}
       header={<ArtistName artist={appearance.artist} />}
     >
       <div className="flex flex-col gap-4">
