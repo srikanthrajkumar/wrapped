@@ -79,8 +79,8 @@ function SheetHeader({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="sheet-header"
       // The title sits on a 48px row level with the close button (top 8px), whose mark ends
-      // on the 16px gutter.
-      className={cn('flex flex-col gap-1 px-4 pt-2 pr-16 pb-4', className)}
+      // on the 16px gutter; the content starts 8px under that row.
+      className={cn('flex flex-col gap-1 px-4 pt-2 pr-16 pb-2', className)}
       {...props}
     />
   );

@@ -91,27 +91,38 @@ input[type='search']::-webkit-search-cancel-button {
 
 /* A pushed screen enters from the side it came from (DESIGN.md "Motion"; screens/components
    layout.tsx decides the way). The bottom bar stays put, as a phone's own bars do. */
-/* It starts half drawn, never from blank, so the hand-off doesn't blink. */
+/* It starts partly drawn, never from blank, so the hand-off doesn't blink, and settles over
+   the whole 240ms rather than in its first 50. The bottom bar's contents fade in with it. */
 @keyframes screen-forward {
   from {
-    opacity: 0.5;
-    transform: translateX(16px);
+    opacity: 0.4;
+    transform: translateX(24px);
   }
 }
 
 @keyframes screen-back {
   from {
-    opacity: 0.5;
-    transform: translateX(-16px);
+    opacity: 0.4;
+    transform: translateX(-24px);
+  }
+}
+
+@keyframes dock-in {
+  from {
+    opacity: 0.4;
   }
 }
 
 .screen[data-enter='forward'] {
-  animation: screen-forward 220ms cubic-bezier(0.2, 0, 0, 1);
+  animation: screen-forward 240ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .screen[data-enter='back'] {
-  animation: screen-back 220ms cubic-bezier(0.2, 0, 0, 1);
+  animation: screen-back 240ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.dock[data-enter] {
+  animation: dock-in 240ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* Something that opens in place (a fold, the Laya vinyasam's fields) grows to its height as it
@@ -124,14 +135,32 @@ input[type='search']::-webkit-search-cancel-button {
   }
 }
 
-.grow,
 [data-fold]:not([hidden]) {
   display: grid;
   grid-template-rows: 1fr;
   animation: grow 200ms cubic-bezier(0.2, 0, 0, 1);
 }
 
-.grow > *,
+/* In place of a 48px row (the Laya vinyasam's add button): it grows from that row's height, so
+   nothing below moves up first. */
+@keyframes grow-from-row {
+  from {
+    grid-template-rows: 0fr;
+    min-height: 48px;
+    opacity: 0;
+  }
+  to {
+    min-height: 48px;
+  }
+}
+
+.grow-from-row {
+  display: grid;
+  grid-template-rows: 1fr;
+  animation: grow-from-row 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.grow-from-row > *,
 [data-fold] > * {
   min-height: 0;
   overflow: hidden;
@@ -162,9 +191,34 @@ input[type='search']::-webkit-search-cancel-button {
   animation: check-in 180ms cubic-bezier(0.2, 0, 0, 1);
 }
 
+/* And a ring goes out from it once and fades: the pick's own confirmation, in view, since the
+   Stage row's highlight is behind the sheet. */
+@keyframes swatch-pulse {
+  from {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+
+[role='radio'][aria-checked='true'] > .swatch::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 2px var(--foreground);
+  opacity: 0;
+  pointer-events: none;
+  animation: swatch-pulse 360ms ease-out;
+}
+
 /* The save highlight: a surface-raised fill that swells in and fades out over 1.2s, played only
    after the write succeeded (DESIGN.md "Saving"). It rises over the first 150ms rather than
-   appearing at full strength, which read as a flash on a large block (FB-28). Under reduced
+   appearing at full strength, which read as a flash on a large block (FB-28). It is drawn 8px
+   past the block on each side, so the text inside keeps its edge and has room. Under reduced
    motion it still shows, without the fade. */
 @keyframes save-highlight {
   0% {
@@ -179,7 +233,18 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 .save-highlight {
-  animation: save-highlight 1200ms ease-out;
+  position: relative;
+  isolation: isolate;
+}
+
+.save-highlight::before {
+  content: '';
+  position: absolute;
+  inset: 0 -8px;
+  z-index: -1;
+  border-radius: var(--radius-xl);
+  pointer-events: none;
+  animation: save-highlight 1200ms ease-out forwards;
 }
 
 @keyframes save-highlight-still {
@@ -201,7 +266,7 @@ input[type='search']::-webkit-search-cancel-button {
     transition-duration: 1ms !important;
   }
 
-  html .save-highlight {
-    animation: save-highlight-still 1200ms linear !important;
+  html .save-highlight::before {
+    animation: save-highlight-still 1200ms linear forwards !important;
   }
 }

@@ -199,10 +199,14 @@ async function shoot(page: Page, file: string, full = false) {
   }
   // A whole page is shot through a viewport as tall as the page, so the sticky bottom bar sits
   // at the page's end, as it does once scrolled there, not over the middle.
+  // Content that loads late (a Concert's summary) makes the page taller: measure until it holds.
   const size = page.viewportSize()!;
-  const height = await page.evaluate(() => document.documentElement.scrollHeight);
-  await page.setViewportSize({ width: size.width, height: Math.max(height, size.height) });
-  await settle(page);
+  for (let i = 0; i < 4; i++) {
+    const height = await page.evaluate(() => document.documentElement.scrollHeight);
+    if (height === page.viewportSize()!.height) break;
+    await page.setViewportSize({ width: size.width, height: Math.max(height, size.height) });
+    await settle(page);
+  }
   await page.screenshot({ path: file, animations: 'disabled', caret: 'hide' });
   await page.setViewportSize(size);
 }

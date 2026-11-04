@@ -10,6 +10,7 @@ import { IconChevronRight, IconLoader2, IconPlus } from '@tabler/icons-react';
 import { useRef, useState, useSyncExternalStore } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { updateNow, useOfflineState, useUpdate } from '../pwa';
 import { createEvent, today } from '../store/events';
 import { eventStart, isBeingLogged, nowEvent } from '../store/logging-note';
@@ -195,10 +196,13 @@ function HomeView() {
           <h2 id="next" className="pb-2 text-heading font-bold">
             Next
           </h2>
-          {days.map((day) => (
+          {days.map((day, i) => (
             <div key={day}>
               {/* The day goes with the rows under it: no hairline between them. */}
-              <h3 className="pt-4 pb-1 text-sub font-semibold text-muted-foreground">
+              {/* The first day sits 8px under "Next"; each later one 16px under the row above. */}
+              <h3
+                className={cn('pb-1 text-sub font-semibold text-muted-foreground', i > 0 && 'pt-4')}
+              >
                 {dayText(day)}
               </h3>
               <ul>

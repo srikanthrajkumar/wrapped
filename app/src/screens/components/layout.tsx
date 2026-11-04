@@ -22,6 +22,8 @@ const depth = (path: string) =>
   path.startsWith('/event/') ? (path.includes('/item/') ? 2 : 1) : 0;
 // The path of the screen shown last, so the next one knows which way the rasika went.
 let shownPath: string | null = null;
+/** Which way the current screen entered, for its bottom bar to fade in with it. */
+const Entered = createContext<'forward' | 'back' | undefined>(undefined);
 
 /**
  * A screen's root (DESIGN.md "Motion"): going into an Event or an Item, the screen enters from
@@ -30,7 +32,7 @@ let shownPath: string | null = null;
  */
 export function Screen({ children }: { children: ReactNode }) {
   const [path] = useLocation();
-  const [enter] = useState(() => {
+  const [enter] = useState<'forward' | 'back' | undefined>(() => {
     if (shownPath === null) return undefined;
     const by = depth(path) - depth(shownPath);
     return by > 0 ? 'forward' : by < 0 ? 'back' : undefined;
@@ -39,9 +41,11 @@ export function Screen({ children }: { children: ReactNode }) {
     shownPath = path;
   }, [path]);
   return (
-    <div data-enter={enter} className="screen flex flex-1 flex-col">
-      {children}
-    </div>
+    <Entered.Provider value={enter}>
+      <div data-enter={enter} className="screen flex flex-1 flex-col">
+        {children}
+      </div>
+    </Entered.Provider>
   );
 }
 
@@ -54,7 +58,15 @@ export const BottomSlot = createContext<HTMLElement | null>(null);
  */
 export function BottomDock({ children }: { children: ReactNode }) {
   const slot = useContext(BottomSlot);
-  return slot ? createPortal(children, slot) : null;
+  const enter = useContext(Entered);
+  return slot
+    ? createPortal(
+        <div data-enter={enter} className="dock">
+          {children}
+        </div>,
+        slot,
+      )
+    : null;
 }
 
 /**

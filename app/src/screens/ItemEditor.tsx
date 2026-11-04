@@ -579,14 +579,17 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
         open={layaOpen}
         onToggle={() => setFolds({ ...folds, laya: !layaOpen })}
       >
-        <Saved target={[target('layaVinyasam'), target('layaNote')]}>
+        <Saved
+          target={[target('layaVinyasam'), target('layaNote')]}
+          quiet={[target('layaVinyasam')]}
+        >
           {laya === null ? (
             <Button variant="outline" onClick={() => saveLayaNadai(notApplicableValue())}>
               <IconPlus aria-hidden /> Laya vinyasam after this Item
             </Button>
           ) : (
             // Grows open below the fold title rather than appearing at full height.
-            <div className="grow">
+            <div className="grow-from-row">
               <div className="flex flex-col gap-2">
                 <DetailCell
                   name="Nadai"
