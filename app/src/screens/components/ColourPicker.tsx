@@ -82,6 +82,8 @@ function Grid({
   label: string;
 }) {
   const scale = useTextScale();
+  // Only a swatch picked in this sheet animates, never the one already chosen when it opens.
+  const [justPicked, setJustPicked] = useState<Colour | 'unknown' | null>(null);
   const choices: (Colour | 'unknown')[] = allowUnknown ? [...ORDER, 'unknown'] : ORDER;
   return (
     <div
@@ -103,7 +105,10 @@ function Grid({
             role="radio"
             aria-checked={picked}
             aria-label={colour === 'unknown' ? "Didn't notice" : name}
-            onClick={() => onPick(colour)}
+            onClick={() => {
+              setJustPicked(colour);
+              onPick(colour);
+            }}
             className="flex min-h-12 flex-col items-center gap-1 rounded-xl py-1"
           >
             <span
@@ -111,6 +116,7 @@ function Grid({
                 'swatch relative flex size-14 items-center justify-center rounded-full border border-border',
                 colour !== 'unknown' && EDGED.includes(colour) && 'border-2 border-ring',
                 picked && 'ring-2 ring-foreground ring-offset-2 ring-offset-popover',
+                justPicked === colour && 'just-picked',
               )}
               style={colour === 'unknown' ? undefined : { backgroundColor: SWATCHES[colour] }}
             >

@@ -1,7 +1,7 @@
 // Settings (DESIGN.md "Settings", laid out 2026-11-03 for Phase 4): the season first, as three
 // icon-led rows whose words are their accessible names, amber when something is wrong: offline
 // readiness, persisted storage, and Export with the day of the last one. Then the theme, then
-// the app and catalog versions, small and muted, and the Maintainer's link. Export lives here
+// the Maintainer's link, then the app and catalog versions, small and muted. Export lives here
 // alone before sync (the safety rows keep their own); Settings can always be reached, offline
 // too (FR-019). Sync, account and consent join in Phase 7.
 
@@ -184,7 +184,15 @@ function SettingsView() {
           ))}
         </div>
       </div>
-      <p className="flex flex-col pt-8 text-caption text-muted-foreground">
+      {/* A row like the season's, so it reads as a place to go; the versions close the page. */}
+      <Link
+        href="/admin"
+        className="mt-8 flex min-h-12 items-center justify-between gap-2 text-muted-foreground hairline-y"
+      >
+        Maintainer
+        <IconChevronRight aria-hidden className={ICON} />
+      </Link>
+      <p className="flex flex-col pt-6 text-caption text-muted-foreground">
         <span>
           {MESSAGES.versions.app} {APP_VERSION}
         </span>
@@ -194,14 +202,6 @@ function SettingsView() {
           </span>
         )}
       </p>
-      {/* A row like the season's, so it reads as a place to go. */}
-      <Link
-        href="/admin"
-        className="mt-4 flex min-h-12 items-center justify-between gap-2 text-muted-foreground hairline-y"
-      >
-        Maintainer
-        <IconChevronRight aria-hidden className={ICON} />
-      </Link>
     </>
   );
 }
