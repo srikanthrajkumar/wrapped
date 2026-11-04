@@ -85,7 +85,9 @@ function useReceiptsClearedOnLeave() {
 
 /**
  * The page keeps the sticky footer's height (its bottom action, any Undo bars, the tab bar) as
- * scroll padding, so a field focused behind the footer scrolls up above it.
+ * scroll padding, so a field focused behind the footer scrolls up above it. A field already
+ * inside the viewport is not scrolled by the browser, padding or not, so one the footer covers
+ * is scrolled up by hand.
  */
 function useFooterRoom(footer: HTMLElement | null, inset: number) {
   useEffect(() => {
@@ -95,8 +97,19 @@ function useFooterRoom(footer: HTMLElement | null, inset: number) {
       root.style.scrollPaddingBottom = `${footer.offsetHeight + inset}px`;
     });
     observer.observe(footer);
+    const onFocus = (event: FocusEvent) => {
+      const field = event.target;
+      // Only the page's own fields: a sheet sits over the footer.
+      if (!(field instanceof HTMLElement) || !footer.previousElementSibling?.contains(field)) {
+        return;
+      }
+      const covered = field.getBoundingClientRect().bottom - footer.getBoundingClientRect().top;
+      if (covered > 0) window.scrollBy({ top: Math.ceil(covered) });
+    };
+    document.addEventListener('focusin', onFocus);
     return () => {
       observer.disconnect();
+      document.removeEventListener('focusin', onFocus);
       root.style.scrollPaddingBottom = '';
     };
   }, [footer, inset]);

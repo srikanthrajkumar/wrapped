@@ -313,8 +313,10 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
 - **FR-004**: The rasika MUST be able to add Appearances to an Event. Each Appearance has an
   Artist, a Role (vocal, violin, veena, flute, mridangam, khanjira, ghatam, morsing, other,
   presenter, or blank when unknown) and a Colour (one primary from a fixed palette plus an
-  optional second). Appearances keep their billing order, and the Event is shown under the
-  first. No Role ranks above another: the Wrapped counts every Appearance alike.
+  optional second). Appearances are listed by Role, as in a printed kutcheri listing, then in
+  the order added, and the Event is shown under its vocal, veena or flute Artists (a Lecdem's
+  presenters), or else the first listed (iPhone walkthrough S2, S4, 2026-11-04). This orders
+  what is shown only: no Role ranks above another, and the Wrapped counts every Appearance alike.
 - **FR-005**: Artists and Sabhas MUST be picked from earlier entries as the rasika types. A new
   name creates a new Artist or Sabha that belongs to that rasika. Every rasika starts from the
   shared lists, first seeded with the 11 Sabhas and the Artists in last season's sheet.

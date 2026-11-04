@@ -135,7 +135,7 @@ karnatik's "tODi" (catalog-snapshot contract).
   ("Storage not protected", offline logging not available): the `warning` token, oklch(0.8 0.15
   75) in dark and oklch(0.53 0.12 62) in light. It is never used for a failure to save, which
   stays `destructive`.
-- **Depth by lightness, not shadow** (dark): background → surface (the Now block, the best
+- **Depth by lightness, not shadow** (dark): background → surface (the Now card, the best
   search result) → surface-raised (chips, the search field, sheets). List rows have no fill
   (Shapes).
 
@@ -190,7 +190,7 @@ renderer (T088).
 | caption | 13 / 1.3 | 400 | Badges ("Raga", "Laya vinyasam"), the "not matched" note |
 | secondary | 15 / 1.35 | 400 | Raga · Composer · Tala lines, Appearance roles, chips |
 | body | 17 / 1.4 | 400, 600 for titles | Everything else; Item titles in 600 |
-| title | 20 / 1.3 | 600 | Screen headers, the Now block's Sabha |
+| title | 20 / 1.3 | 600 | Screen headers, the Now card's title |
 | heading | 24 / 1.25 | 700 | Section heads on home and the Wrapped |
 | display | 32 / 1.15 | 700 | Wrapped headline numbers ("39 Events · 241 Items") |
 
@@ -227,13 +227,23 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
 
 **Screen layouts** (top to bottom; the full rules are DD2–DD5 in plan.md):
 
-- **Season (home, DD2):** Now (one large block with one primary action, "Start logging" or
-  "Continue: N Items"; with nothing on, "Log a Concert now" and a smaller "Lecdem") → Next
-  (upcoming Planned Events by day) → Season so far (Attended Events, newest first, with Item
-  counts, and one line to the Wrapped).
+- **Season (home, DD2):** Now → Next (upcoming Planned Events by day) → Season so far
+  (Attended Events, newest first, with Item counts, and one line to the Wrapped). A fixed
+  full-width 56px bar at the bottom always holds "+ Log a Concert", whether or not a Concert is
+  open, the same bar and place as the Event screen's Add Item (walkthrough S1, decided
+  2026-11-04): one main action per page, always at the bottom, and another Concert, a past one
+  included, can be started while one is in progress.
+  - **Now** (walkthrough S1, replacing the block with "Start logging" or "Continue: N Items"):
+    the Event that holds Now is a card, tapped to open it, with a chevron at its right. Its
+    title is the Artists the Event is known by, and its line the Sabha, start time and, once
+    started, the Item count ("Music Academy · 6:30 pm · 3 Items"). A Planned one opens on its
+    Event screen, whose bar holds "Start logging", so the Season page keeps one filled button.
+  - **Every Event row** (Now, Next, Season so far) leads with the Artists the Event is known by
+    (walkthrough S2; see Event below), the Sabha first on the line under it. Before any Artist,
+    the row leads with the Sabha, or "No Sabha yet".
   - **Empty home** (decided 2026-11-01): a section with nothing in it is not shown, so on day
-    one home is the Now block alone ("Log a Concert now", with "Lecdem" smaller). Next and
-    Season so far appear as soon as they have content.
+    one home is the title and the "Log a Concert" bar alone. Next and Season so far appear as
+    soon as they have content. ("Lecdem" joins with the Lecdem variant, T063.)
   - **New catalog prompt** (decided 2026-11-01; FR-038): one row at the top of home, under
     the status line: "An updated song catalog is ready." with "Update" and "Later". It never
     shows while a Concert holds Now through logging activity. "Later" hides it until the next
@@ -244,22 +254,32 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     it. Any other Event in its window shows as one smaller line under the block, tapped to open.
     Nothing depends on "Done": a Concert lets go of Now by itself after an hour without logging
     or at the end of its window.
-- **Event (DD3):** the concert as the first block (decided 2026-11-01, replacing DD3's one-line
-  header): the Sabha on its own line in `title`, wrapping rather than truncating, then "Sat 14
-  Dec · 6:30 pm · first-billed Artist" in `secondary`; tapping the block edits the Event's facts.
-  The top bar's "⋯" holds Delete Event (its Export moved to Settings on 2026-11-03). "Log a Concert now" opens this screen at once,
-  started, with the date and time set to now and the Add Item bar ready (decided 2026-11-01);
-  the concert block shows a tappable "Add Sabha" and Stage an "Add Artist" row, both filled in
-  whenever the rasika likes. Lists show such a Concert as "No Sabha yet". → running order (numbered rows: title, then
-  Raga · Composer) → Stage (Appearances in billing order, Colours optional) →
-  the note. A fixed full-width 56px bar at the bottom holds the one action for the Event's state
-  (decided 2026-11-01): "Start logging" on a Planned Event that is only being viewed (DD7), "Add
-  Item" once it is started. "Done with this Concert" is an optional full-width secondary row
-  directly after the last Item, shown once the running order has at least one Item; it never
-  sits in the bar.
-- **Item editor (DD4):** top bar "‹ Music Academy" (the Event); "Done" and "Next Item →" stay in
-  the bottom bar as DD4 says. The first content
-  line is the Item's number and, once picked, its title ("Item 8 · Kaddanuvariki"). The search
+- **Event (DD3):** top to bottom, heading → Stage → Note → Items (walkthrough S2, S3, decided
+  2026-11-04, replacing the Sabha-led block and the running order before Stage).
+  - **Heading:** the Artists the Event is known by, in `title`, wrapping rather than truncating:
+    its vocal, veena or flute Artists (a Lecdem's presenters), joined with "&" ("Ranjani &
+    Gayatri"; three read "A, B & C"); without one, the first Artist on Stage. Before any
+    Artist, the heading is "+ Add Artist", which opens the Artist picker.
+  - **The line under it:** "Music Academy · Sat 14 Dec · 6:30 pm" in body, muted, at least 56px
+    tall (walkthrough S11); tapping it edits the Event's facts. Before a Sabha, a "+ Add Sabha"
+    button opens the Sabha picker, with the date and time beside it.
+  - **Stage**, shown once it has an Artist (before then the heading adds one), then **Note**,
+    then **Items**: numbered rows, title then Raga · Composer, under the heading "Items"
+    (walkthrough S12). The Items come last, so the list ends right above the bar.
+  - The top bar's "⋯" holds Delete Event (its Export moved to Settings on 2026-11-03). "Log a
+    Concert" opens this screen at once, started, with the date and time set to now and the Add
+    Item bar ready (decided 2026-11-01).
+  - A fixed full-width 56px bar at the bottom holds the one action for the Event's state
+    (decided 2026-11-01): "Start logging" on a Planned Event that is only being viewed (DD7),
+    "Add Item" once it is started. "Done with this Concert" is an optional full-width
+    secondary row directly after the last Item, shown once there is at least one Item; it
+    never sits in the bar.
+- **Item editor (DD4):** top bar "‹ Music Academy" (the Event's Sabha). The bottom bar holds
+  "Next Item →", outlined, at the left and "Done", the filled main action, at the right
+  (walkthrough S9, decided 2026-11-04). Once picked, the title is the first content line, with
+  "Item 8" as a small muted eyebrow above it in `caption` (walkthrough S10); before a pick, the
+  heading is "Item 8". A field's label sits 8px above its chips ("Raga", "Nadai"; walkthrough
+  S11). The search
   box is docked above the keyboard, results growing upward with the
   best match nearest the box. The stack is bottom-aligned and reads, top to bottom (decided
   2026-11-01, as in the approved preview): the special-form chips (RTP, Viruttam / Slokam,
@@ -328,8 +348,8 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
 - Radius base 10px (preset `--radius: 0.625rem`), scaled: 6 / 8 / 10 / 14 / 18px.
 - **Lists are rows, not cards** (decided 2026-11-01): Next, Season so far, the running order
   and Stage are rows on the background, divided by the `border` hairline, with no fill and no
-  rounding. A fill means "this one is different": the Now block, the best search match, sheets.
-- Buttons and the Now block: 14–18px, so tap areas read as soft blocks in the dark.
+  rounding. A fill means "this one is different": the Now card, the best search match, sheets.
+- Buttons and the Now card: 14–18px, so tap areas read as soft blocks in the dark.
 - Chips and the outfit swatches: fully round.
 - Badges: 8px.
 - Icons: Tabler, 20–22px, 2px stroke, always next to a text label unless the meaning is
@@ -368,13 +388,23 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   usual Role, when known), so similar names can be told apart. The last row is always "Add
   “what you typed” as a new Sabha" (or Artist), so a new entry is a deliberate choice, never a
   typo's side effect.
-  - After an Artist is picked, a row of Role chips appears (vocal, violin, veena, flute,
-    mridangam, khanjira, ghatam, morsing, other, presenter, "Not sure"). It can be skipped;
-    the Role then stays blank.
-  - Tapping an Artist on Stage shows the same chips with the current Role pressed; tapping it
-    again clears the Role. "Not sure" appears only right after adding (2026-11-02).
-  - The new Appearance joins Stage at the end of the billing order; billing order changes
-    with the same "Edit order" pattern as the running order.
+  - After an Artist is picked, a row of Role chips appears, capitalised like the other chips
+    and in Stage order (Vocal, Veena, Flute, Violin, Mridangam, Ghatam, Khanjira, Morsing,
+    Other, Presenter, "Not sure"; walkthrough S8). An Artist logged before has their usual Role
+    chosen and saved at once, shown pressed (walkthrough S6): tapping it or closing the sheet
+    keeps it, another chip changes it, "Not sure" leaves the Role blank. A new Artist's chips
+    start with none pressed, and can be skipped.
+  - Tapping an Artist on Stage opens their sheet. Its title is the Artist's name as a field:
+    a corrected name is saved when the field is left or Done is pressed, applies in every
+    Concert, and keeps the old name as an Alias, so search still finds it (walkthrough S5). A
+    shared Artist's name is the Maintainer's and shows as plain text. Under it, the same Role
+    chips with the current Role pressed (tapping it again clears it; "Not sure" appears only
+    right after adding, 2026-11-02), then Colours, then "Remove" with the bin mark
+    (walkthrough S7).
+  - **Stage order** (walkthrough S4, decided 2026-11-04): Stage has no "Edit order". Artists
+    are listed by Role, as in a printed kutcheri listing: vocal, veena, flute, violin,
+    mridangam, ghatam, khanjira, morsing, other, presenter, then no Role; within a Role, the
+    order added. This orders what is shown; no Role ranks above another in the Wrapped.
 - **Search box:** 48px, surface-raised fill, a 2px `ring` inset while focused. It is the one
   element allowed to autofocus on mobile: the Item editor opens with it focused (DD4, the
   recorded exception to T110's rule).
@@ -439,8 +469,9 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     presenters"); when the Item's or Artist's Concert is deleted, it says so, with Dismiss
     only. Its 5 seconds stop while the Undo is being written.
 - **Reordering:** a separate edit mode on the Event screen with explicit move controls. No drag
-  during a Concert. It opens from a muted "Edit order" text button at the right of the "Running
-  order" heading, shown once there are two or more Items. In edit mode each row has 48px move-up
+  during a Concert. It opens from a muted "Edit order" text button at the right of the "Items"
+  heading, shown once there are two or more Items. Only Items reorder; Stage follows Role
+  (walkthrough S4). Drag and drop is for the later polish pass (FB-26). In edit mode each row has 48px move-up
   and move-down controls and the bottom bar reads "Done" (decided 2026-11-01).
 - **Colour sheet:** a grid of the 12 labelled swatches plus "?", then an optional second colour
   for a two-tone outfit. Behaviour (decided 2026-11-01, T042):
@@ -589,7 +620,7 @@ in the phase that builds it):
 - The motif itself (T088a), settled before the Card template:
   - how instruments, the number of percussionists and perhaps the Ragas map to form and movement;
   - the rose range in both themes;
-  - which Concerts show it and where (a strip, a profile mark, the Now block);
+  - which Concerts show it and where (a strip, a profile mark, the Now card);
   - the logo;
   - its accessible name.
 
@@ -610,4 +641,5 @@ in the phase that builds it):
 | 2026-11-02 | Direction, not yet designed: the ethereal rose motif, generated per Concert from its instruments, is the logo and the ground of the Cards, and stays out of the logging surfaces. "Prefer a mark to a sentence." Rose is allowed in the motif as well as charts. |
 | 2026-11-03 | After the round-4 screenshots, the Maintainer's answer: a "Not deleted" row offers Try again and Dismiss, not Export; Dismiss keeps the record after all, taking only the delete entry and leaving the store as it is. |
 | 2026-11-03 | Phase 4 design, the Maintainer's answers: Export lives in Settings, with its last date, and the Event's "⋯" keeps only Delete; home shows no status line until sync, and only "Getting ready for offline…" while the app isn't ready; the install row is persistent and drawn as Safari's marks on iPhone and an Install button on Android; Settings puts the season first (offline, storage protected, Export), then the theme, then the versions. |
+| 2026-11-04 | The iPhone walkthrough's shape decisions S1 to S12 (`docs/feedback/2026-11-iphone-walkthrough.md`): "+ Log a Concert" always in the Season page's bottom bar, the open Concert a card; Events known by their vocal, veena or flute Artists (a Lecdem's presenters), the Sabha, date and time on the line under them; the Event screen runs heading, Stage, Note, Items; Stage listed by Role with no "Edit order"; an Artist's name corrected from their sheet, the old name kept as an Alias; the usual Role chosen for a known Artist; "Remove" with the bin mark; Role chips capitalised; Done the filled main button at the right of the Item editor's bar; "Item 8" an eyebrow; more room under a field's label and a taller facts line; "Running order" now "Items". |
 | 2026-11-03 | After the Phase 4 screenshots, the Maintainer's answers: the Settings Export row is never amber; Android's install row leads with the same Add mark as the iPhone row; accepted as built: Android's Install button named without Safari's steps, the row hidden while Chrome offers no install, the › between the iPhone marks, the amber `warning` token (oklch(0.8 0.15 75) dark, oklch(0.53 0.12 62) light), "Getting ready for offline…" with a muted spinner and an amber row where there is no service worker, and the "App" and "Catalog" version lines. |

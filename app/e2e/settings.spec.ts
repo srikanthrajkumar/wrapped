@@ -39,7 +39,7 @@ const tab = (page: Page, name: string) =>
 async function newConcert(page: Page) {
   await page.goto('/');
   await finishFirstLaunch(page);
-  await page.getByRole('button', { name: 'Log a Concert now' }).click();
+  await page.getByRole('button', { name: 'Log a Concert' }).click();
   await expect(page.getByRole('link', { name: 'Add Item' })).toBeVisible();
 }
 

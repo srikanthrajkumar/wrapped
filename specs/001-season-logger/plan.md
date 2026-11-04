@@ -174,21 +174,24 @@ and bind the screen tasks.
   Item open as pushed screens with a back gesture. The tab bar hides while the Item editor is
   open. Tidy is reached from home; the Maintainer's `/admin` from Settings.
 - **DD2 Home (D2, approved):** three sections, in order.
-  - **Now:** an Event counts as Now from 60 minutes before its start until 4 hours after it. It shows as one large
-    block (Sabha, first-billed Artist, start time) with one primary action, "Start logging", or "Continue: N
-    Items" once started. With no such Event: "Log a Concert now", with a smaller "Lecdem".
+  - **Now:** an Event counts as Now from 60 minutes before its start until 4 hours after it. It shows as one
+    card, tapped to open it: the Artists it is known by, then Sabha, start time and Item count. "+ Log a
+    Concert" sits in a fixed bar at the bottom, always, so another Concert can be started while one is open
+    (walkthrough S1, S2, 2026-11-04; DESIGN.md "Season").
   - **Next:** upcoming Planned Events, grouped by day.
   - **Season so far:** Attended Events, newest first, each with its Item count, and one line
     linking to the Wrapped.
-- **DD3 Event screen (D3, approved; order revised by the information priorities):** in concert
-  order.
-  1. A one-line header: Sabha · date · start time, tapped to edit. The kind is set at creation.
-  2. **Running order:** numbered rows, each showing the title, then Raga · Composer. A Laya
-     vinyasam shows as a badge on the row it followed.
-  3. **Stage:** one row per Appearance, in billing order: name and role. Colours are optional and can be added at
-     any time; they never come before logging an Item (Information priorities, 2026-10-30).
-  4. A fixed, full-width "Add Item" button at the bottom, at least 56px tall.
-  5. The note, last.
+- **DD3 Event screen (D3, approved; order revised by the information priorities, then by the iPhone
+  walkthrough's S2 and S3 on 2026-11-04, DESIGN.md "Event"):**
+  1. A heading: the Artists the Event is known by ("+ Add Artist" before any), with Sabha · date ·
+     start time on the line under it, tapped to edit. The kind is set at creation.
+  2. **Stage:** one row per Appearance, listed by Role, then in the order added: name and Role.
+     Colours are optional and can be added at any time; they never come before logging an Item
+     (Information priorities, 2026-10-30).
+  3. The note.
+  4. **Items:** numbered rows, each showing the title, then Raga · Composer, last, so the list ends
+     right above the bar. A Laya vinyasam shows as a badge on the row it followed.
+  5. A fixed, full-width "Add Item" button at the bottom, at least 56px tall.
 - **DD4 Item editor (D4, approved):**
   - **One search box,** focused when the editor opens and docked just above the keyboard. Results
     grow upward, best match nearest the box. Each result shows the title, then Raga · Composer ·
