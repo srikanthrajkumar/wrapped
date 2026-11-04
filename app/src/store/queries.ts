@@ -9,6 +9,7 @@ import type { Appearance, Event, Item, Link, OwnEntry, SharedEntry } from '../mo
 import { db as defaultDb, type WrappedDB } from './db';
 import { eventStart, readLoggingNotes } from './logging-note';
 import { listReceipts } from './receipts';
+import { byStage, joinNames, knownBy } from './stage';
 
 /** An Artist or Sabha as the screens show it. */
 export interface ResolvedEntry {
@@ -34,7 +35,7 @@ const live = <T extends { deletedAt: string | null }>(row: T | undefined): row i
   row !== undefined && row.deletedAt === null;
 
 // Merges are short chains; the cap stops a cycle written by mistake from hanging a screen.
-const MAX_MERGE_HOPS = 32;
+export const MAX_MERGE_HOPS = 32;
 
 type Kind = 'artist' | 'sabha';
 
@@ -207,7 +208,7 @@ export async function listItems(eventId: string, db: WrappedDB = defaultDb): Pro
   return items.filter(live);
 }
 
-/** An Event's live Appearances in billing order, each with its Artist resolved. */
+/** An Event's live Appearances in Stage order (store/stage.ts), each with its Artist resolved. */
 export async function listAppearances(
   eventId: string,
   db: WrappedDB = defaultDb,
@@ -215,7 +216,7 @@ export async function listAppearances(
   const appearances = (await db.appearances.where('eventId').equals(eventId).toArray()).filter(
     live,
   );
-  appearances.sort((a, b) => a.position - b.position);
+  appearances.sort(byStage);
   return Promise.all(
     appearances.map(async (appearance) => ({
       ...appearance,
@@ -274,14 +275,15 @@ export function useUnsyncedCount() {
 export interface EventSummary {
   event: ResolvedEvent;
   sabha: ResolvedEntry | null;
-  firstArtist: string | null;
+  /** The Artists it is known by (store/stage.ts): "Ranjani & Gayatri"; null before any. */
+  knownBy: string | null;
   itemCount: number;
 }
 
 /**
- * Every live Event with what home shows of it: Sabha, first-billed Artist, Item count. The
- * Appearances and Items of all Events are read in one query each, and only the Artists and
- * Sabhas named are resolved, never the whole directories.
+ * Every live Event with what home shows of it: Sabha, the Artists it is known by, Item count. The Appearances and
+ * Items of all Events are read in one query each, and only the Artists and Sabhas named are
+ * resolved, never the whole directories.
  */
 export async function listEventSummaries(db: WrappedDB = defaultDb): Promise<EventSummary[]> {
   const events = await listEvents(db);
@@ -290,18 +292,23 @@ export async function listEventSummaries(db: WrappedDB = defaultDb): Promise<Eve
     db.appearances.where('eventId').anyOf(ids).toArray(),
     db.items.where('eventId').anyOf(ids).toArray(),
   ]);
-  const first = new Map<string, Appearance>();
+  const stages = new Map<string, Appearance[]>();
   for (const appearance of appearances.filter(live)) {
-    const seen = first.get(appearance.eventId);
-    if (!seen || appearance.position < seen.position) first.set(appearance.eventId, appearance);
+    stages.set(appearance.eventId, [...(stages.get(appearance.eventId) ?? []), appearance]);
   }
+  const known = new Map(
+    events.map((event) => [
+      event.id,
+      knownBy(event.kind, (stages.get(event.id) ?? []).sort(byStage)),
+    ]),
+  );
   const counts = new Map<string, number>();
   for (const item of items.filter(live))
     counts.set(item.eventId, (counts.get(item.eventId) ?? 0) + 1);
   const [artists, sabhas] = await Promise.all([
     resolverFor(
       'artist',
-      [...first.values()].map((appearance) => appearance.artistId),
+      [...known.values()].flat().map((appearance) => appearance.artistId),
       db,
     ),
     resolverFor(
@@ -311,11 +318,11 @@ export async function listEventSummaries(db: WrappedDB = defaultDb): Promise<Eve
     ),
   ]);
   return events.map((event) => {
-    const billed = first.get(event.id);
+    const names = known.get(event.id)!.map((a) => artists(a.artistId)?.name ?? '?');
     return {
       event,
       sabha: event.sabhaId ? (sabhas(event.sabhaId) ?? null) : null,
-      firstArtist: billed ? (artists(billed.artistId)?.name ?? null) : null,
+      knownBy: names.length > 0 ? joinNames(names) : null,
       itemCount: counts.get(event.id) ?? 0,
     };
   });

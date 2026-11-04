@@ -15,7 +15,7 @@ import {
 import { db as defaultDb, type WrappedDB } from './db';
 import { renumber, type Deleted } from './items';
 import { getLive, newTimestamps, remove, save, type WriteOptions } from './mutate';
-import { entryResolver, loadEntries, type ResolvedEntry } from './queries';
+import { entryResolver, loadEntries, MAX_MERGE_HOPS, type ResolvedEntry } from './queries';
 import { peekReceipt, takeReceipt, writeReceipt } from './receipts';
 import { appearanceProblems, check, EVENT_DELETED, RuleError } from './rules';
 
@@ -154,6 +154,54 @@ export function createSabha(name: string, options: CreateOptions = {}) {
   return createOwn('sabhas', name, options);
 }
 
+/** Why a shared Artist's name can't change on the phone: the Maintainer curates it (FR-045). */
+export const SHARED_NAME = 'a shared Artist is named by the Maintainer';
+
+/**
+ * Correct an own Artist's name (walkthrough S5). Appearances point at the Artist, so the new
+ * name shows in every Concert, and the name it replaces becomes an Alias, so search still finds
+ * it. Nothing is lost whichever way it runs:
+ * - the entry is read inside the transaction, following merges to the one that survived, so a
+ *   rename from a screen that is out of date, or two at once, keeps every name, each replaced
+ *   one as an Alias;
+ * - the same name again changes nothing, so a retry adds nothing;
+ * - renaming back is the undo: the old name returns and the other stays as an Alias;
+ * - a failed write leaves the entry as it was.
+ * A shared Artist, or an own one the Maintainer promoted, reads by the shared name, so renaming
+ * it is refused until the shared lists reach the phone (Phase 7).
+ */
+export async function renameArtist(
+  id: string,
+  name: string,
+  { db = defaultDb }: WriteOptions = {},
+): Promise<OwnEntry> {
+  const trimmed = name.trim();
+  const key = fold(trimmed);
+  if (key === '') throw new RuleError(['a name needs at least one letter or digit']);
+  return db.transaction('rw', [db.artists, db.sharedArtists, db.links, db.outbox], async () => {
+    if (!(await db.artists.get(id)) && (await db.sharedArtists.get(id))) {
+      throw new RuleError([SHARED_NAME]);
+    }
+    let entry = await getLive('artists', id, { db });
+    for (let hops = 0; entry.mergedIntoId && hops < MAX_MERGE_HOPS; hops += 1) {
+      entry = await getLive('artists', entry.mergedIntoId, { db });
+    }
+    if (await db.links.where('[ownTable+ownId]').equals(['artist', entry.id]).first()) {
+      throw new RuleError([SHARED_NAME]);
+    }
+    if (entry.name === trimmed) return entry;
+    // One Alias per spelling search tells apart; the new name is no longer an Alias.
+    const seen = new Set([key]);
+    const aliases = [...entry.aliases, entry.name].filter((alias) => {
+      const folded = fold(alias);
+      if (seen.has(folded)) return false;
+      seen.add(folded);
+      return true;
+    });
+    return save('artists', { ...entry, name: trimmed, nameKey: key, aliases }, { db });
+  });
+}
+
 export interface AppearanceFields {
   role?: Role | null;
   colourPrimary?: Colour | 'unknown' | null;
@@ -184,7 +232,7 @@ async function checkPresenters(appearance: Appearance, db: WrappedDB) {
 }
 
 /**
- * Add an Artist to an Event, last in billing order. The Artist is any own or shared id, so an
+ * Add an Artist to an Event, last in the order added. The Artist is any own or shared id, so an
  * Artist from an earlier Event gets a new Appearance, not a new Artist.
  */
 export async function addAppearance(
@@ -251,7 +299,7 @@ export async function removeAppearance(
 }
 
 /**
- * Undo an Appearance removal: back at its old place in billing order, the others renumbered,
+ * Undo an Appearance removal: back at its old place in the order added, the others renumbered,
  * in one transaction. A used or stale receipt restores nothing; one whose Event is deleted is
  * refused with EVENT_DELETED, its receipt kept.
  * A restore that would break a rule (a fourth presenter at a Lecdem) is refused with the
@@ -285,44 +333,6 @@ export async function restoreAppearance(
     order.splice(index, 0, restored);
     await renumber('appearances', order, db);
     return restored;
-  });
-}
-
-/**
- * Move an Appearance to `index` (0-based) in billing order ("Edit order" on Stage), renumbering
- * the Appearances whose place changed, in one transaction.
- */
-export async function moveAppearance(
-  id: string,
-  index: number,
-  { db = defaultDb }: WriteOptions = {},
-): Promise<void> {
-  await db.transaction('rw', [db.appearances, db.outbox], async () => {
-    const moving = await getLive('appearances', id, { db });
-    const live = (await liveAppearances(moving.eventId, db)).sort(
-      (a, b) => a.position - b.position,
-    );
-    if (!Number.isInteger(index) || index < 0 || index >= live.length) {
-      throw new RuleError([`no place ${index} in a billing order of ${live.length}`]);
-    }
-    const order = live.filter((appearance) => appearance.id !== id);
-    order.splice(index, 0, moving);
-    await renumber('appearances', order, db);
-  });
-}
-
-/** Move an Appearance `by` places from where it is now in billing order. */
-export async function moveAppearanceBy(
-  id: string,
-  by: number,
-  { db = defaultDb }: WriteOptions = {},
-): Promise<void> {
-  await db.transaction('rw', [db.appearances, db.outbox], async () => {
-    const moving = await getLive('appearances', id, { db });
-    const live = (await liveAppearances(moving.eventId, db)).sort(
-      (a, b) => a.position - b.position,
-    );
-    await moveAppearance(id, live.findIndex((appearance) => appearance.id === id) + by, { db });
   });
 }
 

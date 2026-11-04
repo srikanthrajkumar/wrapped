@@ -372,6 +372,8 @@ function describe(target: Target, value: unknown): string | null {
   if (target.field === 'deletedAt') {
     return (value as { label?: string } | null)?.label ?? null;
   }
+  // A renamed Artist reads by the name entered.
+  if (target.table === 'artists' && target.field === 'name') return value as string;
   if (target.field !== '*') return null;
   if (target.table === 'events') {
     const { date, startTime } = (value ?? {}) as { date?: string; startTime?: string | null };

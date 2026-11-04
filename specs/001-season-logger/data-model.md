@@ -77,7 +77,7 @@ leaves it Planned), `planned → missed` (rasika says so),
 | `colourPrimary` | Colour \| `unknown` \| null | |
 | `colourSecondary` | Colour \| null | Two-tone outfit |
 | `billed` | boolean | Came from the Plan or Schedule |
-| `position` | integer | Billing order. The Event is shown under the Appearance at position 1 (FR-004) |
+| `position` | integer | The order added; Stage lists by Role, then by this (walkthrough S4, 2026-11-04). Kept as a field so Undo restores a removed Artist to its place and the row shape stays as synced |
 | timestamps | | as Event |
 
 Colour palette: the 12 colours in last season's Colours sheet (white, red, blue, orange, yellow,
@@ -121,6 +121,11 @@ current catalog snapshot (design doc, "Stable references").
 
 A rasika's merge (P6) sets `mergedIntoId` on the old record and adds its name to the survivor's
 `aliases`. Appearances are not rewritten; they resolve through `mergedIntoId`.
+
+A rename of an own Artist (walkthrough S5, 2026-11-04) sets `name` and `nameKey` and adds the
+name it replaced to `aliases`, so search still finds it; Appearances follow without being
+rewritten. It is one ordinary save of the row. A shared Artist, or an own one with a Link, is
+named by the Maintainer and is not renamed on the phone.
 
 ## Shared and server-written records (pulled, never pushed)
 

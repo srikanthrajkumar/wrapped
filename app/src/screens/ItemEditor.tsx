@@ -3,7 +3,7 @@
 // (a song, a Raga, a special form, "? Don't know" or "Use what I typed"), and typed text that
 // was not picked survives the phone locking. After a pick, the Details show as a grid of
 // tappable values, with the Laya vinyasam and the improvised Details folded underneath. Each
-// change saves at once; the bottom bar holds "Done" and "Next Item →".
+// change saves at once; the bottom bar holds "Next Item →" and, filled at the right, "Done".
 
 import {
   IconArrowLeft,
@@ -476,9 +476,12 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
         <h1
           ref={head}
           tabIndex={-1}
-          className="flex flex-wrap items-center gap-x-2 pt-1 pb-4 text-title font-semibold break-words"
+          className="flex flex-col items-start pt-3 pb-4 text-title font-semibold break-words"
         >
-          <span>Item {item.position} ·</span>
+          {/* The Item's number is an eyebrow over its title (walkthrough S10). */}
+          <span className="-mb-2 text-caption font-normal text-muted-foreground">
+            Item {item.position}
+          </span>
           <button
             type="button"
             aria-label={`Composition, ${title}, change`}
@@ -492,7 +495,7 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
 
       {/* Ragas first: an ordered row of chips with "+ Raga" (design D25). */}
       <Saved target={target('ragas')} className="pb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-end justify-between pb-2">
           <span className="text-caption text-muted-foreground">
             {ragas.length > 1 ? 'Ragas' : 'Raga'}
           </span>
@@ -663,14 +666,15 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
       <BottomDock>
         <UndoBar />
         <div className="flex flex-wrap gap-2 border-t border-border bg-background px-4 py-2">
+          {/* Done is the main action, filled, at the right (walkthrough S9). */}
           <Button size="lg" variant="outline" className="min-w-32 flex-1" asChild>
-            <Link href={`/event/${eventId}`}>Done</Link>
-          </Button>
-          <Button size="lg" className="min-w-32 flex-[2]" asChild>
             <Link href={`/event/${eventId}/item/new`} replace>
               Next Item
               <IconArrowRight aria-hidden />
             </Link>
+          </Button>
+          <Button size="lg" className="min-w-32 flex-1" asChild>
+            <Link href={`/event/${eventId}`}>Done</Link>
           </Button>
         </div>
       </BottomDock>
@@ -686,7 +690,7 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
           onChange={(value) => save(open.field, value)}
           extra={
             open.field === 'tala' ? (
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-2">
                 <span className="text-caption text-muted-foreground">Nadai</span>
                 <NadaiChips
                   value={shown('nadai', item.nadai)}

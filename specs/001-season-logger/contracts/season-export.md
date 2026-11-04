@@ -48,6 +48,7 @@ Built entirely from the phone store, then handed to the share sheet or saved.
   | `items` / `layaNote` | The Laya vinyasam's note, kept apart from its Nadai | the note as typed |
   | `appearances` / `*` | An Artist added to a Concert | `{ "eventId", "artistId", "name" }` |
   | `artists` / `*`, `sabhas` / `*` | A new own Artist or Sabha | the name as typed |
+  | `artists` / `name` | A renamed own Artist (walkthrough S5) | the new name |
   | `events` / `sabhaId` | A changed Sabha | `{ "id", "name" }` |
   | `events` / `logging` | "Done with this Concert" | `"done"` |
   | `appearances` / `colours` | Changed Colours | `{ "colourPrimary", "colourSecondary" }` |

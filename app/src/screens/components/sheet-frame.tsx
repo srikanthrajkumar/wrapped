@@ -19,12 +19,16 @@ export function SheetFrame({
   title,
   description,
   tall = false,
+  header,
   children,
 }: {
   open: boolean;
   onOpenChange(open: boolean): void;
+  /** The sheet's name; shown as its title unless `header` takes its place. */
   title: string;
   description?: string;
+  /** Shown in place of the title, which screen readers still hear (an editable name). */
+  header?: ReactNode;
   /** Full height, for a docked search; otherwise as tall as its content. */
   tall?: boolean;
   children: ReactNode;
@@ -46,7 +50,8 @@ export function SheetFrame({
         }}
       >
         <SheetHeader>
-          <SheetTitle>{title}</SheetTitle>
+          <SheetTitle className={cn(header !== undefined && 'sr-only')}>{title}</SheetTitle>
+          {header}
           {description ? (
             <SheetDescription>{description}</SheetDescription>
           ) : (

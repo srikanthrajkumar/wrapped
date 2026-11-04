@@ -7,7 +7,7 @@
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useRef, useState, type ReactNode } from 'react';
-import { newId, ROLES, type Role } from '../../model';
+import { newId, type Role } from '../../model';
 import {
   createArtist,
   createSabha,
@@ -17,6 +17,8 @@ import {
   usualRoles,
   type NameMatch,
 } from '../../store/people';
+import { STAGE_ORDER } from '../../store/stage';
+import { roleName } from '../format';
 import { Chip, DockedSearch, FixedRow, type SearchRow } from './DockedSearch';
 import { NotSavedLine, saveWith } from './feedback';
 import { SheetFrame } from './sheet-frame';
@@ -92,7 +94,7 @@ export function NamePicker({
     return {
       key: name.id,
       title: name.name,
-      line: role ?? (name.aliases.length > 0 ? name.aliases.join(', ') : null),
+      line: role ? roleName(role) : name.aliases.length > 0 ? name.aliases.join(', ') : null,
       onPick: () => pick(name),
     };
   });
@@ -145,8 +147,9 @@ export function NamePicker({
 }
 
 /**
- * The Role chips. The current Role shows pressed, and tapping it again clears it. Right after an
- * Artist is added (`skippable`), "Not sure" moves on with the Role left blank.
+ * The Role chips, in Stage order. The current Role shows pressed, and tapping it again clears it.
+ * Right after an Artist is added (`skippable`), the pressed one is the Artist's usual Role,
+ * chosen for them (walkthrough S6): tapping it keeps it, and "Not sure" leaves the Role blank.
  */
 export function RoleChips({
   value = null,
@@ -161,13 +164,13 @@ export function RoleChips({
     <div className="flex flex-col gap-3">
       <p className="text-sub text-muted-foreground">Role</p>
       <div role="group" aria-label="Role" className="flex flex-wrap gap-2">
-        {ROLES.map((role) => (
+        {STAGE_ORDER.map((role) => (
           <Chip
             key={role}
             pressed={value === role}
-            onClick={() => onRole(value === role ? null : role)}
+            onClick={() => onRole(value === role && !skippable ? null : role)}
           >
-            {role}
+            {roleName(role)}
           </Chip>
         ))}
         {skippable && <Chip onClick={() => onRole(null)}>Not sure</Chip>}

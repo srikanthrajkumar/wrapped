@@ -1,7 +1,7 @@
 // How records read on the screens (DESIGN.md "Components", "Detail values and their six
 // states"). Names are shown as stored: the catalog's plain English spelling, or as typed.
 
-import type { DetailValue, Event, Item } from '../model';
+import type { DetailValue, Event, Item, Role } from '../model';
 
 /** A Detail as text: "?" when Unknown, "" when Not applicable, else its text. */
 export function detailText(value: DetailValue): string {
@@ -85,12 +85,15 @@ export function timeText(time: string): string {
   return `${hour}:${String(m).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`;
 }
 
-/** "Sat 14 Dec · 6:30 pm · T. M. Krishna": the Event's facts after its Sabha. */
-export function eventLine(event: Pick<Event, 'date' | 'startTime'>, firstArtist?: string | null) {
-  return [dayText(event.date), event.startTime && timeText(event.startTime), firstArtist]
+/** "Music Academy · Sat 14 Dec · 6:30 pm": the line under the Artists an Event is known by (walkthrough S2). */
+export function eventLine(event: Pick<Event, 'date' | 'startTime'>, sabha?: string | null) {
+  return [sabha, dayText(event.date), event.startTime && timeText(event.startTime)]
     .filter(Boolean)
     .join(' · ');
 }
+
+/** A Role as shown, capitalised like the other chips: "Vocal". Stored lower case (FR-004). */
+export const roleName = (role: Role) => role.charAt(0).toUpperCase() + role.slice(1);
 
 /** The current time as `HH:MM`, for an Event logged now. */
 export function nowTime(now = new Date()): string {

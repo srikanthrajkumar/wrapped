@@ -1,0 +1,65 @@
+// The Concert's shape after the iPhone walkthrough (docs/feedback, S1 to S6): the Artists a
+// Concert is known by, the Stage listed by Role, a name corrected in every Concert, the usual
+// Role chosen for a known Artist, and "Log a Concert" in reach while a Concert is open.
+
+import { expect, test, type Page } from '@playwright/test';
+import { finishFirstLaunch } from './helpers';
+
+async function addArtist(page: Page, name: string) {
+  await page.getByRole('button', { name: 'Add Artist' }).click();
+  await page.getByRole('searchbox', { name: 'Search Artists' }).fill(name);
+}
+
+test('the Artists it is known by, the Stage by Role, a rename, and a second Concert while one is open', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await finishFirstLaunch(page);
+  await page.getByRole('button', { name: 'Log a Concert' }).click();
+
+  // Before any Artist, the heading adds one.
+  const heading = page.getByRole('heading', { level: 1 });
+  await expect(heading).toHaveText('Add Artist');
+  await addArtist(page, 'Akkarai');
+  await page.getByRole('button', { name: 'Add “Akkarai” as a new Artist' }).click();
+  await page.getByRole('button', { name: 'Violin' }).click();
+  // Without vocal, veena or flute, the Concert is known by the first Artist on Stage.
+  await expect(heading).toHaveText('Akkarai');
+
+  await addArtist(page, 'Ranjani');
+  await page.getByRole('button', { name: 'Add “Ranjani” as a new Artist' }).click();
+  await page.getByRole('button', { name: 'Vocal' }).click();
+  await expect(heading).toHaveText('Ranjani');
+  // Listed by Role, not by the order added.
+  const stage = page.getByRole('region', { name: 'Stage' }).getByRole('listitem');
+  await expect(stage.first()).toContainText('Ranjani');
+  await expect(stage.nth(1)).toContainText('Akkarai');
+  await expect(page.getByRole('button', { name: 'Edit order' })).toHaveCount(0);
+
+  // The name at the top of the Artist's sheet corrects it.
+  await stage
+    .nth(1)
+    .getByRole('button', { name: /^Akkarai/ })
+    .click();
+  const name = page.getByRole('dialog').getByRole('textbox', { name: 'Artist name' });
+  await name.fill('Akkarai Subbalakshmi');
+  await name.press('Enter');
+  await page.keyboard.press('Escape');
+  await expect(stage.nth(1)).toContainText('Akkarai Subbalakshmi');
+
+  // Season: the open Concert is a card, and another Concert can be started.
+  await page.getByRole('main').getByRole('link', { name: 'Season' }).click();
+  await expect(page.getByRole('region', { name: 'Now' }).getByRole('link')).toHaveText(/^Ranjani/);
+  await page.getByRole('button', { name: 'Log a Concert' }).click();
+  await expect(heading).toHaveText('Add Artist');
+
+  // The old name still finds the Artist, and their usual Role is chosen for them.
+  await addArtist(page, 'Akkarai');
+  await page.getByRole('button', { name: /^Akkarai Subbalakshmi/ }).click();
+  await expect(page.getByRole('button', { name: 'Violin' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('region', { name: 'Stage' })).toContainText('Violin');
+});

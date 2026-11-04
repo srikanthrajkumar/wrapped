@@ -15,7 +15,7 @@ import {
 async function newConcert(page: Page) {
   await page.goto('/');
   await finishFirstLaunch(page);
-  await page.getByRole('button', { name: 'Log a Concert now' }).click();
+  await page.getByRole('button', { name: 'Log a Concert' }).click();
   await expect(page.getByRole('link', { name: 'Add Item' })).toBeVisible();
 }
 
@@ -50,12 +50,12 @@ test('a failed Concert stays listed, by its time, when a later one saves', async
   await finishFirstLaunch(page);
 
   await setFailingWrites(page, true);
-  await page.getByRole('button', { name: 'Log a Concert now' }).click();
+  await page.getByRole('button', { name: 'Log a Concert' }).click();
   await expect(page.getByText(/^Not saved · Concert, /)).toBeVisible();
 
   // A later tap saves: the first Concert is still waiting, never folded into the second.
   await setFailingWrites(page, false);
-  await page.getByRole('button', { name: 'Log a Concert now' }).click();
+  await page.getByRole('button', { name: 'Log a Concert' }).click();
   await expect(page.getByRole('link', { name: 'Add Item' })).toBeVisible();
   await expect(page.getByText(/^Not saved · Concert, /)).toBeVisible();
 
@@ -64,10 +64,10 @@ test('a failed Concert stays listed, by its time, when a later one saves', async
   expect(await readTable(page, 'events')).toHaveLength(2);
 });
 
-test('a double tap on "Log a Concert now" makes one Concert', async ({ page }) => {
+test('a double tap on "Log a Concert" makes one Concert', async ({ page }) => {
   await page.goto('/');
   await finishFirstLaunch(page);
-  await page.getByRole('button', { name: 'Log a Concert now' }).dblclick();
+  await page.getByRole('button', { name: 'Log a Concert' }).dblclick();
   await expect(page.getByRole('link', { name: 'Add Item' })).toBeVisible();
   expect(await readTable(page, 'events')).toHaveLength(1);
 });
@@ -127,7 +127,7 @@ test('A7: a second colour after a failed first one keeps the first as entered', 
   await page.getByRole('button', { name: 'Add Artist' }).click();
   await page.getByRole('searchbox', { name: 'Search Artists' }).fill('Sanjay');
   await page.getByRole('button', { name: 'Add “Sanjay” as a new Artist' }).click();
-  await page.getByRole('button', { name: 'vocal' }).click();
+  await page.getByRole('button', { name: 'Vocal' }).click();
 
   await page.getByRole('button', { name: /^Colours for Sanjay/ }).click();
   await setFailingWrites(page, true);
@@ -266,15 +266,15 @@ test('A8: a failed delete keeps what it deleted, says Not deleted, and throws no
   await page.getByRole('button', { name: 'Add Artist' }).click();
   await page.getByRole('searchbox', { name: 'Search Artists' }).fill('Sanjay');
   await page.getByRole('button', { name: 'Add “Sanjay” as a new Artist' }).click();
-  await page.getByRole('button', { name: 'vocal' }).click();
+  await page.getByRole('button', { name: 'Vocal' }).click();
 
   await page.getByRole('button', { name: /^Sanjay/ }).click();
   await setFailingWrites(page, true);
-  await page.getByRole('button', { name: 'Remove from Stage' }).click();
+  await page.getByRole('button', { name: 'Remove', exact: true }).click();
   // The sheet stays, with the failure in it.
   const sheet = page.getByRole('dialog');
   await expect(sheet.getByText('Not deleted', { exact: true })).toBeVisible();
-  await expect(sheet.getByRole('button', { name: 'Remove from Stage' })).toBeVisible();
+  await expect(sheet.getByRole('button', { name: 'Remove', exact: true })).toBeVisible();
 
   await setFailingWrites(page, false);
   await sheet.getByRole('button', { name: 'Try again' }).click();
@@ -318,9 +318,9 @@ test('a failed Undo bar never covers a field the rasika moves to', async ({ page
   await page.getByRole('button', { name: 'Add Artist' }).click();
   await page.getByRole('searchbox', { name: 'Search Artists' }).fill('Sanjay');
   await page.getByRole('button', { name: 'Add “Sanjay” as a new Artist' }).click();
-  await page.getByRole('button', { name: 'vocal' }).click();
+  await page.getByRole('button', { name: 'Vocal' }).click();
   await page.getByRole('button', { name: /^Sanjay/ }).click();
-  await page.getByRole('button', { name: 'Remove from Stage' }).click();
+  await page.getByRole('button', { name: 'Remove', exact: true }).click();
   // The Undo bar shows once the remove is stored.
   await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeVisible();
   await setFailingWrites(page, true);

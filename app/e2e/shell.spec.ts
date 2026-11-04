@@ -8,8 +8,8 @@ test('first launch leads to the empty home at phone width', async ({ page }) => 
   const tabs = page.getByRole('navigation', { name: 'Main' }).getByRole('link');
   await expect(tabs).toHaveText(['Season', 'Wrapped', 'Settings']);
   await expect(tabs.first()).toHaveAttribute('aria-current', 'page');
-  // Day one: the Now block alone (design D11).
-  await expect(page.getByRole('button', { name: 'Log a Concert now' })).toBeVisible();
+  // Day one: only the bar with "Log a Concert" (design D11, walkthrough S1).
+  await expect(page.getByRole('button', { name: 'Log a Concert' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Next' })).toHaveCount(0);
   expect(await page.evaluate(() => window.innerWidth)).toBe(390);
 
@@ -28,7 +28,7 @@ test('the tabs switch screens, and the Item editor hides the tab bar', async ({ 
   await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
 
   await page.getByRole('link', { name: 'Season', exact: true }).click();
-  await page.getByRole('button', { name: 'Log a Concert now' }).click();
+  await page.getByRole('button', { name: 'Log a Concert' }).click();
   await expect(page.getByRole('button', { name: 'Add Sabha' })).toBeVisible();
   await expect(nav).toBeVisible();
   await page.getByRole('link', { name: 'Add Item' }).click();
@@ -49,6 +49,6 @@ test('once ready for offline, the app reopens in airplane mode', async ({ page, 
   await context.setOffline(true);
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Season', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Log a Concert now' }).click();
+  await page.getByRole('button', { name: 'Log a Concert' }).click();
   await expect(page.getByRole('button', { name: 'Add Sabha' })).toBeVisible();
 });

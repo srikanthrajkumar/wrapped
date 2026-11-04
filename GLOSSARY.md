@@ -118,7 +118,7 @@ What an Artist does at one Event: vocal, violin, veena, flute, mridangam, khanji
 _Avoid_: instrument, slot, lead, main artist, accompanist
 
 **Appearance**:
-One Artist in one Role at one Event, with the Colour they wore. The same Artist has a new Appearance at every Event. An Event's Appearances are in billing order: the first is the Artist the Event is known by, as on a concert poster.
+One Artist in one Role at one Event, with the Colour they wore. The same Artist has a new Appearance at every Event. An Event's Appearances are listed by Role, as in a printed kutcheri listing (vocal, veena, flute, violin, mridangam, ghatam, khanjira, morsing, other, presenter, then no Role), and in the order added within a Role. The Event is known by its vocal, veena or flute Artists (a Lecdem by its presenters), or else by the first Artist listed. The listing orders what is shown; no Role ranks above another.
 _Avoid_: performance, booking, credit
 
 **Colour**:

@@ -1,11 +1,13 @@
-// The Event screen (T043; DESIGN.md "Event (DD3)", design D4 to D6, D8, D16, D17, D18). Top to
-// bottom: the concert as the first block, the running order, Stage, the note. A fixed 56px bar
-// holds the one action for the Event's state, "Start logging" or "Add Item"; "Done with this
-// Concert" is an optional row after the last Item. Lists are rows on the background, not cards.
+// The Event screen (T043; DESIGN.md "Event (DD3)", design D4 to D6, D8, D16, D17, D18, and the
+// iPhone walkthrough's S2 to S12). Top to bottom: the Artists it is known by, with the Sabha,
+// date and time under them; Stage, listed by Role; the note; the Items, last, so the list ends
+// right above the fixed 56px bar that holds the one action for the Event's state, "Start
+// logging" or "Add Item". "Done with this Concert" is an optional row after the last Item.
+// Lists are rows on the background, not cards.
 
 import { IconArrowDown, IconArrowUp, IconDots, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'wouter';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,12 +19,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { fold } from '../catalog/fold';
 import { useCatalog } from '../catalog/use-catalog';
 import { newId, type Colour, type Item, type Role } from '../model';
 import { editEvent, setStatus } from '../store/events';
 import { moveItemBy } from '../store/items';
 import { endLogging, isBeingLogged } from '../store/logging-note';
-import { addAppearance, editAppearance, moveAppearanceBy } from '../store/people';
+import { addAppearance, editAppearance, renameArtist, usualRoles } from '../store/people';
 import {
   getEvent,
   useAppearances,
@@ -33,8 +36,10 @@ import {
   countRagas,
   useWhatItAdded,
   type ResolvedAppearance,
+  type ResolvedEntry,
   type ResolvedEvent,
 } from '../store/queries';
+import { joinNames, knownBy } from '../store/stage';
 import { ColourPicker, colourName, SwatchDot } from './components/ColourPicker';
 import { NotSavedLine, saveWith, Saved, useSaveFeedback } from './components/feedback';
 import { useAutosave } from './components/autosave';
@@ -49,11 +54,11 @@ import {
 import { NamePicker, RoleChips } from './components/NamePicker';
 import { SheetFrame } from './components/sheet-frame';
 import { UndoBar } from './components/UndoBar';
-import { eventLine, itemCount, itemLine, itemTitle } from './format';
+import { eventLine, itemCount, itemLine, itemTitle, roleName } from './format';
 import { deleteConcert, deleteItem, removeArtist } from './deletes';
 import { undo, undoMessage } from './undo';
 
-type Order = 'items' | 'stage' | null;
+type Order = 'items' | null;
 
 /** The Event, null once it is missing or deleted, undefined while loading. */
 function useEventOrNull(id: string) {
@@ -85,11 +90,12 @@ export function EventScreen({ eventId }: { eventId: string }) {
     id: string;
     entry: { id: string; name: string };
   } | null>(null);
-  const [rolesFor, setRolesFor] = useState<string | null>(null);
+  // The Role chips after an add, with the Role chosen for the Artist (their usual one).
+  const [rolesFor, setRolesFor] = useState<{ id: string; role: Role | null } | null>(null);
   const [coloursFor, setColoursFor] = useState<string | null>(null);
   const [appearanceFor, setAppearanceFor] = useState<string | null>(null);
   const rows = useRef(new Map<string, HTMLElement>());
-  const runningHead = useRef<HTMLHeadingElement>(null);
+  const itemsHead = useRef<HTMLHeadingElement>(null);
   const stageHead = useRef<HTMLHeadingElement>(null);
   // After a delete, focus the row that took the deleted one's place (design D16).
   const focusAfter = useRef<{ list: 'items' | 'stage'; index: number } | null>(null);
@@ -104,7 +110,7 @@ export function EventScreen({ eventId }: { eventId: string }) {
     const list = pending.list === 'items' ? items : appearances;
     const next = list?.[pending.index] ?? list?.[pending.index - 1];
     const target = next ? rows.current.get(next.id) : undefined;
-    (target ?? (pending.list === 'items' ? runningHead : stageHead).current)?.focus();
+    (target ?? (pending.list === 'items' ? itemsHead : stageHead).current)?.focus();
   }, [items, appearances]);
 
   if (event === undefined || items === undefined || appearances === undefined) return null;
@@ -119,7 +125,8 @@ export function EventScreen({ eventId }: { eventId: string }) {
 
   const note = notes?.get(eventId);
   const logging = isBeingLogged(event, note, now);
-  const firstArtist = appearances[0]?.artist?.name ?? null;
+  const known = knownBy(event.kind, appearances);
+  const knownAs = known.length > 0 ? joinNames(known.map((a) => a.artist?.name ?? '?')) : null;
   const target = (field: string) => eventTarget(eventId, field);
   const appearanceById = (id: string | null) => appearances.find((a) => a.id === id);
 
@@ -142,7 +149,8 @@ export function EventScreen({ eventId }: { eventId: string }) {
 
   // Each add has its own id, so a second failure never hides the first, and a retry adds it
   // once. The Role chips follow only an add made in this sheet, never one retried from the
-  // season-wide row.
+  // season-wide row. An Artist logged before gets their usual Role at once (walkthrough S6), as
+  // its own write, so a Role a rule refuses never stops the add; the chips show it chosen.
   const addArtist = async (entry: { id: string; name: string }, id = newId()) => {
     const appearance = await saveWith(
       appearanceTarget(id, '*'),
@@ -150,7 +158,10 @@ export function EventScreen({ eventId }: { eventId: string }) {
       () => addAppearance(eventId, entry.id, {}, { id }),
     );
     setArtistFailed(appearance ? null : { id, entry });
-    if (appearance) setRolesFor(appearance.id);
+    if (!appearance) return;
+    const usual = (await usualRoles()).get(entry.id) ?? null;
+    setRolesFor({ id: appearance.id, role: usual });
+    if (usual) void saveRole(appearance.id, usual);
   };
 
   return (
@@ -184,13 +195,49 @@ export function EventScreen({ eventId }: { eventId: string }) {
         }
       />
 
-      <ConcertBlock event={event} firstArtist={firstArtist} />
+      <ConcertBlock event={event} knownBy={knownAs} onAddArtist={() => setArtistOpen(true)} />
+
+      {appearances.length > 0 && (
+        <section aria-labelledby="stage" className="pb-6">
+          <SectionHead id="stage" headRef={stageHead}>
+            Stage
+          </SectionHead>
+          <ul className="border-t border-border">
+            {appearances.map((appearance) => (
+              <StageRow
+                key={appearance.id}
+                appearance={appearance}
+                rowRef={(node) => {
+                  if (node) rows.current.set(appearance.id, node);
+                  else rows.current.delete(appearance.id);
+                }}
+                onOpen={() => setAppearanceFor(appearance.id)}
+                onColours={() => setColoursFor(appearance.id)}
+              />
+            ))}
+            {order === null && (
+              <li className="border-b border-border">
+                <button
+                  type="button"
+                  onClick={() => setArtistOpen(true)}
+                  className="flex min-h-12 w-full items-center gap-2 py-2 text-left text-muted-foreground"
+                >
+                  <IconPlus aria-hidden className="size-5" />
+                  Add Artist
+                </button>
+              </li>
+            )}
+          </ul>
+        </section>
+      )}
+
+      <NoteField eventId={eventId} stored={event.note} />
 
       {items.length > 0 && (
-        <section aria-labelledby="running-order" className="pb-6">
+        <section aria-labelledby="items" className="pb-6">
           <SectionHead
-            id="running-order"
-            headRef={runningHead}
+            id="items"
+            headRef={itemsHead}
             action={
               items.length >= 2 &&
               order === null && (
@@ -198,7 +245,7 @@ export function EventScreen({ eventId }: { eventId: string }) {
               )
             }
           >
-            Running order
+            Items
           </SectionHead>
           <ol className="border-t border-border">
             {items.map((item, index) => (
@@ -274,60 +321,6 @@ export function EventScreen({ eventId }: { eventId: string }) {
         </section>
       )}
 
-      <section aria-labelledby="stage" className="pb-6">
-        <SectionHead
-          id="stage"
-          headRef={stageHead}
-          action={
-            appearances.length >= 2 &&
-            order === null && (
-              <QuietButton onClick={() => setOrder('stage')}>Edit order</QuietButton>
-            )
-          }
-        >
-          Stage
-        </SectionHead>
-        <ul className="border-t border-border">
-          {appearances.map((appearance, index) => (
-            <StageRow
-              key={appearance.id}
-              appearance={appearance}
-              first={index === 0}
-              last={index === appearances.length - 1}
-              ordering={order === 'stage'}
-              rowRef={(node) => {
-                if (node) rows.current.set(appearance.id, node);
-                else rows.current.delete(appearance.id);
-              }}
-              onOpen={() => setAppearanceFor(appearance.id)}
-              onColours={() => setColoursFor(appearance.id)}
-              onMove={(by) =>
-                void saveWith(
-                  appearanceTarget(appearance.id, 'position'),
-                  index + by + 1,
-                  () => moveAppearanceBy(appearance.id, by),
-                  { kind: 'move' },
-                )
-              }
-            />
-          ))}
-          {order === null && (
-            <li className="border-b border-border">
-              <button
-                type="button"
-                onClick={() => setArtistOpen(true)}
-                className="flex min-h-12 w-full items-center gap-2 py-2 text-left text-muted-foreground"
-              >
-                <IconPlus aria-hidden className="size-5" />
-                Add Artist
-              </button>
-            </li>
-          )}
-        </ul>
-      </section>
-
-      <NoteField eventId={eventId} stored={event.note} />
-
       <BottomDock>
         <UndoBar />
         <div className="border-t border-border bg-background px-4 py-2">
@@ -381,11 +374,11 @@ export function EventScreen({ eventId }: { eventId: string }) {
           rolesFor && (
             <RoleChips
               skippable
+              value={rolesFor.role}
               onRole={(role) => {
-                const id = rolesFor;
                 setRolesFor(null);
                 setArtistOpen(false);
-                if (role) void saveRole(id, role);
+                if (role !== rolesFor.role) void saveRole(rolesFor.id, role);
               }}
             />
           )
@@ -415,16 +408,19 @@ export function EventScreen({ eventId }: { eventId: string }) {
 }
 
 /**
- * The concert, as the first block (design D5): its Sabha, then date, start time and first
- * Artist, with the sheet that edits them. A date, time or Sabha saving or not saved shows as
- * entered, here and when the sheet reopens (design D15).
+ * The concert, as the first block (design D5, walkthrough S2): the Artists it is known by, or "Add Artist"
+ * before any Artist, then its Sabha, date and start time, with the sheet that edits them. A
+ * date, time or Sabha saving or not saved shows as entered, here and when the sheet reopens
+ * (design D15).
  */
 function ConcertBlock({
   event,
-  firstArtist,
+  knownBy,
+  onAddArtist,
 }: {
   event: ResolvedEvent;
-  firstArtist: string | null;
+  knownBy: string | null;
+  onAddArtist(): void;
 }) {
   const feedback = useSaveFeedback();
   const [factsOpen, setFactsOpen] = useState(false);
@@ -442,35 +438,39 @@ function ConcertBlock({
   const sabhaName = resolved?.name ?? chosen.name;
 
   return (
-    <section className="pt-2 pb-6">
+    <section className="pt-2 pb-2">
       <h1 ref={head} tabIndex={-1} className="text-title font-semibold break-words">
-        {sabhaName ? (
-          <button
-            type="button"
-            className="inline-flex min-h-12 items-center rounded-xl text-left"
-            onClick={() => setFactsOpen(true)}
-          >
-            {sabhaName}
-          </button>
-        ) : (
+        {knownBy ?? (
           <button
             type="button"
             className="inline-flex min-h-12 items-center gap-2 rounded-xl text-left"
-            onClick={() => setSabhaOpen(true)}
+            onClick={onAddArtist}
           >
             <IconPlus aria-hidden className="size-5" />
-            Add Sabha
+            Add Artist
           </button>
         )}
       </h1>
       <Saved target={[target('date'), target('startTime'), target('sabhaId')]}>
-        <button
-          type="button"
-          onClick={() => setFactsOpen(true)}
-          className="min-h-12 py-1 text-left text-sub text-muted-foreground"
-        >
-          {eventLine({ date, startTime }, firstArtist)}
-        </button>
+        <div className="flex flex-wrap items-center gap-x-4">
+          {!sabhaName && (
+            <button
+              type="button"
+              onClick={() => setSabhaOpen(true)}
+              className="inline-flex min-h-14 items-center gap-2 rounded-xl py-2 text-left text-muted-foreground"
+            >
+              <IconPlus aria-hidden className="size-5" />
+              Add Sabha
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setFactsOpen(true)}
+            className="min-h-14 rounded-xl py-2 text-left text-muted-foreground"
+          >
+            {eventLine({ date, startTime }, sabhaName)}
+          </button>
+        </div>
       </Saved>
 
       <EventFacts
@@ -519,30 +519,29 @@ function useShownAppearance(appearance: ResolvedAppearance): ResolvedAppearance 
   };
 }
 
+/** An Artist on Stage: name and Role, and their Colours at the right. */
 function StageRow({
   appearance: stored,
-  first,
-  last,
-  ordering,
   rowRef,
   onOpen,
   onColours,
-  onMove,
 }: {
   appearance: ResolvedAppearance;
-  first: boolean;
-  last: boolean;
-  ordering: boolean;
   rowRef(node: HTMLButtonElement | null): void;
   onOpen(): void;
   onColours(): void;
-  onMove(by: -1 | 1): void;
 }) {
   const appearance = useShownAppearance(stored);
+  const feedback = useSaveFeedback();
+  const own = appearance.artist?.shared ? null : appearance.artist?.own;
+  // A name saving or not saved shows as entered (design D15).
+  const name = own
+    ? feedback.shown(artistName(own.id), own.name)
+    : (appearance.artist?.name ?? '?');
   return (
     <li className="border-b border-border">
       <Saved
-        target={['*', 'role', 'colours', 'position', 'deletedAt'].map((field) =>
+        target={['*', 'role', 'colours', 'deletedAt'].map((field) =>
           appearanceTarget(appearance.id, field),
         )}
       >
@@ -550,25 +549,15 @@ function StageRow({
           <button
             type="button"
             ref={rowRef}
-            disabled={ordering}
             onClick={onOpen}
             className="flex min-h-[60px] min-w-[min(100%,calc(9*var(--text-body)))] flex-1 flex-col items-stretch justify-center py-2 text-left"
           >
-            <span className="break-words">{appearance.artist?.name ?? '?'}</span>
+            <span className="break-words">{name}</span>
             {appearance.role && (
-              <span className="text-sub text-muted-foreground">{appearance.role}</span>
+              <span className="text-sub text-muted-foreground">{roleName(appearance.role)}</span>
             )}
           </button>
-          {ordering ? (
-            <MoveButtons
-              name={appearance.artist?.name ?? 'Artist'}
-              first={first}
-              last={last}
-              onMove={onMove}
-            />
-          ) : (
-            <ColoursButton appearance={appearance} onOpen={onColours} />
-          )}
+          <ColoursButton appearance={appearance} onOpen={onColours} />
         </div>
       </Saved>
     </li>
@@ -599,7 +588,57 @@ function ColoursSheet({
   );
 }
 
-/** An Artist on Stage: Role, Colours, and Remove, whose failure shows in the sheet. */
+const artistName = (id: string) => ({ table: 'artists' as const, id, field: 'name' });
+
+/**
+ * The Artist's name at the top of their sheet, which corrects it in every Concert (walkthrough
+ * S5): saved when the field is left or Done is pressed, never per keystroke, since each rename
+ * keeps the name it replaces as an Alias. Emptied, it goes back to the name as it was. A shared
+ * Artist's name belongs to the Maintainer, so it shows as plain text.
+ */
+function ArtistName({ artist }: { artist: ResolvedEntry | null }) {
+  const feedback = useSaveFeedback();
+  const own = artist && !artist.shared ? artist.own : null;
+  const shown = own ? feedback.shown(artistName(own.id), own.name) : null;
+  const [draft, setDraft] = useState<string | null>(null);
+  // What is typed and the name it would replace, so a sheet closed while the field still has
+  // focus saves it too.
+  const typed = useRef<{ id: string; was: string | null; name: string } | null>(null);
+  const commit = useCallback(() => {
+    const pending = typed.current;
+    typed.current = null;
+    setDraft(null);
+    const name = pending?.name.trim() ?? '';
+    if (!pending || fold(name) === '' || name === pending.was) return;
+    void saveWith(artistName(pending.id), name, () => renameArtist(pending.id, name));
+  }, []);
+  useEffect(() => commit, [commit]);
+
+  if (!own) {
+    return <p className="text-title font-semibold break-words">{artist?.name ?? 'Artist'}</p>;
+  }
+  return (
+    <Saved target={artistName(own.id)}>
+      <input
+        aria-label="Artist name"
+        value={draft ?? shown ?? ''}
+        onChange={(e) => {
+          typed.current = { id: own.id, was: shown, name: e.target.value };
+          setDraft(e.target.value);
+        }}
+        onBlur={commit}
+        onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+        enterKeyHint="done"
+        autoComplete="off"
+        autoCapitalize="words"
+        spellCheck={false}
+        className="min-h-12 w-full rounded-xl bg-transparent text-title font-semibold underline decoration-border underline-offset-4 focus:bg-secondary focus:px-3 focus:no-underline"
+      />
+    </Saved>
+  );
+}
+
+/** An Artist on Stage: their name, Role, Colours, and Remove, whose failure shows in the sheet. */
 function AppearanceSheet({
   appearance: stored,
   onClose,
@@ -619,6 +658,7 @@ function AppearanceSheet({
       open
       onOpenChange={(open) => !open && onClose()}
       title={appearance.artist?.name ?? 'Artist'}
+      header={<ArtistName artist={appearance.artist} />}
     >
       <div className="flex flex-col gap-4">
         {feedback.get(removal)?.status === 'failed' && (
@@ -635,7 +675,8 @@ function AppearanceSheet({
           Colours
         </Button>
         <Button variant="destructive" onClick={onRemove}>
-          Remove from Stage
+          <IconTrash aria-hidden />
+          Remove
         </Button>
       </div>
     </SheetFrame>
@@ -648,7 +689,7 @@ function saveRole(appearanceId: string, role: Role | null) {
   );
 }
 
-/** A running-order row's text: number, title, then Raga · Composer. */
+/** An Item row's text: number, title, then Raga · Composer. */
 function ItemLabel({ item }: { item: Item }) {
   const line = itemLine(item);
   return (

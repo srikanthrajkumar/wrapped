@@ -11,7 +11,7 @@ test('a failed save stays on screen as "Not saved", exports, and retries', async
   await failWritesOnDemand(page);
   await page.goto('/');
   await finishFirstLaunch(page);
-  await page.getByRole('button', { name: 'Log a Concert now' }).click();
+  await page.getByRole('button', { name: 'Log a Concert' }).click();
   await page.getByRole('link', { name: 'Add Item' }).click();
   await page.getByRole('button', { name: '? Don’t know' }).click();
   const tala = page.getByRole('button', { name: /^Tala,/ });
