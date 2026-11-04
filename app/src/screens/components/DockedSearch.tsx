@@ -87,12 +87,13 @@ export function DockedSearch({
       </div>
       <div
         ref={list}
-        // As wide as the rows' fill, which would otherwise be clipped by the scrolling.
-        className="-mx-3 flex min-h-0 shrink flex-col overflow-y-auto overscroll-contain px-3 pb-2"
+        // As wide as the rows' fill, which would otherwise be clipped by the scrolling. Rows
+        // scrolled up under the fixed rows fade out over 12px instead of being cut.
+        className="-mx-3 flex min-h-0 shrink flex-col overflow-y-auto overscroll-contain px-3 pt-2 pb-2 [mask-image:linear-gradient(to_bottom,transparent,black_12px)]"
       >
         {drawn.length > 0 && (
           // Rows divided by the hairline, as every list is (DESIGN.md "Shapes").
-          <ul aria-label={resultsLabel} className="flex flex-col divide-y divide-border">
+          <ul aria-label={resultsLabel} className="flex flex-col [&>li+li]:hairline-t">
             {drawn.map((row, i) => (
               <li key={row.key}>
                 <button
@@ -101,11 +102,14 @@ export function DockedSearch({
                   onClick={row.onPick}
                   className={cn(
                     // The text sits on the gutter; the best match's fill reaches 12px past it.
-                    '-mx-3 flex min-h-[60px] w-[calc(100%+24px)] flex-col items-stretch justify-center rounded-xl px-3 py-2 text-left',
+                    '-mx-3 flex w-[calc(100%+24px)] flex-col items-stretch justify-center rounded-xl px-3 py-2 text-left',
                     // The best match sits on surface; in light, its border does that job.
                     // Inside a sheet, itself on surface, it rises to surface-raised.
+                    // Two lines make a 64px row; one line, 48px.
+                    row.line ? 'min-h-16' : 'min-h-12',
                     i === drawn.length - 1 &&
-                      'border border-border bg-card in-data-[slot=sheet-content]:bg-secondary dark:border-transparent',
+                      // Its 1px border comes out of the padding, so its text stays on the gutter.
+                      'border border-border bg-card px-[11px] in-data-[slot=sheet-content]:bg-secondary dark:border-transparent',
                   )}
                 >
                   <span className="flex flex-wrap items-center gap-2 font-semibold">
@@ -184,7 +188,7 @@ export function Chip({
       type="button"
       aria-pressed={pressed}
       className={cn(
-        'inline-flex min-h-12 items-center rounded-full border border-border px-4 py-2 text-sub',
+        'inline-flex min-h-12 min-w-12 items-center justify-center rounded-full border border-border px-4 py-2 text-sub',
         pressed && 'border-foreground bg-secondary font-semibold',
         className,
       )}

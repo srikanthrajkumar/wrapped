@@ -193,7 +193,18 @@ async function newPhone(browser: Browser): Promise<{ context: BrowserContext; pa
 
 async function shoot(page: Page, file: string, full = false) {
   await settle(page);
-  await page.screenshot({ path: file, fullPage: full, animations: 'disabled', caret: 'hide' });
+  if (!full) {
+    await page.screenshot({ path: file, animations: 'disabled', caret: 'hide' });
+    return;
+  }
+  // A whole page is shot through a viewport as tall as the page, so the sticky bottom bar sits
+  // at the page's end, as it does once scrolled there, not over the middle.
+  const size = page.viewportSize()!;
+  const height = await page.evaluate(() => document.documentElement.scrollHeight);
+  await page.setViewportSize({ width: size.width, height: Math.max(height, size.height) });
+  await settle(page);
+  await page.screenshot({ path: file, animations: 'disabled', caret: 'hide' });
+  await page.setViewportSize(size);
 }
 
 async function forEachLook(
@@ -248,9 +259,8 @@ async function shots(out: string) {
 }
 
 /**
- * Frame strips of the key transitions, motion on: every animation is held at its start by the
- * page's timeline running at rate 0, the action runs, then each frame seeks every animation to
- * the same moment.
+ * Frame strips of the key transitions, motion on: the page's animations run in slow motion
+ * while frames are taken, so each frame is what the phone draws at that moment.
  */
 async function motion(out: string) {
   const dir = join(out, 'motion');
@@ -309,27 +319,31 @@ async function motion(out: string) {
       await settle(page);
       const frames: { label: string; png: Buffer }[] = [];
       frames.push({ label: 'before', png: await page.screenshot({ caret: 'hide' }) });
-      await cdp.send('Animation.setPlaybackRate', { playbackRate: 0 });
+      // Slow motion, in real time: every animation runs at 4% speed while frames are taken,
+      // each labelled with its moment in the animation.
+      await cdp.send('Animation.setPlaybackRate', { playbackRate: SLOW });
       await strip.act();
-      // Long enough for a write to land and its highlight to start.
-      await page.waitForTimeout(500);
-      const end = await page.evaluate(() =>
-        Math.max(
-          0,
-          ...document
-            .getAnimations()
-            .map((a) => Number(a.effect?.getComputedTiming().endTime ?? 0)),
-        ),
-      );
-      const moments = end > 0 ? [0, 0.15, 0.3, 0.5, 0.75, 1].map((f) => Math.round(f * end)) : [];
-      for (const t of moments) {
-        await page.evaluate((t) => {
-          for (const a of document.getAnimations()) {
-            const last = Number(a.effect?.getComputedTiming().endTime ?? 0);
-            a.currentTime = Math.min(t, Math.max(0, last - 0.01));
-          }
-        }, t);
-        frames.push({ label: `${t} ms`, png: await page.screenshot({ caret: 'hide' }) });
+      await page.waitForTimeout(150);
+      const timing = () =>
+        page.evaluate(() => {
+          const running = document.getAnimations().filter((a) => a.playState === 'running');
+          return {
+            at: Math.max(-1, ...running.map((a) => Number(a.currentTime ?? 0))),
+            end: Math.max(
+              0,
+              ...running.map((a) => Number(a.effect?.getComputedTiming().endTime ?? 0)),
+            ),
+          };
+        });
+      const { end } = await timing();
+      for (let i = 0; i < 8; i++) {
+        const { at } = await timing();
+        if (at < 0) break;
+        frames.push({
+          label: `${Math.round(at)} ms`,
+          png: await page.screenshot({ caret: 'hide' }),
+        });
+        await page.waitForTimeout(Math.max(100, end / SLOW / 6));
       }
       await cdp.send('Animation.setPlaybackRate', { playbackRate: 1 });
       await page.waitForTimeout(Math.min(end, 1500) + 200);
@@ -345,6 +359,9 @@ async function motion(out: string) {
   }
   await browser.close();
 }
+
+/** The animation speed motion strips are taken at. */
+const SLOW = 0.04;
 
 const dataUrl = (png: Buffer) => `data:image/png;base64,${png.toString('base64')}`;
 

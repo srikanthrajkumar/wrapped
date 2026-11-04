@@ -4,13 +4,13 @@
 // its 48px targets and its type scale.
 
 export interface Measures {
-  /** Text blocks seen (an element's own text, as its line boxes draw it). */
+  /** Text blocks seen (an element's own text, by its line boxes). */
   blocks: number;
   /** Distinct left edges of text, in px from the viewport's left. */
   lefts: number[];
   leftsOff4: number;
   leftsOff8: number;
-  /** Gaps between a text block and the next one below it, in px. */
+  /** Gaps between a text block's line boxes and the next block's below it, in px. */
   gaps: number[];
   gapsOff4: number;
   gapsOff8: number;
@@ -57,10 +57,29 @@ export function measure(full: boolean): Measures {
       range.selectNodeContents(el);
       const rects = [...range.getClientRects()].filter((r) => r.width > 0 && r.height > 0);
       if (rects.length === 0) continue;
+      // Each line's glyph box grown to its line box (the line height, centred on the glyphs),
+      // which is what a designer measures: the font's own metrics drop out.
+      const style = getComputedStyle(el);
+      const lineHeight =
+        style.lineHeight === 'normal'
+          ? parseFloat(style.fontSize) * 1.2
+          : parseFloat(style.lineHeight);
+      const mid = (r: DOMRect) => (r.top + r.bottom) / 2;
+      // A block or flex item holds only its line boxes: its content box is exact.
+      const box = el.getBoundingClientRect();
+      const inset = (side: 'Top' | 'Bottom') =>
+        parseFloat(style[`padding${side}`]) + parseFloat(style[`border${side}Width`]);
+      // (Not a control taller than its text, as a 56px button: its box isn't its lines.)
+      const content = box.height - inset('Top') - inset('Bottom');
+      const block = style.display !== 'inline' && content <= rects.length * lineHeight + 1;
       blocks.push({
         el,
-        top: Math.min(...rects.map((r) => r.top)),
-        bottom: Math.max(...rects.map((r) => r.bottom)),
+        top: block
+          ? box.top + inset('Top')
+          : Math.min(...rects.map((r) => mid(r) - lineHeight / 2)),
+        bottom: block
+          ? box.bottom - inset('Bottom')
+          : Math.max(...rects.map((r) => mid(r) + lineHeight / 2)),
         left: Math.min(...rects.map((r) => r.left)),
         right: Math.max(...rects.map((r) => r.right)),
       });

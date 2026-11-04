@@ -103,7 +103,10 @@ export function useFocusOnOpen<T extends HTMLElement>(key: unknown): RefObject<T
   return ref;
 }
 
-/** A section heading with an optional muted action at its right ("Edit order"). */
+/**
+ * A section heading with an optional muted action at its right ("Edit order", given
+ * `-my-3 -mr-2` so its tap area reaches past the line and its text ends on the gutter).
+ */
 export function SectionHead({
   id,
   children,
@@ -118,7 +121,8 @@ export function SectionHead({
   headRef?: RefObject<HTMLHeadingElement | null>;
 }) {
   return (
-    <div className={cn('flex min-h-12 items-center justify-between gap-2', className)}>
+    // The label sits 8px above its list; an action's 48px reaches past the line.
+    <div className={cn('flex items-center justify-between gap-2 pb-2', className)}>
       <h2
         id={id}
         ref={headRef}

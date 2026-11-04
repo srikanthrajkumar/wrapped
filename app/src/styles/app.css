@@ -7,6 +7,22 @@
 @import 'shadcn/tailwind.css';
 @import './base.css';
 
+/* The list hairline, drawn inside a row rather than added to it, so a row's height stays a
+   whole grid step (48px, 64px) (DESIGN.md "Shapes"). */
+@utility hairline-t {
+  box-shadow: inset 0 1px 0 var(--border);
+}
+
+@utility hairline-b {
+  box-shadow: inset 0 -1px 0 var(--border);
+}
+
+@utility hairline-y {
+  box-shadow:
+    inset 0 1px 0 var(--border),
+    inset 0 -1px 0 var(--border);
+}
+
 /* Dark is the default theme; light is the rasika's choice in Settings (DESIGN.md "Colors"). */
 @custom-variant dark (&:is(.dark *));
 /* Hover styles only where a real pointer hovers, so a tap never leaves one stuck on. */
@@ -47,20 +63,22 @@
   --font-heading: var(--font-sans);
 
   /* Type sizes follow the phone's text setting up to 200% (DESIGN.md "Layout"): each is the
-     px size at the default setting, times --px, which is a rem fraction of the root. */
+     px size at the default setting, times --px, which is a rem fraction of the root. Line
+     heights put every line box on the 4px grid at the default size (16, 20, 24, 28, 32, 40),
+     so text, rows and gaps add up to whole grid steps. */
   --text-caption: calc(13 * var(--px));
-  --text-caption--line-height: 1.3;
+  --text-caption--line-height: calc(16 / 13);
   /* DESIGN.md's "secondary" role; `text-secondary` is already the surface-raised text colour. */
   --text-sub: calc(15 * var(--px));
-  --text-sub--line-height: 1.35;
+  --text-sub--line-height: calc(20 / 15);
   --text-body: calc(17 * var(--px));
-  --text-body--line-height: 1.4;
+  --text-body--line-height: calc(24 / 17);
   --text-title: calc(20 * var(--px));
-  --text-title--line-height: 1.3;
+  --text-title--line-height: calc(28 / 20);
   --text-heading: calc(24 * var(--px));
-  --text-heading--line-height: 1.25;
+  --text-heading--line-height: calc(32 / 24);
   --text-display: calc(32 * var(--px));
-  --text-display--line-height: 1.15;
+  --text-display--line-height: calc(40 / 32);
 
   /* Spacing stays in px on the 4px base, so larger text never eats the 320px screen. */
   --spacing: 4px;

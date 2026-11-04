@@ -407,7 +407,7 @@ export function SeasonFeedback() {
       : [group],
   );
   return (
-    <div className="border-b border-border">
+    <div className="hairline-b">
       {/* Storage is full or blocked: what is entered now lives only in this page's memory. */}
       {blocked && (
         <SafetyRow label={MESSAGES.short.notKept} sentence={MESSAGES.journalBlocked} exportable />

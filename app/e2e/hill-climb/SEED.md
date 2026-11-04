@@ -17,13 +17,13 @@ to clean up on any phone or server.
 
 ## What it holds
 
-| Case | Event | What's in it |
-|---|---|---|
-| Empty season | none | Shot before the seed goes in (`season-empty`). |
-| In progress | Music Academy, today 6:00 pm | A vocal duo (Ranjani & Gayatri) and four accompanists (violin, mridangam, ghatam, khanjira); the event note; 11 Items: nine catalog songs (one tala marked a guess), an RTP in Kalyani and Kanada, and a typed "Tillana". Chakkani Raja has a Laya vinyasam with a note. |
-| Long names | Sri Parthasarathy Swami Sabha, Vidya Bharathi Kalyana Mandapam, yesterday | Three Artists with names that wrap; two songs and a typed Item with a long title. |
-| No Artist yet | no Sabha, Sat 12 Dec | Attended, nothing added: the "Add Artist" heading and "Add Sabha". |
-| Next | Sri Krishna Gana Sabha 15 Dec; Narada Gana Sabha 16 Dec | Planned, one Artist each. |
+| Case          | Event                                                                     | What's in it                                                                                                                                                                                                                                                             |
+| ------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Empty season  | none                                                                      | Shot before the seed goes in (`season-empty`).                                                                                                                                                                                                                           |
+| In progress   | Music Academy, today 6:00 pm                                              | A vocal duo (Ranjani & Gayatri) and four accompanists (violin, mridangam, ghatam, khanjira); the event note; 11 Items: nine catalog songs (one tala marked a guess), an RTP in Kalyani and Kanada, and a typed "Tillana". Chakkani Raja has a Laya vinyasam with a note. |
+| Long names    | Sri Parthasarathy Swami Sabha, Vidya Bharathi Kalyana Mandapam, yesterday | Three Artists with names that wrap; two songs and a typed Item with a long title.                                                                                                                                                                                        |
+| No Artist yet | no Sabha, Sat 12 Dec                                                      | Attended, nothing added: the "Add Artist" heading and "Add Sabha".                                                                                                                                                                                                       |
+| Next          | Sri Krishna Gana Sabha 15 Dec; Narada Gana Sabha 16 Dec                   | Planned, one Artist each.                                                                                                                                                                                                                                                |
 
 **Colours:** all 12 swatches and "didn't notice" appear across the Stage rows. Two-tone:
 red and white, blue and orange, green and beige, brown and pink. One colour: yellow, black,
