@@ -91,8 +91,8 @@ function resultRow(result: SearchResult, onPick: (pick: ItemPick) => void): Sear
     return {
       key: `raga:${result.raga.key}`,
       title: result.raga.display,
+      // The badge says enough; one line, so a list of Ragas stays short.
       badge: 'Raga',
-      line: 'Start this Item with only its Raga',
       onPick: () => onPick({ kind: 'raga', raga: result.raga }),
     };
   }
@@ -562,7 +562,7 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
         <ValueNotes value={ragas[0] ?? unknownValue()} suggested={suggested.ragas?.[0]} />
       </Saved>
 
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,calc(8*var(--text-body))),1fr))] gap-x-4 gap-y-1">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,calc(8*var(--text-body))),1fr))] gap-x-4">
         {cell(
           'tala',
           item.tala,
@@ -585,37 +585,40 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
               <IconPlus aria-hidden /> Laya vinyasam after this Item
             </Button>
           ) : (
-            <div className="appear flex flex-col gap-2">
-              <DetailCell
-                name="Nadai"
-                value={laya.nadai}
-                text={laya.nadai.state === 'na' ? 'The Tala’s usual nadai' : undefined}
-                target={null}
-                onOpen={() => setOpen({ kind: 'laya' })}
-              />
-              <LayaNote
-                stored={layaNote}
-                onSave={(note) => {
-                  // A note still pending when the Laya vinyasam is removed goes with it.
-                  if (shown('layaVinyasam', item.layaVinyasam) === null) {
-                    feedback.release(target('layaNote'));
-                    return;
+            // Grows open below the fold title rather than appearing at full height.
+            <div className="grow">
+              <div className="flex flex-col gap-2">
+                <DetailCell
+                  name="Nadai"
+                  value={laya.nadai}
+                  text={laya.nadai.state === 'na' ? 'The Tala’s usual nadai' : undefined}
+                  target={null}
+                  onOpen={() => setOpen({ kind: 'laya' })}
+                />
+                <LayaNote
+                  stored={layaNote}
+                  onSave={(note) => {
+                    // A note still pending when the Laya vinyasam is removed goes with it.
+                    if (shown('layaVinyasam', item.layaVinyasam) === null) {
+                      feedback.release(target('layaNote'));
+                      return;
+                    }
+                    void saveWith(
+                      target('layaNote'),
+                      note,
+                      gate.after(() => setLayaNote(item.id, note)),
+                    );
+                  }}
+                  onPending={(note) =>
+                    note === null
+                      ? feedback.release(target('layaNote'))
+                      : feedback.hold(target('layaNote'), note)
                   }
-                  void saveWith(
-                    target('layaNote'),
-                    note,
-                    gate.after(() => setLayaNote(item.id, note)),
-                  );
-                }}
-                onPending={(note) =>
-                  note === null
-                    ? feedback.release(target('layaNote'))
-                    : feedback.hold(target('layaNote'), note)
-                }
-              />
-              <QuietButton className="-ml-2 self-start" onClick={removeLaya}>
-                Remove Laya vinyasam
-              </QuietButton>
+                />
+                <QuietButton className="-ml-2 self-start" onClick={removeLaya}>
+                  Remove Laya vinyasam
+                </QuietButton>
+              </div>
             </div>
           )}
         </Saved>
@@ -633,7 +636,7 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
               return (
                 <li
                   key={kind}
-                  className="flex flex-wrap items-center gap-2 border-b border-border py-1"
+                  className="flex min-h-16 flex-wrap items-center gap-2 py-2 hairline-b"
                 >
                   <Chip
                     pressed={heard !== undefined}
@@ -695,7 +698,8 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
           onChange={(value) => save(open.field, value)}
           extra={
             open.field === 'tala' ? (
-              <div className="flex flex-col gap-2">
+              // The label sits with the chips it names: 24px above, 8px below.
+              <div className="flex flex-col gap-2 pt-3">
                 <span className="text-caption text-muted-foreground">Nadai</span>
                 <NadaiChips
                   value={shown('nadai', item.nadai)}
@@ -849,7 +853,7 @@ function DetailCell({
         type="button"
         aria-label={spokenDetail(name, value)}
         onClick={onOpen}
-        className="flex min-h-[60px] w-full flex-col items-stretch justify-center rounded-xl py-2 text-left"
+        className="flex min-h-16 w-full flex-col items-stretch justify-center rounded-xl py-2 text-left"
       >
         <span className="text-caption text-muted-foreground">{name}</span>
         <span className="break-words">
@@ -874,7 +878,7 @@ function Fold({
 }) {
   const id = `fold-${title.replace(/\W+/g, '-').toLowerCase()}`;
   return (
-    <section className="border-t border-border">
+    <section className="hairline-t">
       <h2>
         <button
           type="button"

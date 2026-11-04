@@ -5,11 +5,18 @@
 // logging" or "Add Item". "Done with this Concert" is an optional row after the last Item.
 // Lists are rows on the background, not cards.
 
-import { IconArrowDown, IconArrowUp, IconDots, IconPlus, IconTrash } from '@tabler/icons-react';
+import {
+  IconArrowDown,
+  IconArrowUp,
+  IconChevronRight,
+  IconDots,
+  IconMetronome,
+  IconPlus,
+  IconTrash,
+} from '@tabler/icons-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { Link } from 'wouter';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -227,11 +234,11 @@ function EventView({ eventId }: { eventId: string }) {
       />
 
       {appearances.length > 0 && (
-        <section aria-labelledby="stage" className="pb-6">
+        <section aria-labelledby="stage" className="pt-8">
           <SectionHead id="stage" headRef={stageHead}>
             Stage
           </SectionHead>
-          <ul className="border-t border-border">
+          <ul className="hairline-t">
             {appearances.map((appearance) => (
               <StageRow
                 key={appearance.id}
@@ -245,7 +252,7 @@ function EventView({ eventId }: { eventId: string }) {
               />
             ))}
             {order === null && (
-              <li className="border-b border-border">
+              <li className="hairline-b">
                 <button
                   type="button"
                   onClick={() => setArtistOpen(true)}
@@ -263,22 +270,24 @@ function EventView({ eventId }: { eventId: string }) {
       <NoteField eventId={eventId} stored={event.note} />
 
       {items.length > 0 && (
-        <section aria-labelledby="items" className="pb-6">
+        <section aria-labelledby="items" className="pt-8 pb-4">
           <SectionHead
             id="items"
             headRef={itemsHead}
             action={
               items.length >= 2 &&
               order === null && (
-                <QuietButton onClick={() => setOrder('items')}>Edit order</QuietButton>
+                <QuietButton className="-my-3 -mr-2" onClick={() => setOrder('items')}>
+                  Edit order
+                </QuietButton>
               )
             }
           >
             Items
           </SectionHead>
-          <ol className="border-t border-border">
+          <ol className="hairline-t">
             {items.map((item, index) => (
-              <li key={item.id} className="border-b border-border">
+              <li key={item.id} className="hairline-b">
                 <Saved
                   target={['*', 'position', 'deletedAt'].map((field) => ({
                     table: 'items' as const,
@@ -288,7 +297,7 @@ function EventView({ eventId }: { eventId: string }) {
                 >
                   {order === 'items' ? (
                     // At large text the move and delete controls wrap under the title.
-                    <div className="flex flex-wrap items-center justify-end gap-1 py-1">
+                    <div className="flex min-h-16 flex-wrap items-center justify-end py-2">
                       <span className="flex min-w-[min(100%,calc(12*var(--text-body)))] flex-1 items-start gap-3">
                         <ItemLabel item={item} />
                       </span>
@@ -310,6 +319,8 @@ function EventView({ eventId }: { eventId: string }) {
                         variant="ghost"
                         size="icon"
                         aria-label={`Delete Item ${item.position}`}
+                        // The bin's mark ends on the gutter.
+                        className="-mr-3.5"
                         onClick={() => void removeItemAt(item, index)}
                       >
                         <IconTrash aria-hidden />
@@ -322,7 +333,7 @@ function EventView({ eventId }: { eventId: string }) {
                         if (node) rows.current.set(item.id, node);
                         else rows.current.delete(item.id);
                       }}
-                      className="flex min-h-[60px] items-start gap-3 py-2 text-foreground"
+                      className="flex min-h-16 items-start gap-3 py-2.5 text-foreground"
                     >
                       <ItemLabel item={item} />
                     </Link>
@@ -477,12 +488,12 @@ function ConcertBlock({
   const sabhaName = resolved?.name ?? chosen.name;
 
   return (
-    <section className="pt-2 pb-2">
+    <section className="pt-2">
       <h1 ref={head} tabIndex={-1} className="text-title font-semibold break-words">
         {knownBy ?? (
           <button
             type="button"
-            className="inline-flex min-h-12 items-center gap-2 rounded-xl text-left"
+            className="-my-2.5 inline-flex min-h-12 items-center gap-2 rounded-xl text-left"
             onClick={onAddArtist}
           >
             <IconPlus aria-hidden className="size-5" />
@@ -491,7 +502,8 @@ function ConcertBlock({
         )}
       </h1>
       <Saved target={[target('date'), target('startTime'), target('sabhaId')]}>
-        <div className="flex flex-wrap items-center gap-x-4">
+        {/* 56px tall to tap (S11), with the text 4px under the title and flush above Stage. */}
+        <div className="-mt-3 -mb-4 flex flex-wrap items-center gap-x-4">
           {!sabhaName && (
             <button
               type="button"
@@ -575,7 +587,7 @@ function StageRow({
   const own = appearance.artist?.shared ? null : appearance.artist?.own;
   const name = nameShown(feedback, appearance.artist);
   return (
-    <li className="border-b border-border">
+    <li className="hairline-b">
       <Saved
         target={[
           ...['*', 'role', 'colours', 'deletedAt'].map((field) =>
@@ -590,7 +602,7 @@ function StageRow({
             type="button"
             ref={rowRef}
             onClick={onOpen}
-            className="flex min-h-[60px] min-w-[min(100%,calc(9*var(--text-body)))] flex-1 flex-col items-stretch justify-center py-2 text-left"
+            className="flex min-h-16 min-w-[min(100%,calc(9*var(--text-body)))] flex-1 flex-col items-stretch justify-center py-2 text-left"
           >
             <span className="break-words">{name}</span>
             {appearance.role && (
@@ -751,13 +763,20 @@ function ItemLabel({ item }: { item: Item }) {
   const line = itemLine(item);
   return (
     <>
-      <span className="min-w-[2ch] pt-px text-right text-muted-foreground tabular-nums">
+      <span className="min-w-[2ch] text-right text-muted-foreground tabular-nums">
         {item.position}
       </span>
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="flex flex-wrap items-center gap-2">
           <span className="font-semibold break-words">{itemTitle(item)}</span>
-          {item.layaVinyasam && <Badge variant="secondary">Laya vinyasam</Badge>}
+          {/* A mark, not a pill, so the row keeps its height (FB-27). */}
+          {item.layaVinyasam && (
+            <IconMetronome
+              role="img"
+              aria-label="Laya vinyasam"
+              className="size-5 shrink-0 text-muted-foreground"
+            />
+          )}
         </span>
         {line && <span className="text-sub break-words text-muted-foreground">{line}</span>}
       </span>
@@ -812,7 +831,8 @@ function ColoursButton({ appearance, onOpen }: { appearance: ResolvedAppearance;
       type="button"
       onClick={onOpen}
       aria-label={spoken}
-      className="flex min-h-12 shrink-0 items-center gap-1 rounded-xl px-2 text-sub text-muted-foreground"
+      // The swatches end on the gutter, with the hairline.
+      className="-mr-2 flex min-h-12 shrink-0 items-center gap-1 rounded-xl px-2 text-sub text-muted-foreground"
     >
       {primary === null ? (
         'Colours'
@@ -876,14 +896,21 @@ function EventFacts({
   return (
     <SheetFrame open={open} onOpenChange={onOpenChange} title="Concert">
       <div className="flex flex-col gap-4">
-        <button
-          type="button"
-          onClick={onSabha}
-          className="flex min-h-12 flex-col items-start rounded-xl text-left"
-        >
-          <span className="text-sub text-muted-foreground">Sabha</span>
-          <span>{sabhaName ?? 'Add Sabha'}</span>
-        </button>
+        {/* Drawn as a field like Date and Start time, with the same label gap. */}
+        <div className="flex flex-col gap-1">
+          <span id="facts-sabha" className="text-sub text-muted-foreground">
+            Sabha
+          </span>
+          <button
+            type="button"
+            aria-labelledby="facts-sabha facts-sabha-value"
+            onClick={onSabha}
+            className="flex min-h-12 items-center justify-between gap-2 rounded-xl bg-secondary px-3 text-left text-body"
+          >
+            <span id="facts-sabha-value">{sabhaName ?? 'Add Sabha'}</span>
+            <IconChevronRight aria-hidden className="size-5 shrink-0 text-muted-foreground" />
+          </button>
+        </div>
         <label className="flex flex-col gap-1">
           <span className="text-sub text-muted-foreground">Date</span>
           <input
@@ -922,7 +949,7 @@ function NoteField({ eventId, stored }: { eventId: string; stored: string | null
     (value) => (value === null ? feedback.release(target) : feedback.hold(target, value)),
   );
   return (
-    <section aria-labelledby="note" className="pb-6">
+    <section aria-labelledby="note" className="pt-8">
       <SectionHead id="note">Note</SectionHead>
       <Saved target={target}>
         <textarea

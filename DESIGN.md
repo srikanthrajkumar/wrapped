@@ -36,12 +36,12 @@ colors:
 typography:
   family: "'Source Sans 3', sans-serif"
   weights: "400, 600, 700"
-  caption: "13px / 1.3"
-  secondary: "15px / 1.35"
-  body: "17px / 1.4"
-  title: "20px / 1.3"
-  heading: "24px / 1.25"
-  display: "32px / 1.15"
+  caption: "13px / 16px"
+  secondary: "15px / 20px"
+  body: "17px / 24px"
+  title: "20px / 28px"
+  heading: "24px / 32px"
+  display: "32px / 40px"
 rounded:
   sm: "6px"
   md: "8px"
@@ -62,11 +62,12 @@ spacing:
 components:
   touch-target: "48px"
   primary-action-height: "56px"
-  search-result-min-height: "60px"
+  list-row-height: "64px two lines, 48px one"
   screen-gutter: "16px"
   motion-press: "100ms ease-out"
   motion-state: "150ms ease-out"
   motion-sheet: "220ms cubic-bezier(0.2, 0, 0, 1)"
+  motion-grow: "200ms cubic-bezier(0.2, 0, 0, 1)"
   save-highlight: "1200ms"
   undo-window: "5000ms"
 ---
@@ -187,16 +188,19 @@ renderer (T088).
 
 | Role | Size / line height | Weight | Used for |
 |---|---|---|---|
-| caption | 13 / 1.3 | 400 | Badges ("Raga", "Laya vinyasam"), the "not matched" note |
-| secondary | 15 / 1.35 | 400 | Raga · Composer · Tala lines, Appearance roles, chips |
-| body | 17 / 1.4 | 400, 600 for titles | Everything else; Item titles in 600 |
-| title | 20 / 1.3 | 600 | Screen headers, the Now card's title |
-| heading | 24 / 1.25 | 700 | Section heads on home and the Wrapped |
-| display | 32 / 1.15 | 700 | Wrapped headline numbers ("39 Events · 241 Items") |
+| caption | 13 / 16 | 400 | Badges ("Raga"), the "not matched" note, field labels |
+| secondary | 15 / 20 | 400 | Raga · Composer · Tala lines, Appearance roles, chips |
+| body | 17 / 24 | 400, 600 for titles | Everything else; Item titles in 600 |
+| title | 20 / 28 | 600 | Screen headers, the Now card's title |
+| heading | 24 / 32 | 700 | Section heads on home and the Wrapped |
+| display | 32 / 40 | 700 | Wrapped headline numbers ("39 Events · 241 Items") |
 
 - Body is 17px, so every input is above iOS's 16px zoom threshold (base.css keeps the floor).
 - Numbers that line up in a column (Item numbers, counts) use `font-variant-numeric: tabular-nums`.
 - Text never goes below 13px.
+- **Line heights sit on the 4px grid** (decided 2026-11-04, UI hill-climb): 16, 20, 24, 28, 32
+  and 40px at the default text size, so a line, a row and the gap between them add up to whole
+  grid steps. They scale with the phone's text setting as ratios (24/17 and so on).
 
 ## Layout
 
@@ -213,6 +217,14 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
 
 - **Spacing** on a 4px base: 4, 8, 12, 16, 20, 24, 32, 40, 48. The screen gutter is 16px plus
   the safe-area inset. Related lines sit 4px apart; rows 8px; sections 24–32px.
+  - The grid is 8px, with 4px for tight inner gaps (decided 2026-11-04, after the Carbon-like
+    2x grid the Maintainer asked for). Two-line rows are 64px and one-line rows 48px; the
+    hairline is drawn inside the row (`hairline-t`, `hairline-b`), so it never adds a pixel.
+  - A section label sits 32px under the block above it and 8px over its first row; an action
+    beside it (Edit order) keeps its 48px tap area by reaching past the line, not by pushing it.
+  - Text sits on the 16px gutter. A fill that marks one row (the best search match) reaches
+    12px past the text into the gutter instead of pushing the text in, and a text button's
+    label (Remove Laya vinyasam, Edit order) starts or ends on the gutter.
 - **Thumb zone.** Primary actions sit in the bottom third: the fixed "Add Item" bar, the
   docked search box, "Done" and "Next Item →". The page keeps room for everything docked at the
   bottom (the action, any Undo bars, the tab bar): a field moved to behind them scrolls up above
@@ -353,7 +365,8 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
 - Chips and the outfit swatches: fully round.
 - Badges: 8px.
 - Icons: Tabler, 20–22px, 2px stroke, always next to a text label unless the meaning is
-  universal (back chevron, search).
+  universal (back chevron, search). One exception (FB-27): an Item row marks its Laya vinyasam
+  with the muted metronome mark, named "Laya vinyasam" to screen readers, in place of the pill.
 
 ## Components
 
@@ -410,9 +423,11 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
 - **Search box:** 48px, surface-raised fill, a 2px `ring` inset while focused. It is the one
   element allowed to autofocus on mobile: the Item editor opens with it focused (DD4, the
   recorded exception to T110's rule).
-- **Search result:** at least 60px; title in body 600, then the secondary line. The best match
-  sits on `surface`. A Raga result carries a "Raga" badge and the line "Start this Item with
-  only its Raga".
+- **Search result:** a row on the gutter, 64px with two lines and 48px with one, divided by
+  the hairline; title in body 600, then the secondary line. The best match sits on `surface`,
+  its fill reaching 12px into the gutter. A Raga result is one line with a "Raga" badge (the
+  line "Start this Item with only its Raga" was cut on 2026-11-04: fewer words). Results that
+  scroll up under the fixed rows fade out over 12px.
 - **Search states** (decided 2026-11-01): before anything is typed, only the fixed rows show
   above the box. With no catalog match, one muted line "No match in the catalog" sits above the
   fixed rows, so "Use what I typed" is the next tap, and screen readers hear "No matches".
@@ -519,13 +534,23 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
 
 ## Motion
 
-Motion explains a change and is otherwise absent.
+Motion explains a change and is otherwise absent. Reopened 2026-11-04 by FB-30 ("fast but
+finicky"): every change of place now moves, briefly, in CSS only, and nothing waits on it.
 
-- Press feedback: 100ms. State changes (a fold opening, a value updating): 150ms ease-out.
-- Sheets and pushed screens: 220ms, `cubic-bezier(0.2, 0, 0, 1)`.
-- The save highlight: 1.2s fade. The Undo bar: 5s, then it slides away.
-- Under `prefers-reduced-motion: reduce`, movement becomes a cross-fade and the highlight still
-  shows (it carries information), without the fade.
+- Press feedback: 100ms. State changes (a value updating): 150ms ease-out.
+- **Pushed screens** (decided 2026-11-04): going into an Event or an Item, the screen enters
+  from 16px to the right at half opacity; coming back, from the left; 220ms,
+  `cubic-bezier(0.2, 0, 0, 1)`. The first screen, a tab switch and a move at the same depth (a
+  first pick, Next Item) just appear. The bottom bar stays put.
+- **Sheets** rise opaque from below the screen over 220ms with the same curve; only the scrim
+  fades. A sheet never shows the page through it.
+- **Something opening in place** (a fold, the Laya vinyasam's fields) grows to its height over
+  200ms as it fades in, so what's below slides down instead of jumping.
+- **A swatch picked** settles from 88% as its ring draws out and its check grows in (180ms).
+- The save highlight: 1.2s, rising over its first 150ms and then fading (FB-28: starting at
+  full strength read as a flash). The Undo bar: 5s, then it slides away.
+- Under `prefers-reduced-motion: reduce`, nothing moves or grows, and the highlight still shows
+  (it carries information), without the fade.
 - *Proposed, with the Cards:* one authored moment, a new stripe weaving into the season's
   fabric when a Concert is finished.
 
@@ -645,3 +670,4 @@ in the phase that builds it):
 | 2026-11-03 | Phase 4 design, the Maintainer's answers: Export lives in Settings, with its last date, and the Event's "⋯" keeps only Delete; home shows no status line until sync, and only "Getting ready for offline…" while the app isn't ready; the install row is persistent and drawn as Safari's marks on iPhone and an Install button on Android; Settings puts the season first (offline, storage protected, Export), then the theme, then the versions. |
 | 2026-11-04 | The iPhone walkthrough's shape decisions S1 to S12 (`docs/feedback/2026-11-iphone-walkthrough.md`): "+ Log a Concert" always in the Season page's bottom bar, the open Concert a card; Events known by their vocal, veena or flute Artists (a Lecdem's presenters), the Sabha, date and time on the line under them; the Event screen runs heading, Stage, Note, Items; Stage listed by Role with no "Edit order"; an Artist's name corrected from their sheet, the old name kept as an Alias; the usual Role chosen for a known Artist; "Remove" with the bin mark; Role chips capitalised; Done the filled main button at the right of the Item editor's bar; "Item 8" an eyebrow; more room under a field's label and a taller facts line; "Running order" now "Items". |
 | 2026-11-03 | After the Phase 4 screenshots, the Maintainer's answers: the Settings Export row is never amber; Android's install row leads with the same Add mark as the iPhone row; accepted as built: Android's Install button named without Safari's steps, the row hidden while Chrome offers no install, the › between the iPhone marks, the amber `warning` token (oklch(0.8 0.15 75) dark, oklch(0.53 0.12 62) light), "Getting ready for offline…" with a muted spinner and an amber row where there is no service worker, and the "App" and "Catalog" version lines. |
+| 2026-11-04 | The UI hill-climb (FB-30, themes 3 and 4): line heights on the 4px grid; 64px and 48px rows with the hairline drawn inside; section labels 32px under the block above; text on the 16px gutter with fills reaching past it; pushed screens and sheets that move; folds that grow open; a softer save highlight (FB-28); the Laya vinyasam as a mark in Item rows (FB-27); Raga results on one line. |

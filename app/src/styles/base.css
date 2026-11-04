@@ -91,17 +91,18 @@ input[type='search']::-webkit-search-cancel-button {
 
 /* A pushed screen enters from the side it came from (DESIGN.md "Motion"; screens/components
    layout.tsx decides the way). The bottom bar stays put, as a phone's own bars do. */
+/* It starts half drawn, never from blank, so the hand-off doesn't blink. */
 @keyframes screen-forward {
   from {
-    opacity: 0;
-    transform: translateX(24px);
+    opacity: 0.5;
+    transform: translateX(16px);
   }
 }
 
 @keyframes screen-back {
   from {
-    opacity: 0;
-    transform: translateX(-24px);
+    opacity: 0.5;
+    transform: translateX(-16px);
   }
 }
 
@@ -113,29 +114,52 @@ input[type='search']::-webkit-search-cancel-button {
   animation: screen-back 220ms cubic-bezier(0.2, 0, 0, 1);
 }
 
-/* Something that appears in place (a fold opening, the Laya vinyasam's fields) fades in over
-   the state-change time, so it reads as arriving rather than popping. */
-@keyframes appear {
+/* Something that opens in place (a fold, the Laya vinyasam's fields) grows to its height as it
+   fades in, so what's below slides down instead of jumping, and no empty space shows. Its one
+   child clips while it grows; 4px of padding keeps a focus ring inside the clip. */
+@keyframes grow {
   from {
+    grid-template-rows: 0fr;
     opacity: 0;
-    transform: translateY(-4px);
   }
 }
 
-.appear,
+.grow,
 [data-fold]:not([hidden]) {
-  animation: appear 150ms ease-out;
+  display: grid;
+  grid-template-rows: 1fr;
+  animation: grow 200ms cubic-bezier(0.2, 0, 0, 1);
 }
 
-/* A swatch picked settles into place with its ring and check. */
+.grow > *,
+[data-fold] > * {
+  min-height: 0;
+  overflow: hidden;
+  margin: -4px;
+  padding: 4px;
+}
+
+/* A swatch picked settles into place as its ring draws out and its check grows in. */
 @keyframes swatch-pick {
   from {
     transform: scale(0.88);
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+@keyframes check-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
   }
 }
 
 [role='radio'][aria-checked='true'] > .swatch {
-  animation: swatch-pick 150ms ease-out;
+  animation: swatch-pick 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+[role='radio'][aria-checked='true'] > .swatch > svg {
+  animation: check-in 180ms cubic-bezier(0.2, 0, 0, 1);
 }
 
 /* The save highlight: a surface-raised fill that swells in and fades out over 1.2s, played only

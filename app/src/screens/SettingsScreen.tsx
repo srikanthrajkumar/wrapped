@@ -7,6 +7,7 @@
 
 import {
   IconAlertCircle,
+  IconChevronRight,
   IconLoader2,
   IconPlaneTilt,
   IconShieldCheck,
@@ -29,7 +30,7 @@ import { shortDayText } from './format';
 import { MESSAGES } from './messages';
 
 const ICON = 'size-5 shrink-0';
-const ROW = 'flex min-h-12 items-center gap-3 border-b border-border py-2';
+const ROW = 'flex min-h-12 items-center gap-3 py-2 hairline-b';
 
 /** Whether the browser has promised to keep this site's storage, asked when Settings opens. */
 function useStorageProtected(): boolean | undefined {
@@ -117,7 +118,7 @@ function ExportRow() {
   const day = last ? MESSAGES.lastExport(shortDayText(last.at)) : null;
   const action = seasonHandedOver ? MESSAGES.short.exported : MESSAGES.actions.export;
   return (
-    <li className="border-b border-border">
+    <li className="hairline-b">
       <button
         type="button"
         aria-label={day ? `${action}. ${day}` : action}
@@ -153,17 +154,19 @@ function SettingsView() {
   const catalogVersion = useMeta<string>(CATALOG_VERSION_KEY);
   return (
     <>
-      <h1 className="pt-4 pb-2 text-title font-semibold">Settings</h1>
+      {/* 16px to the first row, as Season's title has to the Now card. */}
+      <h1 className="pt-4 pb-4 text-title font-semibold">Settings</h1>
       <InstallRow />
       <SeasonFeedback />
-      <ul className="border-t border-border">
+      <ul className="hairline-t">
         <OfflineRow />
         <StorageRow />
         <ExportRow />
       </ul>
-      <div role="radiogroup" aria-label="Theme" className="flex flex-col gap-1 pt-8">
+      <div role="radiogroup" aria-label="Theme" className="flex flex-col gap-2 pt-8">
         <span className="text-sub text-muted-foreground">Theme</span>
-        <div className="flex gap-2">
+        {/* One track holding both choices, so it reads as one choice. */}
+        <div className="flex gap-1 rounded-2xl border border-border p-1">
           {(['dark', 'light'] as Theme[]).map((choice) => (
             <button
               key={choice}
@@ -172,8 +175,8 @@ function SettingsView() {
               aria-checked={theme === choice}
               onClick={() => setTheme(choice)}
               className={cn(
-                'min-h-12 flex-1 rounded-2xl border border-border px-4',
-                theme === choice && 'border-foreground bg-secondary font-semibold',
+                'min-h-12 flex-1 rounded-xl px-4',
+                theme === choice && 'bg-secondary font-semibold',
               )}
             >
               {choice === 'dark' ? 'Dark' : 'Light'}
@@ -191,11 +194,14 @@ function SettingsView() {
           </span>
         )}
       </p>
-      <p className="pt-4">
-        <Link href="/admin" className="inline-flex min-h-12 items-center text-muted-foreground">
-          Maintainer
-        </Link>
-      </p>
+      {/* A row like the season's, so it reads as a place to go. */}
+      <Link
+        href="/admin"
+        className="mt-4 flex min-h-12 items-center justify-between gap-2 text-muted-foreground hairline-y"
+      >
+        Maintainer
+        <IconChevronRight aria-hidden className={ICON} />
+      </Link>
     </>
   );
 }

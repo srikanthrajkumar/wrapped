@@ -121,7 +121,8 @@ function Grid({
                 />
               )}
             </span>
-            <span className="text-sub">{name}</span>
+            {/* "?" says itself; a caption under it would repeat it. */}
+            {colour !== 'unknown' && <span className="text-sub">{name}</span>}
           </button>
         );
       })}

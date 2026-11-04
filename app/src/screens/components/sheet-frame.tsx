@@ -53,7 +53,8 @@ export function SheetFrame({
           <SheetTitle className={cn(header !== undefined && 'sr-only')}>{title}</SheetTitle>
           {header}
           {description ? (
-            <SheetDescription>{description}</SheetDescription>
+            // 4px under the title's line, not under its 48px row.
+            <SheetDescription className="-mt-2.5">{description}</SheetDescription>
           ) : (
             <SheetDescription className="sr-only">{title}</SheetDescription>
           )}

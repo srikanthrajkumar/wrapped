@@ -197,8 +197,11 @@ function HomeView() {
           </h2>
           {days.map((day) => (
             <div key={day}>
-              <h3 className="pt-2 text-sub font-semibold text-muted-foreground">{dayText(day)}</h3>
-              <ul className="border-t border-border">
+              {/* The day goes with the rows under it: no hairline between them. */}
+              <h3 className="pt-4 pb-1 text-sub font-semibold text-muted-foreground">
+                {dayText(day)}
+              </h3>
+              <ul>
                 {upcoming
                   .filter((s) => s.event.date === day)
                   .map((s) => (
@@ -215,7 +218,7 @@ function HomeView() {
           <h2 id="so-far" className="pb-2 text-heading font-bold">
             Season so far
           </h2>
-          <ul className="border-t border-border">
+          <ul className="hairline-t">
             {soFar.map((s) => (
               <EventRow
                 key={s.event.id}
@@ -226,7 +229,7 @@ function HomeView() {
           </ul>
           <Link
             href="/wrapped"
-            className="flex min-h-12 items-center justify-between gap-2 border-b border-border"
+            className="flex min-h-12 items-center justify-between gap-2 hairline-b"
           >
             Your Wrapped
             <IconChevronRight aria-hidden className="size-5 shrink-0 text-muted-foreground" />
@@ -249,10 +252,10 @@ function HomeView() {
 
 function EventRow({ summary, line }: { summary: EventSummary; line: string }) {
   return (
-    <li className="border-b border-border">
+    <li className="hairline-b">
       <Link
         href={`/event/${summary.event.id}`}
-        className="flex min-h-[60px] flex-col justify-center py-2 text-foreground"
+        className="flex min-h-16 flex-col justify-center py-2 text-foreground"
       >
         <span className="font-semibold break-words">{title(summary)}</span>
         {line && <span className="text-sub text-muted-foreground">{line}</span>}
