@@ -36,7 +36,7 @@ purple, grey. Didn't notice: the khanjira.
 mid-drag by its grip), `concert-facts` (date and time sheet), `artist-picker` (Add Artist, "S" typed), `artist-sheet` (Gayatri), `colour-sheet`
 (Ranjani, two-tone), `item-search` (new Item, "rama" typed), `item` (Chakkani Raja, whole page,
 the Improvised fold open with its Laya vinyasam), `item-rtp` (two Ragas), `raga-sheet`,
-`tala-sheet`, `settings`, and last `concert-summary` (the clock two hours on, so the Concert in
+`tala-sheet`, `settings`, and last `concert-summary` (the clock three hours on, so the Concert in
 progress has ended and its summary shows; "shown" is reset for it on each look).
 
 Each at 390×844 and 393×852 (iPhone 16), dark and light. The keyboard isn't drawn: Chromium

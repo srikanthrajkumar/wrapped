@@ -48,6 +48,11 @@ export function SheetFrame({
           event.preventDefault();
           (event.currentTarget as HTMLElement).focus();
         }}
+        // One sheet closing as another opens (an Artist's sheet to their Colours) leaves focus in
+        // the one opening, rather than returning it to the row under both.
+        onCloseAutoFocus={(event) => {
+          if (document.querySelector('[role="dialog"][data-state="open"]')) event.preventDefault();
+        }}
       >
         <SheetHeader>
           <SheetTitle className={cn(header !== undefined && 'sr-only')}>{title}</SheetTitle>

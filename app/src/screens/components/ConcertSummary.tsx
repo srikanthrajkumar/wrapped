@@ -1,7 +1,9 @@
 // The Concert summary (walkthrough S13; DESIGN.md "Finishing a Concert"): shown once, as a
 // modal, the next time the app opens or comes back after a Concert ends. The Items and Ragas as
 // two numbers (Linked ragas counted once), then the firsts it added to the season. With nothing
-// to say there is no modal. Which Concert, and "shown", are the store's (store/concert-summary).
+// to say there is no modal. Which Concert, and "shown", are the store's (store/concert-summary):
+// "shown" is written only once the summary is read and still due, just before it opens, so one
+// that can't be read stays due for the next open.
 
 import { IconX } from '@tabler/icons-react';
 import { useEffect, useRef, useState } from 'react';
@@ -14,8 +16,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { readyCatalog } from '../../catalog/use-catalog';
-import { takeSummary } from '../../store/concert-summary';
+import { openCatalog } from '../../catalog/current';
+import { CATALOG_WAIT_MS } from '../../catalog/use-catalog';
+import { dueSummary, markSummaryShown } from '../../store/concert-summary';
 import { countRagas, listEventSummaries, listItems, whatItAdded } from '../../store/queries';
 import { eventLine } from '../format';
 
@@ -28,9 +31,22 @@ interface Summary {
   newComposers: string[];
 }
 
-/** Everything the modal shows, read before it opens, so it never fills in while on screen. */
+const SLOW = Symbol('catalog still opening');
+
+/**
+ * Everything the modal shows, read before it opens, so it never fills in while on screen. A
+ * catalog still opening after CATALOG_WAIT_MS would count Linked ragas apart, so the summary waits
+ * for the next open; a phone with no catalog at all counts as it logged, as everything else does.
+ */
 async function readSummary(eventId: string): Promise<Summary | null> {
-  const catalog = await readyCatalog();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const catalog = await Promise.race([
+    openCatalog().catch(() => null),
+    new Promise<typeof SLOW>((resolve) => {
+      timer = setTimeout(() => resolve(SLOW), CATALOG_WAIT_MS);
+    }),
+  ]).finally(() => clearTimeout(timer));
+  if (catalog === SLOW) return null;
   const [summaries, items, added] = await Promise.all([
     listEventSummaries(),
     listItems(eventId),
@@ -60,15 +76,16 @@ export function ConcertSummary() {
       if (showing.current || document.visibilityState !== 'visible') return;
       showing.current = true;
       try {
-        const eventId = await takeSummary();
+        const eventId = await dueSummary();
         const next = eventId ? await readSummary(eventId) : null;
-        if (next) {
+        // Still due after the read (no logging began meanwhile), and not shown by another tab.
+        if (next && (await dueSummary()) === eventId && (await markSummaryShown(eventId!))) {
           setSummary(next);
           setOpen(true);
           return;
         }
       } catch {
-        // A summary is never worth an error: the next open looks again.
+        // A summary is never worth an error, and none was marked shown: the next open looks again.
       }
       showing.current = false;
     };
@@ -86,7 +103,15 @@ export function ConcertSummary() {
         if (!next) showing.current = false;
       }}
     >
-      <DialogContent showCloseButton={false} className="gap-0 p-0">
+      <DialogContent
+        showCloseButton={false}
+        className="gap-0 p-0"
+        // Focus goes to the modal itself, not its close button, as the sheets do (design D24).
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          (event.currentTarget as HTMLElement).focus();
+        }}
+      >
         <DialogHeader className="gap-0 py-2 pr-16 pl-6">
           <DialogTitle className="flex min-h-12 items-center break-words">
             {summary.title}

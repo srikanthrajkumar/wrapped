@@ -42,9 +42,11 @@ let persistedSeen: boolean | undefined;
 /** Read ahead what Settings shows, so it opens whole. */
 export function preloadSettings(): void {
   void preloadMeta([READY_KEY, LAST_EXPORT_KEY, CATALOG_VERSION_KEY]).catch(() => undefined);
-  void storagePersisted().then((answer) => {
-    persistedSeen = answer;
-  });
+  void storagePersisted()
+    .then((answer) => {
+      persistedSeen = answer;
+    })
+    .catch(() => undefined);
 }
 
 /** Whether the browser has promised to keep this site's storage, asked when Settings opens. */

@@ -141,6 +141,12 @@ export function DetailInput({
   const catalogState = useCatalog();
   const catalog = catalogState.status === 'ready' ? catalogState.catalog : null;
   const [query, setQuery] = useState('');
+  // Kept drawn while it closes (sheet-frame useLingering), it opens again with an empty search.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setQuery('');
+  }
   const options = useMemo(() => detailOptions(catalog, field), [catalog, field]);
   const typed = query.trim();
 

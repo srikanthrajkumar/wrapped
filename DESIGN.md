@@ -1,75 +1,75 @@
 ---
 # gstack: design-md-format=spec
 name: Carnatic Wrapped
-base: "shadcn preset b51rn04Qt (style Rhea, Mist neutrals, rose charts, Tabler icons)"
+base: 'shadcn preset b51rn04Qt (style Rhea, Mist neutrals, rose charts, Tabler icons)'
 colors:
   dark:
-    background: "oklch(0.148 0.004 228.8)"
-    surface: "oklch(0.218 0.008 223.9)"
-    surface-raised: "oklch(0.275 0.011 216.9)"
-    foreground: "oklch(0.88 0.014 80)"
-    muted-foreground: "oklch(0.72 0.014 75)"
-    primary: "oklch(0.88 0.014 80)"
-    primary-foreground: "oklch(0.218 0.008 223.9)"
-    border: "oklch(1 0 0 / 10%)"
-    input: "oklch(1 0 0 / 15%)"
-    ring: "oklch(0.56 0.021 213.5)"
-    destructive: "oklch(0.704 0.191 22.216)"
+    background: 'oklch(0.148 0.004 228.8)'
+    surface: 'oklch(0.218 0.008 223.9)'
+    surface-raised: 'oklch(0.275 0.011 216.9)'
+    foreground: 'oklch(0.88 0.014 80)'
+    muted-foreground: 'oklch(0.72 0.014 75)'
+    primary: 'oklch(0.88 0.014 80)'
+    primary-foreground: 'oklch(0.218 0.008 223.9)'
+    border: 'oklch(1 0 0 / 10%)'
+    input: 'oklch(1 0 0 / 15%)'
+    ring: 'oklch(0.56 0.021 213.5)'
+    destructive: 'oklch(0.704 0.191 22.216)'
   light:
-    background: "oklch(1 0 0)"
-    surface: "oklch(1 0 0)"
-    surface-raised: "oklch(0.963 0.002 197.1)"
-    foreground: "oklch(0.2 0.014 60)"
-    muted-foreground: "oklch(0.5 0.016 60)"
-    primary: "oklch(0.218 0.008 223.9)"
-    primary-foreground: "oklch(0.987 0.002 197.1)"
-    border: "oklch(0.925 0.005 214.3)"
-    input: "oklch(0.925 0.005 214.3)"
-    ring: "oklch(0.723 0.014 214.4)"
-    destructive: "oklch(0.55 0.245 27.325)"
+    background: 'oklch(1 0 0)'
+    surface: 'oklch(1 0 0)'
+    surface-raised: 'oklch(0.963 0.002 197.1)'
+    foreground: 'oklch(0.2 0.014 60)'
+    muted-foreground: 'oklch(0.5 0.016 60)'
+    primary: 'oklch(0.218 0.008 223.9)'
+    primary-foreground: 'oklch(0.987 0.002 197.1)'
+    border: 'oklch(0.925 0.005 214.3)'
+    input: 'oklch(0.925 0.005 214.3)'
+    ring: 'oklch(0.723 0.014 214.4)'
+    destructive: 'oklch(0.55 0.245 27.325)'
   chart:
-    chart-1: "oklch(0.81 0.117 11.638)"
-    chart-2: "oklch(0.645 0.246 16.439)"
-    chart-3: "oklch(0.586 0.253 17.585)"
-    chart-4: "oklch(0.514 0.222 16.935)"
-    chart-5: "oklch(0.455 0.188 13.697)"
+    chart-1: 'oklch(0.81 0.117 11.638)'
+    chart-2: 'oklch(0.645 0.246 16.439)'
+    chart-3: 'oklch(0.586 0.253 17.585)'
+    chart-4: 'oklch(0.514 0.222 16.935)'
+    chart-5: 'oklch(0.455 0.188 13.697)'
 typography:
   family: "'Source Sans 3', sans-serif"
-  weights: "400, 600, 700"
-  caption: "13px / 16px"
-  secondary: "15px / 20px"
-  body: "17px / 24px"
-  title: "20px / 28px"
-  heading: "24px / 32px"
-  display: "32px / 40px"
+  weights: '400, 600, 700'
+  caption: '13px / 16px'
+  secondary: '15px / 20px'
+  body: '17px / 24px'
+  title: '20px / 28px'
+  heading: '24px / 32px'
+  display: '32px / 40px'
 rounded:
-  sm: "6px"
-  md: "8px"
-  lg: "10px"
-  xl: "14px"
-  2xl: "18px"
-  full: "9999px"
+  sm: '6px'
+  md: '8px'
+  lg: '10px'
+  xl: '14px'
+  2xl: '18px'
+  full: '9999px'
 spacing:
-  "1": "4px"
-  "2": "8px"
-  "3": "12px"
-  "4": "16px"
-  "5": "20px"
-  "6": "24px"
-  "8": "32px"
-  "10": "40px"
-  "12": "48px"
+  '1': '4px'
+  '2': '8px'
+  '3': '12px'
+  '4': '16px'
+  '5': '20px'
+  '6': '24px'
+  '8': '32px'
+  '10': '40px'
+  '12': '48px'
 components:
-  touch-target: "48px"
-  primary-action-height: "56px"
-  list-row-height: "64px two lines, 48px one"
-  screen-gutter: "16px"
-  motion-press: "100ms ease-out"
-  motion-state: "150ms ease-out"
-  motion-sheet: "220ms cubic-bezier(0.2, 0, 0, 1)"
-  motion-grow: "200ms cubic-bezier(0.2, 0, 0, 1)"
-  save-highlight: "1200ms"
-  undo-window: "5000ms"
+  touch-target: '48px'
+  primary-action-height: '56px'
+  list-row-height: '64px two lines, 48px one'
+  screen-gutter: '16px'
+  motion-press: '100ms ease-out'
+  motion-state: '150ms ease-out'
+  motion-sheet: '220ms cubic-bezier(0.2, 0, 0, 1)'
+  motion-grow: '200ms cubic-bezier(0.2, 0, 0, 1)'
+  save-highlight: '1200ms'
+  undo-window: '5000ms'
 ---
 
 # Carnatic Wrapped
@@ -95,6 +95,7 @@ The app has two surfaces with opposite jobs:
 through the app: soft, blurred light-rose forms, like a held note seen rather than heard. It is
 generated per Concert from what was played, in the spirit of antfu's generative sketches (line
 and field from simple rules, never illustration):
+
 - a violin draws long bowed waves;
 - a veena draws plucked ripples that fade, abstractly a yazh;
 - three percussionists bring pulse and movement;
@@ -133,8 +134,7 @@ karnatik's "tODi" (catalog-snapshot contract).
   actions, and the destructive red only for delete. **Rose appears only in charts** on the Wrapped
   screen. Rose replaced the preset's emerald because black with green is Spotify's look.
 - **Amber means "something to fix"** (decided 2026-11-03), and only on Settings' season rows
-  ("Storage not protected", offline logging not available): the `warning` token, oklch(0.8 0.15
-  75) in dark and oklch(0.53 0.12 62) in light. It is never used for a failure to save, which
+  ("Storage not protected", offline logging not available): the `warning` token, oklch(0.8 0.15 75) in dark and oklch(0.53 0.12 62) in light. It is never used for a failure to save, which
   stays `destructive`.
 - **Depth by lightness, not shadow** (dark): background → surface (the Now card, the best
   search result) → surface-raised (chips, the search field, sheets). List rows have no fill
@@ -142,15 +142,15 @@ karnatik's "tODi" (catalog-snapshot contract).
 
 Contrast, measured (WCAG 2.x ratios):
 
-| Pair | Dark | Light |
-|---|---|---|
-| foreground on background | 13.7 | 18.1 |
-| muted-foreground on background | 7.9 | 6.0 |
-| muted-foreground on surface-raised | 6.0 | 5.4 |
-| destructive on background | 6.8 | 5.2 |
-| destructive on surface-raised (the failed Undo bar, chips) | 5.1 | 4.6 |
-| warning on background | 10.3 | 5.5 |
-| warning on surface-raised | 7.8 | 4.9 |
+| Pair                                                       | Dark | Light |
+| ---------------------------------------------------------- | ---- | ----- |
+| foreground on background                                   | 13.7 | 18.1  |
+| muted-foreground on background                             | 7.9  | 6.0   |
+| muted-foreground on surface-raised                         | 6.0  | 5.4   |
+| destructive on background                                  | 6.8  | 5.2   |
+| destructive on surface-raised (the failed Undo bar, chips) | 5.1  | 4.6   |
+| warning on background                                      | 10.3 | 5.5   |
+| warning on surface-raised                                  | 7.8  | 4.9   |
 
 **Browser surfaces are themed** (decided 2026-11-01): the text caret uses `foreground`;
 selected text gets `foreground` at 25%; the focus ring is a 2px `ring` outline with a 2px
@@ -166,18 +166,18 @@ splash never show white in dark mode.
 The palette is the 12 colours in last season's Colours sheet (data-model.md). Each swatch is
 drawn with its name below it and a 1px `border` ring, so white shows on light and black on dark.
 
-*Values confirmed 2026-11-01 for the Colour sheet (T042); they may be retuned when the Cards are
+_Values confirmed 2026-11-01 for the Colour sheet (T042); they may be retuned when the Cards are
 designed (T088 to T096). Twelve may prove too few: a fuller picker, a shade square under a hue
-strip, is planned as T118 and changes what a Colour is (2026-11-05).*
+strip, is planned as T118 and changes what a Colour is (2026-11-05)._
 
-| Colour | Value | Colour | Value |
-|---|---|---|---|
-| White | `#F5F3EE` | Brown | `#7A4A2A` |
-| Red | `#C62828` | Pink | `#E87FA8` |
-| Blue | `#1E5AA8` | Beige | `#D9C7A3` |
-| Orange | `#E8711A` | Green | `#2E7D4F` |
+| Colour | Value     | Colour | Value     |
+| ------ | --------- | ------ | --------- |
+| White  | `#F5F3EE` | Brown  | `#7A4A2A` |
+| Red    | `#C62828` | Pink   | `#E87FA8` |
+| Blue   | `#1E5AA8` | Beige  | `#D9C7A3` |
+| Orange | `#E8711A` | Green  | `#2E7D4F` |
 | Yellow | `#F2C230` | Purple | `#6A3D9A` |
-| Black | `#111111` | Grey | `#8C8C8C` |
+| Black  | `#111111` | Grey   | `#8C8C8C` |
 
 ## Typography
 
@@ -187,14 +187,14 @@ may type; the catalog itself is now plain English. Headings use the same family.
 Devanagari fall back to the phone's own fonts on screens; the Cards' fallback depends on the
 renderer (T088).
 
-| Role | Size / line height | Weight | Used for |
-|---|---|---|---|
-| caption | 13 / 16 | 400 | The "Raga" kind word, the "not matched" note, field labels |
-| secondary | 15 / 20 | 400 | Raga · Composer · Tala lines, Appearance roles, chips |
-| body | 17 / 24 | 400, 600 for titles | Everything else; Item titles in 600 |
-| title | 20 / 28 | 600 | Screen headers, the Now card's title |
-| heading | 24 / 32 | 700 | Section heads on home and the Wrapped |
-| display | 32 / 40 | 700 | Wrapped headline numbers ("39 Events · 241 Items") |
+| Role      | Size / line height | Weight              | Used for                                                   |
+| --------- | ------------------ | ------------------- | ---------------------------------------------------------- |
+| caption   | 13 / 16            | 400                 | The "Raga" kind word, the "not matched" note, field labels |
+| secondary | 15 / 20            | 400                 | Raga · Composer · Tala lines, Appearance roles, chips      |
+| body      | 17 / 24            | 400, 600 for titles | Everything else; Item titles in 600                        |
+| title     | 20 / 28            | 600                 | Screen headers, the Now card's title                       |
+| heading   | 24 / 32            | 700                 | Section heads on home and the Wrapped                      |
+| display   | 32 / 40            | 700                 | Wrapped headline numbers ("39 Events · 241 Items")         |
 
 - Body is 17px, so every input is above iOS's 16px zoom threshold (base.css keeps the floor).
 - Numbers that line up in a column (Item numbers, counts) use `font-variant-numeric: tabular-nums`.
@@ -403,7 +403,8 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   - **The Laya vinyasam** is one more row of the Improvised fold (walkthrough S14, decided
     2026-11-05): a "Laya vinyasam" chip, pressed while there is one, like Alapana's. Pressed,
     "+ Nadai" sits beside it and its Note grows open under the row; tapped again, it is removed,
-    note and all, as Alapana takes its Raga with it. Its Nadai stays the Tala's usual nadai until
+    as Alapana takes its Raga with it, but never with a note typed under it: one tap would lose
+    the text, so the tap goes to the note instead, to clear it first. Its Nadai stays the Tala's usual nadai until
     "+ Nadai" is tapped, since many rasikas won't know it; once set, it shows in that place as
     "khanda nadai" (FB-29).
 - **Artist and Sabha pickers** (decided 2026-11-01; T041, FR-004, FR-005): the same docked
@@ -554,14 +555,17 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     Items and Ragas as two `display` numbers (Linked ragas counted once); then, when there are
     any, "First Raga" and "New Composer" with the names. With no Items there is nothing to say,
     and no modal. It does not link into the Wrapped.
-  - It is due an hour after the Concert's last Item changed on this phone, so a past Concert
-    being filled in is never interrupted, and it waits while any Concert is being logged, so it
-    never stands between the rasika and the next Item. One shows per open, the one that ended
-    first.
-  - "Shown" is kept per Event on this phone (`db.meta`), written before the modal opens, and
-    never synced: a restored season shows none. The first time a phone runs this, Concerts that
-    had already ended are marked shown rather than shown. A legacy "Done" in a logging note is
-    read by nothing.
+  - It is due once the Concert is over by both clocks: an hour after its last Item changed on
+    this phone, so a past Concert being filled in is never interrupted, and past its window, so
+    a long piece with no logging never brings a summary of half a Concert. It waits while any
+    Concert was logged in the last hour, so it never stands between the rasika and the next
+    Item. One shows per open, the one that ended first.
+  - "Shown" is kept per Event on this phone (`db.meta`) and never synced: a restored season shows
+    none. It is written only once the summary has been read and is still due, just before it
+    opens, so one that can't be read (or whose catalog is still opening, needed to count Linked
+    ragas once) stays due for the next open. The first time a phone runs this, Concerts
+    that had already ended, or were ended with the old "Done", are marked shown rather than
+    shown. Otherwise a legacy "Done" in a logging note is read by nothing.
 - **Status** (decided 2026-11-01, settling DD6's placement; narrowed 2026-11-03): until sync
   exists (Phase 7), home shows no status line, since every change would count as not backed up.
   With sync it shows one muted line under its title, "Saved on this phone · 4 changes not yet
@@ -611,10 +615,11 @@ finicky"): every change of place now moves, briefly, in CSS only, and nothing wa
 - **Sheets** rise opaque from below the screen over 220ms with the same curve; only the scrim
   fades. A sheet never shows the page through it. Closing, it slides back down the same way
   (P8, FB-44): a screen keeps the sheet it last opened drawn while it closes, so it never just
-  vanishes.
+  vanishes. A closing sheet takes no taps, and focus stays in a sheet opening as another closes.
 - **Folds** are shadcn's Accordion (P8): opening grows to the content's height over 200ms with
   the same curve and closing shrinks back, so what's below slides rather than jumps; the chevron
-  turns with it.
+  turns with it. A fold opens with what's in it when its screen opens; from then on only a tap
+  opens or closes it, so emptying it never folds it away under the finger.
 - **Something opening in place** (the Laya vinyasam's note under its row) grows to its height
   over 200ms as it fades in.
 - **The "⋯" menu** fades and scales in from its button and out again (shadcn's 100ms), from a
@@ -633,12 +638,13 @@ finicky"): every change of place now moves, briefly, in CSS only, and nothing wa
   behind it; a row still waiting keeps its 48px, so nothing under it moves.
 - Under `prefers-reduced-motion: reduce`, nothing moves or grows, and the highlight still shows
   (it carries information), without the fade.
-- *Proposed, with the Cards:* one authored moment, a new stripe weaving into the season's
+- _Proposed, with the Cards:_ one authored moment, a new stripe weaving into the season's
   fabric when a Concert is finished.
 
 ## Do's and Don'ts
 
 **Do**
+
 - Keep "Add Item" and the search box reachable with one thumb at every moment of a Concert.
 - Use the glossary's words (Concert, Item, Raga, Appearance, Sabha) in every label.
 - Write system messages plainly and briefly, with no exclamation marks.
@@ -648,6 +654,7 @@ finicky"): every change of place now moves, briefly, in CSS only, and nothing wa
   TalkBack still read them.
 
 **Don't**
+
 - Don't flash white in dark mode, on launch or between screens.
 - Don't use rose, or any accent colour, outside charts and the motif.
 - Don't put Colours, the note or sync status between the rasika and the next Item.
@@ -661,52 +668,52 @@ Every system message on the logging screens, drafted 2026-11-01 for the Maintain
 (D28). Builders copy these strings rather than writing their own; tests may assert them. The
 voice: plain, short, the glossary's words, no exclamation marks, never blaming the rasika.
 
-| Where | When | Text | Action |
-|---|---|---|---|
-| Welcome | First launch | **Carnatic Wrapped** · "Log the Concerts you attend this December, even with no signal, and see your season whole." | Continue with Google |
-| Sign-in | Cancelled | "Sign-in was cancelled. You need to sign in once before logging." | Try again |
-| Sign-in | No signal | "No signal. Sign-in needs a connection, once, on this phone." | Try again |
-| Sign-in | Google error | "Google couldn't sign you in just now." | Try again |
-| Consent 1 (FR-042) | Question | "Share the Artists, Sabhas and Concerts you add by hand with the person who keeps the shared lists?" | Yes · No |
-| Consent 1 | Reason line | "Only the names, with a count of how many rasikas added them. Never who you are or what you logged. You can change this in Settings." | |
-| Consent 2 (FR-049) | Question | "Include your season, without your name, in reports about the whole December season?" | Yes · No |
-| Consent 2 | Reason line | "Reports show totals across rasikas, never one person's log. You can change this in Settings." | |
-| Getting ready | Downloading | "Getting ready to log offline…" with a progress bar | |
-| Getting ready | Done | "Ready to log offline." | Start |
-| Getting ready | Stopped | "The download stopped. Logging needs it once, with a connection." | Try again |
-| Getting ready | No service worker (Firefox private mode) | "Offline logging isn't available in this browser. You can still log while you have signal." | Start |
-| Home status | Changes waiting, once sync exists (Phase 7) | "Saved on this phone · 4 changes not yet backed up" | (opens sync details) |
-| Home | Not ready for offline yet; clears on its own | "Getting ready for offline…" (muted, a spinner) | |
-| Any screen, top | Open in a phone's browser tab, not installed | iPhone: "Add to Home Screen:" with the Share and Add marks. Android: the Add mark and "Install on this phone". Accessible name: "Install the app so your season stays on this phone. Tap Share, then Add to Home Screen." | Install (Android) |
-| Any screen, top | Android's Install button, its name after "Install." | "Install the app so your season stays on this phone." | |
-| Settings | Offline readiness | "Ready offline" · not ready: "Getting ready for offline…" · amber, no service worker: "Offline logging isn't available in this browser. You can still log while you have signal." | |
-| Settings | Persisted storage | "Storage protected" · amber: "Storage not protected" | |
-| Settings | Export | "Export" with "Last: 2 Nov", or "—" before the first; after a handover its name begins "Exported" | Export |
-| Settings | Versions, small and muted, each label before its version | "App" · "Catalog" | |
-| Home status | All synced | "All backed up" | |
-| Any screen | Session ended (FR-050) | "Sign in again to keep backing up. Logging still works." | Sign in |
-| Any screen | Another phone writes (FR-022) | "Your season is now being logged on another phone. Changes here are kept." | Details |
-| Item or Event | Save failed. An icon-led row: the alert mark and the short label; Try again, Export and Clear are icon buttons whose names carry the sentence. Clear only after an Export, and it asks first | "Not saved" · "Not saved on this phone." | Try again · Export · Clear |
-| Item | A move failed; never retried, the rasika moves it again | "Not moved" · "Not moved on this phone." | Dismiss |
-| Any screen, top | The phone can't keep a copy of values entered (storage full or blocked) | "Not kept on this phone" · "This phone can't keep a copy of what you enter until it's saved. Export now to keep it." | Export |
-| Any screen, top | An Export from "Still opening" timed out: the file holds only the changes not saved, and gets no check badge | The Export's name, after Export: "This Export holds only the changes not saved. Your season was still opening; export again once it opens." | Export |
-| Item, Artist, any screen top | A delete failed; Try again deletes it and offers Undo, Dismiss keeps it. At the top it is named by what it was, as Not deleted · Concert, Mon 2 Nov | "Not deleted" · "Not deleted on this phone." | Try again · Dismiss |
-| Item | A repick failed; never retried, the pick is kept for Export | "Not changed" · "Not changed on this phone." | Export · Dismiss |
-| Any screen, top | Failures no field on screen shows (a new Concert, Start logging, an added Artist, values from before a relaunch). One is named by what it was, as Not saved · Concert, Mon 2 Nov, 9:17 am; several are counted | "2 not saved" · "2 changes not saved on this phone." | Try again · Export · Clear |
-| Clear's sheet | Before Clear removes anything | "Is the Export saved where you can find it?" · "Clearing removes 2 changes from this phone." | Yes, clear · Not yet |
-| Any screen, top | The Export file can't be made at all | "Export failed" · "The Export couldn't be made on this phone." | Try again |
-| Export button | Handed over: a check on the button; from a store that couldn't be read, its name says so | "Exported" · "This Export holds only the changes not saved. The stored season couldn't be read; it's still on this phone." | |
-| Any screen, top | The phone's database is still opening after 10 s; the screen stays | "Still opening your season…" | Export |
-| Rescue screen | The phone's database won't open; the alert mark above the title | "Can't open your season" | Try again · Export |
-| Home | New catalog (FR-038) | "An updated song catalog is ready." | Update · Later |
-| Item search | No match | "No match in the catalog" | |
-| Item search | No catalog | "Catalog not on this phone yet. What you type is kept and can be matched later in Tidy." | |
-| Undo bar | After a delete | "Item 5 deleted" (or "Artist removed", "Concert deleted") | Undo |
-| Undo bar | The Undo itself failed to save. Only the newest failed bar shows, with "+1" for older ones | "Undo failed · Concert" (or "Item 5", "Artist") · "Undo failed: Concert. Not saved on this phone." · "+1" | Try again · Dismiss |
-| Undo bar | A rule refuses the Undo | "Undo failed · Artist · a Lecdem has at most 3 presenters" · "Undo failed: Artist, a Lecdem has at most 3 presenters." | Try again · Dismiss |
-| Undo bar | The Item's or Artist's Concert is deleted | "Undo failed · Item 3 · its Concert is deleted" · "Undo failed: Item 3, its Concert is deleted." | Dismiss |
-| Screen reader | After a delete | "Item 5 deleted. Undo available." | |
-| Screen reader | Search pauses | "5 results" / "No matches" | |
+| Where                        | When                                                                                                                                                                                                           | Text                                                                                                                                                                                                                      | Action                     |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| Welcome                      | First launch                                                                                                                                                                                                   | **Carnatic Wrapped** · "Log the Concerts you attend this December, even with no signal, and see your season whole."                                                                                                       | Continue with Google       |
+| Sign-in                      | Cancelled                                                                                                                                                                                                      | "Sign-in was cancelled. You need to sign in once before logging."                                                                                                                                                         | Try again                  |
+| Sign-in                      | No signal                                                                                                                                                                                                      | "No signal. Sign-in needs a connection, once, on this phone."                                                                                                                                                             | Try again                  |
+| Sign-in                      | Google error                                                                                                                                                                                                   | "Google couldn't sign you in just now."                                                                                                                                                                                   | Try again                  |
+| Consent 1 (FR-042)           | Question                                                                                                                                                                                                       | "Share the Artists, Sabhas and Concerts you add by hand with the person who keeps the shared lists?"                                                                                                                      | Yes · No                   |
+| Consent 1                    | Reason line                                                                                                                                                                                                    | "Only the names, with a count of how many rasikas added them. Never who you are or what you logged. You can change this in Settings."                                                                                     |                            |
+| Consent 2 (FR-049)           | Question                                                                                                                                                                                                       | "Include your season, without your name, in reports about the whole December season?"                                                                                                                                     | Yes · No                   |
+| Consent 2                    | Reason line                                                                                                                                                                                                    | "Reports show totals across rasikas, never one person's log. You can change this in Settings."                                                                                                                            |                            |
+| Getting ready                | Downloading                                                                                                                                                                                                    | "Getting ready to log offline…" with a progress bar                                                                                                                                                                       |                            |
+| Getting ready                | Done                                                                                                                                                                                                           | "Ready to log offline."                                                                                                                                                                                                   | Start                      |
+| Getting ready                | Stopped                                                                                                                                                                                                        | "The download stopped. Logging needs it once, with a connection."                                                                                                                                                         | Try again                  |
+| Getting ready                | No service worker (Firefox private mode)                                                                                                                                                                       | "Offline logging isn't available in this browser. You can still log while you have signal."                                                                                                                               | Start                      |
+| Home status                  | Changes waiting, once sync exists (Phase 7)                                                                                                                                                                    | "Saved on this phone · 4 changes not yet backed up"                                                                                                                                                                       | (opens sync details)       |
+| Home                         | Not ready for offline yet; clears on its own                                                                                                                                                                   | "Getting ready for offline…" (muted, a spinner)                                                                                                                                                                           |                            |
+| Any screen, top              | Open in a phone's browser tab, not installed                                                                                                                                                                   | iPhone: "Add to Home Screen:" with the Share and Add marks. Android: the Add mark and "Install on this phone". Accessible name: "Install the app so your season stays on this phone. Tap Share, then Add to Home Screen." | Install (Android)          |
+| Any screen, top              | Android's Install button, its name after "Install."                                                                                                                                                            | "Install the app so your season stays on this phone."                                                                                                                                                                     |                            |
+| Settings                     | Offline readiness                                                                                                                                                                                              | "Ready offline" · not ready: "Getting ready for offline…" · amber, no service worker: "Offline logging isn't available in this browser. You can still log while you have signal."                                         |                            |
+| Settings                     | Persisted storage                                                                                                                                                                                              | "Storage protected" · amber: "Storage not protected"                                                                                                                                                                      |                            |
+| Settings                     | Export                                                                                                                                                                                                         | "Export" with "Last: 2 Nov", or "—" before the first; after a handover its name begins "Exported"                                                                                                                         | Export                     |
+| Settings                     | Versions, small and muted, each label before its version                                                                                                                                                       | "App" · "Catalog"                                                                                                                                                                                                         |                            |
+| Home status                  | All synced                                                                                                                                                                                                     | "All backed up"                                                                                                                                                                                                           |                            |
+| Any screen                   | Session ended (FR-050)                                                                                                                                                                                         | "Sign in again to keep backing up. Logging still works."                                                                                                                                                                  | Sign in                    |
+| Any screen                   | Another phone writes (FR-022)                                                                                                                                                                                  | "Your season is now being logged on another phone. Changes here are kept."                                                                                                                                                | Details                    |
+| Item or Event                | Save failed. An icon-led row: the alert mark and the short label; Try again, Export and Clear are icon buttons whose names carry the sentence. Clear only after an Export, and it asks first                   | "Not saved" · "Not saved on this phone."                                                                                                                                                                                  | Try again · Export · Clear |
+| Item                         | A move failed; never retried, the rasika moves it again                                                                                                                                                        | "Not moved" · "Not moved on this phone."                                                                                                                                                                                  | Dismiss                    |
+| Any screen, top              | The phone can't keep a copy of values entered (storage full or blocked)                                                                                                                                        | "Not kept on this phone" · "This phone can't keep a copy of what you enter until it's saved. Export now to keep it."                                                                                                      | Export                     |
+| Any screen, top              | An Export from "Still opening" timed out: the file holds only the changes not saved, and gets no check badge                                                                                                   | The Export's name, after Export: "This Export holds only the changes not saved. Your season was still opening; export again once it opens."                                                                               | Export                     |
+| Item, Artist, any screen top | A delete failed; Try again deletes it and offers Undo, Dismiss keeps it. At the top it is named by what it was, as Not deleted · Concert, Mon 2 Nov                                                            | "Not deleted" · "Not deleted on this phone."                                                                                                                                                                              | Try again · Dismiss        |
+| Item                         | A repick failed; never retried, the pick is kept for Export                                                                                                                                                    | "Not changed" · "Not changed on this phone."                                                                                                                                                                              | Export · Dismiss           |
+| Any screen, top              | Failures no field on screen shows (a new Concert, Start logging, an added Artist, values from before a relaunch). One is named by what it was, as Not saved · Concert, Mon 2 Nov, 9:17 am; several are counted | "2 not saved" · "2 changes not saved on this phone."                                                                                                                                                                      | Try again · Export · Clear |
+| Clear's sheet                | Before Clear removes anything                                                                                                                                                                                  | "Is the Export saved where you can find it?" · "Clearing removes 2 changes from this phone."                                                                                                                              | Yes, clear · Not yet       |
+| Any screen, top              | The Export file can't be made at all                                                                                                                                                                           | "Export failed" · "The Export couldn't be made on this phone."                                                                                                                                                            | Try again                  |
+| Export button                | Handed over: a check on the button; from a store that couldn't be read, its name says so                                                                                                                       | "Exported" · "This Export holds only the changes not saved. The stored season couldn't be read; it's still on this phone."                                                                                                |                            |
+| Any screen, top              | The phone's database is still opening after 10 s; the screen stays                                                                                                                                             | "Still opening your season…"                                                                                                                                                                                              | Export                     |
+| Rescue screen                | The phone's database won't open; the alert mark above the title                                                                                                                                                | "Can't open your season"                                                                                                                                                                                                  | Try again · Export         |
+| Home                         | New catalog (FR-038)                                                                                                                                                                                           | "An updated song catalog is ready."                                                                                                                                                                                       | Update · Later             |
+| Item search                  | No match                                                                                                                                                                                                       | "No match in the catalog"                                                                                                                                                                                                 |                            |
+| Item search                  | No catalog                                                                                                                                                                                                     | "Catalog not on this phone yet. What you type is kept and can be matched later in Tidy."                                                                                                                                  |                            |
+| Undo bar                     | After a delete                                                                                                                                                                                                 | "Item 5 deleted" (or "Artist removed", "Concert deleted")                                                                                                                                                                 | Undo                       |
+| Undo bar                     | The Undo itself failed to save. Only the newest failed bar shows, with "+1" for older ones                                                                                                                     | "Undo failed · Concert" (or "Item 5", "Artist") · "Undo failed: Concert. Not saved on this phone." · "+1"                                                                                                                 | Try again · Dismiss        |
+| Undo bar                     | A rule refuses the Undo                                                                                                                                                                                        | "Undo failed · Artist · a Lecdem has at most 3 presenters" · "Undo failed: Artist, a Lecdem has at most 3 presenters."                                                                                                    | Try again · Dismiss        |
+| Undo bar                     | The Item's or Artist's Concert is deleted                                                                                                                                                                      | "Undo failed · Item 3 · its Concert is deleted" · "Undo failed: Item 3, its Concert is deleted."                                                                                                                          | Dismiss                    |
+| Screen reader                | After a delete                                                                                                                                                                                                 | "Item 5 deleted. Undo available."                                                                                                                                                                                         |                            |
+| Screen reader                | Search pauses                                                                                                                                                                                                  | "5 results" / "No matches"                                                                                                                                                                                                |                            |
 
 ## Still open
 
@@ -735,23 +742,23 @@ in the phase that builds it):
 
 ## Decisions Log
 
-| Date | Decision |
-|---|---|
-| 2026-10-31 | Preset `b51rn04Qt`; shadcn/ui and Tailwind (ADR 0006); Source Sans 3 everywhere; rose for charts. |
-| 2026-11-01 | Warm text; dark by default; the six Detail states; screen behaviour (save, delete, reorder, colour sheet, finishing a Concert); plain English names. |
-| 2026-11-01 | Preview of the Event screen and Item editor approved. |
-| 2026-11-01 | Tokens: 17px body on a 13–32 scale, 4px spacing, 48px targets and 56px main actions, the motion rules. |
-| 2026-11-01 | Design review (`/plan-design-review`, D3 to D29): Now and Done, the Event and Item editor bars, top bars, first launch, states, save failure, Undo, rows not cards, softened dark text, larger text, focus, Detail input, pickers, Colour sheet, Messages. The record is in `specs/001-season-logger/reviews.md`. |
-| 2026-11-02 | Review of PR #5, the Maintainer's answers: "2 changes not saved on this phone." at the top of any screen for failures no field shows; "The Export couldn't be made on this phone."; "Offline logging isn't available in this browser. You can still log while you have signal." with Start; a failed Undo keeps its bar ("Concert deleted. Not saved on this phone." with Try again); failed values also copied to localStorage for Export after a relaunch; at 150% text and up, the Item search's form chips scroll in one row. |
-| 2026-11-02 | Second review of PR #5, the Maintainer's answers: "Clear" after an Export for values Try again can't save; the rescue screen when the store won't open, and the `-store-unreadable` Export with its line; a failed Undo stays, with "Dismiss", and a new Undo bar stacks under it; a rule's refusal shown on the bar; a failure in an open sheet shows in the sheet. With the same review, the form chips scroll in one row whenever they don't fit, decided by the row itself rather than the text size (Android scales text by zoom); the light `destructive` darkened from 0.577 to 0.55 lightness, so it passes AA on surface-raised (4.6:1); the season-wide line moved under the top bar (under the title on home and Settings). |
-| 2026-11-02 | Third review of PR #5, the Maintainer's answers: the rescue model simplified to one journal (docs/adr/0007); icon-led safety rows (Tabler IconAlertCircle, IconRefresh, IconDownload, IconTrash, IconX) with the short labels "Not saved", "Not moved", "Not changed", "Export failed"; Clear asks "Is the Export saved where you can find it?"; the rescue screen "Can't open your season" with a check on Export; "Still opening your season…"; only the newest failed Undo bar, with "+1"; "Can't undo: its Concert is deleted". |
-| 2026-11-02 | After the round-3 screenshots, the Maintainer's answers: a failed Undo bar names what failed, "Undo failed · Item 2" (not "Item 2 deleted" in red), and never covers a field; "Still opening your season…" is muted, with a spinner and no alert mark; after an Export the download icon stays the button, with a small check badge that is no button of its own, on the rows and the rescue screen. |
-| 2026-11-02 | Fourth review of PR #5, the Maintainer's answers: fixed by class, not per finding; a failed delete reads "Not deleted" ("Not deleted · Concert, Mon 2 Nov"), and its Try again deletes and offers Undo; a row shows one kind of failure; Dismiss acts only on moves and repicks; "Not kept on this phone" when the phone can't keep a copy of values entered; an Export from "Still opening" that times out is named `-not-saved`, marked `storeTimedOut`, and gets no check badge. |
-| 2026-11-02 | Direction, not yet designed: the ethereal rose motif, generated per Concert from its instruments, is the logo and the ground of the Cards, and stays out of the logging surfaces. "Prefer a mark to a sentence." Rose is allowed in the motif as well as charts. |
-| 2026-11-03 | After the round-4 screenshots, the Maintainer's answer: a "Not deleted" row offers Try again and Dismiss, not Export; Dismiss keeps the record after all, taking only the delete entry and leaving the store as it is. |
-| 2026-11-03 | Phase 4 design, the Maintainer's answers: Export lives in Settings, with its last date, and the Event's "⋯" keeps only Delete; home shows no status line until sync, and only "Getting ready for offline…" while the app isn't ready; the install row is persistent and drawn as Safari's marks on iPhone and an Install button on Android; Settings puts the season first (offline, storage protected, Export), then the theme, then the versions. |
-| 2026-11-04 | The iPhone walkthrough's shape decisions S1 to S12 (`docs/feedback/2026-11-iphone-walkthrough.md`): "+ Log a Concert" always in the Season page's bottom bar, the open Concert a card; Events known by their vocal, veena or flute Artists (a Lecdem's presenters), the Sabha, date and time on the line under them; the Event screen runs heading, Stage, Note, Items; Stage listed by Role with no "Edit order"; an Artist's name corrected from their sheet, the old name kept as an Alias; the usual Role chosen for a known Artist; "Remove" with the bin mark; Role chips capitalised; Done the filled main button at the right of the Item editor's bar; "Item 8" an eyebrow; more room under a field's label and a taller facts line; "Running order" now "Items". |
-| 2026-11-03 | After the Phase 4 screenshots, the Maintainer's answers: the Settings Export row is never amber; Android's install row leads with the same Add mark as the iPhone row; accepted as built: Android's Install button named without Safari's steps, the row hidden while Chrome offers no install, the › between the iPhone marks, the amber `warning` token (oklch(0.8 0.15 75) dark, oklch(0.53 0.12 62) light), "Getting ready for offline…" with a muted spinner and an amber row where there is no service worker, and the "App" and "Catalog" version lines. |
-| 2026-11-04 | The UI hill-climb (FB-30, themes 3 and 4), as built for the Maintainer to check on the iPhone: line heights on the 4px grid; 64px and 48px rows with the hairline drawn inside; section labels 32px under the block above; text on the 16px gutter with fills reaching past it; pushed screens and sheets that move; folds that grow open; a softer save highlight (FB-28); the Laya vinyasam as a mark in Item rows (FB-27); Raga results on one line; the facts sheet's date and time written as the app writes them ("Mon 14 Dec", "6:00 pm") over the phone's own pickers; the Artist sheet's Colours button showing the colours. |
+| Date       | Decision                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-10-31 | Preset `b51rn04Qt`; shadcn/ui and Tailwind (ADR 0006); Source Sans 3 everywhere; rose for charts.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| 2026-11-01 | Warm text; dark by default; the six Detail states; screen behaviour (save, delete, reorder, colour sheet, finishing a Concert); plain English names.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 2026-11-01 | Preview of the Event screen and Item editor approved.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| 2026-11-01 | Tokens: 17px body on a 13–32 scale, 4px spacing, 48px targets and 56px main actions, the motion rules.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| 2026-11-01 | Design review (`/plan-design-review`, D3 to D29): Now and Done, the Event and Item editor bars, top bars, first launch, states, save failure, Undo, rows not cards, softened dark text, larger text, focus, Detail input, pickers, Colour sheet, Messages. The record is in `specs/001-season-logger/reviews.md`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| 2026-11-02 | Review of PR #5, the Maintainer's answers: "2 changes not saved on this phone." at the top of any screen for failures no field shows; "The Export couldn't be made on this phone."; "Offline logging isn't available in this browser. You can still log while you have signal." with Start; a failed Undo keeps its bar ("Concert deleted. Not saved on this phone." with Try again); failed values also copied to localStorage for Export after a relaunch; at 150% text and up, the Item search's form chips scroll in one row.                                                                                                                                                                                                                                                                                                            |
+| 2026-11-02 | Second review of PR #5, the Maintainer's answers: "Clear" after an Export for values Try again can't save; the rescue screen when the store won't open, and the `-store-unreadable` Export with its line; a failed Undo stays, with "Dismiss", and a new Undo bar stacks under it; a rule's refusal shown on the bar; a failure in an open sheet shows in the sheet. With the same review, the form chips scroll in one row whenever they don't fit, decided by the row itself rather than the text size (Android scales text by zoom); the light `destructive` darkened from 0.577 to 0.55 lightness, so it passes AA on surface-raised (4.6:1); the season-wide line moved under the top bar (under the title on home and Settings).                                                                                                       |
+| 2026-11-02 | Third review of PR #5, the Maintainer's answers: the rescue model simplified to one journal (docs/adr/0007); icon-led safety rows (Tabler IconAlertCircle, IconRefresh, IconDownload, IconTrash, IconX) with the short labels "Not saved", "Not moved", "Not changed", "Export failed"; Clear asks "Is the Export saved where you can find it?"; the rescue screen "Can't open your season" with a check on Export; "Still opening your season…"; only the newest failed Undo bar, with "+1"; "Can't undo: its Concert is deleted".                                                                                                                                                                                                                                                                                                          |
+| 2026-11-02 | After the round-3 screenshots, the Maintainer's answers: a failed Undo bar names what failed, "Undo failed · Item 2" (not "Item 2 deleted" in red), and never covers a field; "Still opening your season…" is muted, with a spinner and no alert mark; after an Export the download icon stays the button, with a small check badge that is no button of its own, on the rows and the rescue screen.                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 2026-11-02 | Fourth review of PR #5, the Maintainer's answers: fixed by class, not per finding; a failed delete reads "Not deleted" ("Not deleted · Concert, Mon 2 Nov"), and its Try again deletes and offers Undo; a row shows one kind of failure; Dismiss acts only on moves and repicks; "Not kept on this phone" when the phone can't keep a copy of values entered; an Export from "Still opening" that times out is named `-not-saved`, marked `storeTimedOut`, and gets no check badge.                                                                                                                                                                                                                                                                                                                                                          |
+| 2026-11-02 | Direction, not yet designed: the ethereal rose motif, generated per Concert from its instruments, is the logo and the ground of the Cards, and stays out of the logging surfaces. "Prefer a mark to a sentence." Rose is allowed in the motif as well as charts.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| 2026-11-03 | After the round-4 screenshots, the Maintainer's answer: a "Not deleted" row offers Try again and Dismiss, not Export; Dismiss keeps the record after all, taking only the delete entry and leaving the store as it is.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| 2026-11-03 | Phase 4 design, the Maintainer's answers: Export lives in Settings, with its last date, and the Event's "⋯" keeps only Delete; home shows no status line until sync, and only "Getting ready for offline…" while the app isn't ready; the install row is persistent and drawn as Safari's marks on iPhone and an Install button on Android; Settings puts the season first (offline, storage protected, Export), then the theme, then the versions.                                                                                                                                                                                                                                                                                                                                                                                          |
+| 2026-11-04 | The iPhone walkthrough's shape decisions S1 to S12 (`docs/feedback/2026-11-iphone-walkthrough.md`): "+ Log a Concert" always in the Season page's bottom bar, the open Concert a card; Events known by their vocal, veena or flute Artists (a Lecdem's presenters), the Sabha, date and time on the line under them; the Event screen runs heading, Stage, Note, Items; Stage listed by Role with no "Edit order"; an Artist's name corrected from their sheet, the old name kept as an Alias; the usual Role chosen for a known Artist; "Remove" with the bin mark; Role chips capitalised; Done the filled main button at the right of the Item editor's bar; "Item 8" an eyebrow; more room under a field's label and a taller facts line; "Running order" now "Items".                                                                   |
+| 2026-11-03 | After the Phase 4 screenshots, the Maintainer's answers: the Settings Export row is never amber; Android's install row leads with the same Add mark as the iPhone row; accepted as built: Android's Install button named without Safari's steps, the row hidden while Chrome offers no install, the › between the iPhone marks, the amber `warning` token (oklch(0.8 0.15 75) dark, oklch(0.53 0.12 62) light), "Getting ready for offline…" with a muted spinner and an amber row where there is no service worker, and the "App" and "Catalog" version lines.                                                                                                                                                                                                                                                                              |
+| 2026-11-04 | The UI hill-climb (FB-30, themes 3 and 4), as built for the Maintainer to check on the iPhone: line heights on the 4px grid; 64px and 48px rows with the hairline drawn inside; section labels 32px under the block above; text on the 16px gutter with fills reaching past it; pushed screens and sheets that move; folds that grow open; a softer save highlight (FB-28); the Laya vinyasam as a mark in Item rows (FB-27); Raga results on one line; the facts sheet's date and time written as the app writes them ("Mon 14 Dec", "6:00 pm") over the phone's own pickers; the Artist sheet's Colours button showing the colours.                                                                                                                                                                                                        |
 | 2026-11-05 | The iPhone walkthrough's second pass (FB-31 to FB-44), agreed: no "Done with this Concert"; a Concert ends on its own and its summary shows once as a modal on the next open after it ends (S13); one Improvised fold with the Laya vinyasam as a row (S14). The builder's calls, P1 to P10: Done on the Item page stays; one row style for every value (muted label, underlined value, weight and contrast for importance, a muted "+" to add); chips only for short fixed sets; forms in sentence case; the Item kinds' hairline 8px under them; the Note in a fold, open when it has text; no save highlight on chips, toggles, typed text or a dropped row; sheets slide back down and folds are shadcn's Accordion; shadcn primitives with their motion, the "⋯" menu fading and scaling in; Settings drawn whole from its first frame. |
-| 2026-11-05 | The Maintainer's answers on the hill-climb's parked choices: Season's title stays smaller than its section heads (DESIGN.md's type roles, as written); Edit order rows hold one line each; Items reorder by dragging a grip, the arrows kept for VoiceOver (FB-26); the Laya vinyasam's Nadai behind "+ Nadai" (FB-29); a two-tone outfit as one circle, half and half (FB-13). The Colour sheet keeps its circles, in the colour wheel's order; a fuller picker (a shade square under a hue strip) is planned as T118, since twelve colours may prove too few. |
+| 2026-11-05 | The Maintainer's answers on the hill-climb's parked choices: Season's title stays smaller than its section heads (DESIGN.md's type roles, as written); Edit order rows hold one line each; Items reorder by dragging a grip, the arrows kept for VoiceOver (FB-26); the Laya vinyasam's Nadai behind "+ Nadai" (FB-29); a two-tone outfit as one circle, half and half (FB-13). The Colour sheet keeps its circles, in the colour wheel's order; a fuller picker (a shade square under a hue strip) is planned as T118, since twelve colours may prove too few.                                                                                                                                                                                                                                                                              |
