@@ -167,7 +167,8 @@ The palette is the 12 colours in last season's Colours sheet (data-model.md). Ea
 drawn with its name below it and a 1px `border` ring, so white shows on light and black on dark.
 
 *Values confirmed 2026-11-01 for the Colour sheet (T042); they may be retuned when the Cards are
-designed (T088 to T096):*
+designed (T088 to T096). Twelve may prove too few: a fuller picker, a shade square under a hue
+strip, is planned as T118 and changes what a Colour is (2026-11-05).*
 
 | Colour | Value | Colour | Value |
 |---|---|---|---|
@@ -510,7 +511,9 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
 - **Colour sheet:** a grid of the 12 labelled swatches plus "?", then an optional second colour
   for a two-tone outfit. Behaviour (decided 2026-11-01, T042):
   - The sheet's title names the Artist: "Colours · T. M. Krishna".
-  - 56px swatches with their names below, four to a row (three at large text sizes).
+  - 56px swatches with their names below, four to a row (three at large text sizes), in the
+    colour wheel's order: red, orange, yellow, green, blue, purple, pink, then beige and brown,
+    then white, grey and black, then "?" (FB-13, decided 2026-11-05).
   - A tap selects and saves at once, like every other value: a check mark plus a 2px
     `foreground` ring. "?" means the rasika didn't notice.
   - Below the grid, "Second colour" opens the same grid; "Remove second colour" appears once
@@ -704,4 +707,4 @@ in the phase that builds it):
 | 2026-11-04 | The iPhone walkthrough's shape decisions S1 to S12 (`docs/feedback/2026-11-iphone-walkthrough.md`): "+ Log a Concert" always in the Season page's bottom bar, the open Concert a card; Events known by their vocal, veena or flute Artists (a Lecdem's presenters), the Sabha, date and time on the line under them; the Event screen runs heading, Stage, Note, Items; Stage listed by Role with no "Edit order"; an Artist's name corrected from their sheet, the old name kept as an Alias; the usual Role chosen for a known Artist; "Remove" with the bin mark; Role chips capitalised; Done the filled main button at the right of the Item editor's bar; "Item 8" an eyebrow; more room under a field's label and a taller facts line; "Running order" now "Items". |
 | 2026-11-03 | After the Phase 4 screenshots, the Maintainer's answers: the Settings Export row is never amber; Android's install row leads with the same Add mark as the iPhone row; accepted as built: Android's Install button named without Safari's steps, the row hidden while Chrome offers no install, the › between the iPhone marks, the amber `warning` token (oklch(0.8 0.15 75) dark, oklch(0.53 0.12 62) light), "Getting ready for offline…" with a muted spinner and an amber row where there is no service worker, and the "App" and "Catalog" version lines. |
 | 2026-11-04 | The UI hill-climb (FB-30, themes 3 and 4), as built for the Maintainer to check on the iPhone: line heights on the 4px grid; 64px and 48px rows with the hairline drawn inside; section labels 32px under the block above; text on the 16px gutter with fills reaching past it; pushed screens and sheets that move; folds that grow open; a softer save highlight (FB-28); the Laya vinyasam as a mark in Item rows (FB-27); Raga results on one line; the facts sheet's date and time written as the app writes them ("Mon 14 Dec", "6:00 pm") over the phone's own pickers; the Artist sheet's Colours button showing the colours. |
-| 2026-11-05 | The Maintainer's answers on the hill-climb's parked choices: Season's title stays smaller than its section heads (DESIGN.md's type roles, as written); Edit order rows hold one line each; Items reorder by dragging a grip, the arrows kept for VoiceOver (FB-26); the Laya vinyasam's Nadai behind "+ Nadai" (FB-29); a two-tone outfit as one circle, half and half (FB-13). The Colour sheet's layout is still open: the Maintainer likes the wheel but leans to a rectangle. |
+| 2026-11-05 | The Maintainer's answers on the hill-climb's parked choices: Season's title stays smaller than its section heads (DESIGN.md's type roles, as written); Edit order rows hold one line each; Items reorder by dragging a grip, the arrows kept for VoiceOver (FB-26); the Laya vinyasam's Nadai behind "+ Nadai" (FB-29); a two-tone outfit as one circle, half and half (FB-13). The Colour sheet keeps its circles, in the colour wheel's order; a fuller picker (a shade square under a hue strip) is planned as T118, since twelve colours may prove too few. |

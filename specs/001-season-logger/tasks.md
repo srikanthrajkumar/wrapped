@@ -504,6 +504,7 @@ Merge the Artists, match the raga, and confirm all Appearances and the Wrapped u
 
   Measure its first-install cost against the size budget
 - [ ] T117 [P] Copy pass, "Prefer a mark to a sentence" (DESIGN.md, "Do's and Don'ts"): cut on-screen words wherever an icon, the motif or a familiar shape already says it, keeping the words in accessible names. Then update the Messages table and `app/src/screens/messages.ts` together
+- [ ] T118 More outfit colours (Maintainer, 2026-11-05, after FB-13): the 12 swatches may prove too few. Explore a fuller picker, a shade square under a hue strip, with the 12 kept as quick picks. It changes what a Colour is (`data-model.md`, the store, sync and the Wrapped's colour counts, which would group shades back to a named colour), so it needs its own design and an ADR before it is built
 - [ ] T115 Create the read-only view for season reports in `supabase/migrations/0007_report_view.sql`. It includes only seasons whose `season_reports` is true, has no rasika id, name, email or notes, and is the only thing the end-of-season DuckDB report reads (FR-048). The report never breaks down Items or their Details by Artist (FR-052). The view lives in the same private schema as the candidates view, with no grant for anonymous users or rasikas (eng review D5). The end-of-season DuckDB report connects as a role that can read only this view (outside voice 10)
 
 ---

@@ -1,5 +1,5 @@
-// The Colour sheet (T042; DESIGN.md "Colour sheet", design D27): the 12 labelled swatches plus
-// "?", four to a row (three at large text sizes). A tap selects and saves at once, shown by a
+// The Colour sheet (T042; DESIGN.md "Colour sheet", design D27): the 12 labelled swatches in the
+// colour wheel's order plus "?", four to a row (three at large text sizes). A tap selects and saves at once, shown by a
 // check mark and a 2px foreground ring. Below the grid, "Second colour" opens the same grid for
 // a two-tone outfit, and "Remove second colour" appears once one is set. Black, White and Grey
 // always carry a 2px ring border, so they stand off the sheet in both themes.
@@ -28,20 +28,21 @@ export const SWATCHES: Record<Colour, string> = {
   grey: '#8C8C8C',
 };
 
-// The order of last season's Colours sheet, as DESIGN.md's table reads across.
+// The colour wheel's order, unrolled (FB-13, decided 2026-11-05): the hues from red round to
+// pink, then the earth tones, then white to black. Four to a row, the neutrals close the grid.
 const ORDER: Colour[] = [
-  'white',
-  'brown',
   'red',
-  'pink',
-  'blue',
-  'beige',
   'orange',
-  'green',
   'yellow',
+  'green',
+  'blue',
   'purple',
-  'black',
+  'pink',
+  'beige',
+  'brown',
+  'white',
   'grey',
+  'black',
 ];
 
 const EDGED: readonly Colour[] = ['black', 'white', 'grey'];
