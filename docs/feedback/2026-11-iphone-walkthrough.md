@@ -146,7 +146,7 @@ Small visual details beyond these are the builder's call, from DESIGN.md, stated
 |---|---|---|
 | 1, 2 (S1 to S12) | PR #11 | Merged 2026-11-04 |
 | 3, 4 | PR #12, the UI hill-climb (method in `ui-hill-climb.md`) | Merged 2026-11-05; lowest council score 5.5 to 7 over six rounds |
-| 7, 8, 9 (S13, S14, P1 to P10) | Branch `claude/walkthrough-2nd-pass-97d2ea` | Built 2026-11-05, for the Maintainer to check on the iPhone |
+| 7, 8, 9 (S13, S14, P1 to P10) | PR #14 | Built 2026-11-05, for the Maintainer to check on the iPhone |
 | 5, 6 | | Open |
 
 The hill-climb's parked choices, answered 2026-11-05: Items reorder by dragging a grip, with
