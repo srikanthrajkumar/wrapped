@@ -12,6 +12,7 @@ import {
   IconChevronRight,
   IconClock,
   IconDots,
+  IconGripVertical,
   IconMetronome,
   IconPlus,
   IconTrash,
@@ -28,6 +29,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 import { fold } from '../catalog/fold';
 import { useCatalog } from '../catalog/use-catalog';
 import { newId, type Colour, type Item, type Role } from '../model';
@@ -52,6 +54,7 @@ import { joinNames, knownBy } from '../store/stage';
 import { ColourPicker, colourName, SwatchDot } from './components/ColourPicker';
 import { NotSavedLine, saveWith, Saved, useSaveFeedback } from './components/feedback';
 import { useAutosave } from './components/autosave';
+import { useDragOrder } from './components/drag-order';
 import {
   BottomDock,
   QuietButton,
@@ -123,6 +126,15 @@ function EventView({ eventId }: { eventId: string }) {
   const setFocusAfter = (next: { list: 'items' | 'stage'; index: number }) => {
     focusAfter.current = next;
   };
+  // A move is never retried: "Not moved", and the rasika moves it again.
+  const moveItem = (id: string, by: number) =>
+    saveWith(
+      { table: 'items', id, field: 'position' },
+      (items?.findIndex((item) => item.id === id) ?? 0) + by + 1,
+      () => moveItemBy(id, by),
+      { kind: 'move' },
+    );
+  const drag = useDragOrder({ ids: items?.map((item) => item.id) ?? [], onDrop: moveItem });
 
   useEffect(() => {
     const pending = focusAfter.current;
@@ -288,8 +300,21 @@ function EventView({ eventId }: { eventId: string }) {
             Items
           </SectionHead>
           <ol className="hairline-t">
-            {items.map((item, index) => (
-              <li key={item.id} className="hairline-b">
+            {(order === 'items'
+              ? drag.order.map((id, index) => ({
+                  // Numbered as they stand, so a dropped row takes its new number at once.
+                  ...items.find((item) => item.id === id)!,
+                  position: index + 1,
+                }))
+              : items
+            ).map((item, index) => (
+              <li
+                key={item.id}
+                ref={drag.rowRef(item.id)}
+                style={order === 'items' ? drag.style(item.id) : undefined}
+                // The lifted row leaves its hairline behind.
+                className={drag.lifted === item.id ? undefined : 'hairline-b'}
+              >
                 <Saved
                   target={['*', 'position', 'deletedAt'].map((field) => ({
                     table: 'items' as const,
@@ -298,35 +323,41 @@ function EventView({ eventId }: { eventId: string }) {
                   }))}
                 >
                   {order === 'items' ? (
-                    // At large text the move and delete controls wrap under the title.
-                    <div className="flex min-h-16 flex-wrap items-center justify-end py-2">
+                    // One line each while ordering, so every row is 64px; the full names show
+                    // outside it. At large text the controls wrap under the title.
+                    <div
+                      className={cn(
+                        'relative -mx-2 flex min-h-16 flex-wrap items-center justify-end rounded-xl py-2 pl-2',
+                        drag.lifted === item.id && 'bg-secondary shadow-lg dark:shadow-none',
+                      )}
+                    >
                       <span className="flex min-w-[min(100%,calc(12*var(--text-body)))] flex-1 items-start gap-3">
-                        <ItemLabel item={item} />
+                        <ItemLabel item={item} oneLine />
                       </span>
+                      {/* The arrows stay for VoiceOver and the keyboard; the grip is for a finger. */}
                       <MoveButtons
                         name={`Item ${item.position}`}
                         first={index === 0}
                         last={index === items.length - 1}
-                        onMove={(by) =>
-                          // A move is never retried: "Not moved", and the rasika moves it again.
-                          void saveWith(
-                            { table: 'items', id: item.id, field: 'position' },
-                            index + by + 1,
-                            () => moveItemBy(item.id, by),
-                            { kind: 'move' },
-                          )
-                        }
+                        onMove={(by) => void moveItem(item.id, by)}
                       />
                       <Button
                         variant="ghost"
                         size="icon"
                         aria-label={`Delete Item ${item.position}`}
-                        // The bin's mark ends on the gutter.
-                        className="-mr-3.5"
                         onClick={() => void removeItemAt(item, index)}
                       >
                         <IconTrash aria-hidden />
                       </Button>
+                      <span
+                        aria-hidden
+                        data-grip
+                        {...drag.grip(item.id)}
+                        // The grip's mark ends on the gutter; the page doesn't scroll under it.
+                        className="-mr-2 flex size-12 shrink-0 cursor-grab touch-none items-center justify-center text-muted-foreground select-none [-webkit-touch-callout:none] active:cursor-grabbing"
+                      >
+                        <IconGripVertical />
+                      </span>
                     </div>
                   ) : (
                     <Link
@@ -745,8 +776,9 @@ function AppearanceSheet({
         />
         <Button variant="outline" onClick={onColours}>
           {/* The button carries the mark it sets, as the Stage row does. */}
-          {appearance.colourPrimary && <SwatchDot colour={appearance.colourPrimary} />}
-          {appearance.colourSecondary && <SwatchDot colour={appearance.colourSecondary} />}
+          {appearance.colourPrimary && (
+            <SwatchDot colour={appearance.colourPrimary} second={appearance.colourSecondary} />
+          )}
           Colours
         </Button>
         <Button variant="destructive" onClick={onRemove}>
@@ -765,16 +797,17 @@ function saveRole(appearanceId: string, role: Role | null) {
 }
 
 /** An Item row's text: number, title, then Raga · Composer. */
-function ItemLabel({ item }: { item: Item }) {
+function ItemLabel({ item, oneLine = false }: { item: Item; oneLine?: boolean }) {
   const line = itemLine(item);
+  const fit = oneLine ? 'truncate' : 'break-words';
   return (
     <>
       <span className="min-w-[2ch] text-right text-muted-foreground tabular-nums">
         {item.position}
       </span>
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="flex flex-wrap items-center gap-2">
-          <span className="font-semibold break-words">{itemTitle(item)}</span>
+        <span className={cn('flex items-center gap-2', !oneLine && 'flex-wrap')}>
+          <span className={cn('font-semibold', fit)}>{itemTitle(item)}</span>
           {/* A mark, not a pill, so the row keeps its height (FB-27). */}
           {item.layaVinyasam && (
             <IconMetronome
@@ -784,7 +817,7 @@ function ItemLabel({ item }: { item: Item }) {
             />
           )}
         </span>
-        {line && <span className="text-sub break-words text-muted-foreground">{line}</span>}
+        {line && <span className={cn('text-sub text-muted-foreground', fit)}>{line}</span>}
       </span>
     </>
   );
@@ -802,7 +835,9 @@ function MoveButtons({
   onMove(by: -1 | 1): void;
 }) {
   return (
-    <span className="flex shrink-0">
+    // Out of sight until the keyboard reaches them, then over the row's text beside the bin, so
+    // the row never reflows under a tap.
+    <span className="absolute right-24 flex bg-background [clip-path:inset(50%)] focus-within:[clip-path:none]">
       <Button
         variant="ghost"
         size="icon"
@@ -843,10 +878,7 @@ function ColoursButton({ appearance, onOpen }: { appearance: ResolvedAppearance;
       {primary === null ? (
         'Colours'
       ) : (
-        <>
-          <SwatchDot colour={primary} />
-          {secondary && <SwatchDot colour={secondary as Colour} />}
-        </>
+        <SwatchDot colour={primary} second={secondary as Colour | null} />
       )}
     </button>
   );

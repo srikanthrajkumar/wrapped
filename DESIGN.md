@@ -396,6 +396,9 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     opens the Nadai's own sheet, the same pattern as every Detail ("?", "Not sure", "N/A",
     free text), as the Laya vinyasam's Nadai does (2026-11-02).
   - The Laya vinyasam and improvised folds use the same sheet for each Detail inside them.
+  - The Laya vinyasam shows its Note, then "+ Nadai", then "Remove Laya vinyasam". Its Nadai
+    stays the Tala's usual nadai until "+ Nadai" is tapped, since many rasikas won't know it;
+    once one is set, it shows as a Detail in that place (FB-29, decided 2026-11-05).
 - **Artist and Sabha pickers** (decided 2026-11-01; T041, FR-004, FR-005): the same docked
   search. Before typing it lists the rasika's recent Sabhas or Artists; as they type, matches
   from their own and the shared lists. Each result shows a distinguishing line (an Artist's
@@ -489,11 +492,21 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     rule refuses the Undo, the bar says which ("Undo failed · Artist · a Lecdem has at most 3
     presenters"); when the Item's or Artist's Concert is deleted, it says so, with Dismiss
     only. Its 5 seconds stop while the Undo is being written.
-- **Reordering:** a separate edit mode on the Event screen with explicit move controls. No drag
-  during a Concert. It opens from a muted "Edit order" text button at the right of the "Items"
-  heading, shown once there are two or more Items. Only Items reorder; Stage follows Role
-  (walkthrough S4). Drag and drop is for the later polish pass (FB-26). In edit mode each row has 48px move-up
-  and move-down controls and the bottom bar reads "Done" (decided 2026-11-01).
+- **Reordering:** a separate edit mode on the Event screen. It opens from a muted "Edit order"
+  text button at the right of the "Items" heading, shown once there are two or more Items. Only
+  Items reorder; Stage follows Role (walkthrough S4). The bottom bar reads "Done" (decided
+  2026-11-01). Each row ends in the bin and a grip, its dots on the gutter (FB-26, decided
+  2026-11-05):
+  - The grip takes the finger at once, with no hold, and the page doesn't scroll under it. The
+    row lifts (`surface-raised`, the 8px bleed, a soft shadow in light only) and follows the
+    finger; a row steps aside over 200ms once the lifted row's leading edge passes its middle.
+    Near the top or bottom of the screen the page scrolls under it.
+  - The drop moves the Item once, shown in its new place at once and eased into it; a failed
+    move reads "Not moved" and the rows go back to the stored order.
+  - Move up and Move down stay for VoiceOver and the keyboard, out of sight until focused, then
+    over the row's text beside the bin, so the row never reflows under a tap.
+  - Rows hold one title line and one Raga · Composer line while ordering, ending in "…", so
+    every row is 64px; the full names show outside it (decided 2026-11-05).
 - **Colour sheet:** a grid of the 12 labelled swatches plus "?", then an optional second colour
   for a two-tone outfit. Behaviour (decided 2026-11-01, T042):
   - The sheet's title names the Artist: "Colours · T. M. Krishna".
@@ -504,6 +517,9 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     one is set.
   - Black, White and Grey always carry a 2px `ring` border, so they stand off the sheet in both
     themes.
+  - On Stage and on the Artist sheet's Colours button, a two-tone outfit is one 20px circle,
+    half and half, first colour on the left, so it reads as one outfit (FB-13, decided
+    2026-11-05). It takes the ring border when either half is Black, White or Grey.
 - **Finishing a Concert:** "Done with this Concert" shows a short summary of the Concert and
   what it changed in the season (a first Raga, a new Composer). It does not link into the
   Wrapped. It is optional (decided 2026-11-01, D17): tapping it also releases Now at once, but
@@ -549,6 +565,8 @@ finicky"): every change of place now moves, briefly, in CSS only, and nothing wa
   the screen. The first screen, a tab switch
   and a move at the same depth (a first pick, Next Item) just appear. The page clips what slides
   past its sides, so a screen sliding in never widens it or scrolls it.
+- **A dragged row** follows the finger with no easing; the rows it passes step aside over 200ms
+  with the same curve, and the dropped row eases into its place. Reduced motion: rows jump.
 - **Sheets** rise opaque from below the screen over 220ms with the same curve; only the scrim
   fades. A sheet never shows the page through it.
 - **Something opening in place** (a fold, the Laya vinyasam's fields) grows to its height over
@@ -686,3 +704,4 @@ in the phase that builds it):
 | 2026-11-04 | The iPhone walkthrough's shape decisions S1 to S12 (`docs/feedback/2026-11-iphone-walkthrough.md`): "+ Log a Concert" always in the Season page's bottom bar, the open Concert a card; Events known by their vocal, veena or flute Artists (a Lecdem's presenters), the Sabha, date and time on the line under them; the Event screen runs heading, Stage, Note, Items; Stage listed by Role with no "Edit order"; an Artist's name corrected from their sheet, the old name kept as an Alias; the usual Role chosen for a known Artist; "Remove" with the bin mark; Role chips capitalised; Done the filled main button at the right of the Item editor's bar; "Item 8" an eyebrow; more room under a field's label and a taller facts line; "Running order" now "Items". |
 | 2026-11-03 | After the Phase 4 screenshots, the Maintainer's answers: the Settings Export row is never amber; Android's install row leads with the same Add mark as the iPhone row; accepted as built: Android's Install button named without Safari's steps, the row hidden while Chrome offers no install, the › between the iPhone marks, the amber `warning` token (oklch(0.8 0.15 75) dark, oklch(0.53 0.12 62) light), "Getting ready for offline…" with a muted spinner and an amber row where there is no service worker, and the "App" and "Catalog" version lines. |
 | 2026-11-04 | The UI hill-climb (FB-30, themes 3 and 4), as built for the Maintainer to check on the iPhone: line heights on the 4px grid; 64px and 48px rows with the hairline drawn inside; section labels 32px under the block above; text on the 16px gutter with fills reaching past it; pushed screens and sheets that move; folds that grow open; a softer save highlight (FB-28); the Laya vinyasam as a mark in Item rows (FB-27); Raga results on one line; the facts sheet's date and time written as the app writes them ("Mon 14 Dec", "6:00 pm") over the phone's own pickers; the Artist sheet's Colours button showing the colours. |
+| 2026-11-05 | The Maintainer's answers on the hill-climb's parked choices: Season's title stays smaller than its section heads (DESIGN.md's type roles, as written); Edit order rows hold one line each; Items reorder by dragging a grip, the arrows kept for VoiceOver (FB-26); the Laya vinyasam's Nadai behind "+ Nadai" (FB-29); a two-tone outfit as one circle, half and half (FB-13). The Colour sheet's layout is still open: the Maintainer likes the wheel but leans to a rectangle. |

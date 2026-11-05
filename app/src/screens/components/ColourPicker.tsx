@@ -50,8 +50,17 @@ const LIGHT: readonly Colour[] = ['white', 'yellow', 'beige', 'pink', 'grey', 'o
 
 export const colourName = (colour: Colour) => colour[0]!.toUpperCase() + colour.slice(1);
 
-/** A small swatch, as Stage shows an Appearance's Colours. */
-export function SwatchDot({ colour }: { colour: Colour | 'unknown' }) {
+/**
+ * A small swatch, as Stage shows an Appearance's Colours. A two-tone outfit is one circle, half
+ * and half, so it reads as one outfit (FB-13, decided 2026-11-05).
+ */
+export function SwatchDot({
+  colour,
+  second = null,
+}: {
+  colour: Colour | 'unknown';
+  second?: Colour | null;
+}) {
   if (colour === 'unknown') {
     return (
       <span className="inline-flex size-5 items-center justify-center rounded-full border border-border text-caption">
@@ -63,9 +72,13 @@ export function SwatchDot({ colour }: { colour: Colour | 'unknown' }) {
     <span
       className={cn(
         'inline-block size-5 rounded-full border border-border',
-        EDGED.includes(colour) && 'border-2 border-ring',
+        (EDGED.includes(colour) || (second && EDGED.includes(second))) && 'border-2 border-ring',
       )}
-      style={{ backgroundColor: SWATCHES[colour] }}
+      style={{
+        background: second
+          ? `linear-gradient(90deg, ${SWATCHES[colour]} 50%, ${SWATCHES[second]} 50%)`
+          : SWATCHES[colour],
+      }}
     />
   );
 }
