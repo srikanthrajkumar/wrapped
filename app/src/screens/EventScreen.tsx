@@ -972,11 +972,12 @@ function NoteField({ eventId, stored }: { eventId: string; stored: string | null
       void saveWith(target, value, () => editEvent(eventId, { note: value === '' ? null : value })),
     (value) => (value === null ? feedback.release(target) : feedback.hold(target, value)),
   );
-  // Null follows the text (open once written); a tap decides from then on.
-  const [open, setOpen] = useState<boolean | null>(null);
+  // Open when the screen opens with a note; a tap decides from then on, so clearing the text
+  // never folds the field away under the finger.
+  const [open, setOpen] = useState(() => note.text !== '');
   return (
     <section aria-label="Note" className="pt-8">
-      <Fold title="Note" open={open ?? note.text !== ''} onOpenChange={setOpen}>
+      <Fold title="Note" open={open} onOpenChange={setOpen}>
         <Saved target={target} quiet>
           <textarea
             aria-label="Note"

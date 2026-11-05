@@ -161,7 +161,7 @@ const VIEWS: View[] = [
   },
   { name: 'settings', open: (page) => go(page, '/settings') },
   {
-    // Last, since it moves the clock: two hours on, the Concert in progress has ended, and its
+    // Last, since it moves the clock: three hours on, the Concert in progress has ended, and its
     // summary shows on the next open (walkthrough S13). Each look shows it again: "shown" is
     // cleared for it and set for the other Concerts, so it is always this one.
     name: 'concert-summary',
@@ -185,7 +185,7 @@ const VIEWS: View[] = [
           }),
         { full: ids.full, others: [ids.long, ids.bare] },
       );
-      await page.clock.setFixedTime(SEASON_NOW.getTime() + 2 * 60 * 60 * 1000);
+      await page.clock.setFixedTime(SEASON_NOW.getTime() + 3 * 60 * 60 * 1000);
       await page.goto(BASE + '/');
       await page.getByRole('dialog').waitFor();
     },

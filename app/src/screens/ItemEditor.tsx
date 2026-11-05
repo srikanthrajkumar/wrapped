@@ -8,7 +8,7 @@
 
 import { IconArrowLeft, IconArrowRight, IconDots, IconPlus } from '@tabler/icons-react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import {
@@ -346,8 +346,10 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
   // The sheet last opened, kept while it slides closed.
   const [sheet, sheetOpen] = useLingering(open);
   const [query, setQuery] = useState('');
-  // Null follows the content (open once filled); a tap decides from then on.
-  const [folded, setFolded] = useState<boolean | null>(null);
+  // Open when the Item opens with anything in it; a tap decides from then on, so clearing the
+  // last chip never folds it away under the finger.
+  const [foldOpen, setFoldOpen] = useState<boolean | null>(null);
+  const layaNoteField = useRef<HTMLTextAreaElement>(null);
   const [ragaOrder, setRagaOrder] = useState(false);
   const head = useFocusOnOpen<HTMLHeadingElement>(itemId);
   const feedback = useSaveFeedback();
@@ -448,7 +450,8 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
       onOpen={() => setOpen({ kind: 'detail', field })}
     />
   );
-  const improvisedOpen = folded === null ? improvised.length > 0 || laya !== null : !folded;
+  const improvisedOpen = foldOpen ?? (improvised.length > 0 || laya !== null);
+  if (foldOpen === null) setFoldOpen(improvisedOpen);
   const form = shown('form', item.form);
 
   return (
@@ -581,7 +584,7 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
 
       {/* One fold for what was improvised, the Laya vinyasam a row like the others (S14). A
           chip's own state shows its save, so none of it plays the highlight (P7). */}
-      <Fold title="Improvised" open={improvisedOpen} onOpenChange={(next) => setFolded(!next)}>
+      <Fold title="Improvised" open={improvisedOpen} onOpenChange={setFoldOpen}>
         <Saved target={[target('improvised'), target('layaVinyasam'), target('layaNote')]} quiet>
           <ul className="flex flex-col">
             {IMPROVISED_KINDS.map((kind) => {
@@ -623,7 +626,16 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
               <div className="flex min-h-12 flex-wrap items-center gap-2">
                 <Chip
                   pressed={laya !== null}
-                  onClick={() => (laya ? removeLaya() : saveLayaNadai(notApplicableValue()))}
+                  // Tapped again it is removed, like the others, but never with a note typed
+                  // under it: one tap would lose the text, so the tap goes to the note instead,
+                  // to clear it first.
+                  onClick={() =>
+                    !laya
+                      ? saveLayaNadai(notApplicableValue())
+                      : layaNote
+                        ? layaNoteField.current?.focus()
+                        : removeLaya()
+                  }
                 >
                   Laya vinyasam
                 </Chip>
@@ -648,6 +660,7 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
                   <div>
                     <div className="pt-2">
                       <LayaNote
+                        fieldRef={layaNoteField}
                         stored={layaNote}
                         onSave={(note) => {
                           // A note still pending when the Laya vinyasam is removed goes with it.
@@ -843,7 +856,7 @@ function ValueButton({ className, ...props }: React.ComponentProps<'button'>) {
     <button
       type="button"
       className={cn(
-        'min-h-12 rounded-xl text-left underline decoration-border underline-offset-4',
+        'min-h-12 min-w-12 rounded-xl text-left underline decoration-border underline-offset-4',
         className,
       )}
       {...props}
@@ -930,10 +943,12 @@ function formText(value: DetailValue): string | undefined {
 
 /** The Laya vinyasam's note, saved as the rasika pauses, leaves the field or the app. */
 function LayaNote({
+  fieldRef,
   stored,
   onSave,
   onPending,
 }: {
+  fieldRef: RefObject<HTMLTextAreaElement | null>;
   stored: string | null;
   onSave(note: string): void;
   onPending(note: string | null): boolean | void;
@@ -943,6 +958,7 @@ function LayaNote({
     <label className="flex flex-col gap-1">
       <span className="text-caption text-muted-foreground">Note</span>
       <textarea
+        ref={fieldRef}
         value={note.text}
         rows={2}
         onChange={(e) => note.change(e.target.value)}

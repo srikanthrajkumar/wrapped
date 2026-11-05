@@ -439,7 +439,3 @@ export async function whatItAdded(
   }
   return { ragas: [...ragas.values()], composers: [...composers.values()] };
 }
-
-export function useWhatItAdded(eventId: string, catalog: Catalog | null) {
-  return useLiveQuery(() => whatItAdded(eventId, defaultDb, catalog), [eventId, catalog]);
-}

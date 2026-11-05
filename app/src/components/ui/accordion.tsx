@@ -30,22 +30,25 @@ function AccordionTrigger({
   ...props
 }: React.ComponentProps<typeof AccordionPrimitive.Trigger>) {
   return (
-    <AccordionPrimitive.Header className="flex">
-      <AccordionPrimitive.Trigger
-        data-slot="accordion-trigger"
-        className={cn(
-          'group/accordion-trigger flex min-h-12 flex-1 items-center justify-between gap-2 py-2 text-left text-sub font-semibold text-muted-foreground outline-none disabled:pointer-events-none disabled:opacity-50',
-          className,
-        )}
-        {...props}
-      >
-        {children}
-        <IconChevronDown
-          aria-hidden
-          data-slot="accordion-trigger-icon"
-          className="pointer-events-none size-5 shrink-0 transition-transform duration-200 ease-sheet group-aria-expanded/accordion-trigger:rotate-180"
-        />
-      </AccordionPrimitive.Trigger>
+    // An h2, as the section heads around it are (Radix's default h3 would skip a level).
+    <AccordionPrimitive.Header asChild>
+      <h2 className="flex">
+        <AccordionPrimitive.Trigger
+          data-slot="accordion-trigger"
+          className={cn(
+            'group/accordion-trigger flex min-h-12 flex-1 items-center justify-between gap-2 py-2 text-left text-sub font-semibold text-muted-foreground disabled:pointer-events-none disabled:opacity-50',
+            className,
+          )}
+          {...props}
+        >
+          {children}
+          <IconChevronDown
+            aria-hidden
+            data-slot="accordion-trigger-icon"
+            className="pointer-events-none size-5 shrink-0 transition-transform duration-200 ease-sheet group-aria-expanded/accordion-trigger:rotate-180"
+          />
+        </AccordionPrimitive.Trigger>
+      </h2>
     </AccordionPrimitive.Header>
   );
 }
