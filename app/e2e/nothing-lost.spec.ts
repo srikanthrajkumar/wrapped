@@ -2,7 +2,7 @@
 // could be lost or a screen could lose the rasika's typing. Writes are made to fail, or never to
 // finish, by a test-only script in the page (helpers.ts, failWritesOnDemand).
 
-import { chromium, devices, expect, test, type Page } from '@playwright/test';
+import { chromium, devices, expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import {
   failWritesOnDemand,
@@ -386,12 +386,10 @@ test('Dismiss on a failed move leaves a failed delete of the same Item in place'
   await expect(page.getByRole('button', { name: 'Delete Item 1' })).toBeVisible();
 });
 
-test('a dragged Item keeps its new place, and a failed drag goes back to the stored order', async ({
-  page,
-}) => {
-  await failWritesOnDemand(page);
+/** A new Concert with these typed Items, in Edit order. */
+async function orderingItems(page: Page, titles: string[]) {
   await newConcert(page);
-  for (const [i, title] of ['Alpha', 'Beta'].entries()) {
+  for (const [i, title] of titles.entries()) {
     await page.getByRole('link', { name: i === 0 ? 'Add Item' : 'Next Item' }).click();
     await page.getByRole('searchbox', { name: 'Search songs and Ragas' }).fill(title);
     await page.getByRole('button', { name: /^Use what I typed/ }).click();
@@ -399,35 +397,75 @@ test('a dragged Item keeps its new place, and a failed drag goes back to the sto
   }
   await page.getByRole('link', { name: 'Done' }).click();
   await page.getByRole('button', { name: 'Edit order' }).first().click();
-  const rows = page.getByRole('region', { name: 'Items' }).getByRole('listitem');
-  const dragFirstBelowSecond = async () => {
-    const grip = (await rows.first().locator('[data-grip]').boundingBox())!;
-    await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2 + 80, { steps: 8 });
-    await page.mouse.up();
-  };
-  const stored = async () =>
-    (await readTable<{ title: string; position: number }>(page, 'items'))
-      .sort((a, b) => a.position - b.position)
-      .map((item) => item.title);
+  return page.getByRole('region', { name: 'Items' }).getByRole('listitem');
+}
+
+const storedTitles = async (page: Page) =>
+  (await readTable<{ title: string; position: number }>(page, 'items'))
+    .sort((a, b) => a.position - b.position)
+    .map((item) => item.title);
+
+async function dragGrip(page: Page, row: Locator, by: number) {
+  const grip = (await row.locator('[data-grip]').boundingBox())!;
+  await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2 + by, { steps: 8 });
+  await page.mouse.up();
+}
+
+test('a dragged Item keeps its new place, and a failed drag goes back to the stored order', async ({
+  page,
+}) => {
+  await failWritesOnDemand(page);
+  const rows = await orderingItems(page, ['Alpha', 'Beta']);
 
   // A failed drag says so, and the rows go back to the order the store holds.
   await setFailingWrites(page, true);
-  await dragFirstBelowSecond();
+  await dragGrip(page, rows.first(), 80);
   await expect(page.getByText('Not moved', { exact: true })).toBeVisible();
   await expect(rows.first()).toContainText('Alpha');
-  expect(await stored()).toEqual(['Alpha', 'Beta']);
+  expect(await storedTitles(page)).toEqual(['Alpha', 'Beta']);
   await page.getByRole('button', { name: 'Dismiss. Not moved on this phone.' }).click();
 
   await setFailingWrites(page, false);
-  await dragFirstBelowSecond();
+  await dragGrip(page, rows.first(), 80);
   await expect(rows.first()).toContainText('Beta');
-  await expect.poll(stored).toEqual(['Beta', 'Alpha']);
+  await expect.poll(() => storedTitles(page)).toEqual(['Beta', 'Alpha']);
   await page.reload();
   await expect(
     page.getByRole('region', { name: 'Items' }).getByRole('listitem').first(),
   ).toContainText('Beta');
+});
+
+test('after a drag, a move back to the earlier order shows the stored order', async ({ page }) => {
+  const rows = await orderingItems(page, ['Alpha', 'Beta']);
+  await dragGrip(page, rows.first(), 80);
+  await expect.poll(() => storedTitles(page)).toEqual(['Beta', 'Alpha']);
+
+  // The store returns to the order the drag was dropped on; the drag's order must not return.
+  await page.getByRole('button', { name: 'Move Item 2 up' }).press('Enter');
+  await expect.poll(() => storedTitles(page)).toEqual(['Alpha', 'Beta']);
+  await expect(rows.first()).toContainText('Alpha');
+});
+
+test('a grip held near the top of the screen moves nothing', async ({ page }) => {
+  // Six Items typed in first take most of the default 30s on a loaded machine.
+  test.slow();
+  await page.setViewportSize({ width: 393, height: 480 });
+  const titles = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta'];
+  const rows = await orderingItems(page, titles);
+  // Beta's grip in the top band, where a drag toward the edge would scroll the page.
+  const grip = rows.nth(1).locator('[data-grip]');
+  const top = (await grip.boundingBox())!.y;
+  await page.evaluate((by) => window.scrollBy(0, by), top - 24);
+  const box = (await grip.boundingBox())!;
+  expect(box.y).toBeLessThan(64);
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(600);
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  expect(await storedTitles(page)).toEqual(titles);
 });
 
 test('a Laya note typed over a failed Nadai keeps the Nadai entered', async ({ page }) => {

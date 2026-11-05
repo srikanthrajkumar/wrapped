@@ -398,7 +398,15 @@ function EventView({ eventId }: { eventId: string }) {
         <UndoBar />
         <div className="border-t border-border bg-background px-4 py-2">
           {order !== null ? (
-            <Button size="lg" className="w-full" onClick={() => setOrder(null)}>
+            <Button
+              size="lg"
+              className="w-full"
+              onClick={() => {
+                // A drag still in hand under another finger moves nothing.
+                drag.cancel();
+                setOrder(null);
+              }}
+            >
               Done
             </Button>
           ) : event.status === 'planned' ? (
@@ -536,8 +544,14 @@ function ConcertBlock({
       </h1>
       <Saved target={[target('date'), target('startTime'), target('sabhaId')]}>
         {/* 56px tall to tap (S11), its text 8px under the title (one step more than the title's
-            own line gap, so it never reads as a third line) and flush above Stage. */}
-        <div className="-mt-2 -mb-4 flex flex-wrap items-center gap-x-4">
+            own line gap, so it never reads as a third line) and flush above Stage. Under "Add
+            Artist" it starts below that button's 48px, so neither covers the other's tap area. */}
+        <div
+          className={cn(
+            '-mb-4 flex flex-wrap items-center gap-x-4',
+            knownBy === null ? 'mt-2.5' : '-mt-2',
+          )}
+        >
           {!sabhaName && (
             <button
               type="button"
