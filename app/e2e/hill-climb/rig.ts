@@ -34,6 +34,8 @@ interface View {
   /** Types into a search, cleared after the shot so no draft is left journalled. */
   typed?: boolean;
   open(page: Page, ids: SeedIds): Promise<void>;
+  /** Undoes what `open` left held after the shot, as a drag taken back to where it started. */
+  release?(page: Page): Promise<void>;
 }
 
 /**
@@ -55,6 +57,7 @@ const go = async (page: Page, path: string) => {
   await page.evaluate(() => scrollTo(0, 0));
 };
 
+let dragFrom = { x: 0, y: 0 };
 const concert = (page: Page, ids: SeedIds) => go(page, `/event/${ids.full}`);
 const stageRow = (page: Page, name: RegExp) =>
   page.getByRole('region', { name: 'Stage' }).getByRole('button', { name }).first();
@@ -71,6 +74,28 @@ const VIEWS: View[] = [
     open: async (page, ids) => {
       await concert(page, ids);
       await page.getByRole('button', { name: 'Edit order' }).click();
+    },
+  },
+  {
+    // Mid-drag: Item 3 lifted by its grip and held halfway past Item 4.
+    name: 'concert-drag',
+    open: async (page, ids) => {
+      await concert(page, ids);
+      await page.getByRole('button', { name: 'Edit order' }).click();
+      const grip = page.getByRole('region', { name: 'Items' }).locator('[data-grip]').nth(2);
+      await grip.scrollIntoViewIfNeeded();
+      await page.evaluate(() => window.scrollBy(0, 120));
+      const box = (await grip.boundingBox())!;
+      dragFrom = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+      await page.mouse.move(dragFrom.x, dragFrom.y);
+      await page.mouse.down();
+      await page.mouse.move(dragFrom.x, dragFrom.y + 44, { steps: 6 });
+      await page.waitForTimeout(400);
+    },
+    release: async (page) => {
+      await page.mouse.move(dragFrom.x, dragFrom.y, { steps: 3 });
+      await page.mouse.up();
+      await page.waitForTimeout(300);
     },
   },
   {
@@ -240,6 +265,7 @@ async function shots(out: string) {
     await forEachLook(page, async ({ theme, viewport }) => {
       await view.open(page, ids!);
       await shoot(page, join(dir, `${view.name}.${viewport.name}.${theme}.png`), view.full);
+      await view.release?.(page);
       if (await page.getByText(/not saved/i).count())
         console.error(`${view.name}: not saved shows`);
       // Typed search text is journalled until it is cleared or picked; clear it, so the next

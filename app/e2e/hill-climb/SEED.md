@@ -32,8 +32,8 @@ purple, grey. Didn't notice: the khanjira.
 ## Views
 
 `season-empty`, `season`, `concert`, `concert-full` (whole page), `concert-bare`,
-`concert-long` (whole page), `concert-order` (Edit order on), `concert-facts` (date and time
-sheet), `artist-picker` (Add Artist, "S" typed), `artist-sheet` (Gayatri), `colour-sheet`
+`concert-long` (whole page), `concert-order` (Edit order on), `concert-drag` (Item 3 held
+mid-drag by its grip), `concert-facts` (date and time sheet), `artist-picker` (Add Artist, "S" typed), `artist-sheet` (Gayatri), `colour-sheet`
 (Ranjani, two-tone), `item-search` (new Item, "rama" typed), `item` (Chakkani Raja, whole page,
 Laya vinyasam open), `item-rtp` (two Raga chips), `raga-sheet`, `tala-sheet`, `settings`.
 

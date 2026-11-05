@@ -592,13 +592,6 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
             // Grows open below the fold title rather than appearing at full height.
             <div className="grow-from-row">
               <div className="flex flex-col gap-2">
-                <DetailCell
-                  name="Nadai"
-                  value={laya.nadai}
-                  text={laya.nadai.state === 'na' ? 'The Tala’s usual nadai' : undefined}
-                  target={null}
-                  onOpen={() => setOpen({ kind: 'laya' })}
-                />
                 <LayaNote
                   stored={layaNote}
                   onSave={(note) => {
@@ -619,6 +612,23 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
                       : feedback.hold(target('layaNote'), note)
                   }
                 />
+                {/* The Tala's usual nadai until asked for (FB-29): many rasikas won't know it. */}
+                {laya.nadai.state === 'na' ? (
+                  <QuietButton
+                    className="-ml-2 gap-2 self-start text-foreground"
+                    onClick={() => setOpen({ kind: 'laya' })}
+                  >
+                    <IconPlus aria-hidden className="size-5 text-muted-foreground" />
+                    Nadai
+                  </QuietButton>
+                ) : (
+                  <DetailCell
+                    name="Nadai"
+                    value={laya.nadai}
+                    target={null}
+                    onOpen={() => setOpen({ kind: 'laya' })}
+                  />
+                )}
                 {/* An action, with the bin mark the Artist sheet's Remove has, its mark on the gutter. */}
                 <QuietButton
                   className="-ml-2 gap-2 self-start text-foreground"
