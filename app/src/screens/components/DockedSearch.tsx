@@ -67,7 +67,10 @@ export function DockedSearch({
 
   // Keep the best match, by the box, in view as the results change.
   useLayoutEffect(() => {
-    if (list.current) list.current.scrollTop = list.current.scrollHeight;
+    const box = list.current;
+    if (!box) return;
+    box.scrollTop = box.scrollHeight;
+    box.dataset.scrolled = String(box.scrollTop > 0);
   }, [results]);
 
   const drawn = [...results].reverse();
@@ -86,10 +89,14 @@ export function DockedSearch({
       </div>
       <div
         ref={list}
-        // As wide as the rows' fill, which would otherwise be clipped by the scrolling. Rows
-        // scrolled up under the fixed rows are gone in the first 12px and fade in over the next 20,
-        // so a row half under them shows no second rule.
-        className="-mx-2 flex min-h-0 shrink flex-col overflow-y-auto overscroll-contain px-2 pt-2 pb-2 [mask-image:linear-gradient(to_bottom,transparent_12px,black_32px)]"
+        // As wide as the rows' fill, which would otherwise be clipped by the scrolling. Once rows
+        // are scrolled up under the fixed rows, they are gone in the first 12px and fade in over
+        // the next 20, so a row half under them shows no second rule. Unscrolled, nothing fades.
+        onScroll={(event) => {
+          const box = event.currentTarget;
+          box.dataset.scrolled = String(box.scrollTop > 0);
+        }}
+        className="-mx-2 flex min-h-0 shrink flex-col overflow-y-auto overscroll-contain px-2 pt-2 pb-2 data-[scrolled=true]:[mask-image:linear-gradient(to_bottom,transparent_12px,black_32px)]"
       >
         {drawn.length > 0 && (
           // Rows divided by the hairline, as every list is (DESIGN.md "Shapes").
