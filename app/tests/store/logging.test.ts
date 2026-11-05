@@ -231,7 +231,7 @@ describe('Items', () => {
     expect(picked).toMatchObject({
       compositionKey: 'c0004',
       title: 'Kamakshi',
-      form: catalogValue('kriti', 'kriti'),
+      form: catalogValue('kriti', 'Kriti'),
       ragas: [catalogValue('Bhairavi', 'Bhairavi')],
       tala: catalogValue('misra chapu', 'Misra Chapu'),
       composer: catalogValue('shyaama shaastri', 'Syama Sastri'),

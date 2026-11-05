@@ -78,8 +78,9 @@ test('A6: the Laya vinyasam note is saved when the page is hidden, before any bl
   await newConcert(page);
   await page.getByRole('link', { name: 'Add Item' }).click();
   await page.getByRole('button', { name: '? Don’t know' }).click();
+  // One fold for what was improvised; the Laya vinyasam is a chip in it (walkthrough S14).
+  await page.getByRole('button', { name: 'Improvised' }).click();
   await page.getByRole('button', { name: 'Laya vinyasam' }).click();
-  await page.getByRole('button', { name: 'Laya vinyasam after this Item' }).click();
   const note = page.getByRole('textbox', { name: 'Note' });
   // Time stands still, so the autosave's pause never ends: only pagehide can save the note.
   await page.clock.install();
@@ -106,6 +107,8 @@ test('A6: the Laya vinyasam note is saved when the page is hidden, before any bl
 
 test('A8: the note keeps focus and every keystroke across its autosave', async ({ page }) => {
   await newConcert(page);
+  // An empty note is a closed fold (walkthrough P6).
+  await page.getByRole('button', { name: 'Note' }).click();
   const note = page.getByRole('textbox', { name: 'Note' });
   await note.click();
   await page.keyboard.type('Tisram');
@@ -330,6 +333,7 @@ test('a failed Undo bar never covers a field the rasika moves to', async ({ page
 
   // Moving to the Note, as Tab or the keyboard's next-field arrow does, brings it above the bar.
   await page.evaluate(() => window.scrollTo(0, 0));
+  await page.getByRole('button', { name: 'Note' }).click();
   const note = page.getByRole('textbox', { name: 'Note' });
   await note.evaluate((field: HTMLElement) => field.focus());
   await expect(note).toBeFocused();
@@ -473,8 +477,9 @@ test('a Laya note typed over a failed Nadai keeps the Nadai entered', async ({ p
   await newConcert(page);
   await page.getByRole('link', { name: 'Add Item' }).click();
   await page.getByRole('button', { name: '? Don’t know' }).click();
+  // One fold for what was improvised; the Laya vinyasam is a chip in it (walkthrough S14).
+  await page.getByRole('button', { name: 'Improvised' }).click();
   await page.getByRole('button', { name: 'Laya vinyasam' }).click();
-  await page.getByRole('button', { name: 'Laya vinyasam after this Item' }).click();
   await expect(page.getByRole('textbox', { name: 'Note' })).toBeVisible();
   // The screen shows the Laya vinyasam as entered, before it is stored: wait for the store.
   await expect

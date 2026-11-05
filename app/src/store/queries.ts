@@ -259,12 +259,28 @@ export function useItem(id: string | null, { withDeleted = false } = {}) {
   }, [id, withDeleted]);
 }
 
-/** One `meta` row's value, null when there is none. */
+// The last value read for each `meta` key, so a screen drawn again shows it from its first
+// frame rather than one read later (walkthrough P10: Settings' rows popped in and moved Export).
+const metaSeen = new Map<string, unknown>();
+
+async function readMeta(key: string): Promise<unknown> {
+  const value = (await defaultDb.meta.get(key))?.value ?? null;
+  metaSeen.set(key, value);
+  return value;
+}
+
+/** One `meta` row's value, null when there is none; the last value read until it answers. */
 export function useMeta<T>(key: string): T | null | undefined {
   return useLiveQuery(
-    async () => ((await defaultDb.meta.get(key))?.value as T | undefined) ?? null,
+    () => readMeta(key) as Promise<T | null>,
     [key],
+    metaSeen.get(key) as T | null | undefined,
   );
+}
+
+/** Read `meta` rows ahead, so the screen that shows them draws them at once. */
+export async function preloadMeta(keys: readonly string[]): Promise<void> {
+  await Promise.all(keys.map(readMeta));
 }
 
 /** Writes not yet on the server (FR-016): the outbox's length. */

@@ -2,15 +2,14 @@
 // field, from the stored record to the value as the rasika entered it. A journal entry leaves
 // only when this says yes, so each projection follows how the store keeps that field: a note
 // emptied is stored as null, a Sabha is kept with its name, Colours are two columns, a catalog
-// value can be stored as an Override of the song's, "Done with this Concert" lives in the
-// Event's logging note, and a new Item is held only with its own pick. Screens use the same
-// projections (storedHolds) to tell when what they read back is the value entered.
+// value can be stored as an Override of the song's, and a new Item is held only with its own
+// pick. Screens use the same projections (storedHolds) to tell when what they read back is the
+// value entered.
 
 import type { DetailValue, OwnEntry } from '../model';
 import type { JournalEntry } from '../screens/save-feedback';
 import { db as defaultDb, type WrappedDB } from './db';
 import { draftKey } from './items';
-import { readLoggingNote } from './logging-note';
 import { MAX_MERGE_HOPS } from './queries';
 
 type Row = Record<string, unknown> & { deletedAt?: string | null };
@@ -99,9 +98,9 @@ function fieldHolds(table: string, field: string, value: unknown, row: Row): boo
 
 export async function holdsValue(entry: Entered, db: WrappedDB = defaultDb): Promise<boolean> {
   const { table, id, field, value } = entry;
-  if (table === 'events' && field === 'logging') {
-    return (await readLoggingNote(id, db))?.doneAt != null;
-  }
+  // A legacy "Done with this Concert" entry: the action is gone (walkthrough S13), a Concert
+  // ends on its own, so there is nothing left to save and the entry leaves.
+  if (table === 'events' && field === 'logging') return true;
   const row = (await db.table(table).get(id)) as Row | undefined;
   // A new Item's search text: held once its draft is stored with it, or the Item is made.
   if (table === 'items' && field === 'draft') {

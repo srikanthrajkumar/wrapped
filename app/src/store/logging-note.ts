@@ -1,18 +1,21 @@
 // The per-phone logging note and the Now selector (eng review D2; design D3 and D17). For each
-// Event the note keeps when an Item was last added or changed on this phone and when "Done with
-// this Concert" was tapped. Only the Item actions write it, inside their own transactions, so a
-// catalog upgrade or a sync never looks like logging. It lives in `db.meta` and is never synced.
+// Event the note keeps when an Item was last added or changed on this phone. Only the Item
+// actions write it, inside their own transactions, so a catalog upgrade or a sync never looks
+// like logging. It lives in `db.meta` and is never synced. A Concert ends on its own, by its
+// window and the logging hold (walkthrough S13): nothing ends it by hand.
 
 import type { Event } from '../model';
 import { db as defaultDb, type WrappedDB } from './db';
-import type { WriteOptions } from './mutate';
 
 export interface LoggingNote {
   eventId: string;
   /** When an Item of this Event was last added, changed, moved or deleted on this phone. */
   lastLoggedAt: string | null;
-  /** When "Done with this Concert" was tapped; cleared by logging again. */
-  doneAt: string | null;
+  /**
+   * Legacy: when "Done with this Concert" was tapped, before S13 removed it. Read by nothing;
+   * logging again drops it.
+   */
+  doneAt?: string | null;
 }
 
 const PREFIX = 'loggingNote:';
@@ -34,22 +37,8 @@ export const WINDOW_AFTER_MS = 4 * 60 * 60 * 1000;
 
 /** Record logging activity, inside the caller's transaction (which must include `db.meta`). */
 export async function noteLogging(db: WrappedDB, eventId: string, now = new Date()) {
-  const note: LoggingNote = { eventId, lastLoggedAt: now.toISOString(), doneAt: null };
+  const note: LoggingNote = { eventId, lastLoggedAt: now.toISOString() };
   await db.meta.put({ key: keyOf(eventId), value: note });
-}
-
-/** "Done with this Concert": the Event lets go of Now at once (D17). */
-export async function endLogging(
-  eventId: string,
-  { db = defaultDb, now = new Date() }: WriteOptions & { now?: Date } = {},
-): Promise<void> {
-  await db.transaction('rw', db.meta, async () => {
-    const note = (await db.meta.get(keyOf(eventId)))?.value as LoggingNote | undefined;
-    await db.meta.put({
-      key: keyOf(eventId),
-      value: { eventId, lastLoggedAt: note?.lastLoggedAt ?? null, doneAt: now.toISOString() },
-    });
-  });
 }
 
 export async function readLoggingNotes(
@@ -82,15 +71,15 @@ export function inWindow(event: Pick<Event, 'date' | 'startTime'>, now: Date): b
 }
 
 /**
- * Whether the Event is being logged on this phone (D17): an Item changed in the last hour, not
- * ended with Done, and inside its window. A note time in the future counts as now.
+ * Whether the Event is being logged on this phone (D17): an Item changed in the last hour, and
+ * inside its window. A note time in the future counts as now.
  */
 export function isBeingLogged(
   event: Pick<Event, 'date' | 'startTime'>,
   note: LoggingNote | undefined,
   now: Date,
 ): boolean {
-  if (!note?.lastLoggedAt || note.doneAt) return false;
+  if (!note?.lastLoggedAt) return false;
   const at = Math.min(Date.parse(note.lastLoggedAt), now.getTime());
   return now.getTime() - at <= LOGGING_HOLD_MS && inWindow(event, now);
 }
@@ -104,11 +93,11 @@ export interface NowSelection<E> {
 
 /**
  * Which Event is Now (design D3, refined by D17):
- * 1. an Event being logged (an Item changed on this phone in the last hour, and not ended with
- *    Done) holds Now while it is inside its window; the most recently logged wins;
+ * 1. an Event being logged (an Item changed on this phone in the last hour) holds Now while it
+ *    is inside its window; the most recently logged wins;
  * 2. otherwise the Event in its window with the nearest start holds it.
- * Ended Events take neither path. Missed and cancelled Events are never Now. A note time in the
- * future (the clock was moved back) counts as now.
+ * Missed and cancelled Events are never Now. A note time in the future (the clock was moved
+ * back) counts as now.
  */
 export function nowEvent<E extends Event>(
   events: readonly E[],
@@ -121,7 +110,6 @@ export function nowEvent<E extends Event>(
       event.deletedAt === null &&
       event.status !== 'missed' &&
       !event.cancelled &&
-      notes.get(event.id)?.doneAt == null &&
       inWindow(event, now),
   );
   const loggedAt = (event: E) => {

@@ -1,18 +1,13 @@
 // Which Event is Now (T048c; eng D2, design D3 and D17): the Event being logged on this phone,
-// else the nearest start, with ended Events excluded and a catalog upgrade never counting as
-// logging.
+// else the nearest start, with a catalog upgrade never counting as logging. Nothing ends a
+// Concert by hand (walkthrough S13): a legacy "Done" in a note changes nothing.
 
 import { describe, expect, it } from 'vitest';
 import { upgradeCatalog } from '../../src/catalog/upgrade';
 import { CATALOG_VERSION_KEY } from '../../src/store/catalog-version';
 import { createEvent } from '../../src/store/events';
 import { addItem, repickItem } from '../../src/store/items';
-import {
-  endLogging,
-  nowEvent,
-  readLoggingNotes,
-  type LoggingNote,
-} from '../../src/store/logging-note';
+import { nowEvent, readLoggingNotes, type LoggingNote } from '../../src/store/logging-note';
 import { listEvents } from '../../src/store/queries';
 import type { Event } from '../../src/model';
 import { fixtureCatalog, freshDb } from '../helpers';
@@ -85,13 +80,11 @@ describe('nowEvent', () => {
     expect(nowEvent([evening], notes(), at('17:30')).now?.id).toBe('evening');
   });
 
-  it('excludes an Event ended with Done from both paths', () => {
+  it('ignores a legacy "Done with this Concert": the Concert being logged keeps Now', () => {
     const done = notes(logged('evening', '19:30', '19:40'));
     const { now, others } = nowEvent([four, evening], done, at('19:45'));
-    // The 4 pm is still in its window and takes Now; the ended Concert is not even a line.
-    expect(now?.id).toBe('four');
-    expect(others).toEqual([]);
-    expect(nowEvent([evening], done, at('19:45')).now).toBeNull();
+    expect(now?.id).toBe('evening');
+    expect(others.map((e) => e.id)).toEqual(['four']);
   });
 
   it('treats a note time in the future as now', () => {
@@ -113,20 +106,15 @@ describe('nowEvent', () => {
 });
 
 describe('the logging note', () => {
-  it('is written by logging, cleared from Done by logging again', async () => {
+  it('is written by logging, which drops a legacy "Done"', async () => {
     const db = freshDb();
     const concert = await createEvent({ kind: 'concert' }, { db });
-    await addItem(concert.id, {}, { db });
-    expect((await readLoggingNotes(db)).get(concert.id)).toMatchObject({
-      lastLoggedAt: expect.any(String),
-      doneAt: null,
-    });
-
-    await endLogging(concert.id, { db });
-    expect((await readLoggingNotes(db)).get(concert.id)?.doneAt).toEqual(expect.any(String));
+    const legacy = { eventId: concert.id, lastLoggedAt: null, doneAt: new Date().toISOString() };
+    await db.meta.put({ key: `loggingNote:${concert.id}`, value: legacy });
 
     await addItem(concert.id, {}, { db });
-    expect((await readLoggingNotes(db)).get(concert.id)?.doneAt).toBeNull();
+    const note = (await readLoggingNotes(db)).get(concert.id);
+    expect(note).toEqual({ eventId: concert.id, lastLoggedAt: expect.any(String) });
   });
 
   it('is not touched by a catalog upgrade, so the upgrade makes no Event Now', async () => {

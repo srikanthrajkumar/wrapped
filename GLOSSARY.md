@@ -149,6 +149,10 @@ _Avoid_: Margazhi (a month within it), festival, year
 The statistics and Cards built from the Attended Events within a Wrapped range.
 _Avoid_: summary, report, stats, recap
 
+**Concert summary**:
+What one Event added to the season: its Items and Ragas counted, its first Ragas and new Composers. It shows once, as a modal, the next time the app opens after the Event ends. An Event ends on its own, by its time and the rasika's logging, so nothing finishes it by hand.
+_Avoid_: Done with this Concert, What it added, recap
+
 **Wrapped range**:
 The dates a Wrapped covers. The rasika chooses it when opening the Wrapped, starting from a suggested range that fits the Events they attended.
 _Avoid_: season dates, period, window

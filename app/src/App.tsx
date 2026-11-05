@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, Route, Switch, useLocation, useRoute } from 'wouter';
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 import { cn } from '@/lib/utils';
+import { ConcertSummary } from './screens/components/ConcertSummary';
 import { BottomSlot } from './screens/components/layout';
 import { EventScreen } from './screens/EventScreen';
 import { FirstLaunch } from './screens/FirstLaunch';
 import { HomeScreen } from './screens/HomeScreen';
 import { ItemEditor } from './screens/ItemEditor';
 import { Placeholder } from './screens/Placeholder';
-import { SettingsScreen } from './screens/SettingsScreen';
+import { preloadSettings, SettingsScreen } from './screens/SettingsScreen';
 import { leaveEvent } from './screens/undo';
 import { db } from './store/db';
 import { useFirstLaunchDone } from './store/first-launch';
@@ -123,6 +124,9 @@ export function App() {
   const [footer, setFooter] = useState<HTMLElement | null>(null);
   useFooterRoom(footer, inset);
   useReceiptsClearedOnLeave();
+  useEffect(() => {
+    if (done) preloadSettings();
+  }, [done]);
 
   // Until the store answers, only the dark background shows (no flash of the wrong screen).
   if (done === undefined) return null;
@@ -162,6 +166,7 @@ export function App() {
             </Switch>
           )}
         </main>
+        {done && <ConcertSummary />}
         {done && (
           <footer ref={setFooter} className="sticky z-10" style={{ bottom: inset }}>
             <div ref={setSlot} />

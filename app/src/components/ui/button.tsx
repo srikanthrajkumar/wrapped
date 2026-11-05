@@ -14,7 +14,8 @@ const buttonVariants = cva(
         default: 'bg-primary text-primary-foreground hover:bg-primary/80',
         outline: 'border-border bg-transparent hover:bg-muted',
         secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-        ghost: 'hover:bg-muted',
+        // A ghost button whose menu is open stays filled, tied to what it opened (walkthrough P9).
+        ghost: 'hover:bg-muted aria-expanded:bg-muted',
         destructive: 'text-destructive hover:bg-destructive/10',
         link: 'text-foreground underline-offset-4 hover:underline',
       },

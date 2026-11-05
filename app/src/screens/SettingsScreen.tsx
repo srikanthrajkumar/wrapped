@@ -20,7 +20,8 @@ import { useOfflineState } from '../pwa';
 import { CATALOG_VERSION_KEY } from '../store/catalog-version';
 import { LAST_EXPORT_KEY, type LastExport } from '../store/export';
 import { storagePersisted } from '../store/persist';
-import { useMeta } from '../store/queries';
+import { preloadMeta, useMeta } from '../store/queries';
+import { READY_KEY } from '../store/offline-ready';
 import { setTheme, useTheme, type Theme } from '../theme';
 import { APP_VERSION, exportSeason, useExportState } from './components/export-file';
 import { ExportIcon, SeasonFeedback } from './components/feedback';
@@ -32,18 +33,38 @@ import { MESSAGES } from './messages';
 const ICON = 'size-5 shrink-0';
 const ROW = 'flex min-h-12 items-center gap-3 py-2 hairline-b';
 
+// Settings' rows wait on answers: the store (offline readiness, the last Export, the catalog
+// version) and the browser (storage protected). Measured on a 4x-slowed CPU (walkthrough P10),
+// Storage and Offline painted 30-60ms after the page and pushed Export down. So the answers are
+// read ahead, when the app opens, and the last one is drawn at once while it is asked again.
+let persistedSeen: boolean | undefined;
+
+/** Read ahead what Settings shows, so it opens whole. */
+export function preloadSettings(): void {
+  void preloadMeta([READY_KEY, LAST_EXPORT_KEY, CATALOG_VERSION_KEY]).catch(() => undefined);
+  void storagePersisted().then((answer) => {
+    persistedSeen = answer;
+  });
+}
+
 /** Whether the browser has promised to keep this site's storage, asked when Settings opens. */
 function useStorageProtected(): boolean | undefined {
-  const [persisted, setPersisted] = useState<boolean>();
+  const [persisted, setPersisted] = useState(persistedSeen);
   useEffect(() => {
     let current = true;
-    void storagePersisted().then((answer) => current && setPersisted(answer));
+    void storagePersisted().then((answer) => {
+      persistedSeen = answer;
+      if (current) setPersisted(answer);
+    });
     return () => {
       current = false;
     };
   }, []);
   return persisted;
 }
+
+/** A row's place while its answer is read, so the rows under it never move. */
+const Pending = () => <li aria-hidden className={ROW} />;
 
 function SeasonRow({
   icon,
@@ -64,7 +85,7 @@ function SeasonRow({
 
 function OfflineRow() {
   const offline = useOfflineState();
-  if (offline === undefined) return null;
+  if (offline === undefined) return <Pending />;
   if (offline === 'unavailable') {
     return (
       <SeasonRow wrong icon={<IconAlertCircle aria-hidden className={ICON} />}>
@@ -97,7 +118,7 @@ function OfflineRow() {
 
 function StorageRow() {
   const persisted = useStorageProtected();
-  if (persisted === undefined) return null;
+  if (persisted === undefined) return <Pending />;
   return persisted ? (
     <SeasonRow icon={<IconShieldCheck aria-hidden className={ICON} />}>
       {MESSAGES.storage.protected}

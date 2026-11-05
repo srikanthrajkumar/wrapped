@@ -5,6 +5,7 @@
 
 import { NADAIS } from '../model';
 import forms from '../reference/forms.json';
+import { formName } from './details';
 import { fold } from './fold';
 import type { Catalog } from './load';
 
@@ -56,7 +57,9 @@ function namedOptions(catalog: Catalog | null, kind: DetailKind): Named[] {
       // The project-kept forms an Item may have without a Composition come first.
       return [
         ...forms.map(({ key, display, aliases }) => ({ key, display, aliases })),
-        ...(catalog?.forms ?? []).map(plain),
+        ...(catalog?.forms ?? [])
+          .filter((key) => !forms.some((form) => form.key === key))
+          .map((key) => ({ key, display: formName(key), aliases: [] })),
       ];
   }
 }
