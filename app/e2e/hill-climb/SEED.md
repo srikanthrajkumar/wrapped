@@ -35,14 +35,18 @@ purple, grey. Didn't notice: the khanjira.
 `concert-long` (whole page), `concert-order` (Edit order on), `concert-drag` (Item 3 held
 mid-drag by its grip), `concert-facts` (date and time sheet), `artist-picker` (Add Artist, "S" typed), `artist-sheet` (Gayatri), `colour-sheet`
 (Ranjani, two-tone), `item-search` (new Item, "rama" typed), `item` (Chakkani Raja, whole page,
-Laya vinyasam open), `item-rtp` (two Raga chips), `raga-sheet`, `tala-sheet`, `settings`.
+the Improvised fold open with its Laya vinyasam), `item-rtp` (two Ragas), `raga-sheet`,
+`tala-sheet`, `settings`, and last `concert-summary` (the clock two hours on, so the Concert in
+progress has ended and its summary shows; "shown" is reset for it on each look).
 
 Each at 390×844 and 393×852 (iPhone 16), dark and light. The keyboard isn't drawn: Chromium
 has none, so search views show the results with the box at the bottom.
 
 **Motion strips** (`rig.ts motion`): `sheet-open` (the Colour sheet rising), `colour-pick` (a
 swatch chosen, the save highlight), `laya-mark` (marking the Laya vinyasam, FB-28's flash),
-`add-item` (Add Item to the Item editor), `item-done` (Done back to the Concert). Each strip is
+`sheet-close` (the Colour sheet sliding back down), `menu-open` (the "⋯" menu), `fold-close`
+(the Note fold closing), `add-item` (Add Item to the Item editor), `item-done` (Done back to the
+Concert). Each strip is
 the frame before, then the animation held at 0, 15, 30, 50, 75 and 100% of its length, then
 settled.
 

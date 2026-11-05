@@ -160,6 +160,40 @@ const VIEWS: View[] = [
     },
   },
   { name: 'settings', open: (page) => go(page, '/settings') },
+  {
+    // Last, since it moves the clock: two hours on, the Concert in progress has ended, and its
+    // summary shows on the next open (walkthrough S13). Each look shows it again: "shown" is
+    // cleared for it and set for the other Concerts, so it is always this one.
+    name: 'concert-summary',
+    open: async (page, ids) => {
+      await page.evaluate(
+        ({ full, others }) =>
+          new Promise<void>((resolve, reject) => {
+            const open = indexedDB.open('carnatic-wrapped');
+            open.onsuccess = () => {
+              const tx = open.result.transaction('meta', 'readwrite');
+              const meta = tx.objectStore('meta');
+              meta.delete(`summaryShown:${full}`);
+              for (const id of others)
+                meta.put({ key: `summaryShown:${id}`, value: { eventId: id } });
+              tx.oncomplete = () => {
+                open.result.close();
+                resolve();
+              };
+              tx.onerror = () => reject(tx.error);
+            };
+          }),
+        { full: ids.full, others: [ids.long, ids.bare] },
+      );
+      await page.clock.setFixedTime(SEASON_NOW.getTime() + 2 * 60 * 60 * 1000);
+      await page.goto(BASE + '/');
+      await page.getByRole('dialog').waitFor();
+    },
+    release: async (page) => {
+      await page.keyboard.press('Escape');
+      await page.clock.setFixedTime(SEASON_NOW);
+    },
+  },
 ];
 
 /** Let fonts, live queries and sheets settle, and blur nothing that the view focused itself. */
@@ -323,10 +357,32 @@ async function motion(out: string) {
       before: async (theme) => {
         await concert(page, ids);
         await page.getByRole('link', { name: theme === 'dark' ? /Vatapi/ : /Endaro/ }).click();
-        await page.getByRole('button', { name: 'Laya vinyasam', exact: true }).click();
+        await page.getByRole('button', { name: 'Improvised', exact: true }).click();
         await settle(page);
       },
-      act: () => page.getByRole('button', { name: /Laya vinyasam after this Item/ }).click(),
+      act: () => page.getByRole('button', { name: 'Laya vinyasam', exact: true }).click(),
+    },
+    {
+      // A sheet slides back down the way it came (walkthrough P8, FB-44).
+      name: 'sheet-close',
+      before: async () => {
+        await concert(page, ids);
+        await stageRow(page, /^Colours for Embar/).click();
+        await settle(page);
+      },
+      act: () => page.keyboard.press('Escape'),
+    },
+    {
+      // The "⋯" menu fades and scales in (walkthrough P9, FB-38).
+      name: 'menu-open',
+      before: () => concert(page, ids),
+      act: () => page.getByRole('button', { name: 'Concert actions' }).click(),
+    },
+    {
+      // A fold closes with the height it opened with (walkthrough P8).
+      name: 'fold-close',
+      before: () => concert(page, ids),
+      act: () => page.getByRole('button', { name: 'Note', exact: true }).click(),
     },
     {
       name: 'add-item',
