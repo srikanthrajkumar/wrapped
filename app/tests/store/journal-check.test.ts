@@ -20,7 +20,6 @@ import {
   setRagas,
 } from '../../src/store/items';
 import { holdsValue, storedHolds } from '../../src/store/journal-check';
-import { endLogging } from '../../src/store/logging-note';
 import { addAppearance, createArtist, createSabha, editAppearance } from '../../src/store/people';
 import { fixtureCatalog, freshDb } from '../helpers';
 
@@ -39,7 +38,7 @@ describe('the journal, checked against the store', () => {
     expect(await holdsValue(chosen, db)).toBe(true);
   });
 
-  it('Colours, the note, Done with this Concert and a new record', async () => {
+  it('Colours, the note, a legacy Done with this Concert and a new record', async () => {
     const db = freshDb();
     const event = await createEvent({ kind: 'concert' }, { db });
     const artist = await createArtist('Sanjay', { db });
@@ -54,10 +53,8 @@ describe('the journal, checked against the store', () => {
     expect(await holdsValue(entry('events', event.id, 'note', ''), db)).toBe(true);
     expect(await holdsValue(entry('events', event.id, 'note', 'Tisram'), db)).toBe(false);
 
-    const done = entry('events', event.id, 'logging', 'done');
-    expect(await holdsValue(done, db)).toBe(false);
-    await endLogging(event.id, { db });
-    expect(await holdsValue(done, db)).toBe(true);
+    // "Done with this Concert" is gone (walkthrough S13): an entry left from before leaves.
+    expect(await holdsValue(entry('events', event.id, 'logging', 'done'), db)).toBe(true);
 
     expect(await holdsValue(entry('appearances', appearance.id, '*', {}), db)).toBe(true);
     expect(await holdsValue(entry('events', 'missing', '*', {}), db)).toBe(false);

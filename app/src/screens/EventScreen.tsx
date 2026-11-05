@@ -2,8 +2,9 @@
 // iPhone walkthrough's S2 to S12). Top to bottom: the Artists it is known by, with the Sabha,
 // date and time under them; Stage, listed by Role; the note; the Items, last, so the list ends
 // right above the fixed 56px bar that holds the one action for the Event's state, "Start
-// logging" or "Add Item". "Done with this Concert" is an optional row after the last Item.
-// Lists are rows on the background, not cards.
+// logging" or "Add Item". Nothing ends a Concert by hand (S13): it ends on its own, stays
+// editable, and its summary shows once as a modal (components/ConcertSummary). Lists are rows on
+// the background, not cards.
 
 import {
   IconArrowDown,
@@ -31,21 +32,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { fold } from '../catalog/fold';
-import { useCatalog } from '../catalog/use-catalog';
 import { newId, type Colour, type Item, type Role } from '../model';
 import { editEvent, setStatus } from '../store/events';
 import { moveItemBy } from '../store/items';
-import { endLogging, isBeingLogged } from '../store/logging-note';
 import { addAppearance, editAppearance, renameArtist, usualRoles } from '../store/people';
 import {
   getEvent,
   useAppearances,
   useItems,
-  useLoggingNotes,
   useReceipts,
   useSabha,
-  countRagas,
-  useWhatItAdded,
   type ResolvedAppearance,
   type ResolvedEntry,
   type ResolvedEvent,
@@ -62,12 +58,12 @@ import {
   SectionHead,
   TopBar,
   useFocusOnOpen,
-  useNow,
 } from './components/layout';
 import { NamePicker, RoleChips } from './components/NamePicker';
-import { SheetFrame } from './components/sheet-frame';
+import { SheetFrame, useLingering } from './components/sheet-frame';
+import { Fold } from './components/fold';
 import { UndoBar } from './components/UndoBar';
-import { dayText, eventLine, itemCount, itemLine, itemTitle, roleName, timeText } from './format';
+import { dayText, eventLine, itemLine, itemTitle, roleName, timeText } from './format';
 import { deleteConcert, deleteItem, removeArtist } from './deletes';
 import { undo, undoMessage } from './undo';
 import type { SaveFeedback } from './save-feedback';
@@ -106,9 +102,7 @@ function EventView({ eventId }: { eventId: string }) {
   const event = useEventOrNull(eventId);
   const items = useItems(eventId);
   const appearances = useAppearances(eventId);
-  const notes = useLoggingNotes();
   const receipts = useReceipts(eventId);
-  const now = useNow();
   const [order, setOrder] = useState<Order>(null);
   const [artistOpen, setArtistOpen] = useState(false);
   const [artistFailed, setArtistFailed] = useState<{ id: string; entry: Picked } | null>(null);
@@ -117,6 +111,13 @@ function EventView({ eventId }: { eventId: string }) {
   const [coloursFor, setColoursFor] = useState<string | null>(null);
   const [appearanceFor, setAppearanceFor] = useState<string | null>(null);
   const feedback = useSaveFeedback();
+  // The Artist sheets, kept while they slide closed (an Artist removed included).
+  const [colours, coloursOpen] = useLingering(
+    appearances?.find((a) => a.id === coloursFor) ?? null,
+  );
+  const [sheetFor, sheetOpen] = useLingering(
+    appearances?.find((a) => a.id === appearanceFor) ?? null,
+  );
   const rows = useRef(new Map<string, HTMLElement>());
   const concertHead = useRef<HTMLHeadingElement>(null);
   const itemsHead = useRef<HTMLHeadingElement>(null);
@@ -159,13 +160,10 @@ function EventView({ eventId }: { eventId: string }) {
     );
   }
 
-  const note = notes?.get(eventId);
-  const logging = isBeingLogged(event, note, now);
   const known = knownBy(event.kind, appearances);
   const knownAs =
     known.length > 0 ? joinNames(known.map((a) => nameShown(feedback, a.artist))) : null;
   const target = (field: string) => eventTarget(eventId, field);
-  const appearanceById = (id: string | null) => appearances.find((a) => a.id === id);
 
   // Deletes go through save feedback as their own kind (screens/deletes.ts): a failed one reads
   // "Not deleted", its Try again offers Undo too, and nothing is thrown.
@@ -315,12 +313,14 @@ function EventView({ eventId }: { eventId: string }) {
                 // The lifted row leaves its hairline behind.
                 className={drag.lifted === item.id ? undefined : 'hairline-b'}
               >
+                {/* A dropped row shows its own move, so only a new or restored row highlights. */}
                 <Saved
                   target={['*', 'position', 'deletedAt'].map((field) => ({
                     table: 'items' as const,
                     id: item.id,
                     field,
                   }))}
+                  quiet={[{ table: 'items', id: item.id, field: 'position' }]}
                 >
                   {order === 'items' ? (
                     // One line each while ordering, so every row is 64px; the full names show
@@ -375,22 +375,6 @@ function EventView({ eventId }: { eventId: string }) {
               </li>
             ))}
           </ol>
-          {order === null &&
-            (logging ? (
-              <Saved target={target('logging')} className="mt-4">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() =>
-                    void saveWith(target('logging'), 'done', () => endLogging(eventId))
-                  }
-                >
-                  Done with this Concert
-                </Button>
-              </Saved>
-            ) : (
-              <Summary eventId={eventId} items={items} />
-            ))}
         </section>
       )}
 
@@ -410,7 +394,8 @@ function EventView({ eventId }: { eventId: string }) {
               Done
             </Button>
           ) : event.status === 'planned' ? (
-            <Saved target={target('status')}>
+            // The bar's own change, to Add Item, shows the save.
+            <Saved target={target('status')} quiet>
               <Button
                 size="lg"
                 className="w-full"
@@ -467,22 +452,20 @@ function EventView({ eventId }: { eventId: string }) {
         }
       />
 
-      {coloursFor && appearanceById(coloursFor) && (
-        <ColoursSheet
-          appearance={appearanceById(coloursFor)!}
-          onClose={() => setColoursFor(null)}
-        />
+      {colours && (
+        <ColoursSheet appearance={colours} open={coloursOpen} onClose={() => setColoursFor(null)} />
       )}
 
-      {appearanceFor && appearanceById(appearanceFor) && (
+      {sheetFor && (
         <AppearanceSheet
-          appearance={appearanceById(appearanceFor)!}
+          appearance={sheetFor}
+          open={sheetOpen}
           onClose={() => setAppearanceFor(null)}
           onColours={() => {
             setAppearanceFor(null);
-            setColoursFor(appearanceFor);
+            setColoursFor(sheetFor.id);
           }}
-          onRemove={() => void removeFromStage(appearanceFor)}
+          onRemove={() => void removeFromStage(sheetFor.id)}
         />
       )}
     </>
@@ -565,7 +548,8 @@ function ConcertBlock({
           <button
             type="button"
             onClick={() => setFactsOpen(true)}
-            className="min-h-14 rounded-xl py-2 text-left text-muted-foreground"
+            // Underlined as every value is, so it reads as one to change (walkthrough P2).
+            className="min-h-14 rounded-xl py-2 text-left text-muted-foreground underline decoration-border underline-offset-4"
           >
             {eventLine({ date, startTime }, sabhaName)}
           </button>
@@ -666,16 +650,18 @@ function StageRow({
 
 function ColoursSheet({
   appearance: stored,
+  open,
   onClose,
 }: {
   appearance: ResolvedAppearance;
+  open: boolean;
   onClose(): void;
 }) {
   const appearance = useShownAppearance(stored);
   const feedback = useSaveFeedback();
   return (
     <ColourPicker
-      open
+      open={open}
       onOpenChange={(open) => !open && onClose()}
       artistName={nameShown(feedback, appearance.artist)}
       primary={appearance.colourPrimary}
@@ -729,7 +715,8 @@ function ArtistName({ artist }: { artist: ResolvedEntry | null }) {
     return <p className="text-title font-semibold break-words">{artist?.name ?? 'Artist'}</p>;
   }
   return (
-    <Saved target={artistName(own.id)}>
+    // Typing shows itself, so the name plays no highlight (walkthrough P7).
+    <Saved target={artistName(own.id)} quiet>
       <input
         aria-label="Artist name"
         value={draft ?? shown ?? ''}
@@ -758,11 +745,13 @@ function ArtistName({ artist }: { artist: ResolvedEntry | null }) {
 /** An Artist on Stage: their name, Role, Colours, and Remove, whose failure shows in the sheet. */
 function AppearanceSheet({
   appearance: stored,
+  open,
   onClose,
   onColours,
   onRemove,
 }: {
   appearance: ResolvedAppearance;
+  open: boolean;
   onClose(): void;
   onColours(): void;
   onRemove(): void;
@@ -772,8 +761,8 @@ function AppearanceSheet({
   const removal = appearanceTarget(appearance.id, 'deletedAt');
   return (
     <SheetFrame
-      open
-      onOpenChange={(open) => !open && onClose()}
+      open={open}
+      onOpenChange={(next) => !next && onClose()}
       title={nameShown(feedback, appearance.artist)}
       header={<ArtistName artist={appearance.artist} />}
     >
@@ -898,35 +887,6 @@ function ColoursButton({ appearance, onOpen }: { appearance: ResolvedAppearance;
   );
 }
 
-/** The summary at the end of a Concert no longer being logged (DESIGN.md "Finishing a Concert"). */
-function Summary({ eventId, items }: { eventId: string; items: Item[] }) {
-  const catalogState = useCatalog();
-  const catalog = catalogState.status === 'ready' ? catalogState.catalog : null;
-  const added = useWhatItAdded(eventId, catalog);
-  // Linked ragas count once (constitution: analytics aggregate on the linked pair).
-  const ragaCount = countRagas(items, catalog);
-  return (
-    <div className="mt-4 rounded-2xl border border-border bg-card p-4 dark:border-transparent">
-      <p className="font-semibold">
-        {itemCount(items.length)} · {ragaCount} {ragaCount === 1 ? 'Raga' : 'Ragas'}
-      </p>
-      {added && (added.ragas.length > 0 || added.composers.length > 0) && (
-        <>
-          <h3 className="pt-2 text-sub text-muted-foreground">What it added</h3>
-          <ul className="text-sub">
-            {added.ragas.map((raga) => (
-              <li key={`r:${raga}`}>First Raga: {raga}</li>
-            ))}
-            {added.composers.map((composer) => (
-              <li key={`c:${composer}`}>New Composer: {composer}</li>
-            ))}
-          </ul>
-        </>
-      )}
-    </div>
-  );
-}
-
 /** The Event's facts: Sabha, date and start time, each saved as it changes. */
 function EventFacts({
   open,
@@ -998,8 +958,10 @@ function EventFacts({
 }
 
 /**
- * The note, last on the screen, saved as the rasika pauses, leaves the field or the app; typed
- * text is copied to save feedback's storage before its write starts.
+ * The note, in a fold (walkthrough P6): open when it has text, so a note written stays in view,
+ * and one row when empty. Saved as the rasika pauses, leaves the field or the app; typed text is
+ * copied to save feedback's storage before its write starts. Typing shows itself, so it plays no
+ * highlight (P7).
  */
 function NoteField({ eventId, stored }: { eventId: string; stored: string | null }) {
   const feedback = useSaveFeedback();
@@ -1010,19 +972,22 @@ function NoteField({ eventId, stored }: { eventId: string; stored: string | null
       void saveWith(target, value, () => editEvent(eventId, { note: value === '' ? null : value })),
     (value) => (value === null ? feedback.release(target) : feedback.hold(target, value)),
   );
+  // Null follows the text (open once written); a tap decides from then on.
+  const [open, setOpen] = useState<boolean | null>(null);
   return (
-    <section aria-labelledby="note" className="pt-8">
-      <SectionHead id="note">Note</SectionHead>
-      <Saved target={target}>
-        <textarea
-          aria-labelledby="note"
-          value={note.text}
-          rows={3}
-          onChange={(e) => note.change(e.target.value)}
-          onBlur={note.flush}
-          className="block w-full rounded-xl bg-secondary p-3 text-body"
-        />
-      </Saved>
+    <section aria-label="Note" className="pt-8">
+      <Fold title="Note" open={open ?? note.text !== ''} onOpenChange={setOpen}>
+        <Saved target={target} quiet>
+          <textarea
+            aria-label="Note"
+            value={note.text}
+            rows={3}
+            onChange={(e) => note.change(e.target.value)}
+            onBlur={note.flush}
+            className="block w-full rounded-xl bg-secondary p-3 text-body"
+          />
+        </Saved>
+      </Fold>
     </section>
   );
 }

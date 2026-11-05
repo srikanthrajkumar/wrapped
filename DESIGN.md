@@ -262,11 +262,11 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     shows while a Concert holds Now through logging activity. "Later" hides it until the next
     launch.
   - **Which Event is Now** (decided 2026-11-01; D3, refined by D17): an Event being logged (an
-    Item added or changed in the last 60 minutes, and not ended with "Done with this Concert")
-    holds Now while it is inside its window. Otherwise the Event with the nearest start holds
-    it. Any other Event in its window shows as one smaller line under the block, tapped to open.
-    Nothing depends on "Done": a Concert lets go of Now by itself after an hour without logging
-    or at the end of its window.
+    Item added or changed in the last 60 minutes) holds Now while it is inside its window.
+    Otherwise the Event with the nearest start holds it. Any other Event in its window shows as
+    one smaller line under the block, tapped to open. A Concert lets go of Now by itself after
+    an hour without logging or at the end of its window; nothing ends it by hand (walkthrough
+    S13, 2026-11-05).
 - **Event (DD3):** top to bottom, heading → Stage → Note → Items (walkthrough S2, S3, decided
   2026-11-04, replacing the Sabha-led block and the running order before Stage).
   - **Heading:** the Artists the Event is known by, in `title`, wrapping rather than truncating:
@@ -279,28 +279,30 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   - **Stage**, shown once it has an Artist (before then the heading adds one), then **Note**,
     then **Items**: numbered rows, title then Raga · Composer, under the heading "Items"
     (walkthrough S12). The Items come last, so the list ends right above the bar.
+  - **Note** is a fold (walkthrough P6, 2026-11-05): open when it has text, so a note written
+    stays in view, and one 48px row when empty.
   - The top bar's "⋯" holds Delete Event (its Export moved to Settings on 2026-11-03). "Log a
     Concert" opens this screen at once, started, with the date and time set to now and the Add
     Item bar ready (decided 2026-11-01).
   - A fixed full-width 56px bar at the bottom holds the one action for the Event's state
     (decided 2026-11-01): "Start logging" on a Planned Event that is only being viewed (DD7),
-    "Add Item" once it is started. "Done with this Concert" is an optional full-width
-    secondary row directly after the last Item, shown once there is at least one Item; it
-    never sits in the bar.
+    "Add Item" once it is started. Nothing follows the last Item: a Concert ends on its own
+    (walkthrough S13; see "Finishing a Concert").
 - **Item editor (DD4):** top bar "‹ Music Academy" (the Event's Sabha). The bottom bar holds
   "Next Item →", outlined, at the left and "Done", the filled main action, at the right
   (walkthrough S9, decided 2026-11-04). Once picked, the title is the first content line, with
   "Item 8" as a small muted eyebrow above it in `caption` (walkthrough S10); before a pick, the
-  heading is "Item 8". A field's label sits 8px above its chips ("Raga", "Nadai"; walkthrough
-  S11). The search
+  heading is "Item 8". A field's label sits 8px above its chips ("Nadai"; walkthrough
+  S11). "Done" goes back to the Concert, "done for now" (walkthrough P1). The search
   box is docked above the keyboard, results growing upward with the
   best match nearest the box. The stack is bottom-aligned and reads, top to bottom (decided
   2026-11-01, as in the approved preview): the special-form chips (RTP, Viruttam / Slokam,
   Medley), "? Don't know", "Use what I typed: …", a divider, the results from weakest to best,
   then the box. The fixed rows stay pinned; only the results scroll. With few or no results the
   stack shrinks, so the fixed rows sit just above the box. The reading order for screen readers
-  is the same top-to-bottom order, and the results list is labelled "best match last". After a pick, the Details as a grid of tappable values, with the
-  Laya vinyasam and improvised Details folded underneath. Bottom bar: "Done", "Next Item →".
+  is the same top-to-bottom order, and the results list is labelled "best match last". After a pick, the Details as values (see "Values"), then one
+  fold, Improvised, holding Alapana, Tanam, Niraval, Kalpana swaram and the Laya vinyasam as
+  rows of the same kind (walkthrough S14). Bottom bar: "Done", "Next Item →".
 - **Wrapped (DD5):** headline numbers → the range as a quiet subtitle → a vertical list of 9:16
   Card previews, each with its own Share.
 - **First launch (decided 2026-11-01; FR-050, FR-042, FR-049):** one step per screen, in order:
@@ -355,7 +357,8 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   surface-raised) and the 10% white border.
 - **Light:** borders do the same job; only sheets and menus take a soft shadow.
 - **Sheets** (Colour picker, edit menus) rise from the bottom over a 50% black scrim. Menus use
-  the preset's inverted translucent style.
+  the preset's inverted translucent style. The Concert summary is shadcn's Dialog: centred,
+  `surface` with 18px corners, over its own blurred scrim.
 
 ## Shapes
 
@@ -389,17 +392,20 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   - Picking a value different from the catalog's makes it an Override automatically; the
     editor shows "catalog: Todi" with "Use catalog value" under it.
   - "Use what I typed" gives Unresolved, as in the Item search.
-  - A ragamalika's Ragas show as an ordered row of chips with "+ Raga"; each chip opens the
-    same sheet, and the row has its own move controls.
+  - A ragamalika's Ragas show as values in the order sung, "Kalyani, Kanada", then a muted "+"
+    for another; each opens the same sheet, and the row has its own move controls.
   - Tala opens its search, then a row of Nadai chips: "?", the five nadais and "Other…".
     With none picked, the Nadai stays Not applicable, which means the Tala's usual nadai (the
     store's default) and shows nothing extra: "Adi", not "Adi (chatusra nadai)". "Other…"
     opens the Nadai's own sheet, the same pattern as every Detail ("?", "Not sure", "N/A",
     free text), as the Laya vinyasam's Nadai does (2026-11-02).
-  - The Laya vinyasam and improvised folds use the same sheet for each Detail inside them.
-  - The Laya vinyasam shows its Note, then "+ Nadai", then "Remove Laya vinyasam". Its Nadai
-    stays the Tala's usual nadai until "+ Nadai" is tapped, since many rasikas won't know it;
-    once one is set, it shows as a Detail in that place (FB-29, decided 2026-11-05).
+  - The Improvised fold uses the same sheet for each Detail inside it.
+  - **The Laya vinyasam** is one more row of the Improvised fold (walkthrough S14, decided
+    2026-11-05): a "Laya vinyasam" chip, pressed while there is one, like Alapana's. Pressed,
+    "+ Nadai" sits beside it and its Note grows open under the row; tapped again, it is removed,
+    note and all, as Alapana takes its Raga with it. Its Nadai stays the Tala's usual nadai until
+    "+ Nadai" is tapped, since many rasikas won't know it; once set, it shows in that place as
+    "khanda nadai" (FB-29).
 - **Artist and Sabha pickers** (decided 2026-11-01; T041, FR-004, FR-005): the same docked
   search. Before typing it lists the rasika's recent Sabhas or Artists; as they type, matches
   from their own and the shared lists. Each result shows a distinguishing line (an Artist's
@@ -425,13 +431,26 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     are listed by Role, as in a printed kutcheri listing: vocal, veena, flute, violin,
     mridangam, ghatam, khanjira, morsing, other, presenter, then no Role; within a Role, the
     order added. This orders what is shown; no Role ranks above another in the Wrapped.
+- **Values** (walkthrough P2 to P4, 2026-11-05; FB-32, FB-33, FB-35, FB-42). Every value is one
+  kind of row: a small muted label (`caption`) over the value as text, underlined in `border`
+  with a 4px offset, so everything that can be changed reads as such. The Concert's facts line
+  takes the same underline. Importance is weight and contrast, never a fill: the Composition in
+  600, Raga and Tala in full contrast, Composer, Language, Subject and Form muted. Adding a value
+  is a muted "+" (with its word only where the "+" alone wouldn't say what, as "+ Nadai"), never
+  an "Add" pill.
+  - **Chips** are only for picking from a short fixed set: the Item kinds (RTP, Viruttam /
+    Slokam, Medley), the improvised parts and the Laya vinyasam, Roles, Nadais, and "?", "Not
+    sure", "N/A". A chip always means "pick one of these"; a Raga is never a chip.
+  - **Forms** show in sentence case, like the Roles: "Kriti", "Javali", "Varnam" (the catalog
+    keeps "kriti"); the project's own keep their names ("RTP", "Slokam").
 - **Search box:** 48px, surface-raised fill, a 2px `ring` inset while focused. It is the one
   element allowed to autofocus on mobile: the Item editor opens with it focused (DD4, the
   recorded exception to T110's rule).
 - **Search result:** a row on the gutter, 64px with two lines and 48px with one, divided by the
   hairline; title in body 600, then the secondary line. The best match is the one filled row, on
   `surface-raised` in both themes, on a page or in a sheet, with no border, its fill reaching 8px
-  into the gutter. The fixed rows above ("? Don't know", "Use what I typed") are hairline rows too.
+  into the gutter. The fixed rows above ("? Don't know", "Use what I typed") are hairline rows too;
+  the hairline under the Item kinds' chips sits their own 8px gap below them (walkthrough P5).
   A Raga result is one line, the word "Raga" after its name in muted caption, not a filled badge (a
   fill on every row says nothing; the line "Start this Item with only its Raga" was also cut on
   2026-11-04: fewer words). Results that scroll up under the fixed rows are gone in the first 12px
@@ -451,6 +470,9 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   discards it.
 - **Saving:** no Save button and no toast. A changed or new row takes a surface-raised
   highlight that fades out over 1.2s, played only after the write to the phone has succeeded.
+  It plays only on values whose change you can't see happen: one set in a sheet, a new or
+  restored row. Never on a chip or toggle, whose own state shows the save, nor on typed text or
+  a dropped row (walkthrough P7, FB-34, 2026-11-05).
 - **Save failure** (decided 2026-11-01, reopening the eng review's D9; simplified 2026-11-02,
   docs/adr/0007): every value is journalled on the phone the moment it is entered and leaves
   only once the store is read back holding it. If a write fails, the value stays on screen as
@@ -523,11 +545,23 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   - On Stage and on the Artist sheet's Colours button, a two-tone outfit is one 20px circle,
     half and half, first colour on the left, so it reads as one outfit (FB-13, decided
     2026-11-05). It takes the ring border when either half is Black, White or Grey.
-- **Finishing a Concert:** "Done with this Concert" shows a short summary of the Concert and
-  what it changed in the season (a first Raga, a new Composer). It does not link into the
-  Wrapped. It is optional (decided 2026-11-01, D17): tapping it also releases Now at once, but
-  nothing else depends on it. The same "What it added" lines show at the end of the running
-  order of any Concert no longer being logged, so the summary is never missed.
+- **Finishing a Concert** (walkthrough S13, decided 2026-11-05, replacing "Done with this
+  Concert" and the "What it added" card): there is nothing to tap. A Concert ends on its own, by
+  its window and the hour's logging hold, and can always be edited, so there is nothing to
+  reopen. Its **Concert summary** shows once, as a modal (shadcn Dialog), the next time the app
+  opens or comes back after the Concert ends, then never again:
+  - Its title is the Artists the Concert is known by, with the Sabha and date under it; then the
+    Items and Ragas as two `display` numbers (Linked ragas counted once); then, when there are
+    any, "First Raga" and "New Composer" with the names. With no Items there is nothing to say,
+    and no modal. It does not link into the Wrapped.
+  - It is due an hour after the Concert's last Item changed on this phone, so a past Concert
+    being filled in is never interrupted, and it waits while any Concert is being logged, so it
+    never stands between the rasika and the next Item. One shows per open, the one that ended
+    first.
+  - "Shown" is kept per Event on this phone (`db.meta`), written before the modal opens, and
+    never synced: a restored season shows none. The first time a phone runs this, Concerts that
+    had already ended are marked shown rather than shown. A legacy "Done" in a logging note is
+    read by nothing.
 - **Status** (decided 2026-11-01, settling DD6's placement; narrowed 2026-11-03): until sync
   exists (Phase 7), home shows no status line, since every change would count as not backed up.
   With sync it shows one muted line under its title, "Saved on this phone · 4 changes not yet
@@ -570,21 +604,33 @@ finicky"): every change of place now moves, briefly, in CSS only, and nothing wa
   past its sides, so a screen sliding in never widens it or scrolls it.
 - **A dragged row** follows the finger with no easing; the rows it passes step aside over 200ms
   with the same curve, and the dropped row eases into its place. Reduced motion: rows jump.
+- **A shadcn primitive wherever one exists, with its own motion** (walkthrough P9, FB-38,
+  decided 2026-11-05): Sheet, Dialog, DropdownMenu and Accordion, so the parts look and move as
+  one system. Hand-made parts stay only where shadcn has none (the docked search, the swatches,
+  the drag).
 - **Sheets** rise opaque from below the screen over 220ms with the same curve; only the scrim
-  fades. A sheet never shows the page through it.
-- **Something opening in place** (a fold, the Laya vinyasam's fields) grows to its height over
-  200ms as it fades in, so what's below slides down instead of jumping. The Laya vinyasam's
-  fields grow from the height of the button they replace, showing at 30% from the first frame
-  and fading up as they grow, so nothing moves up first and no empty band shows.
+  fades. A sheet never shows the page through it. Closing, it slides back down the same way
+  (P8, FB-44): a screen keeps the sheet it last opened drawn while it closes, so it never just
+  vanishes.
+- **Folds** are shadcn's Accordion (P8): opening grows to the content's height over 200ms with
+  the same curve and closing shrinks back, so what's below slides rather than jumps; the chevron
+  turns with it.
+- **Something opening in place** (the Laya vinyasam's note under its row) grows to its height
+  over 200ms as it fades in.
+- **The "⋯" menu** fades and scales in from its button and out again (shadcn's 100ms), from a
+  ghost icon button. **The Concert summary** fades and scales in the same way.
 - **A swatch picked** settles from 88% and its check grows in (180ms) while the old ring fades
   out and the new one in (150ms), so nothing is ever unchosen; one ring goes out from it and
   fades (360ms): the pick's own confirmation, in view. Only a pick made in the sheet plays, not
   the swatch already chosen when the sheet opens.
 - The save highlight: 1.2s, rising over its first 150ms and then fading (FB-28: starting at
   full strength read as a flash), drawn 8px past its block so the text inside keeps its edge.
-  Where the change already shows itself, it doesn't play: marking the Laya vinyasam grows its
-  fields in, and that is the confirmation (a failure still shows "Not saved"). The Undo bar:
-  5s, then it slides away.
+  Where the change already shows itself, it doesn't play (see "Saving"; a failure still shows
+  "Not saved"). The Undo bar: 5s, then it slides away.
+- **Settings opens whole** (walkthrough P10, FB-41): measured on a 4x-slowed CPU, its Storage
+  and offline rows painted 30-60ms after the page and pushed Export down (layout shift up to
+  0.08). What it shows is read when the app opens and drawn from the first frame, re-asked
+  behind it; a row still waiting keeps its 48px, so nothing under it moves.
 - Under `prefers-reduced-motion: reduce`, nothing moves or grows, and the highlight still shows
   (it carries information), without the fade.
 - *Proposed, with the Cards:* one authored moment, a new stripe weaving into the season's
@@ -707,4 +753,5 @@ in the phase that builds it):
 | 2026-11-04 | The iPhone walkthrough's shape decisions S1 to S12 (`docs/feedback/2026-11-iphone-walkthrough.md`): "+ Log a Concert" always in the Season page's bottom bar, the open Concert a card; Events known by their vocal, veena or flute Artists (a Lecdem's presenters), the Sabha, date and time on the line under them; the Event screen runs heading, Stage, Note, Items; Stage listed by Role with no "Edit order"; an Artist's name corrected from their sheet, the old name kept as an Alias; the usual Role chosen for a known Artist; "Remove" with the bin mark; Role chips capitalised; Done the filled main button at the right of the Item editor's bar; "Item 8" an eyebrow; more room under a field's label and a taller facts line; "Running order" now "Items". |
 | 2026-11-03 | After the Phase 4 screenshots, the Maintainer's answers: the Settings Export row is never amber; Android's install row leads with the same Add mark as the iPhone row; accepted as built: Android's Install button named without Safari's steps, the row hidden while Chrome offers no install, the › between the iPhone marks, the amber `warning` token (oklch(0.8 0.15 75) dark, oklch(0.53 0.12 62) light), "Getting ready for offline…" with a muted spinner and an amber row where there is no service worker, and the "App" and "Catalog" version lines. |
 | 2026-11-04 | The UI hill-climb (FB-30, themes 3 and 4), as built for the Maintainer to check on the iPhone: line heights on the 4px grid; 64px and 48px rows with the hairline drawn inside; section labels 32px under the block above; text on the 16px gutter with fills reaching past it; pushed screens and sheets that move; folds that grow open; a softer save highlight (FB-28); the Laya vinyasam as a mark in Item rows (FB-27); Raga results on one line; the facts sheet's date and time written as the app writes them ("Mon 14 Dec", "6:00 pm") over the phone's own pickers; the Artist sheet's Colours button showing the colours. |
+| 2026-11-05 | The iPhone walkthrough's second pass (FB-31 to FB-44), agreed: no "Done with this Concert"; a Concert ends on its own and its summary shows once as a modal on the next open after it ends (S13); one Improvised fold with the Laya vinyasam as a row (S14). The builder's calls, P1 to P10: Done on the Item page stays; one row style for every value (muted label, underlined value, weight and contrast for importance, a muted "+" to add); chips only for short fixed sets; forms in sentence case; the Item kinds' hairline 8px under them; the Note in a fold, open when it has text; no save highlight on chips, toggles, typed text or a dropped row; sheets slide back down and folds are shadcn's Accordion; shadcn primitives with their motion, the "⋯" menu fading and scaling in; Settings drawn whole from its first frame. |
 | 2026-11-05 | The Maintainer's answers on the hill-climb's parked choices: Season's title stays smaller than its section heads (DESIGN.md's type roles, as written); Edit order rows hold one line each; Items reorder by dragging a grip, the arrows kept for VoiceOver (FB-26); the Laya vinyasam's Nadai behind "+ Nadai" (FB-29); a two-tone outfit as one circle, half and half (FB-13). The Colour sheet keeps its circles, in the colour wheel's order; a fuller picker (a shade square under a hue strip) is planned as T118, since twelve colours may prove too few. |

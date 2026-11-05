@@ -3,7 +3,18 @@
 // (app/src/store/items.ts) and the 2024-25 reference import (tools/import-2024-25).
 
 import { catalogValue, unknownValue, type DetailValue } from '../model/detail-value';
+import forms from '../reference/forms.json';
 import type { Song } from './load';
+
+const FORM_NAMES = new Map(forms.map(({ key, display }) => [key, display]));
+
+/**
+ * A form as shown, in sentence case like the Roles (walkthrough P4): "Kriti", "Javali", where the
+ * catalog keeps "kriti". The project's own forms keep their names ("RTP", "Slokam").
+ */
+export function formName(key: string): string {
+  return FORM_NAMES.get(key) ?? key.charAt(0).toUpperCase() + key.slice(1);
+}
 
 /** The Details a Composition fills in. */
 export interface Suggested {
@@ -22,7 +33,7 @@ const orUnknown = <T>(value: T | null, as: (value: T) => DetailValue) =>
 export function suggestedDetails(song: Song): Suggested {
   const ragas = song.raga ? [song.raga] : song.ragamalika;
   return {
-    form: orUnknown(song.form, (form) => catalogValue(form, form)),
+    form: orUnknown(song.form, (form) => catalogValue(form, formName(form))),
     ragas: ragas.map((raga) => catalogValue(raga.key, raga.display)),
     tala: orUnknown(song.tala, (tala) => catalogValue(tala.key, tala.display)),
     composer: orUnknown(song.composer, (c) => catalogValue(c.key, c.display)),

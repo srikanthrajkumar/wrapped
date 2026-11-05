@@ -258,7 +258,8 @@ findings from the review and its outside voice are unresolved (all but item 1, s
 3. **A dark theme for logging screens in a dark hall:** near-black, warm off-white text, no white
    flashes.
 4. **The end-of-concert moment:** "Done with this Concert" with a short summary and a link to the
-   Wrapped.
+   Wrapped. *Replaced 2026-11-05 (walkthrough S13):* no "Done"; the Concert ends on its own and
+   its summary shows once as a modal (DESIGN.md "Finishing a Concert").
 5. **The first launch:** a welcome screen before sign-in, and the empty home.
 6. **Save success feedback:** the new row highlighted briefly, no toast.
 7. **Deleting:** a 5-second undo instead of a confirmation.
@@ -331,9 +332,11 @@ stays open until `/plan-design-review` has run on it; the screen tasks T040 to T
   - **Reordering Items:** in a separate edit mode on the Event screen, never by dragging during
     the Concert. Export stays reachable from every screen that holds data (FR-019, T051) and
     from Settings; its exact place is settled in the preview.
-  - **Finishing a Concert:** "Done with this Concert" shows a short summary of the Concert and
-    what it changed in the season's Wrapped (for example a first Raga or a new Composer). It
-    does not link into the Wrapped: the Wrapped belongs to the whole season, not one Concert.
+  - **Finishing a Concert:** a Concert ends on its own, by its window and the logging hold, and
+    stays editable (walkthrough S13, 2026-11-05, replacing "Done with this Concert"). Its
+    summary of what it changed in the season's Wrapped (for example a first Raga or a new
+    Composer) shows once, as a modal, the next time the app opens after it ends. It does not
+    link into the Wrapped: the Wrapped belongs to the whole season, not one Concert.
 
 - **Preview approved (2026-11-01):** the Event screen and the Item editor, drawn with the preset,
   warm text and plain English names.

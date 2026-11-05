@@ -1,20 +1,14 @@
 // The Item editor (T044; DESIGN.md "Item editor (DD4)", design D7, D12, D13, D25). A new Item
 // opens on its search box, focused and docked at the bottom; the Item exists from its first pick
 // (a song, a Raga, a special form, "? Don't know" or "Use what I typed"), and typed text that
-// was not picked survives the phone locking. After a pick, the Details show as a grid of
-// tappable values, with the Laya vinyasam and the improvised Details folded underneath. Each
-// change saves at once; the bottom bar holds "Next Item →" and, filled at the right, "Done".
+// was not picked survives the phone locking. After a pick, the Details show as rows of values,
+// each a muted label over its value underlined (walkthrough P2), with the improvised parts and
+// the Laya vinyasam in one fold underneath (S14). Each change saves at once; the bottom bar holds
+// "Next Item →" and, filled at the right, "Done", which goes back to the Concert (P1).
 
-import {
-  IconArrowLeft,
-  IconArrowRight,
-  IconChevronDown,
-  IconDots,
-  IconPlus,
-  IconTrash,
-} from '@tabler/icons-react';
+import { IconArrowLeft, IconArrowRight, IconDots, IconPlus } from '@tabler/icons-react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,7 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 import { cn } from '@/lib/utils';
-import { suggestedDetails, type Suggested } from '../catalog/details';
+import { formName, suggestedDetails, type Suggested } from '../catalog/details';
 import type { SearchResult } from '../catalog/search';
 import { currentCatalog, readyCatalog, useCatalog } from '../catalog/use-catalog';
 import {
@@ -59,8 +53,9 @@ import { DetailInput, NadaiChips, type DetailField } from './components/DetailIn
 import { Chip, DockedSearch, FixedRow, type SearchRow } from './components/DockedSearch';
 import { useAutosave } from './components/autosave';
 import { NotSavedLine, saveWith, Saved, useSaveFeedback } from './components/feedback';
+import { Fold } from './components/fold';
 import { BottomDock, QuietButton, Screen, TopBar, useFocusOnOpen } from './components/layout';
-import { SheetFrame } from './components/sheet-frame';
+import { SheetFrame, useLingering } from './components/sheet-frame';
 import { UndoBar } from './components/UndoBar';
 import { deleteItem } from './deletes';
 import { WriteGate } from './write-gate';
@@ -154,8 +149,9 @@ function ItemSearch({
         <>
           {/* One row, scrolling sideways when the chips don't fit (large text, a narrow phone,
               Android's text zoom), so the results keep their room. The padding, taken back by
-              the margin, keeps the focus rings inside the scrolling box. */}
-          <div className="-m-1 flex gap-2 overflow-x-auto overscroll-x-contain p-1">
+              the margin, keeps the focus rings inside the scrolling box. The hairline under them
+              sits the chips' own 8px gap below them (walkthrough P5). */}
+          <div className="-m-1 mb-0 flex gap-2 overflow-x-auto overscroll-x-contain p-1">
             {SPECIAL.map(({ form, label }) => (
               <Chip
                 key={form}
@@ -347,12 +343,11 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
   const catalogState = useCatalog();
   const catalog = catalogState.status === 'ready' ? catalogState.catalog : null;
   const [open, setOpen] = useState<Open>(null);
+  // The sheet last opened, kept while it slides closed.
+  const [sheet, sheetOpen] = useLingering(open);
   const [query, setQuery] = useState('');
   // Null follows the content (open once filled); a tap decides from then on.
-  const [folds, setFolds] = useState<{ laya: boolean | null; improvised: boolean | null }>({
-    laya: null,
-    improvised: null,
-  });
+  const [folded, setFolded] = useState<boolean | null>(null);
   const [ragaOrder, setRagaOrder] = useState(false);
   const head = useFocusOnOpen<HTMLHeadingElement>(itemId);
   const feedback = useSaveFeedback();
@@ -438,20 +433,23 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
     feedback.get(target('pick'))?.status === 'failed' ? item : shown<unknown>('pick', item);
   const picking = pickShown === item ? null : (pickShown as { label: string });
   const title = picking?.label || item.title || ragasText(ragas) || '?';
+  // Weight and contrast say how much a value matters (walkthrough P2): the Composition bold,
+  // Raga and Tala in full contrast, the rest muted.
   const cell = (field: ItemField, value: DetailValue, text?: string) => (
     <DetailCell
       key={field}
       name={FIELD_NAMES[field]}
       value={shown(field, value)}
       text={text}
+      muted={field !== 'tala'}
       suggested={suggested[field as keyof Suggested] as DetailValue | undefined}
       // The Tala cell shows the Nadai too, so it carries the Nadai's feedback.
       target={field === 'tala' ? [target('tala'), target('nadai')] : [target(field)]}
       onOpen={() => setOpen({ kind: 'detail', field })}
     />
   );
-  const layaOpen = folds.laya ?? laya !== null;
-  const improvisedOpen = folds.improvised ?? improvised.length > 0;
+  const improvisedOpen = folded === null ? improvised.length > 0 || laya !== null : !folded;
+  const form = shown('form', item.form);
 
   return (
     <>
@@ -498,10 +496,11 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
         </h1>
       </Saved>
 
-      {/* Ragas first: an ordered row of chips with "+ Raga" (design D25). */}
-      <Saved target={target('ragas')} className="pb-3">
+      {/* Ragas first, as values in the order sung (design D25), each tapped to change, and a
+          muted "+" for another: values, not pills (walkthrough P2, FB-42). */}
+      <Saved target={target('ragas')} className="pb-2">
         {/* The label and Edit order share one line; the button's 48px reaches past it. */}
-        <div className="flex min-h-4 items-center justify-between pb-2">
+        <div className="flex min-h-4 items-center justify-between">
           <span className="text-caption text-muted-foreground">
             {ragas.length > 1 ? 'Ragas' : 'Raga'}
           </span>
@@ -511,7 +510,7 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
             </QuietButton>
           )}
         </div>
-        <div role="list" aria-label="Ragas, in order" className="flex flex-wrap items-center gap-2">
+        <div role="list" aria-label="Ragas, in order" className="flex flex-wrap items-center">
           {ragas.map((raga, index) => (
             <span role="listitem" key={index} className="flex items-center">
               {ragaOrder && (
@@ -525,14 +524,13 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
                   <IconArrowLeft aria-hidden />
                 </Button>
               )}
-              <Chip
+              <ValueButton
                 aria-label={spokenDetail(`Raga ${index + 1}`, raga)}
                 onClick={() => setOpen({ kind: 'raga', index })}
-                className="text-body"
               >
                 <ValueText value={raga} />
-              </Chip>
-              {ragaOrder && (
+              </ValueButton>
+              {ragaOrder ? (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -542,22 +540,28 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
                 >
                   <IconArrowRight aria-hidden />
                 </Button>
+              ) : (
+                index < ragas.length - 1 && (
+                  <span aria-hidden className="mr-2 text-muted-foreground">
+                    ,
+                  </span>
+                )
               )}
             </span>
           ))}
           {ragas.length === 0 && (
-            <Chip
+            <ValueButton
               aria-label="Raga, unknown"
               onClick={() => setOpen({ kind: 'raga', index: 0 })}
-              className="text-body"
             >
               ?
-            </Chip>
+            </ValueButton>
           )}
           {ragas.length > 0 && !ragaOrder && (
-            <Chip onClick={() => setOpen({ kind: 'raga', index: ragas.length })}>
-              <IconPlus aria-hidden className="mr-1 size-4" /> Raga
-            </Chip>
+            <AddButton
+              label="Add Raga"
+              onClick={() => setOpen({ kind: 'raga', index: ragas.length })}
+            />
           )}
         </div>
         <ValueNotes value={ragas[0] ?? unknownValue()} suggested={suggested.ragas?.[0]} />
@@ -572,83 +576,13 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
         {cell('composer', item.composer)}
         {cell('language', item.language)}
         {cell('subject', item.subject)}
-        {cell('form', item.form)}
+        {cell('form', item.form, formText(form))}
       </div>
 
-      <Fold
-        title="Laya vinyasam"
-        open={layaOpen}
-        onToggle={() => setFolds({ ...folds, laya: !layaOpen })}
-      >
-        <Saved
-          target={[target('layaVinyasam'), target('layaNote')]}
-          quiet={[target('layaVinyasam')]}
-        >
-          {laya === null ? (
-            <Button variant="outline" onClick={() => saveLayaNadai(notApplicableValue())}>
-              <IconPlus aria-hidden /> Laya vinyasam after this Item
-            </Button>
-          ) : (
-            // Grows open below the fold title rather than appearing at full height.
-            <div className="grow-from-row">
-              <div className="flex flex-col gap-2">
-                <LayaNote
-                  stored={layaNote}
-                  onSave={(note) => {
-                    // A note still pending when the Laya vinyasam is removed goes with it.
-                    if (shown('layaVinyasam', item.layaVinyasam) === null) {
-                      feedback.release(target('layaNote'));
-                      return;
-                    }
-                    void saveWith(
-                      target('layaNote'),
-                      note,
-                      gate.after(() => setLayaNote(item.id, note)),
-                    );
-                  }}
-                  onPending={(note) =>
-                    note === null
-                      ? feedback.release(target('layaNote'))
-                      : feedback.hold(target('layaNote'), note)
-                  }
-                />
-                {/* The Tala's usual nadai until asked for (FB-29): many rasikas won't know it. */}
-                {laya.nadai.state === 'na' ? (
-                  <QuietButton
-                    className="-ml-2 gap-2 self-start text-foreground"
-                    onClick={() => setOpen({ kind: 'laya' })}
-                  >
-                    <IconPlus aria-hidden className="size-5 text-muted-foreground" />
-                    Nadai
-                  </QuietButton>
-                ) : (
-                  <DetailCell
-                    name="Nadai"
-                    value={laya.nadai}
-                    target={null}
-                    onOpen={() => setOpen({ kind: 'laya' })}
-                  />
-                )}
-                {/* An action, with the bin mark the Artist sheet's Remove has, its mark on the gutter. */}
-                <QuietButton
-                  className="-ml-2 gap-2 self-start text-foreground"
-                  onClick={removeLaya}
-                >
-                  <IconTrash aria-hidden className="size-5 text-muted-foreground" />
-                  Remove Laya vinyasam
-                </QuietButton>
-              </div>
-            </div>
-          )}
-        </Saved>
-      </Fold>
-
-      <Fold
-        title="Improvised"
-        open={improvisedOpen}
-        onToggle={() => setFolds({ ...folds, improvised: !improvisedOpen })}
-      >
-        <Saved target={target('improvised')}>
+      {/* One fold for what was improvised, the Laya vinyasam a row like the others (S14). A
+          chip's own state shows its save, so none of it plays the highlight (P7). */}
+      <Fold title="Improvised" open={improvisedOpen} onOpenChange={(next) => setFolded(!next)}>
+        <Saved target={[target('improvised'), target('layaVinyasam'), target('layaNote')]} quiet>
           <ul className="flex flex-col">
             {IMPROVISED_KINDS.map((kind) => {
               const heard = improvised.find((entry) => entry.kind === kind);
@@ -670,22 +604,74 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
                     {IMPROVISED_NAMES[kind]}
                   </Chip>
                   {heard && (
-                    <button
-                      type="button"
+                    <ValueButton
                       onClick={() => setOpen({ kind: 'improvised', heard: kind })}
                       aria-label={
                         heard.raga
                           ? spokenDetail(`${IMPROVISED_NAMES[kind]} Raga`, heard.raga)
                           : `${IMPROVISED_NAMES[kind]} Raga, the Item’s Raga`
                       }
-                      className="min-h-12 rounded-xl px-2 text-left text-sub text-muted-foreground"
+                      className="text-sub text-muted-foreground"
                     >
                       {heard.raga ? <ValueText value={heard.raga} /> : 'In the Item’s Raga'}
-                    </button>
+                    </ValueButton>
                   )}
                 </li>
               );
             })}
+            <li className="flex flex-col py-2 hairline-b">
+              <div className="flex min-h-12 flex-wrap items-center gap-2">
+                <Chip
+                  pressed={laya !== null}
+                  onClick={() => (laya ? removeLaya() : saveLayaNadai(notApplicableValue()))}
+                >
+                  Laya vinyasam
+                </Chip>
+                {/* The Tala's usual nadai until asked for (FB-29): many rasikas won't know it. */}
+                {laya &&
+                  (laya.nadai.state === 'na' ? (
+                    <AddButton label="Nadai" onClick={() => setOpen({ kind: 'laya' })} text />
+                  ) : (
+                    <ValueButton
+                      aria-label={spokenDetail('Laya vinyasam nadai', laya.nadai)}
+                      onClick={() => setOpen({ kind: 'laya' })}
+                      className="text-sub text-muted-foreground"
+                    >
+                      {laya.nadai.state === 'unknown' ? '?' : detailText(laya.nadai)} nadai
+                      {laya.nadai.guess && ' (?)'}
+                    </ValueButton>
+                  ))}
+              </div>
+              {laya && (
+                // Grows open under its row rather than appearing at full height.
+                <div className="grow-in">
+                  <div>
+                    <div className="pt-2">
+                      <LayaNote
+                        stored={layaNote}
+                        onSave={(note) => {
+                          // A note still pending when the Laya vinyasam is removed goes with it.
+                          if (shown('layaVinyasam', item.layaVinyasam) === null) {
+                            feedback.release(target('layaNote'));
+                            return;
+                          }
+                          void saveWith(
+                            target('layaNote'),
+                            note,
+                            gate.after(() => setLayaNote(item.id, note)),
+                          );
+                        }}
+                        onPending={(note) =>
+                          note === null
+                            ? feedback.release(target('layaNote'))
+                            : feedback.hold(target('layaNote'), note)
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </li>
           </ul>
         </Saved>
       </Fold>
@@ -706,17 +692,17 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
         </div>
       </BottomDock>
 
-      {open?.kind === 'detail' && (
+      {sheet?.kind === 'detail' && (
         <DetailInput
-          open
+          open={sheetOpen}
           onOpenChange={(next) => !next && setOpen(null)}
-          field={open.field as DetailField}
-          title={FIELD_NAMES[open.field]}
-          value={shown(open.field, item[open.field])}
-          suggested={suggested[open.field as keyof Suggested] as DetailValue | undefined}
-          onChange={(value) => save(open.field, value)}
+          field={sheet.field as DetailField}
+          title={FIELD_NAMES[sheet.field]}
+          value={shown(sheet.field, item[sheet.field])}
+          suggested={suggested[sheet.field as keyof Suggested] as DetailValue | undefined}
+          onChange={(value) => save(sheet.field, value)}
           extra={
-            open.field === 'tala' ? (
+            sheet.field === 'tala' ? (
               // The label sits with the chips it names: 24px above, 8px below.
               <div className="flex flex-col gap-2 pt-3">
                 <span className="text-caption text-muted-foreground">Nadai</span>
@@ -731,26 +717,26 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
           }
         />
       )}
-      {open?.kind === 'raga' && (
+      {sheet?.kind === 'raga' && (
         <DetailInput
-          open
+          open={sheetOpen}
           onOpenChange={(next) => !next && setOpen(null)}
           field="raga"
-          title={ragas.length > 1 || open.index > 0 ? `Raga ${open.index + 1}` : 'Raga'}
-          value={ragas[open.index] ?? unknownValue()}
-          suggested={suggested.ragas?.[open.index]}
+          title={ragas.length > 1 || sheet.index > 0 ? `Raga ${sheet.index + 1}` : 'Raga'}
+          value={ragas[sheet.index] ?? unknownValue()}
+          suggested={suggested.ragas?.[sheet.index]}
           onChange={(value) => {
             const next = [...ragas];
-            next[open.index] = value;
+            next[sheet.index] = value;
             saveRagas(next);
           }}
           extra={
-            ragas.length > 1 && open.index < ragas.length ? (
+            ragas.length > 1 && sheet.index < ragas.length ? (
               <QuietButton
                 className="-ml-2 self-start"
                 onClick={() => {
                   setOpen(null);
-                  saveRagas(ragas.filter((_, i) => i !== open.index));
+                  saveRagas(ragas.filter((_, i) => i !== sheet.index));
                 }}
               >
                 Remove this Raga
@@ -759,17 +745,17 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
           }
         />
       )}
-      {open?.kind === 'improvised' && (
+      {sheet?.kind === 'improvised' && (
         <DetailInput
-          open
+          open={sheetOpen}
           onOpenChange={(next) => !next && setOpen(null)}
           field="raga"
-          title={`${IMPROVISED_NAMES[open.heard]} Raga`}
-          value={improvised.find((entry) => entry.kind === open.heard)?.raga ?? unknownValue()}
+          title={`${IMPROVISED_NAMES[sheet.heard]} Raga`}
+          value={improvised.find((entry) => entry.kind === sheet.heard)?.raga ?? unknownValue()}
           onChange={(value) =>
             saveImprovised(
               improvised.map((entry) =>
-                entry.kind === open.heard ? { ...entry, raga: value } : entry,
+                entry.kind === sheet.heard ? { ...entry, raga: value } : entry,
               ),
             )
           }
@@ -780,7 +766,7 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
                 setOpen(null);
                 saveImprovised(
                   improvised.map((entry) =>
-                    entry.kind === open.heard ? { ...entry, raga: null } : entry,
+                    entry.kind === sheet.heard ? { ...entry, raga: null } : entry,
                   ),
                 );
               }}
@@ -790,9 +776,9 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
           }
         />
       )}
-      {open?.kind === 'laya' && laya && (
+      {sheet?.kind === 'laya' && laya && (
         <DetailInput
-          open
+          open={sheetOpen}
           onOpenChange={(next) => !next && setOpen(null)}
           field="nadai"
           title="Laya vinyasam nadai"
@@ -800,9 +786,9 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
           onChange={(nadai) => saveLayaNadai(nadai)}
         />
       )}
-      {open?.kind === 'composition' && (
+      {sheet?.kind === 'composition' && (
         <SheetFrame
-          open
+          open={sheetOpen}
           onOpenChange={(next) => {
             if (next) return;
             setOpen(null);
@@ -851,12 +837,56 @@ function ValueNotes({ value, suggested }: { value: DetailValue; suggested?: Deta
   return null;
 }
 
+/** A value tapped to change it, underlined as every value is (walkthrough P2, FB-33). */
+function ValueButton({ className, ...props }: React.ComponentProps<'button'>) {
+  return (
+    <button
+      type="button"
+      className={cn(
+        'min-h-12 rounded-xl text-left underline decoration-border underline-offset-4',
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+/**
+ * Adding a value: a muted "+", not a pill (walkthrough P2, FB-32). Alone, the mark carries the
+ * meaning and `label` is its name; with `text`, the label shows after it ("+ Nadai").
+ */
+function AddButton({
+  label,
+  onClick,
+  text = false,
+}: {
+  label: string;
+  onClick(): void;
+  text?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={text ? undefined : label}
+      onClick={onClick}
+      className={cn(
+        'inline-flex min-h-12 items-center gap-1 rounded-xl text-sub text-muted-foreground',
+        text ? 'px-2' : 'min-w-12 justify-center',
+      )}
+    >
+      <IconPlus aria-hidden className="size-5" />
+      {text && label}
+    </button>
+  );
+}
+
 function DetailCell({
   name,
   value,
   text,
   suggested,
   target,
+  muted = false,
   onOpen,
 }: {
   name: string;
@@ -864,6 +894,8 @@ function DetailCell({
   text?: string;
   suggested?: DetailValue;
   target: { table: 'items'; id: string; field: string }[] | null;
+  /** A value that matters less, shown muted (walkthrough P2). */
+  muted?: boolean;
   onOpen(): void;
 }) {
   return (
@@ -872,10 +904,15 @@ function DetailCell({
         type="button"
         aria-label={spokenDetail(name, value)}
         onClick={onOpen}
-        className="flex min-h-16 w-full flex-col items-stretch justify-center rounded-xl py-2 text-left"
+        className="flex min-h-16 w-full flex-col items-start justify-center rounded-xl py-2 text-left"
       >
         <span className="text-caption text-muted-foreground">{name}</span>
-        <span className="break-words">
+        <span
+          className={cn(
+            'break-words underline decoration-border underline-offset-4',
+            muted && 'text-muted-foreground',
+          )}
+        >
           <ValueText value={value} text={text} />
         </span>
         <ValueNotes value={value} suggested={suggested} />
@@ -884,40 +921,11 @@ function DetailCell({
   );
 }
 
-function Fold({
-  title,
-  open,
-  onToggle,
-  children,
-}: {
-  title: string;
-  open: boolean;
-  onToggle(): void;
-  children: ReactNode;
-}) {
-  const id = `fold-${title.replace(/\W+/g, '-').toLowerCase()}`;
-  return (
-    <section className="hairline-t">
-      <h2>
-        <button
-          type="button"
-          aria-expanded={open}
-          aria-controls={id}
-          onClick={onToggle}
-          className="flex min-h-12 w-full items-center justify-between py-2 text-left text-sub font-semibold text-muted-foreground"
-        >
-          {title}
-          <IconChevronDown
-            aria-hidden
-            className={cn('size-5 transition-transform duration-150', open && 'rotate-180')}
-          />
-        </button>
-      </h2>
-      <div id={id} hidden={!open} data-fold className="pb-4">
-        {children}
-      </div>
-    </section>
-  );
+/** A form as shown, in sentence case (walkthrough P4): "Kriti", stored by the catalog as "kriti". */
+function formText(value: DetailValue): string | undefined {
+  return value.key !== null && (value.state === 'catalog' || value.state === 'override')
+    ? formName(value.key)
+    : undefined;
 }
 
 /** The Laya vinyasam's note, saved as the rasika pauses, leaves the field or the app. */

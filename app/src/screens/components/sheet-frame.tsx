@@ -2,7 +2,7 @@
 // 50% black scrim, keeps focus inside until closed, then returns it to the control that opened
 // it (Radix Dialog; design D24), and its search box sits just above the keyboard.
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -63,4 +63,15 @@ export function SheetFrame({
       </SheetContent>
     </Sheet>
   );
+}
+
+/**
+ * What a sheet shows, kept while it closes: a screen that holds "which sheet is open" as a value
+ * renders the sheet from the last value with `open` false, so it slides back down the way it
+ * came instead of vanishing (walkthrough P8). Returns that value and whether the sheet is open.
+ */
+export function useLingering<T>(value: T | null): [T | null, boolean] {
+  const [last, setLast] = useState(value);
+  if (value !== null && value !== last) setLast(value);
+  return [value ?? last, value !== null];
 }

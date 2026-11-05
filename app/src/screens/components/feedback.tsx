@@ -80,10 +80,11 @@ export function Saved({
 }: {
   target: Target | Target[] | null;
   /**
-   * Targets whose save shows no highlight, where the change already shows itself (the Laya
-   * vinyasam's fields growing in, FB-28). Their failures still show.
+   * Targets whose save shows no highlight, or `true` for all of them: where the change already
+   * shows itself, as a chip's or toggle's own state, typed text or a dropped row (FB-28, FB-34,
+   * walkthrough P7). Their failures still show.
    */
-  quiet?: Target[];
+  quiet?: Target[] | true;
   children: ReactNode;
   className?: string;
 }) {
@@ -94,7 +95,7 @@ export function Saved({
   useShowsFailures(targets);
   const states = targets.map((t) => feedback.get(t));
   // Only a write that just succeeded highlights; coming back to a screen later replays nothing.
-  const loud = (t: Target) => !quiet.some((q) => keyOf([q]) === keyOf([t]));
+  const loud = (t: Target) => quiet !== true && !quiet.some((q) => keyOf([q]) === keyOf([t]));
   const saved = states
     .filter((s, i) => s?.status === 'saved' && s.at > openedAt - HIGHLIGHT_MS && loud(targets[i]!))
     .map((s) => s!.edit);

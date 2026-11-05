@@ -133,9 +133,10 @@ main {
   animation: dock-in 240ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* Something that opens in place (a fold, the Laya vinyasam's fields) grows to its height as it
-   fades in, so what's below slides down instead of jumping, and no empty space shows. Its one
-   child clips while it grows; 4px of padding keeps a focus ring inside the clip. */
+/* Something that opens in place (the Laya vinyasam's note under its row) grows to its height as
+   it fades in, so what's below slides down instead of jumping, and no empty space shows. Its one
+   child clips while it grows; 4px of padding keeps a focus ring inside the clip. Folds are
+   shadcn's Accordion, which grows and shrinks by itself (components/ui/accordion.tsx). */
 @keyframes grow {
   from {
     grid-template-rows: 0fr;
@@ -143,35 +144,13 @@ main {
   }
 }
 
-[data-fold]:not([hidden]) {
+.grow-in {
   display: grid;
   grid-template-rows: 1fr;
   animation: grow 200ms cubic-bezier(0.2, 0, 0, 1);
 }
 
-/* In place of a 48px row (the Laya vinyasam's add button): it grows from that row's height,
-   its first fields showing (at 30%) from the first frame and fading up as they grow, so nothing
-   below moves up first, no empty band shows, and the clip never cuts through full-strength
-   text. */
-@keyframes grow-from-row {
-  from {
-    grid-template-rows: 0fr;
-    min-height: 48px;
-    opacity: 0.3;
-  }
-  to {
-    min-height: 48px;
-  }
-}
-
-.grow-from-row {
-  display: grid;
-  grid-template-rows: 1fr;
-  animation: grow-from-row 200ms cubic-bezier(0.2, 0, 0, 1);
-}
-
-.grow-from-row > *,
-[data-fold] > * {
+.grow-in > * {
   min-height: 0;
   overflow: hidden;
   margin: -4px;
