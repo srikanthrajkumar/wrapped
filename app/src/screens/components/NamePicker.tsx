@@ -7,7 +7,8 @@
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useRef, useState, type ReactNode } from 'react';
-import { newId, type Role } from '../../model';
+import { IconChevronDown } from '@tabler/icons-react';
+import { newId, type EventKind, type Role } from '../../model';
 import {
   createArtist,
   createSabha,
@@ -150,25 +151,50 @@ export function NamePicker({
   );
 }
 
+// The common Roles, shown first (DESIGN.md, "Artist and Sabha pickers"; Maintainer, 2026-11-06).
+const COMMON_ROLES: ReadonlySet<Role> = new Set<Role>([
+  'vocal',
+  'veena',
+  'flute',
+  'violin',
+  'mridangam',
+  'ghatam',
+  'khanjira',
+  'morsing',
+  'other',
+  'presenter',
+]);
+// At a Dance, the dancers and the nattuvanar join them.
+const DANCE_ROLES: ReadonlySet<Role> = new Set<Role>([...COMMON_ROLES, 'dancer', 'nattuvangam']);
+
 /**
- * The Role chips, in Stage order. The current Role shows pressed, and tapping it again clears it.
- * Right after an Artist is added (`skippable`), the pressed one is the Artist's usual Role,
- * chosen for them (walkthrough S6): tapping it keeps it, and "Not sure" leaves the Role blank.
+ * The Role chips, in Stage order: the common Roles first, the rest behind "More" (T120). The
+ * current Role shows pressed, and tapping it again clears it; one behind More shows pressed
+ * with More open, so it is never hidden. Right after an Artist is added (`skippable`), the
+ * pressed one is the Artist's usual Role, chosen for them (walkthrough S6): tapping it keeps
+ * it, and "Not sure" leaves the Role blank.
  */
 export function RoleChips({
   value = null,
+  kind = 'concert',
   skippable = false,
   onRole,
 }: {
   value?: Role | null;
+  /** The Event's kind: at a Dance, Dancer and Nattuvangam are in the first row. */
+  kind?: EventKind;
   skippable?: boolean;
   onRole(role: Role | null): void;
 }) {
+  const [moreOpen, setMoreOpen] = useState(false);
+  const first = kind === 'dance' ? DANCE_ROLES : COMMON_ROLES;
+  const hidden = value !== null && !first.has(value);
+  const shown = STAGE_ORDER.filter((role) => first.has(role) || moreOpen || hidden);
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sub text-muted-foreground">Role</p>
       <div role="group" aria-label="Role" className="flex flex-wrap gap-2">
-        {STAGE_ORDER.map((role) => (
+        {shown.map((role) => (
           <Chip
             key={role}
             pressed={value === role}
@@ -177,6 +203,13 @@ export function RoleChips({
             {roleName(role)}
           </Chip>
         ))}
+        {!moreOpen && !hidden && (
+          // Opens in place: the chips it held follow the common ones, in Stage order.
+          <Chip aria-expanded={false} onClick={() => setMoreOpen(true)}>
+            More
+            <IconChevronDown aria-hidden className="-mr-1 ml-1 size-4" />
+          </Chip>
+        )}
         {skippable && <Chip onClick={() => onRole(null)}>Not sure</Chip>}
       </div>
     </div>

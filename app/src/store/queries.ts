@@ -9,7 +9,7 @@ import type { Appearance, Event, Item, Link, OwnEntry, SharedEntry } from '../mo
 import { db as defaultDb, type WrappedDB } from './db';
 import { eventStart, readLoggingNotes } from './logging-note';
 import { listReceipts } from './receipts';
-import { byStage, joinNames, knownBy } from './stage';
+import { byStage, joinNames, knownBy, knownNames } from './stage';
 
 /** An Artist or Sabha as the screens show it. */
 export interface ResolvedEntry {
@@ -291,7 +291,10 @@ export function useUnsyncedCount() {
 export interface EventSummary {
   event: ResolvedEvent;
   sabha: ResolvedEntry | null;
-  /** The Artists it is known by (store/stage.ts): "Ranjani & Gayatri"; null before any. */
+  /**
+   * The Artists it is known by (store/stage.ts): "Ranjani & Gayatri", a Group by its name
+   * ("Malladi Brothers"); null before any.
+   */
   knownBy: string | null;
   itemCount: number;
 }
@@ -336,7 +339,7 @@ export async function listEventSummaries(db: WrappedDB = defaultDb): Promise<Eve
     ),
   ]);
   return events.map((event) => {
-    const names = known.get(event.id)!.map((a) => artists(a.artistId)?.name ?? '?');
+    const names = knownNames(known.get(event.id)!, (a) => artists(a.artistId)?.name ?? '?');
     return {
       event,
       sabha: event.sabhaId ? (sabhas(event.sabhaId) ?? null) : null,

@@ -308,6 +308,7 @@ export function convertConcert(
       colourPrimary: colour(colours?.[1 + i]),
       colourSecondary: null,
       billed: false,
+      group: null,
       position: appearances.length + 1,
       ...timestamps,
     });
@@ -357,6 +358,7 @@ export function convertLecdem(
       colourPrimary: null,
       colourSecondary: null,
       billed: false,
+      group: null,
       position: i + 1,
       ...timestamps,
     }));

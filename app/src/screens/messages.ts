@@ -122,6 +122,8 @@ export const MESSAGES = {
     itemDeleted: (number: number) => `Item ${number} deleted`,
     artistRemoved: 'Artist removed',
     concertDeleted: 'Concert deleted',
+    /** A change to Concert took the Event's title away (T122). */
+    titleRemoved: 'Title removed',
     /** What a screen reader hears after a delete. */
     spoken: (bar: string) => `${bar}. Undo available.`,
     /** What a failed Undo's bar names: the Item, Artist or Concert it would bring back. */
@@ -129,6 +131,7 @@ export const MESSAGES = {
       item: (number: number) => `Item ${number}`,
       artist: 'Artist',
       concert: 'Concert',
+      title: 'Title',
     },
     /** The Undo itself could not be written: the bar stays, with Try again. */
     failedShort: (subject: string) => `Undo failed · ${subject}`,

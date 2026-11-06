@@ -32,8 +32,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { fold } from '../catalog/fold';
-import { newId, type Colour, type Item, type Role } from '../model';
-import { editEvent, setStatus } from '../store/events';
+import { EVENT_KINDS, newId, type Colour, type EventKind, type Item, type Role } from '../model';
+import { changeKind, editEvent, setStatus } from '../store/events';
 import { moveItemBy } from '../store/items';
 import { addAppearance, editAppearance, renameArtist, usualRoles } from '../store/people';
 import {
@@ -46,7 +46,7 @@ import {
   type ResolvedEntry,
   type ResolvedEvent,
 } from '../store/queries';
-import { joinNames, knownBy } from '../store/stage';
+import { joinNames, knownBy, knownNames } from '../store/stage';
 import { ColourPicker, colourName, SwatchDot } from './components/ColourPicker';
 import { NotSavedLine, saveWith, Saved, useSaveFeedback } from './components/feedback';
 import { useAutosave } from './components/autosave';
@@ -63,9 +63,11 @@ import {
 import { NamePicker, RoleChips } from './components/NamePicker';
 import { SheetFrame, useLingering } from './components/sheet-frame';
 import { Fold } from './components/fold';
-import { dayText, eventLine, itemLine, itemTitle, roleName, timeText } from './format';
+import { Chip } from './components/DockedSearch';
+import { KindMark } from './components/kind-mark';
+import { dayText, eventLine, itemLine, itemTitle, kindName, roleName, timeText } from './format';
 import { deleteConcert, deleteItem, removeArtist } from './deletes';
-import { undo, undoMessage } from './undo';
+import { offerUndo, undo, undoMessage } from './undo';
 import type { SaveFeedback } from './save-feedback';
 
 type Order = 'items' | null;
@@ -162,7 +164,7 @@ function EventView({ eventId }: { eventId: string }) {
 
   const known = knownBy(event.kind, appearances);
   const knownAs =
-    known.length > 0 ? joinNames(known.map((a) => nameShown(feedback, a.artist))) : null;
+    known.length > 0 ? joinNames(knownNames(known, (a) => nameShown(feedback, a.artist))) : null;
   const target = (field: string) => eventTarget(eventId, field);
 
   // Deletes go through save feedback as their own kind (screens/deletes.ts): a failed one reads
@@ -437,6 +439,7 @@ function EventView({ eventId }: { eventId: string }) {
           rolesFor && (
             <RoleChips
               skippable
+              kind={event.kind}
               value={rolesFor.role}
               onRole={(role) => {
                 setRolesFor(null);
@@ -456,6 +459,7 @@ function EventView({ eventId }: { eventId: string }) {
       {sheetFor && (
         <AppearanceSheet
           appearance={sheetFor}
+          kind={event.kind}
           open={sheetOpen}
           onClose={() => setAppearanceFor(null)}
           onColours={() => {
@@ -507,10 +511,22 @@ function ConcertBlock({
   });
   const resolved = useSabha(chosen.id);
   const sabhaName = resolved?.name ?? chosen.name;
+  const kind = feedback.shown(target('kind'), event.kind);
+  const title = feedback.shown(target('title'), event.title);
+
+  // A change to Concert that takes a typed title away offers Undo, as a delete does (T122).
+  const saveKind = async (next: EventKind, nextTitle?: string | null) => {
+    const field = nextTitle === undefined ? 'kind' : 'title';
+    const changed = await saveWith(target(field), field === 'kind' ? next : nextTitle, () =>
+      changeKind(event.id, next, nextTitle === undefined ? {} : { title: nextTitle }),
+    );
+    if (changed?.receipt) offerUndo(changed.receipt);
+  };
 
   return (
     <section className="pt-2">
       <h1 ref={head} tabIndex={-1} className="text-title font-semibold break-words">
+        {knownBy !== null && <KindMark kind={kind} className="mr-2" />}
         {knownBy ?? (
           <button
             type="button"
@@ -522,7 +538,15 @@ function ConcertBlock({
           </button>
         )}
       </h1>
-      <Saved target={[target('date'), target('startTime'), target('sabhaId')]}>
+      <Saved
+        target={[
+          target('date'),
+          target('startTime'),
+          target('sabhaId'),
+          target('kind'),
+          target('title'),
+        ]}
+      >
         {/* 56px tall to tap (S11), its text 8px under the title (one step more than the title's
             own line gap, so it never reads as a third line) and flush above Stage. Under "Add
             Artist" it starts below that button's 48px, so neither covers the other's tap area. */}
@@ -548,6 +572,8 @@ function ConcertBlock({
             // Underlined as every value is, so it reads as one to change (walkthrough P2).
             className="min-h-14 rounded-xl py-2 text-left text-muted-foreground underline decoration-border underline-offset-4"
           >
+            {/* A Lecdem's, a Dance's or a Harikatha's title reads first, as printed. */}
+            {kind !== 'concert' && title && <span className="block text-foreground">{title}</span>}
             {eventLine({ date, startTime }, sabhaName)}
           </button>
         </div>
@@ -556,6 +582,16 @@ function ConcertBlock({
       <EventFacts
         open={factsOpen}
         onOpenChange={setFactsOpen}
+        eventId={event.id}
+        kind={kind}
+        title={title}
+        onKind={(next) => void saveKind(next)}
+        onTitle={(next, as) => {
+          if (as !== kind) void saveKind(as, next);
+          else {
+            void saveWith(target('title'), next, () => editEvent(event.id, { title: next }));
+          }
+        }}
         date={date}
         startTime={startTime}
         sabhaName={sabhaName}
@@ -742,12 +778,14 @@ function ArtistName({ artist }: { artist: ResolvedEntry | null }) {
 /** An Artist on Stage: their name, Role, Colours, and Remove, whose failure shows in the sheet. */
 function AppearanceSheet({
   appearance: stored,
+  kind,
   open,
   onClose,
   onColours,
   onRemove,
 }: {
   appearance: ResolvedAppearance;
+  kind: EventKind;
   open: boolean;
   onClose(): void;
   onColours(): void;
@@ -769,6 +807,7 @@ function AppearanceSheet({
         )}
         <RoleChips
           value={appearance.role}
+          kind={kind}
           onRole={(role) => {
             onClose();
             void saveRole(appearance.id, role);
@@ -884,10 +923,19 @@ function ColoursButton({ appearance, onOpen }: { appearance: ResolvedAppearance;
   );
 }
 
-/** The Event's facts: Sabha, date and start time, each saved as it changes. */
+/**
+ * The Event's facts: its kind, a title where it has one, Sabha, date and start time, each saved
+ * as it changes (T122). A Lecdem needs a title, so one picked without a title waits for it to be
+ * typed before it is saved.
+ */
 function EventFacts({
   open,
   onOpenChange,
+  eventId,
+  kind,
+  title,
+  onKind,
+  onTitle,
   date,
   startTime,
   sabhaName,
@@ -896,15 +944,63 @@ function EventFacts({
 }: {
   open: boolean;
   onOpenChange(open: boolean): void;
+  eventId: string;
+  kind: EventKind;
+  title: string | null;
+  onKind(kind: EventKind): void;
+  /** A title typed, saved as `kind`'s: a Lecdem picked without one is saved with it. */
+  onTitle(title: string | null, kind: EventKind): void;
   date: string;
   startTime: string | null;
   sabhaName: string | null;
   onSabha(): void;
   onChange(changes: { date?: string; startTime?: string | null }): void;
 }) {
+  // A Lecdem picked while the Event has no title: shown, and saved once a title is typed.
+  const [waiting, setWaiting] = useState<EventKind | null>(null);
+  const shownKind = waiting ?? kind;
   return (
-    <SheetFrame open={open} onOpenChange={onOpenChange} title="Concert">
+    <SheetFrame
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) setWaiting(null);
+        onOpenChange(next);
+      }}
+      title={kindName(shownKind)}
+    >
       <div className="flex flex-col gap-4">
+        <div role="group" aria-label="Kind" className="flex flex-wrap gap-2">
+          {EVENT_KINDS.map((each) => (
+            <Chip
+              key={each}
+              pressed={shownKind === each}
+              onClick={() => {
+                if (each === 'lecdem' && !title?.trim()) {
+                  setWaiting(kind === 'lecdem' ? null : 'lecdem');
+                  return;
+                }
+                setWaiting(null);
+                if (each !== kind) onKind(each);
+              }}
+            >
+              <KindMark kind={each} className="-ml-1 mr-1.5" />
+              {kindName(each)}
+            </Chip>
+          ))}
+        </div>
+        {shownKind !== 'concert' && (
+          <TitleField
+            key={`${eventId}:${shownKind}`}
+            eventId={eventId}
+            stored={title}
+            required={shownKind === 'lecdem'}
+            autoFocus={waiting !== null}
+            onSave={(next) => {
+              onTitle(next, shownKind);
+              setWaiting(null);
+            }}
+          />
+        )}
         {/* Drawn as a field like Date and Start time, with the same label gap. */}
         <div className="flex flex-col gap-1">
           <span id="facts-sabha" className="text-sub text-muted-foreground">
@@ -951,6 +1047,55 @@ function EventFacts({
         </label>
       </div>
     </SheetFrame>
+  );
+}
+
+/**
+ * A Lecdem's, a Dance's or a Harikatha's title, saved as the rasika pauses or leaves the field,
+ * journalled as typed (ADR 0007). Emptied, a Dance's or a Harikatha's title is none; a Lecdem's
+ * is required, so an emptied one is not written and the title stays.
+ */
+function TitleField({
+  eventId,
+  stored,
+  required,
+  autoFocus,
+  onSave,
+}: {
+  eventId: string;
+  stored: string | null;
+  required: boolean;
+  autoFocus: boolean;
+  onSave(title: string | null): void;
+}) {
+  const feedback = useSaveFeedback();
+  const target = eventTarget(eventId, 'title');
+  const title = useAutosave(
+    stored ?? '',
+    (value) => {
+      if (value.trim() === '' && required) {
+        feedback.release(target);
+        return;
+      }
+      onSave(value.trim() === '' ? null : value);
+    },
+    (value) => (value === null ? feedback.release(target) : feedback.hold(target, value)),
+  );
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-sub text-muted-foreground">Title</span>
+      <Saved target={target} quiet>
+        <input
+          value={title.text}
+          required={required}
+          // A Lecdem picked without a title: the title is what it waits for.
+          autoFocus={autoFocus}
+          onChange={(e) => title.change(e.target.value)}
+          onBlur={title.flush}
+          className="block min-h-12 w-full rounded-xl bg-secondary px-3 text-body"
+        />
+      </Saved>
+    </label>
   );
 }
 

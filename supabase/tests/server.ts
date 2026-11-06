@@ -288,6 +288,7 @@ export function newAppearance(eventId: string, artistId: string, position: numbe
     colourPrimary: 'blue',
     colourSecondary: null,
     billed: false,
+    group: null,
     position,
     ...timestamps(),
   };
