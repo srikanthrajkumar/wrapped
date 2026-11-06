@@ -320,35 +320,42 @@ confirm the full season is back before logging resumes.
 
 ### Setup for the server
 
-- [ ] T064 [US2] Install the Supabase CLI, run `supabase init`, and configure Google sign-in for the local stack, with secrets in `supabase/.env` only (never committed), in `supabase/config.toml`
-- [ ] T065 [P] [US2] Install the router's contingent skill `npx skills add supabase/agent-skills@supabase -a claude-code -y --copy` after reading its SKILL.md, and record it in §2 of `docs/skills-router.md`
+- [X] T064 [US2] Install the Supabase CLI, run `supabase init`, and configure Google sign-in for the local stack, with secrets in `supabase/.env` only (never committed), in `supabase/config.toml`
+  - *Built 2026-11-06:* Supabase CLI 2.122.1 pinned as a dev dependency (the `v2.stable` line; 3.0.0 was a four-day-old major). `config.toml` exposes only `public`, needs explicit grants for new tables, turns off realtime, storage, edge runtime and analytics, and reads Google's client id and secret by env name from `supabase/.env`; `supabase/.env.example` lists the names
+- [X] T065 [P] [US2] Install the router's contingent skill `npx skills add supabase/agent-skills@supabase -a claude-code -y --copy` after reading its SKILL.md, and record it in §2 of `docs/skills-router.md`
+  - *Built 2026-11-06:* SKILL.md (v0.1.2) read in full before the install; the Maintainer installed it, and the installed file is byte-for-byte the one read. `skills-lock.json` pins it (hash 211141fd…). Recorded in §2 of `docs/skills-router.md`
 - [X] T066 [US2] The Maintainer decides whether push and pull run as Postgres functions or as Edge Functions (ADR 0001, "Still open"). The decision includes how errors map to the contract's responses (401, `409 not_writer`, `rejected` codes), since Postgres functions return them through Supabase's API, not as hand-written HTTP. Record it in `docs/adr/0001-supabase-for-sign-in-and-server-store.md`
   - *Decided 2026-11-06:* Postgres functions called through Supabase's API. A 401 comes from the API itself; a 409 and a 426 are raised with PostgREST's custom error (`RAISE SQLSTATE 'PGRST'`), the 426 from one pre-request function reading `X-App-Version`; `rejected` is the normal 200 body. The first server test confirms the hosted PostgREST honours the custom error
 
 ### Required tests for the server
 
-- [ ] T067 [P] [US2] **(required)** Sync tests against the local stack in `supabase/tests/sync.test.ts`:
+- [X] T067 [P] [US2] **(required)** Sync tests against the local stack in `supabase/tests/sync.test.ts`:
   - the same push sent twice stores each op once (FR-015);
   - an offline delete and a reorder come back identical on pull;
   - a pull from an empty cursor returns the full season;
   - a non-writer device gets `409 not_writer`
-- [ ] T068 [P] [US2] **(required, privacy)** Row-level security tests in `supabase/tests/privacy.test.ts`: rasika A cannot read or write rasika B's rows through any table or function, and a pushed row for another rasika is rejected `foreign_rasika` (SC-015); also, as an ordinary rasika, the private-schema views are unreachable and every Maintainer function refuses the call; and an anonymous caller can execute no function (eng review D5, outside voice 10)
+  - *Built 2026-11-06:* also covers a repeat inside one push, a repeated rejection, an Item deleted with its Event, paging at `limit=7`, a Link, the incremental pull, `conflict`, `missing_event`, `invalid_op` and the 200-op cap. `supabase/tests/errors.test.ts` keeps the custom-error check (409 and 426 bodies, the version header, 401), so a PostgREST upgrade that changes it fails `npm run test:server`, which the CI job runs
+- [X] T068 [P] [US2] **(required, privacy)** Row-level security tests in `supabase/tests/privacy.test.ts`: rasika A cannot read or write rasika B's rows through any table or function, and a pushed row for another rasika is rejected `foreign_rasika` (SC-015); also, as an ordinary rasika, the private-schema views are unreachable and every Maintainer function refuses the call; and an anonymous caller can execute no function (eng review D5, outside voice 10)
+  - *Built 2026-11-06:* checks through the functions, as rasika B inside the database (role and JWT claims set) and through the API. No table or view is exposed at all; every private table and view answers PGRST106. There are no Maintainer functions yet (Phase 8), so the test lists every exposed function and fails on any it doesn't know
 - [ ] T069 [P] [US2] **(required)** Sync client tests in `app/tests/store/sync-client.test.ts`: a 401 and a network error both leave the outbox and local data intact; a 409 stops pushing and keeps the outbox; rejected ops are kept locally and listed as needing attention; a row edited while a pull is in flight keeps the edit, and the edit reaches the server (eng review D4); after a 409, re-claiming pushes every queued op and the server ends with all of them (eng review D6); an iPad edits Event E as writer, the phone re-claims with an older E queued: the phone's op is rejected `conflict`, the iPad's edit stays, and "keep mine" then pushes the phone's version (eng review D11); a `426 update_required` stops syncing and leaves the outbox and local data intact (eng review D14)
 
 ### Implementation for the server
 
 Use the `supabase-postgres-best-practices` skill for every migration.
 
-- [ ] T070 [US2] Write the accounts migration in `supabase/migrations/0001_accounts.sql`:
+- [X] T070 [US2] Write the accounts migration in `supabase/migrations/0001_accounts.sql`:
   - `rasika`: `id`, `auth_user_id`, `email`, `name`, `share_additions` and `season_reports` ("Null until answered; nothing pre-selected"), `writer_device_id`, `created_at`, `deidentified_at`;
   - append-only `consent_event`;
   - `device`;
   - `processed_op` with a primary key on (`rasika_id`, `op_id`);
   - a trigger creating the Rasika row on the first Supabase Auth sign-in;
   - row-level security on every table
-- [ ] T071 [US2] Write the season migration in `supabase/migrations/0002_season.sql`: tables for events, appearances, items, artists and sabhas, each with `id`, `rasika_id`, `seq` (bigint from one shared sequence), `deleted_at`, `received_at`, the parent id where there is one (`event_id` for appearances and items), and a `data` jsonb column holding the record exactly as the phone sent it; the record's fields are defined only in `app/src/model/records.ts` (eng review D7); indexes on (`rasika_id`, `seq`); row-level security limited to `(select auth.uid())`'s own rows
-- [ ] T072 [US2] Write the shared migration in `supabase/migrations/0003_shared.sql`: `shared_artist` and `shared_sabha` with `list_version`, `link`, and a `maintainer` allowlist table; plus `supabase/seed.sql` loading `app/src/reference/shared-lists.seed.json`
-- [ ] T073 [US2] Implement push as a Postgres function (T066), in `supabase/migrations/0004_sync.sql`. Per contracts/sync-api.md:
+  - *Built 2026-11-06:* every table is in the unexposed `private` schema, reached only through the functions in `0004_sync.sql`. `processed_op` also keeps each op's answer (`seq`, or `code` and `message`), so a retried push gets the same reply. A rasika may update only their consents and writer (column grants)
+- [X] T071 [US2] Write the season migration in `supabase/migrations/0002_season.sql`: tables for events, appearances, items, artists and sabhas, each with `id`, `rasika_id`, `seq` (bigint from one shared sequence), `deleted_at`, `received_at`, the parent id where there is one (`event_id` for appearances and items), and a `data` jsonb column holding the record exactly as the phone sent it; the record's fields are defined only in `app/src/model/records.ts` (eng review D7); indexes on (`rasika_id`, `seq`); row-level security limited to `(select auth.uid())`'s own rows
+  - *Built 2026-11-06:* the tables are named as the contract's tables (`events`, `items`, …) so an op's `table` maps straight to one. An Appearance's or Item's (`rasika_id`, `event_id`) is a foreign key to its owner's Events. No delete grant: a delete is a tombstone
+- [X] T072 [US2] Write the shared migration in `supabase/migrations/0003_shared.sql`: `shared_artist` and `shared_sabha` with `list_version`, `link`, and a `maintainer` allowlist table; plus `supabase/seed.sql` loading `app/src/reference/shared-lists.seed.json`
+  - *Built 2026-11-06:* `list_version` is one counter across both shared tables, paged by (`list_version`, `id`). `supabase/seed.sql` is generated by `tools/server-seed/seed-sql.mjs`, and a test fails if it drifts from the JSON. It runs on the local stack only; loading the lists onto the hosted database is a deploy step
+- [X] T073 [US2] Implement push as a Postgres function (T066), in `supabase/migrations/0004_sync.sql`. Per contracts/sync-api.md:
   - at most 200 ops, applied in order in one transaction under a per-rasika advisory lock;
   - writer check returning `409 not_writer`;
   - a repeated `opId` is acknowledged without reapplying;
@@ -359,8 +366,11 @@ Use the `supabase-postgres-best-practices` skill for every migration.
   - push, pull and the account functions revoke EXECUTE from PUBLIC and anon and grant it only to signed-in users (outside voice 10);
   - each op's `baseSeq` must equal the record's current `seq` (0 for a new record), else the op is rejected `conflict`; each ack returns the record's new `seq` (eng review D11);
   - a request whose app version is below the server's minimum gets `426 update_required` (eng review D14)
-- [ ] T074 [US2] Implement pull alongside push. The two-part cursor holds the rasika's own rows and Links by `seq`, and the shared lists by `list_version`. Pages are capped at `limit=500` with `more`; an empty cursor returns everything. Pull is one generic select shared by all five tables, returning `data` with `deleted_at` (eng review D7)
-- [ ] T075 [US2] Implement the account operations: `GET /v1/me` (including `deletionContact`), `PUT /v1/me/consent` (each change appends a `consent_event`), and `POST /v1/devices/claim` (makes this device the writer, FR-022), in the same place as push
+  - *Built 2026-11-06:* the functions run as the caller, so row-level security applies inside them; only `private.owned_by_another` (yes or no, for `foreign_rasika`) runs as the owner. The body is the function's one unnamed jsonb argument, so `rpc('sync_push', { deviceId, ops })` sends the contract's body. Two ops on one record in one push may both carry the seq from before the push. An unreadable op is rejected `invalid_op`. A 409 for a rasika who never claimed a device has `details` null. The minimum version lives in `private.server_config`
+- [X] T074 [US2] Implement pull alongside push. The two-part cursor holds the rasika's own rows and Links by `seq`, and the shared lists by `list_version`. Pages are capped at `limit=500` with `more`; an empty cursor returns everything. Pull is one generic select shared by all five tables, returning `data` with `deleted_at` (eng review D7)
+  - *Built 2026-11-06:* the cursor is `1:<seq>:<list version>:<shared id>`, opaque to the phone. Own rows and Links come first, each as `{ table, seq, row }` so a restored phone has the baseSeq for its next edit; then the shared lists fill the page as `{ table, row }`
+- [X] T075 [US2] Implement the account operations: `GET /v1/me` (including `deletionContact`), `PUT /v1/me/consent` (each change appends a `consent_event`), and `POST /v1/devices/claim` (makes this device the writer, FR-022), in the same place as push
+  - *Built 2026-11-06:* consent appends an event only when a value changes. `deletionContact` comes from `private.server_config` and is null until the Maintainer gives the email; it must be set before the hosted deploy. Claim and consent take the rasika's lock
 - [ ] T076 [US2] Implement de-identification for a deletion request in `supabase/migrations/0005_deletion.sql`, following data-model.md "Deletion". In one transaction, holding the rasika's advisory lock (eng review R7):
   - delete the Supabase Auth user;
   - null `authUserId`, `email` and `name`, set `deidentifiedAt`, delete devices;
