@@ -2,7 +2,8 @@
 -- de-identification"; FR-047). The Maintainer calls `admin_deletion` with the email the
 -- rasika wrote from; in one transaction, under the rasika's lock:
 --
---   1. the Supabase Auth user is deleted, which ends its sessions and refresh tokens;
+--   1. the Supabase Auth user is deleted, which ends its sessions and refresh tokens, and so
+--      are its sign-in flow states, which have no foreign key to it;
 --   2. the rasika row loses its auth user, email and name, gets `deidentified_at`, and its
 --      devices and writer are dropped;
 --   3. every note in the season is nulled: each Event's and Item's `note` and each Item's
@@ -15,6 +16,29 @@
 -- Detail values are what season reports count (data-model.md, "Deletion and de-identification").
 -- Consent events stay: they point only at the opaque rasika id and are kept at least a year
 -- (DPDP Rules; data-model.md, "Consent event").
+
+-- The rasika row's email follows the auth user's, so after an email change it names the
+-- current address, never one that may now belong to someone else. Supabase Auth updates the
+-- user, so this runs as the table owner; it writes only that user's own row.
+create function private.sync_rasika_email()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  update private.rasika r set email = new.email where r.auth_user_id = new.id;
+  return new;
+end;
+$$;
+
+revoke execute on function private.sync_rasika_email() from public, anon, authenticated, service_role;
+
+create trigger on_auth_user_email_changed
+  after update of email on auth.users
+  for each row
+  when (old.email is distinct from new.email)
+  execute function private.sync_rasika_email();
 
 -- Whether the caller is on the Maintainer allowlist. Runs as the owner because no rasika may
 -- read private.maintainer.
@@ -39,7 +63,14 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_email text := lower(btrim(p_email));
+  -- Every leading and trailing space, tab, line break or no-break space is dropped, so a pasted
+  -- address never reads as "no account".
+  v_email text := lower(regexp_replace(
+    p_email,
+    '^[[:space:]\u00a0\u1680\u2000-\u200b\u2028\u2029\u202f\u205f\u3000\ufeff]+|[[:space:]\u00a0\u1680\u2000-\u200b\u2028\u2029\u202f\u205f\u3000\ufeff]+$',
+    '',
+    'g'
+  ));
   v_rasika record;
   v_season_reports boolean;
   v_found boolean := false;
@@ -51,15 +82,16 @@ begin
     perform private.bad_request('email is required');
   end if;
 
-  -- The rasika by their auth user's email or, if the auth user is already gone, by the email
-  -- still on the rasika row. Already de-identified rasikas match neither, so a second request
-  -- for the same email changes nothing.
+  -- The rasika by their auth user's current email or, only if the auth user is already gone,
+  -- by the email left on the rasika row. A row's email is never matched while its auth user
+  -- lives, since that address may since have passed to someone else. Already de-identified
+  -- rasikas match nothing, so a second request for the same email changes nothing.
   for v_rasika in
-    select r.id, r.auth_user_id, lower(u.email) as auth_email
+    select r.id, r.auth_user_id
     from private.rasika r
     left join auth.users u on u.id = r.auth_user_id
     where r.deidentified_at is null
-      and (lower(u.email) = v_email or lower(r.email) = v_email)
+      and coalesce(lower(u.email), lower(r.email)) = v_email
     order by r.id
   loop
     v_found := true;
@@ -67,8 +99,11 @@ begin
     -- Read again under the lock, so a consent change that was in flight is counted.
     select r.season_reports into v_season_reports from private.rasika r where r.id = v_rasika.id;
 
-    -- 1. The auth user, its sessions, refresh tokens and identities.
+    -- 1. The auth user, its sessions, refresh tokens and identities, and its sign-in flow
+    -- states, which hold provider tokens and have no foreign key to the user.
     if v_rasika.auth_user_id is not null then
+      delete from auth.flow_state f
+      where f.user_id = v_rasika.auth_user_id or f.linking_target_id = v_rasika.auth_user_id;
       delete from auth.users u where u.id = v_rasika.auth_user_id;
     end if;
 
@@ -95,12 +130,20 @@ begin
     where i.rasika_id = v_rasika.id;
 
     -- 4. Supabase Auth's audit log, which names the user by id and email, and by Google name
-    -- beside the id. The fields are matched exactly, so a similar email is never caught.
+    -- beside the id. Fields are matched exactly, so a similar email is never caught. An entry
+    -- found by email alone goes only if it names no user, or this one: the address is the
+    -- rasika's current one, but an older entry under it may be another user's.
     delete from auth.audit_log_entries x
     where x.payload ->> 'actor_id' = v_rasika.auth_user_id::text
       or x.payload -> 'traits' ->> 'user_id' = v_rasika.auth_user_id::text
-      or lower(x.payload ->> 'actor_username') in (v_email, v_rasika.auth_email)
-      or lower(x.payload -> 'traits' ->> 'user_email') in (v_email, v_rasika.auth_email);
+      or (
+        (lower(x.payload ->> 'actor_username') = v_email
+          or lower(x.payload -> 'traits' ->> 'user_email') = v_email)
+        and coalesce(
+          x.payload -> 'traits' ->> 'user_id',
+          nullif(x.payload ->> 'actor_id', '00000000-0000-0000-0000-000000000000')
+        ) is null
+      );
 
     -- 5. The processed ops: no device of theirs can push again, so no retry needs them.
     delete from private.processed_op p where p.rasika_id = v_rasika.id;

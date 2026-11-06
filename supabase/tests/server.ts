@@ -5,7 +5,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import postgres from 'postgres';
+import postgres, { type TransactionSql } from 'postgres';
 import { afterAll, expect, inject } from 'vitest';
 import type { DetailValue } from '../../app/src/model/detail-value';
 import type {
@@ -73,8 +73,8 @@ export interface Rasika {
 export async function signUp(
   label = 'rasika',
   version: string | null = APP_VERSION,
+  email = `${label}-${randomUUID()}@example.test`,
 ): Promise<Rasika> {
-  const email = `${label}-${randomUUID()}@example.test`;
   const password = randomUUID();
   const created = await admin.auth.admin.createUser({
     email,
@@ -96,6 +96,25 @@ export async function signUp(
     rasikaId: row.id,
     deviceId: randomUUID(),
   };
+}
+
+export /** Runs `body` in a transaction as `rasika` would inside a function: role and JWT claims set. */
+async function asRasika<T>(rasika: Rasika, body: (sql: TransactionSql) => Promise<T>): Promise<T> {
+  return (await db.begin(async (sql) => {
+    const claims = JSON.stringify({ sub: rasika.userId, role: 'authenticated' });
+    await sql`select set_config('request.jwt.claims', ${claims}, true)`;
+    await sql`set local role authenticated`;
+    return body(sql);
+  })) as T;
+}
+
+/** Changes the rasika's sign-in email, as Supabase Auth does on a confirmed change. */
+export async function changeEmail(rasika: Rasika, email: string) {
+  const updated = await admin.auth.admin.updateUserById(rasika.userId, {
+    email,
+    email_confirm: true,
+  });
+  if (updated.error) throw updated.error;
 }
 
 /** A new rasika whose phone has claimed writing, as restore does first (FR-017). */
