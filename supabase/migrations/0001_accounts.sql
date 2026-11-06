@@ -68,8 +68,19 @@ create table private.processed_op (
   -- A rejected op: its code and message.
   code text,
   message text,
+  -- An acked op's record, and the record's seq before the run of this device's own writes the
+  -- op belongs to (its seq before the op, or before the first op on it in the same push). A
+  -- replayed ack counts as an earlier op in the push only while the record's seq is still
+  -- this op's (0004_sync.sql, sync_push).
+  record_table text,
+  record_id uuid,
+  chain_start_seq bigint,
   primary key (rasika_id, op_id),
-  constraint processed_op_acked_or_rejected check ((seq is null) <> (code is null))
+  constraint processed_op_acked_or_rejected check ((seq is null) <> (code is null)),
+  constraint processed_op_acked_record check (
+    seq is null
+    or (record_table is not null and record_id is not null and chain_start_seq is not null)
+  )
 );
 
 -- The signed-in caller's rasika id, or null. Runs as the caller: the rasika policy below

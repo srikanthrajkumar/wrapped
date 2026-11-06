@@ -6,7 +6,7 @@
 import { randomUUID } from 'node:crypto';
 import type { TransactionSql } from 'postgres';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { SYNC_FUNCTIONS } from '../../app/src/model/sync-payloads';
+import { SYNC_FUNCTIONS, type PushOp } from '../../app/src/model/sync-payloads';
 import {
   apiClient,
   call,
@@ -90,19 +90,31 @@ describe('through the functions', () => {
 
   it("rejects B's push of a row with A's id as foreign_rasika and leaves A's row as it was", async () => {
     const before = await aRows();
-    const takeovers = [
-      op('events', { ...newEvent(), id: aEvent.id, note: 'B was here' }),
-      op('items', { ...newItem(aEvent.id, 9), id: aItem.id }),
-      op('artists', { ...newArtist('B'), id: aArtist.id }),
-      op('appearances', { ...newAppearance(aEvent.id, aArtist.id, 1), id: aAppearance.id }),
-    ];
-    // Whatever baseSeq B guesses, the owner check comes first.
-    const guessed = takeovers.map((o, i) => ({ ...o, baseSeq: Number(before[i]?.seq ?? 0) }));
+    const seqOf = new Map(before.map((row) => [`${row.t}:${row.id}`, Number(row.seq)]));
+    // Each attempt is a new push with new opIds, so the owner check runs every time and no
+    // answer is replayed from processed_op.
+    const takeovers = (guess: boolean) => {
+      const rows = [
+        ['events', { ...newEvent(), id: aEvent.id, note: 'B was here' }],
+        ['items', { ...newItem(aEvent.id, 9), id: aItem.id }],
+        ['artists', { ...newArtist('B'), id: aArtist.id }],
+        ['appearances', { ...newAppearance(aEvent.id, aArtist.id, 1), id: aAppearance.id }],
+      ] as const;
+      return rows.map(([table, row]) => {
+        // With guess, baseSeq is A's real seq for that record: right for A, still refused for B.
+        const baseSeq = guess ? seqOf.get(`${table}:${row.id}`) : 0;
+        if (baseSeq === undefined) throw new Error(`no seq for ${table} ${row.id}`);
+        return { opId: randomUUID(), table, baseSeq, row } as PushOp;
+      });
+    };
 
-    for (const attempt of [takeovers, guessed]) {
+    for (const guess of [false, true]) {
+      const attempt = takeovers(guess);
       const response = await pushOk(b, attempt);
       expect(response.acked).toEqual([]);
-      expect(response.rejected.map((r) => r.code)).toEqual(Array(4).fill('foreign_rasika'));
+      expect(response.rejected.map((r) => [r.opId, r.code])).toEqual(
+        attempt.map((o) => [o.opId, 'foreign_rasika']),
+      );
     }
     expect(await aRows()).toEqual(before);
   });
