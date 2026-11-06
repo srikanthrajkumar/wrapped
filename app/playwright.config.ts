@@ -20,6 +20,17 @@ export default defineConfig({
       name: 'phone',
       use: { ...devices['iPhone 13'], browserName: 'chromium' },
     },
+    // The iPhone's own engine, for what shows frame by frame (the bottom bar). Opt in with
+    // WEBKIT=1 once `npx playwright install --with-deps webkit` has run.
+    ...(process.env.WEBKIT
+      ? [
+          {
+            name: 'iphone-webkit',
+            use: { ...devices['iPhone 13'] },
+            testMatch: 'bottom-bar.spec.ts',
+          },
+        ]
+      : []),
   ],
   webServer: {
     // Tests run against the production build (the service worker joins it in T028).

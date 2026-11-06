@@ -54,9 +54,15 @@ import { Chip, DockedSearch, FixedRow, type SearchRow } from './components/Docke
 import { useAutosave } from './components/autosave';
 import { NotSavedLine, saveWith, Saved, useSaveFeedback } from './components/feedback';
 import { Fold } from './components/fold';
-import { BottomDock, QuietButton, Screen, TopBar, useFocusOnOpen } from './components/layout';
+import {
+  BarHold,
+  BottomDock,
+  QuietButton,
+  Screen,
+  TopBar,
+  useFocusOnOpen,
+} from './components/layout';
 import { SheetFrame, useLingering } from './components/sheet-frame';
-import { UndoBar } from './components/UndoBar';
 import { deleteItem } from './deletes';
 import { WriteGate } from './write-gate';
 import { detailText, ragasText, spokenDetail, talaText } from './format';
@@ -356,7 +362,7 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
   // Details set while a repick is written are written after it (screens/write-gate.ts).
   const [gate] = useState(() => new WriteGate());
 
-  if (item === undefined) return null;
+  if (item === undefined) return <BarHold />;
   if (item === null) {
     return (
       <>
@@ -690,8 +696,7 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
       </Fold>
 
       <BottomDock>
-        <UndoBar />
-        <div className="flex flex-wrap gap-2 border-t border-border bg-background px-4 py-2">
+        <div className="flex flex-wrap gap-2">
           {/* Done is the main action, filled, at the right (walkthrough S9). */}
           <Button size="lg" variant="outline" className="min-w-32 flex-1" asChild>
             <Link href={`/event/${eventId}/item/new`} replace>
