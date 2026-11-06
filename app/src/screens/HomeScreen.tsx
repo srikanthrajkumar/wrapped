@@ -17,6 +17,7 @@ import { eventStart, isBeingLogged, nowEvent } from '../store/logging-note';
 import { useEventSummaries, useLoggingNotes, type EventSummary } from '../store/queries';
 import { newId } from '../model';
 import { saveWith, useSaveFeedback } from './components/feedback';
+import { KindMark } from './components/kind-mark';
 import { BottomDock, Screen, TabHeader, useNow } from './components/layout';
 import { dayText, itemCount, nowTime, timeText } from './format';
 import { MESSAGES } from './messages';
@@ -28,6 +29,14 @@ let updateLater = false;
 
 /** The Artists an Event is known by, else its Sabha (walkthrough S2). */
 const title = (summary: EventSummary) => summary.knownBy ?? summary.sabha?.name ?? 'No Sabha yet';
+
+/** The title with the Event's kind as a mark before it; a Concert has none (T122). */
+const Title = ({ summary }: { summary: EventSummary }) => (
+  <>
+    <KindMark kind={summary.event.kind} className="mr-1.5" />
+    {title(summary)}
+  </>
+);
 
 /** The line under the title: the Sabha when Artists are the title, then the facts given. */
 const line = (summary: EventSummary, ...facts: (string | null | false)[]) =>
@@ -167,7 +176,9 @@ function HomeView() {
               className="flex min-h-[60px] items-center justify-between gap-2 rounded-2xl border border-border bg-card p-4 text-foreground dark:border-transparent"
             >
               <span className="flex min-w-0 flex-col gap-1">
-                <span className="text-title font-semibold break-words">{title(holder)}</span>
+                <span className="text-title font-semibold break-words">
+                  <Title summary={holder} />
+                </span>
                 <span className="text-sub text-muted-foreground">
                   {line(
                     holder,
@@ -188,6 +199,7 @@ function HomeView() {
                 className="flex min-h-12 items-center justify-between gap-2 px-1 text-sub text-muted-foreground"
               >
                 <span className="break-words">
+                  <KindMark kind={summary.event.kind} className="mr-1.5" />
                   {[title(summary), time(summary)].filter(Boolean).join(' · ')}
                 </span>
                 <IconChevronRight aria-hidden className="size-5 shrink-0" />
@@ -264,7 +276,9 @@ function EventRow({ summary, line }: { summary: EventSummary; line: string }) {
         href={`/event/${summary.event.id}`}
         className="flex min-h-16 flex-col justify-center py-2 text-foreground"
       >
-        <span className="font-semibold break-words">{title(summary)}</span>
+        <span className="font-semibold break-words">
+          <Title summary={summary} />
+        </span>
         {line && <span className="text-sub text-muted-foreground">{line}</span>}
       </Link>
     </li>

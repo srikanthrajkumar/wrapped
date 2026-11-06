@@ -30,7 +30,7 @@ export interface NewEvent {
   sabhaId?: string | null;
   /** Defaults to `spot`: an Event made in the hall. */
   source?: EventSource;
-  /** Required for a Lecdem. */
+  /** Required for a Lecdem; null for a Concert; the printed title, or none, otherwise. */
   title?: string | null;
   note?: string | null;
   scheduleEntryId?: string | null;
@@ -66,7 +66,7 @@ export async function createEvent(
     scheduleVersionSeen: input.scheduleVersionSeen ?? null,
     scheduleChanged: false,
     touched: status === 'attended',
-    title: input.kind === 'concert' ? (input.title ?? null) : (input.title?.trim() ?? null),
+    title: titleFor(input.kind, input.title ?? null),
     note: input.note ?? null,
     ...newTimestamps(),
   };
@@ -81,6 +81,15 @@ export async function createEvent(
   });
 }
 
+/**
+ * A title as entered, by kind (FR-013, T057): a Concert's is kept as given, so the rule refuses
+ * one; any other kind's is trimmed, and an empty one is none.
+ */
+function titleFor(kind: EventKind, title: string | null): string | null {
+  if (kind === 'concert') return title;
+  return title?.trim() || null;
+}
+
 /** Edit an Event's fields. Any edit marks it `touched`, so Schedule updates stop (FR-027). */
 export async function editEvent(
   id: string,
@@ -90,8 +99,66 @@ export async function editEvent(
   return db.transaction('rw', [db.events, db.outbox], async () => {
     const event = await getLive('events', id, { db });
     const edited: Event = { ...event, ...changes, touched: true };
+    if ('title' in changes) edited.title = titleFor(edited.kind, edited.title);
     check(eventProblems(edited));
     return save('events', edited, { db });
+  });
+}
+
+/**
+ * Change an Event's kind among the four (T122), with its title where the new kind has one. A
+ * change to Concert, whose title is null, takes a typed title away only with a receipt that
+ * Undo restores it from, written in the same transaction as the Event and its outbox entry, so
+ * no title is ever lost to a kind change. Without `title`, the title stays as it is.
+ */
+export async function changeKind(
+  id: string,
+  kind: EventKind,
+  { db = defaultDb, title }: WriteOptions & { title?: string | null } = {},
+): Promise<{ event: Event; receipt: DeletionReceipt | null }> {
+  return db.transaction('rw', [db.events, db.outbox, db.meta], async () => {
+    const event = await getLive('events', id, { db });
+    const kept = titleFor(kind, title === undefined ? event.title : title);
+    const taken = kind === 'concert' && event.title?.trim() ? event.title : null;
+    const edited: Event = {
+      ...event,
+      kind,
+      title: kind === 'concert' ? null : kept,
+      touched: true,
+    };
+    check(eventProblems(edited));
+    const saved = await save('events', edited, { db });
+    const receipt = taken
+      ? await writeReceipt(db, {
+          kind: 'title',
+          eventId: id,
+          position: null,
+          records: [{ table: 'events', id, deletedAt: null }],
+          title: { kind: event.kind, title: taken },
+        })
+      : null;
+    return { event: saved, receipt };
+  });
+}
+
+/**
+ * Undo a title taken by a change to Concert: the Event goes back to the kind and title it had,
+ * in one transaction. Only while it still has no title: a title typed since is the rasika's
+ * newer word, so the receipt is used up and nothing changes. A used, stale or deleted Event's
+ * receipt restores nothing and returns null.
+ */
+export async function restoreTitle(
+  receiptId: string,
+  { db = defaultDb }: WriteOptions = {},
+): Promise<Event | null> {
+  return db.transaction('rw', [db.events, db.outbox, db.meta], async () => {
+    const receipt = await takeReceipt(db, receiptId, 'title');
+    if (!receipt?.title) return null;
+    const event = await db.events.get(receipt.eventId);
+    if (!event || event.deletedAt !== null || event.title !== null) return null;
+    const restored: Event = { ...event, ...receipt.title, touched: true };
+    check(eventProblems(restored));
+    return save('events', restored, { db });
   });
 }
 

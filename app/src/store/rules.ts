@@ -4,6 +4,7 @@
 
 import {
   COLOURS,
+  EVENT_KINDS,
   NADAIS,
   ROLES,
   IMPROVISED_KINDS,
@@ -34,16 +35,21 @@ const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 export function eventProblems(event: Event): string[] {
   const problems: string[] = [];
-  if (event.kind !== 'concert' && event.kind !== 'lecdem') problems.push('unknown kind');
+  if (!EVENT_KINDS.includes(event.kind)) problems.push('unknown kind');
   if (!ISO_DATE.test(event.date)) problems.push('date must be YYYY-MM-DD');
   if (event.startTime !== null && !TIME.test(event.startTime)) {
     problems.push('start time must be HH:MM');
   }
   if (!['planned', 'attended', 'missed'].includes(event.status)) problems.push('unknown status');
-  // FR-013: a Lecdem needs a title; a Concert's title is null.
+  // FR-013: a Lecdem needs a title; a Concert's title is null. A Dance's or a Harikatha's is
+  // its printed title, or null (T057).
   if (event.kind === 'lecdem' && !event.title?.trim()) problems.push('a Lecdem needs a title');
   if (event.kind === 'concert' && event.title !== null) {
     problems.push("a Concert's title is null");
+  }
+  if (event.title !== null && typeof event.title !== 'string') problems.push('title must be text');
+  if ((event.kind === 'dance' || event.kind === 'harikatha') && event.title?.trim() === '') {
+    problems.push('an empty title is null');
   }
   return problems;
 }
@@ -51,6 +57,11 @@ export function eventProblems(event: Event): string[] {
 export function appearanceProblems(appearance: Appearance): string[] {
   const problems: string[] = [];
   if (appearance.role !== null && !ROLES.includes(appearance.role)) problems.push('unknown role');
+  // A row stored before `group` existed has none, which reads as null (T119).
+  const group: unknown = appearance.group ?? null;
+  if (group !== null && (typeof group !== 'string' || group.trim() === '')) {
+    problems.push('a group is null or a name');
+  }
   const { colourPrimary: primary, colourSecondary: secondary } = appearance;
   if (primary !== null && primary !== 'unknown' && !COLOURS.includes(primary)) {
     problems.push('unknown primary colour');

@@ -3,10 +3,11 @@
 // Undo checks that every record is still the tombstone that delete made, then consumes the
 // receipt, so a receipt survives a crash and a stale or replayed Undo restores nothing.
 
-import { newId, type RasikaTable } from '../model';
+import { newId, type EventKind, type RasikaTable } from '../model';
 import type { MetaEntry, WrappedDB } from './db';
 
-export type DeletionKind = 'item' | 'appearance' | 'event';
+/** `title`: a kind change to Concert took a typed title away (T122). */
+export type DeletionKind = 'item' | 'appearance' | 'event' | 'title';
 
 export interface DeletionReceipt {
   id: string;
@@ -18,8 +19,13 @@ export interface DeletionReceipt {
    * Event.
    */
   position: number | null;
-  /** Every record the delete tombstoned, with the `deletedAt` it stamped. */
-  records: { table: RasikaTable; id: string; deletedAt: string }[];
+  /**
+   * Every record the delete tombstoned, with the `deletedAt` it stamped. A `title` receipt names
+   * no tombstone: its Event is live, with `deletedAt` null.
+   */
+  records: { table: RasikaTable; id: string; deletedAt: string | null }[];
+  /** For a `title` receipt: the kind and title the Event had before it became a Concert. */
+  title?: { kind: EventKind; title: string };
   at: string;
 }
 

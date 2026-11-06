@@ -21,7 +21,10 @@ export const COLOURS = [
 ] as const;
 export type Colour = (typeof COLOURS)[number];
 
-/** What an Artist did at one Event. No Role ranks above another (FR-004). */
+/**
+ * What an Artist did at one Event. No Role ranks above another (FR-004). `support` is vocal
+ * support. The last eight were added with the schedule feed (T057, 2026-11-06).
+ */
 export const ROLES = [
   'vocal',
   'violin',
@@ -33,6 +36,14 @@ export const ROLES = [
   'morsing',
   'other',
   'presenter',
+  'support',
+  'chitravina',
+  'nagaswaram',
+  'saxophone',
+  'mandolin',
+  'thavil',
+  'dancer',
+  'nattuvangam',
 ] as const;
 export type Role = (typeof ROLES)[number];
 
@@ -42,7 +53,9 @@ export type Nadai = (typeof NADAIS)[number];
 export const IMPROVISED_KINDS = ['alapana', 'tanam', 'niraval', 'kalpana_swaram'] as const;
 export type ImprovisedKind = (typeof IMPROVISED_KINDS)[number];
 
-export type EventKind = 'concert' | 'lecdem';
+/** Dance and Harikatha were added with the schedule feed (T057); their Items work as a Concert's. */
+export const EVENT_KINDS = ['concert', 'lecdem', 'dance', 'harikatha'] as const;
+export type EventKind = (typeof EVENT_KINDS)[number];
 export type EventStatus = 'planned' | 'attended' | 'missed';
 export type EventSource = 'schedule' | 'plan' | 'spot';
 
@@ -75,7 +88,10 @@ export interface Event extends Timestamps {
   scheduleChanged: boolean;
   /** True once the rasika edits it or it becomes Attended; Schedule updates then stop. */
   touched: boolean;
-  /** Required for a Lecdem, null for a Concert (FR-013). */
+  /**
+   * Required for a Lecdem, null for a Concert (FR-013); the printed title, or null, for a Dance
+   * or a Harikatha.
+   */
   title: string | null;
   note: string | null;
 }
@@ -92,6 +108,12 @@ export interface Appearance extends Timestamps {
   colourSecondary: Colour | null;
   /** Came from the Plan or the Schedule. */
   billed: boolean;
+  /**
+   * The name the Artist was billed under with others ("Malladi Brothers"), copied from the
+   * Schedule; null otherwise. Display only: never an Artist, never counted. A row stored before
+   * it existed has no such field, and reads as null.
+   */
+  group: string | null;
   /**
    * The order added. Stage lists by Role, then by this (store/stage.ts); kept so Undo puts a
    * removed Artist back in place.
@@ -175,7 +197,10 @@ export type SharedSabha = SharedEntry;
 export interface BilledArtist {
   /** A name, or a Shared Artist id. */
   name: string;
+  /** A hint, not a fact; null when the listing doesn't say. */
   role: Role | null;
+  /** The name a group is billed under, on each of its members; null for anyone else. */
+  group: string | null;
 }
 
 /** One entry of the logger's Schedule feed (contracts/schedule-feed.md). Not rasika-owned. */
@@ -187,7 +212,7 @@ export interface ScheduleEntry {
   /** A Shared Sabha id or a name. */
   sabha: string;
   kind: EventKind;
-  /** In billing order, as on the poster. */
+  /** In billing order, as on the listing; may be empty. */
   billed: BilledArtist[];
   title: string | null;
   cancelled: boolean;
@@ -252,6 +277,7 @@ export const RECORD_FIELDS: { [T in RasikaTable]: Record<keyof RasikaRows[T], tr
     colourPrimary: true,
     colourSecondary: true,
     billed: true,
+    group: true,
     position: true,
     ...timestamps,
   },

@@ -63,6 +63,10 @@ function fieldHolds(table: string, field: string, value: unknown, row: Row): boo
   if (table === 'events') {
     if (field === 'note') return (row.note ?? '') === (value ?? '');
     if (field === 'sabhaId') return row.sabhaId === (value as { id?: string } | null)?.id;
+    // A title is stored trimmed, and an emptied one as null (store/events.ts).
+    if (field === 'title') {
+      return (row.title ?? '') === (typeof value === 'string' ? value.trim() : '');
+    }
   }
   if (table === 'appearances' && field === 'colours') {
     const colours = value as { colourPrimary?: unknown; colourSecondary?: unknown };

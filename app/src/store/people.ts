@@ -213,6 +213,8 @@ export interface AppearanceFields {
   colourSecondary?: Colour | null;
   /** From the Plan or the Schedule. */
   billed?: boolean;
+  /** The name the Artist was billed under with others, from the Schedule (T121). */
+  group?: string | null;
 }
 
 // FR-013: a Lecdem has at most 3 presenters.
@@ -261,6 +263,7 @@ export async function addAppearance(
       colourPrimary: fields.colourPrimary ?? null,
       colourSecondary: fields.colourSecondary ?? null,
       billed: fields.billed ?? false,
+      group: fields.group ?? null,
       position: Math.max(0, ...positions) + 1,
       ...newTimestamps(),
     };

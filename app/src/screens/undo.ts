@@ -9,7 +9,7 @@
 
 import { browserStorage as storage } from '../browser-storage';
 import { readyCatalog } from '../catalog/use-catalog';
-import { restoreEvent } from '../store/events';
+import { restoreEvent, restoreTitle } from '../store/events';
 import { restoreItem } from '../store/items';
 import { restoreAppearance } from '../store/people';
 import { dropReceipt, type DeletionReceipt } from '../store/receipts';
@@ -118,6 +118,7 @@ function notify() {
 export function undoMessage(receipt: DeletionReceipt): string {
   if (receipt.kind === 'item') return MESSAGES.undo.itemDeleted(receipt.position ?? 0);
   if (receipt.kind === 'appearance') return MESSAGES.undo.artistRemoved;
+  if (receipt.kind === 'title') return MESSAGES.undo.titleRemoved;
   return MESSAGES.undo.concertDeleted;
 }
 
@@ -125,6 +126,7 @@ export function undoMessage(receipt: DeletionReceipt): string {
 export function undoSubject(receipt: DeletionReceipt): string {
   if (receipt.kind === 'item') return MESSAGES.undo.subject.item(receipt.position ?? 0);
   if (receipt.kind === 'appearance') return MESSAGES.undo.subject.artist;
+  if (receipt.kind === 'title') return MESSAGES.undo.subject.title;
   return MESSAGES.undo.subject.concert;
 }
 
@@ -237,7 +239,9 @@ export async function undo(receipt: DeletionReceipt): Promise<boolean> {
         ? await restoreItem(receipt.id, { catalog: await readyCatalog() })
         : receipt.kind === 'appearance'
           ? await restoreAppearance(receipt.id)
-          : await restoreEvent(receipt.id, { catalog: await readyCatalog() });
+          : receipt.kind === 'title'
+            ? await restoreTitle(receipt.id)
+            : await restoreEvent(receipt.id, { catalog: await readyCatalog() });
     if (live?.receipt.id === receipt.id) live = null;
     failed = failed.filter((offer) => offer.receipt.id !== receipt.id);
     forgetFailed(receipt.id);

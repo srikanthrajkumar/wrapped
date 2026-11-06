@@ -555,3 +555,48 @@ describe('rejected ops (eng review D11)', () => {
     expect((await storedCounts(rasika)).artists).toBe(0);
   });
 });
+
+describe('the kinds, Roles and group names of the schedule feed round-trip (T119)', () => {
+  it('pushes a Dance, a Harikatha, every new Role and a group, and pulls them back unchanged', async () => {
+    const rasika = await signUpWriter();
+    const dance = newEvent({ kind: 'dance', title: 'Margam' });
+    const harikatha = newEvent({ kind: 'harikatha', title: 'Sita Kalyanam' });
+    const untitled = newEvent({ kind: 'dance', title: null });
+    const artist = newArtist('Priyadarsini Govind');
+    const roles = [
+      'support',
+      'chitravina',
+      'nagaswaram',
+      'saxophone',
+      'mandolin',
+      'thavil',
+      'dancer',
+      'nattuvangam',
+    ] as const;
+    const appearances = [
+      ...roles.map((role, i) => ({ ...newAppearance(dance.id, artist.id, i + 1), role })),
+      {
+        ...newAppearance(harikatha.id, artist.id, 1),
+        role: 'presenter' as const,
+        group: 'Malladi Brothers',
+        billed: true,
+      },
+    ];
+    // A row a phone stored before `group` existed: kept as sent, with no such field.
+    const { group: _dropped, ...legacy } = newAppearance(untitled.id, artist.id, 1);
+    void _dropped;
+    const sent: PushOp[] = [
+      op('artists', artist),
+      ...[dance, harikatha, untitled].map((event) => op('events', event)),
+      ...appearances.map((appearance) => op('appearances', appearance)),
+      op('appearances', legacy as (typeof appearances)[number]),
+    ];
+    expect((await pushOk(rasika, sent)).rejected).toEqual([]);
+
+    const own = latestRows(
+      (await pullAll(rasika)).changes.filter((c) => !c.table.startsWith('shared')),
+    );
+    for (const o of sent) expect(own.get(`${o.table}:${o.row.id}`)).toEqual(o.row);
+    expect(own.get(`appearances:${legacy.id}`)).not.toHaveProperty('group');
+  });
+});

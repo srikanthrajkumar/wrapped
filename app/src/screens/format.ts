@@ -1,7 +1,7 @@
 // How records read on the screens (DESIGN.md "Components", "Detail values and their six
 // states"). Names are shown as stored: the catalog's plain English spelling, or as typed.
 
-import type { DetailValue, Event, Item, Role } from '../model';
+import type { DetailValue, Event, EventKind, Item, Role } from '../model';
 
 /** A Detail as text: "?" when Unknown, "" when Not applicable, else its text. */
 export function detailText(value: DetailValue): string {
@@ -95,8 +95,15 @@ export function eventLine(event: Pick<Event, 'date' | 'startTime'>, sabha?: stri
     .join(' · ');
 }
 
+// Roles whose stored key is not their name (T057): `support` is vocal support.
+const ROLE_NAMES: Partial<Record<Role, string>> = { support: 'Vocal support' };
+
 /** A Role as shown, capitalised like the other chips: "Vocal". Stored lower case (FR-004). */
-export const roleName = (role: Role) => role.charAt(0).toUpperCase() + role.slice(1);
+export const roleName = (role: Role) =>
+  ROLE_NAMES[role] ?? role.charAt(0).toUpperCase() + role.slice(1);
+
+/** An Event's kind as a word, where one is said: "Concert", "Lecdem", "Dance", "Harikatha". */
+export const kindName = (kind: EventKind) => kind.charAt(0).toUpperCase() + kind.slice(1);
 
 /** The current time as `HH:MM`, for an Event logged now. */
 export function nowTime(now = new Date()): string {
