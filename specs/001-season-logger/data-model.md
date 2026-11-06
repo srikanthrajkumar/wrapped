@@ -232,7 +232,19 @@ On request, in one transaction:
    `name`, set `deidentifiedAt`, and delete devices.
 2. Null every `note` on the rasika's Events and Items, including each Item's `layaVinyasam.note`,
    because free text can identify them.
-3. If `seasonReports` is not true, delete the rasika's season as well.
+3. Delete Supabase Auth's own audit log entries for the user (`auth.audit_log_entries`), which
+   name them by auth user id, email and Google name.
+4. Delete the rasika's processed ops: no device of theirs can push again.
+5. If `seasonReports` is not true, delete the rasika's season as well.
+
+A kept season keeps everything but the notes: own Artist and Sabha names and aliases, Event and
+Item titles, and typed Detail values, catalog overrides included. They are what season reports
+count (how many Bhairavis were truly sung), and keeping all of them needs no field-by-field
+rule to maintain as the records change. Nothing left links them to the person.
+
+The consent answers stand after de-identification. A kept season from a rasika whose
+`shareAdditions` is true still counts in the promotion candidates, which show only a name and a
+number of rasikas.
 
 ## Validation rules
 
