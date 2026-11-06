@@ -19,7 +19,6 @@ import { newId } from '../model';
 import { saveWith, SeasonFeedback, useSaveFeedback } from './components/feedback';
 import { InstallRow } from './components/InstallRow';
 import { BottomDock, Screen, useNow } from './components/layout';
-import { UndoBar } from './components/UndoBar';
 import { dayText, itemCount, nowTime, timeText } from './format';
 import { MESSAGES } from './messages';
 import { subscribeUndo, undoOffers } from './undo';
@@ -59,7 +58,34 @@ function HomeView() {
   // One Concert per tap: a double tap must not make two.
   const creating = useRef(false);
 
-  if (summaries === undefined || notes === undefined) return null;
+  // Each attempt is its own Concert with its own id: a failed one stays listed, by its date and
+  // time, whatever later taps do, and its Try again makes it once (docs/adr/0007).
+  const logNow = async () => {
+    if (creating.current) return;
+    creating.current = true;
+    try {
+      const id = newId();
+      const concert = { kind: 'concert' as const, date: today(), startTime: nowTime() };
+      const event = await saveWith({ table: 'events', id, field: '*' }, concert, () =>
+        createEvent(concert, { id }),
+      );
+      if (event) navigate(`/event/${event.id}`);
+    } finally {
+      creating.current = false;
+    }
+  };
+
+  // The bar needs nothing read, so it shows from the first frame, before the season does.
+  const bar = (
+    <BottomDock>
+      <Button size="lg" className="w-full" onClick={() => void logNow()}>
+        <IconPlus aria-hidden />
+        Log a Concert
+      </Button>
+    </BottomDock>
+  );
+
+  if (summaries === undefined || notes === undefined) return bar;
 
   const byId = new Map(summaries.map((summary) => [summary.event.id, summary]));
   const selection = nowEvent(
@@ -86,23 +112,6 @@ function HomeView() {
         b.event.date.localeCompare(a.event.date) ||
         (b.event.startTime ?? '').localeCompare(a.event.startTime ?? ''),
     );
-
-  // Each attempt is its own Concert with its own id: a failed one stays listed, by its date and
-  // time, whatever later taps do, and its Try again makes it once (docs/adr/0007).
-  const logNow = async () => {
-    if (creating.current) return;
-    creating.current = true;
-    try {
-      const id = newId();
-      const concert = { kind: 'concert' as const, date: today(), startTime: nowTime() };
-      const event = await saveWith({ table: 'events', id, field: '*' }, concert, () =>
-        createEvent(concert, { id }),
-      );
-      if (event) navigate(`/event/${event.id}`);
-    } finally {
-      creating.current = false;
-    }
-  };
 
   const showUpdate = offersUpdate({
     available: update.available,
@@ -246,15 +255,7 @@ function HomeView() {
         </section>
       )}
 
-      <BottomDock>
-        <UndoBar />
-        <div className="border-t border-border bg-background px-4 py-2">
-          <Button size="lg" className="w-full" onClick={() => void logNow()}>
-            <IconPlus aria-hidden />
-            Log a Concert
-          </Button>
-        </div>
-      </BottomDock>
+      {bar}
     </>
   );
 }

@@ -1,11 +1,12 @@
 // The pieces every logging screen shares: the pushed screens' top bar (design D5), the bottom
-// dock that holds a screen's one action above the tab bar, and the status line.
+// bar that holds a screen's one action above the tab bar, and the status line.
 
 import { IconChevronLeft } from '@tabler/icons-react';
 import {
   createContext,
   useContext,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type ReactNode,
@@ -16,14 +17,13 @@ import { Link, useLocation } from 'wouter';
 import { cn } from '@/lib/utils';
 import { SeasonFeedback } from './feedback';
 import { InstallRow } from './InstallRow';
+import { UndoBar } from './UndoBar';
 
 /** How deep a screen sits: a tab's root, an Event, or an Item in it. */
 const depth = (path: string) =>
   path.startsWith('/event/') ? (path.includes('/item/') ? 2 : 1) : 0;
 // The path of the screen shown last, so the next one knows which way the rasika went.
 let shownPath: string | null = null;
-/** Which way the current screen entered, for its bottom bar to fade in with it. */
-const Entered = createContext<'forward' | 'back' | undefined>(undefined);
 
 /**
  * A screen's root (DESIGN.md "Motion"): going into an Event or an Item, the screen enters from
@@ -41,32 +41,121 @@ export function Screen({ children }: { children: ReactNode }) {
     shownPath = path;
   }, [path]);
   return (
-    <Entered.Provider value={enter}>
-      <div data-enter={enter} className="screen flex flex-1 flex-col">
-        {children}
-      </div>
-    </Entered.Provider>
+    <div data-enter={enter} className="screen flex flex-1 flex-col">
+      {children}
+    </div>
   );
 }
 
-/** Where a screen's bottom action goes: the shell's sticky footer, above the tab bar. */
-export const BottomSlot = createContext<HTMLElement | null>(null);
+/** The shell's bottom bar, for the screen on show to fill. */
+export type Bar = {
+  /** Where the screen's action goes, inside the bar's frame. */
+  slot: HTMLElement;
+  /** Keep showing what the bar last held until the returned release is called. */
+  hold(): () => void;
+};
+const BarContext = createContext<Bar | null>(null);
+export const BarProvider = BarContext.Provider;
+
+/** The labels the bar shows, to tell a change of action from the same action redrawn. */
+const labels = (slot: HTMLElement) =>
+  [...slot.querySelectorAll('[data-slot="button"]')].map((b) => b.textContent).join('|');
 
 /**
- * A screen's fixed bottom content (DESIGN.md "Thumb zone"). It sits in the shell's sticky footer,
- * so it reserves its own height and the safe area, and the last row is never hidden behind it.
+ * The bottom bar (DESIGN.md "Thumb zone", "Motion"): one frame, owned by the shell, that never
+ * unmounts across Season, Event and Item, so the screen changing never empties or shrinks it.
+ * A screen supplies only its contents ({@link BottomDock}). While the next screen is still
+ * loading ({@link BarHold}) the frame keeps an inert copy of what it last held; when the action
+ * changes, only the labels fade in (150ms) inside the same button. With no action the frame
+ * hides, as on Settings. Any Undo bars stack above the action.
  */
+export function ActionBar({ onBar }: { onBar(bar: Bar | null): void }) {
+  const frame = useRef<HTMLDivElement>(null);
+  const live = useRef<HTMLDivElement>(null);
+  const kept = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const root = frame.current!;
+    const slot = live.current!;
+    const copy = kept.current!;
+    let holds = 0;
+    let shown: string | null = null;
+    // Runs after React's commit and before the next paint (a microtask), so no frame is drawn
+    // with the bar empty between one screen's action and the next.
+    const update = (removed: Node[] = []) => {
+      if (slot.hasChildNodes()) {
+        copy.replaceChildren();
+        const now = labels(slot);
+        if (!root.hidden && shown !== null && now !== shown) {
+          slot.removeAttribute('data-changed');
+          // Reading layout restarts the fade when the attribute comes back.
+          void slot.offsetWidth;
+          slot.setAttribute('data-changed', '');
+        }
+        shown = now;
+        root.hidden = false;
+      } else if (holds > 0) {
+        if (removed.length > 0) copy.replaceChildren(...removed.map((n) => n.cloneNode(true)));
+        root.hidden = !copy.hasChildNodes();
+      } else {
+        copy.replaceChildren();
+        root.hidden = true;
+      }
+    };
+    const observer = new MutationObserver((records) => {
+      // What the slot lost: the action that was on show before it emptied.
+      const lost = records
+        .filter((r) => r.target === slot)
+        .flatMap((r) => [...r.removedNodes])
+        .filter((n) => !n.isConnected);
+      update(lost);
+    });
+    observer.observe(slot, { childList: true, subtree: true, characterData: true });
+    const faded = (event: AnimationEvent) => {
+      if (event.animationName === 'label-in') slot.removeAttribute('data-changed');
+    };
+    slot.addEventListener('animationend', faded);
+    update();
+    onBar({
+      slot,
+      hold() {
+        holds += 1;
+        return () => {
+          holds -= 1;
+          queueMicrotask(() => update());
+        };
+      },
+    });
+    return () => {
+      observer.disconnect();
+      slot.removeEventListener('animationend', faded);
+      onBar(null);
+    };
+  }, [onBar]);
+  return (
+    <div ref={frame}>
+      <UndoBar />
+      <div className="border-t border-border bg-background px-4 py-2">
+        <div ref={live} className="bar-slot" />
+        <div ref={kept} inert aria-hidden />
+      </div>
+    </div>
+  );
+}
+
+/** A screen's bottom action (DESIGN.md "Thumb zone"), drawn in the shell's bar. */
 export function BottomDock({ children }: { children: ReactNode }) {
-  const slot = useContext(BottomSlot);
-  const enter = useContext(Entered);
-  return slot
-    ? createPortal(
-        <div data-enter={enter} className="dock">
-          {children}
-        </div>,
-        slot,
-      )
-    : null;
+  const bar = useContext(BarContext);
+  return bar ? createPortal(children, bar.slot) : null;
+}
+
+/**
+ * Rendered by a screen with an action while it is still loading, so the bar keeps what it
+ * showed instead of emptying until the screen's own action arrives.
+ */
+export function BarHold() {
+  const bar = useContext(BarContext);
+  useLayoutEffect(() => bar?.hold(), [bar]);
+  return null;
 }
 
 /**

@@ -93,6 +93,7 @@ long name, a second Concert the same day.
 | FB-42 | 2nd pass | U2 | Why are there pills for the Raga? It needs consistency. How important a value is can be shown by weight or by brightness or transparency. | Item page |
 | FB-43 | 2nd pass | U3 | The horizontal separator between RTP, Virutham and "Don't know" and the others sits too close to the pills; it feels off. | Item kinds |
 | FB-44 | 2nd pass | U3 | A sheet opening (the Colours) is very good, but closing it has no motion. It should slide back down the same way, ideally a setting in shadcn. The same goes for closing a fold. *Checked: the folds open and close with no height animation.* | Sheets, folds |
+| FB-45 | all | U2 | The bottom bar flickers on every screen change: it shows white first, disappears, then comes back in its new form. Part of the app's general flicker. *Checked: each screen drew its own bar and showed none until its data loaded, so for a frame or more the footer shrank to the tab bar; the new bar then faded in from 60%, which on the light dark-mode button read as a flash. Fixed 2026-11-06 (branch `claude/steady-bottom-bar-ef72a1`): the shell owns one bar that keeps its last action while the next screen loads, and only the label fades in.* | Dark mode; Season, Concert and Item pages |
 
 ## Synthesis
 

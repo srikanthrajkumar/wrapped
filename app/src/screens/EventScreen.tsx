@@ -52,6 +52,7 @@ import { NotSavedLine, saveWith, Saved, useSaveFeedback } from './components/fee
 import { useAutosave } from './components/autosave';
 import { useDragOrder } from './components/drag-order';
 import {
+  BarHold,
   BottomDock,
   QuietButton,
   Screen,
@@ -62,7 +63,6 @@ import {
 import { NamePicker, RoleChips } from './components/NamePicker';
 import { SheetFrame, useLingering } from './components/sheet-frame';
 import { Fold } from './components/fold';
-import { UndoBar } from './components/UndoBar';
 import { dayText, eventLine, itemLine, itemTitle, roleName, timeText } from './format';
 import { deleteConcert, deleteItem, removeArtist } from './deletes';
 import { undo, undoMessage } from './undo';
@@ -150,7 +150,7 @@ function EventView({ eventId }: { eventId: string }) {
     (target ?? head)?.focus();
   }, [items, appearances]);
 
-  if (event === undefined || items === undefined || appearances === undefined) return null;
+  if (event === undefined || items === undefined || appearances === undefined) return <BarHold />;
   if (event === null) {
     return (
       <>
@@ -379,42 +379,39 @@ function EventView({ eventId }: { eventId: string }) {
       )}
 
       <BottomDock>
-        <UndoBar />
-        <div className="border-t border-border bg-background px-4 py-2">
-          {order !== null ? (
+        {order !== null ? (
+          <Button
+            size="lg"
+            className="w-full"
+            onClick={() => {
+              // A drag still in hand under another finger moves nothing.
+              drag.cancel();
+              setOrder(null);
+            }}
+          >
+            Done
+          </Button>
+        ) : event.status === 'planned' ? (
+          // The bar's own change, to Add Item, shows the save.
+          <Saved target={target('status')} quiet>
             <Button
               size="lg"
               className="w-full"
-              onClick={() => {
-                // A drag still in hand under another finger moves nothing.
-                drag.cancel();
-                setOrder(null);
-              }}
+              onClick={() =>
+                void saveWith(target('status'), 'attended', () => setStatus(eventId, 'attended'))
+              }
             >
-              Done
+              Start logging
             </Button>
-          ) : event.status === 'planned' ? (
-            // The bar's own change, to Add Item, shows the save.
-            <Saved target={target('status')} quiet>
-              <Button
-                size="lg"
-                className="w-full"
-                onClick={() =>
-                  void saveWith(target('status'), 'attended', () => setStatus(eventId, 'attended'))
-                }
-              >
-                Start logging
-              </Button>
-            </Saved>
-          ) : (
-            <Button size="lg" className="w-full" asChild>
-              <Link href={`/event/${eventId}/item/new`}>
-                <IconPlus aria-hidden />
-                Add Item
-              </Link>
-            </Button>
-          )}
-        </div>
+          </Saved>
+        ) : (
+          <Button size="lg" className="w-full" asChild>
+            <Link href={`/event/${eventId}/item/new`}>
+              <IconPlus aria-hidden />
+              Add Item
+            </Link>
+          </Button>
+        )}
       </BottomDock>
 
       <NamePicker

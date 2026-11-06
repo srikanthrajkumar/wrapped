@@ -3,7 +3,7 @@ import { Link, Route, Switch, useLocation, useRoute } from 'wouter';
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 import { cn } from '@/lib/utils';
 import { ConcertSummary } from './screens/components/ConcertSummary';
-import { BottomSlot } from './screens/components/layout';
+import { ActionBar, BarProvider, type Bar } from './screens/components/layout';
 import { EventScreen } from './screens/EventScreen';
 import { FirstLaunch } from './screens/FirstLaunch';
 import { HomeScreen } from './screens/HomeScreen';
@@ -135,7 +135,7 @@ function useFooterRoom(footer: HTMLElement | null, inset: number) {
 export function App() {
   const done = useFirstLaunchDone();
   const [inItemEditor] = useRoute(ITEM_ROUTE);
-  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const [bar, setBar] = useState<Bar | null>(null);
   const inset = useKeyboardInset();
   const [footer, setFooter] = useState<HTMLElement | null>(null);
   useFooterRoom(footer, inset);
@@ -148,7 +148,7 @@ export function App() {
   if (done === undefined) return null;
 
   return (
-    <BottomSlot.Provider value={slot}>
+    <BarProvider value={bar}>
       <div className="flex min-h-dvh flex-col pt-[var(--app-top-inset,env(safe-area-inset-top))]">
         <main className="flex flex-1 flex-col pr-[calc(16px+env(safe-area-inset-right))] pl-[calc(16px+env(safe-area-inset-left))]">
           {!done ? (
@@ -185,7 +185,7 @@ export function App() {
         {done && <ConcertSummary />}
         {done && (
           <footer ref={setFooter} className="sticky z-10" style={{ bottom: inset }}>
-            <div ref={setSlot} />
+            <ActionBar onBar={setBar} />
             {inItemEditor ? (
               <div className="h-[env(safe-area-inset-bottom)] bg-background" />
             ) : (
@@ -194,6 +194,6 @@ export function App() {
           </footer>
         )}
       </div>
-    </BottomSlot.Provider>
+    </BarProvider>
   );
 }
