@@ -304,23 +304,27 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
 
 **Logging (P1, P4)**
 
-- **FR-001**: The app MUST let the rasika create an Event of kind Concert or Lecdem, with date,
-  start time, Sabha, status and an optional note.
+- **FR-001**: The app MUST let the rasika create an Event of kind Concert, Lecdem, Dance or
+  Harikatha, with date, start time, Sabha, status and an optional note. Dance and Harikatha
+  were added on 2026-11-06 (schedule-feed decisions, T057).
 - **FR-002**: Every logging action MUST complete without the network: create, edit, reorder,
   delete and search.
 - **FR-003**: Every save MUST be kept on the phone immediately, survive a force-close, and show
   no waiting indicator.
 - **FR-004**: The rasika MUST be able to add Appearances to an Event. Each Appearance has an
-  Artist, a Role (vocal, violin, veena, flute, mridangam, khanjira, ghatam, morsing, other,
+  Artist, a Role (vocal, vocal support, violin, veena, chitravina, flute, nagaswaram,
+  saxophone, mandolin, mridangam, thavil, khanjira, ghatam, morsing, dancer, nattuvangam, other,
   presenter, or blank when unknown) and a Colour (one primary from a fixed palette plus an
   optional second). Appearances are listed by Role, as in a printed kutcheri listing, then in
-  the order added, and the Event is shown under its vocal, veena or flute Artists (a Lecdem's
-  presenters), or else the first listed (iPhone walkthrough S2, S4, 2026-11-04). This orders
+  the order added, and the Event is shown under its lead Artists (a Lecdem's or Harikatha's
+  presenters, a Dance's dancers), or else the first listed (iPhone walkthrough S2, S4,
+  2026-11-04; DESIGN.md, "Event"). Members of a group billed together show under the group's
+  name, and each still counts on their own. This orders
   what is shown only: no Role ranks above another, and the Wrapped counts every Appearance alike.
 - **FR-005**: Artists and Sabhas MUST be picked from earlier entries as the rasika types. A new
   name creates a new Artist or Sabha that belongs to that rasika. Every rasika starts from the
   shared lists, first seeded with the 11 Sabhas and the Artists in last season's sheet.
-- **FR-006**: The rasika MUST be able to add Items to a Concert or Lecdem in running order, and
+- **FR-006**: The rasika MUST be able to add Items to any Event in running order, and
   reorder or delete them.
 - **FR-007**: Picking a Composition MUST fill in its raga, tala, composer, language and subject
   from the catalog. Each Detail MUST stay editable in one or two taps with no confirmation.
@@ -462,9 +466,9 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
 
 ### Key Entities *(include if feature involves data)*
 
-- **Event**: a Concert or Lecdem the rasika planned or attended. Has date, start time, Sabha,
-  kind, status (Planned, Attended, Missed), source (Schedule, Plan, created on the spot), note.
-  A Lecdem also has a title.
+- **Event**: a Concert, Lecdem, Dance or Harikatha the rasika planned or attended. Has date,
+  start time, Sabha, kind, status (Planned, Attended, Missed), source (Schedule, Plan, created on
+  the spot), note. A Lecdem also has a title; a Dance or Harikatha may have one.
 - **Sabha**: the organisation putting on an Event. Shared or a rasika's own, like an Artist. Has
   a name and aliases.
 - **Rasika**: one account, signed in with Google, with their own season. Has a name and two
@@ -554,6 +558,7 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
 - Durations and hall names are not recorded in version 1. Improvised Details (alapana, tanam,
   niraval, kalpana swaram) are recorded as heard, with their own Raga when it differs; their
   entry is designed with the Item editor (Clarifications 2026-10-30).
-- Dance, harikatha and other Event kinds are out of scope this season.
+- Dance and harikatha are in scope from 2026-11-06 (schedule-feed decisions, T057).
+  Upanyasams, talks and other Event kinds stay out this season.
 - The golden set of spellings is built by the developer from last season's sheet and reviewed
   by the rasika.

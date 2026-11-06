@@ -108,7 +108,7 @@ specs/001-season-logger/
 ├── contracts/
 │   ├── sync-api.md
 │   ├── catalog-snapshot.md
-│   ├── schedule-feed.md   # proposed; needs the logger project's agreement
+│   ├── schedule-feed.md   # agreed with the logger project 2026-11-06 (T057)
 │   └── season-export.md
 └── tasks.md             # /speckit-tasks, not created here
 ```
@@ -155,7 +155,7 @@ local Supabase once it exists.
 ## Remaining open items
 
 1. Card renderer decision (can wait until the Cards tasks, before 20 December work starts).
-2. Schedule feed shape agreed with the logger project.
+2. Schedule feed shape: agreed with the logger project on 2026-11-06 (T057).
 3. Install the contingent skill `supabase/agent-skills@supabase` when the server work starts
    (T065). `vitest` was installed with the scaffold (T009).
 

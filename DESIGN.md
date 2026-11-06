@@ -256,7 +256,8 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     the row leads with the Sabha, or "No Sabha yet".
   - **Empty home** (decided 2026-11-01): a section with nothing in it is not shown, so on day
     one home is the title and the "Log a Concert" bar alone. Next and Season so far appear as
-    soon as they have content. ("Lecdem" joins with the Lecdem variant, T063.)
+    soon as they have content. ("Lecdem" joins with the Lecdem variant, T063; Dance and
+    Harikatha with T122.)
   - **New catalog prompt** (decided 2026-11-01; FR-038): one row at the top of home, under
     the status line: "An updated song catalog is ready." with "Update" and "Later". It never
     shows while a Concert holds Now through logging activity. "Later" hides it until the next
@@ -270,8 +271,11 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
 - **Event (DD3):** top to bottom, heading → Stage → Note → Items (walkthrough S2, S3, decided
   2026-11-04, replacing the Sabha-led block and the running order before Stage).
   - **Heading:** the Artists the Event is known by, in `title`, wrapping rather than truncating:
-    its vocal, veena or flute Artists (a Lecdem's presenters), joined with "&" ("Ranjani &
-    Gayatri"; three read "A, B & C"); without one, the first Artist on Stage. Before any
+    its vocal, veena, chitravina, flute, nagaswaram, saxophone or mandolin Artists (a Lecdem's
+    or Harikatha's presenters, a Dance's dancers), joined with "&" ("Ranjani & Gayatri"; three
+    read "A, B & C"); without one, the first Artist on Stage. Members of a Group billed together
+    show as the Group's name ("Malladi Brothers"), here, on every Event row and on the Schedule
+    card (Maintainer, 2026-11-06). Before any
     Artist, the heading is "+ Add Artist", which opens the Artist picker.
   - **The line under it:** "Music Academy · Sat 14 Dec · 6:30 pm" in body, muted, at least 56px
     tall (walkthrough S11); tapping it edits the Event's facts. Before a Sabha, a "+ Add Sabha"
@@ -415,10 +419,14 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   typo's side effect.
   - After an Artist is picked, a row of Role chips appears, capitalised like the other chips
     and in Stage order (Vocal, Veena, Flute, Violin, Mridangam, Ghatam, Khanjira, Morsing,
-    Other, Presenter, "Not sure"; walkthrough S8). An Artist logged before has their usual Role
-    chosen and saved at once, shown pressed (walkthrough S6): tapping it or closing the sheet
-    keeps it, another chip changes it, "Not sure" leaves the Role blank. A new Artist's chips
-    start with none pressed, and can be skipped.
+    Other, Presenter, "Not sure"; walkthrough S8). The common Roles show first and the rest sit
+    behind "More" (Maintainer, 2026-11-06): the ten above, then More opening Dancer,
+    Nattuvangam, Vocal support, Chitravina, Nagaswaram, Saxophone, Mandolin and Thavil, also in
+    Stage order. At a Dance, Dancer and Nattuvangam join the first row. A Role behind More that
+    is the current or usual one shows pressed with More open, so it is never hidden. An Artist
+    logged before has their usual Role chosen and saved at once, shown pressed (walkthrough
+    S6): tapping it or closing the sheet keeps it, another chip changes it, "Not sure" leaves
+    the Role blank. A new Artist's chips start with none pressed, and can be skipped.
   - Tapping an Artist on Stage opens their sheet. Its title is the Artist's name as a field:
     a corrected name is journalled as typed, saved when the field is left, Done is pressed or
     the sheet closes (not when the page is hidden, so a half-typed name never stays as an Alias),
@@ -429,9 +437,11 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     right after adding, 2026-11-02), then Colours, then "Remove" with the bin mark
     (walkthrough S7).
   - **Stage order** (walkthrough S4, decided 2026-11-04): Stage has no "Edit order". Artists
-    are listed by Role, as in a printed kutcheri listing: vocal, veena, flute, violin,
-    mridangam, ghatam, khanjira, morsing, other, presenter, then no Role; within a Role, the
-    order added. This orders what is shown; no Role ranks above another in the Wrapped.
+    are listed by Role, as in a printed kutcheri listing: dancer, nattuvangam, vocal, vocal
+    support, veena, chitravina, flute, nagaswaram, saxophone, mandolin, violin, mridangam,
+    thavil, ghatam, khanjira, morsing, other, presenter, then no Role; within a Role, the order
+    added. The Roles added on 2026-11-06 slot in without moving the earlier ones. This orders
+    what is shown; no Role ranks above another in the Wrapped.
 - **Values** (walkthrough P2 to P4, 2026-11-05; FB-32, FB-33, FB-35, FB-42). Every value is one
   kind of row: a small muted label (`caption`) over the value as text, underlined in `border`
   with a 4px offset, so everything that can be changed reads as such. The Concert's facts line
@@ -730,7 +740,8 @@ in the phase that builds it):
   data, the empty Wrapped (finding 12), and the outfit swatches' final tuning: T088 to T096.
 - Smaller states: cancelled versus "schedule changed" (with the Schedule, T061), consent
   toggles offline (with Settings, T082), Share in progress or failed (with the Cards).
-- The Lecdem variant of the Event screen (T063).
+- The Lecdem variant of the Event screen (T063), and Dance and Harikatha on the Event screen
+  and the Season rows (T122).
 - The Maintainer's edits to the drafted Messages table above, and the wording of messages for
   the screens deferred here.
 - The product's name and where its logo appears (deferred 2026-11-01: the Maintainer is
@@ -766,3 +777,4 @@ in the phase that builds it):
 | 2026-11-05 | The iPhone walkthrough's second pass (FB-31 to FB-44), agreed: no "Done with this Concert"; a Concert ends on its own and its summary shows once as a modal on the next open after it ends (S13); one Improvised fold with the Laya vinyasam as a row (S14). The builder's calls, P1 to P10: Done on the Item page stays; one row style for every value (muted label, underlined value, weight and contrast for importance, a muted "+" to add); chips only for short fixed sets; forms in sentence case; the Item kinds' hairline 8px under them; the Note in a fold, open when it has text; no save highlight on chips, toggles, typed text or a dropped row; sheets slide back down and folds are shadcn's Accordion; shadcn primitives with their motion, the "⋯" menu fading and scaling in; Settings drawn whole from its first frame. |
 | 2026-11-05 | The Maintainer's answers on the hill-climb's parked choices: Season's title stays smaller than its section heads (DESIGN.md's type roles, as written); Edit order rows hold one line each; Items reorder by dragging a grip, the arrows kept for VoiceOver (FB-26); the Laya vinyasam's Nadai behind "+ Nadai" (FB-29); a two-tone outfit as one circle, half and half (FB-13). The Colour sheet keeps its circles, in the colour wheel's order; a fuller picker (a shade square under a hue strip) is planned as T118, since twelve colours may prove too few.                                                                                                                                                                                                                                                                              |
 | 2026-11-06 | The bottom bar is one frame owned by the shell, kept across Season, Concert and Item (FB-45, the flicker on every screen change): a screen supplies only its action, the bar keeps the last one while the next screen loads, and a changed action fades in its label alone (150ms). No whole-bar fade. |
+| 2026-11-06 | The schedule-feed decisions (T057): Event kinds Dance and Harikatha; Roles Vocal support, Nagaswaram, Thavil, Mandolin, Chitravina, Saxophone, Dancer and Nattuvangam, with the common Roles first in the Role chips and the rest behind "More"; a Group billed together shows by its name on the Event heading, the Event rows and the Schedule card, while each member keeps their own Appearance. The builder's calls, for the Maintainer to check: where the new Roles sit in Stage order, which ten chips count as common, Dancer and Nattuvangam in the first row at a Dance, and which Roles an Event is known by. |
