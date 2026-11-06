@@ -164,10 +164,11 @@ $$;
 -- `message`, and `previous_seq`, the record's seq before this op. The caller holds the
 -- rasika's lock and records the result in processed_op.
 --
--- `p_push_start_seq` is the record's seq before the current push, when an earlier op in the
--- same push already wrote it. The phone fills each op's baseSeq from the acks it has, so two
--- ops on one record in one batch both carry the seq from before the batch; the second is the
--- same device's later edit, not a conflict.
+-- `p_push_start_seq` is the record's seq before this device's current run of writes to it:
+-- set when an earlier op in the same push wrote it, or a replayed ack in the push is still its
+-- latest write. The phone fills each op's baseSeq from the acks it has, so its ops on one
+-- record that no ack has answered all carry the same seq; a later one is the same device's
+-- later edit, not a conflict.
 create function private.apply_op(
   p_rasika uuid,
   p_op jsonb,
@@ -358,12 +359,20 @@ declare
   v_writer uuid;
   v_op jsonb;
   v_op_id uuid;
+  v_table text;
   v_record_id text;
+  v_key text;
   v_seq bigint;
   v_code text;
   v_message text;
   v_previous bigint;
-  -- record id -> its seq before this push, for records an op in this push has written
+  v_record_table text;
+  v_record_uuid uuid;
+  v_chain_start bigint;
+  v_current bigint;
+  -- `<table>:<record id>` -> the record's seq before this device's run of writes to it, for
+  -- every record an op of this push has written or whose replayed ack is still its latest
+  -- write. An op on such a record may carry that seq as its baseSeq (sync rules (a)).
   v_push_start jsonb := '{}'::jsonb;
   v_acked jsonb := '[]'::jsonb;
   v_rejected jsonb := '[]'::jsonb;
@@ -394,23 +403,46 @@ begin
     v_op_id := (v_op ->> 'opId')::uuid;
 
     -- A repeated opId gets its first answer again and changes nothing (FR-015).
-    select p.seq, p.code, p.message into v_seq, v_code, v_message
+    select p.seq, p.code, p.message, p.record_table, p.record_id, p.chain_start_seq
+    into v_seq, v_code, v_message, v_record_table, v_record_uuid, v_chain_start
     from private.processed_op p
     where p.rasika_id = v_rasika and p.op_id = v_op_id;
 
-    if not found then
-      v_record_id := v_op #>> '{row,id}';
-      select a.seq, a.code, a.message, a.previous_seq into v_seq, v_code, v_message, v_previous
-      from private.apply_op(
-        v_rasika,
-        v_op,
-        (v_push_start ->> coalesce(v_record_id, ''))::bigint
-      ) a;
-      if v_code is null and not v_push_start ? v_record_id then
-        v_push_start := v_push_start || jsonb_build_object(v_record_id, v_previous);
+    if found then
+      -- A replayed ack whose reply was lost: if nothing has written the record since, the
+      -- phone's later ops on it were based on the same seq as this one, so it counts as an
+      -- earlier op of this push. A write after it, such as another device's, ends that.
+      if v_code is null then
+        execute format('select t.seq from private.%I t where t.id = $1', v_record_table)
+          into v_current
+          using v_record_uuid;
+        if v_current = v_seq then
+          v_push_start := v_push_start
+            || jsonb_build_object(v_record_table || ':' || v_record_uuid::text, v_chain_start);
+        end if;
       end if;
-      insert into private.processed_op (rasika_id, op_id, seq, code, message)
-      values (v_rasika, v_op_id, v_seq, v_code, v_message);
+    else
+      v_table := v_op ->> 'table';
+      v_record_id := v_op #>> '{row,id}';
+      v_key := case
+        when pg_input_is_valid(coalesce(v_record_id, ''), 'uuid')
+          then coalesce(v_table, '') || ':' || v_record_id::uuid::text
+      end;
+      select a.seq, a.code, a.message, a.previous_seq into v_seq, v_code, v_message, v_previous
+      from private.apply_op(v_rasika, v_op, (v_push_start ->> v_key)::bigint) a;
+
+      if v_code is null then
+        v_chain_start := coalesce((v_push_start ->> v_key)::bigint, v_previous);
+        if not v_push_start ? v_key then
+          v_push_start := v_push_start || jsonb_build_object(v_key, v_previous);
+        end if;
+        insert into private.processed_op
+          (rasika_id, op_id, seq, record_table, record_id, chain_start_seq)
+        values (v_rasika, v_op_id, v_seq, v_table, v_record_id::uuid, v_chain_start);
+      else
+        insert into private.processed_op (rasika_id, op_id, code, message)
+        values (v_rasika, v_op_id, v_code, v_message);
+      end if;
     end if;
 
     if v_code is null then

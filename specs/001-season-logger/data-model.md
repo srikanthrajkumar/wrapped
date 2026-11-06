@@ -213,8 +213,11 @@ the phone's data (FR-020, FR-021).
 ### Processed op
 
 `rasikaId`, `opId`, `receivedAt`, and the answer the op got: the record's new `seq`, or a
-rejection's `code` and `message`. A primary key on (`rasikaId`, `opId`) makes a repeated push a
-no-op (FR-015), and the kept answer lets a retried push get the same reply.
+rejection's `code` and `message`. An acked op also keeps its record (table and id) and the
+record's `seq` before this device's run of writes to it. A primary key on (`rasikaId`, `opId`)
+makes a repeated push a no-op (FR-015), and the kept answer lets a retried push get the same
+reply. The kept lineage lets a retry after a lost reply carry later edits of the same record
+without a `conflict`, while nothing else has written the record since.
 
 ### Promotion candidates (view)
 

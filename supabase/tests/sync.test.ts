@@ -407,6 +407,94 @@ describe('a non-writer device gets 409 not_writer (FR-022)', () => {
   });
 });
 
+describe('a retry after a lost reply never conflicts with the phone’s own writes (eng review D8, D11)', () => {
+  // The phone fills baseSeq from the acks it has. When a push's reply is lost, its ops stay
+  // queued unchanged (D8) and later edits of the same record carry the same baseSeq, because no
+  // ack arrived. The retried push replays the old ops and must accept the new ones.
+
+  async function syncedEvent(rasika: Rasika) {
+    const event = newEvent();
+    const created = await pushOk(rasika, [op('events', event)]);
+    return { event, seq: created.acked[0]!.seq };
+  }
+
+  it('(a) acks a new edit sent after a replayed op whose reply was lost', async () => {
+    const rasika = await signUpWriter();
+    const { event, seq } = await syncedEvent(rasika);
+    const a = op('events', { ...event, note: 'First edit' }, seq);
+    await pushOk(rasika, [a]); // committed, but the reply never reached the phone
+
+    const b = op('events', { ...event, note: 'Second edit' }, seq);
+    const retry = await pushOk(rasika, [a, b]);
+
+    expect(retry.rejected).toEqual([]);
+    expect(retry.acked.map((ack) => ack.opId)).toEqual([a.opId, b.opId]);
+    expect(retry.acked[1]!.seq).toBeGreaterThan(retry.acked[0]!.seq);
+    const rows = latestRows((await pullAll(rasika)).changes);
+    expect(rows.get(`events:${event.id}`)).toEqual(b.row);
+  });
+
+  it('(b) still rejects the new edit when another device wrote the record after the lost reply', async () => {
+    const rasika = await signUpWriter();
+    const { event, seq } = await syncedEvent(rasika);
+    const a = op('events', { ...event, note: 'Phone, first edit' }, seq);
+    const lost = await pushOk(rasika, [a]);
+
+    // The iPad takes writing, pulls the phone's edit and edits the same Event.
+    const ipad = randomUUID();
+    await claim(rasika, { deviceId: ipad, label: 'iPad' });
+    const ipadEdit = { ...event, note: 'From the iPad' };
+    const ipadPush = await push(rasika, [op('events', ipadEdit, lost.acked[0]!.seq)], ipad);
+    expect(ipadPush.data?.rejected).toEqual([]);
+
+    // The phone takes writing back and retries its queue with one more edit.
+    await claim(rasika, { deviceId: rasika.deviceId, label: 'Test phone' });
+    const b = op('events', { ...event, note: 'Phone, second edit' }, seq);
+    const retry = await pushOk(rasika, [a, b]);
+
+    expect(retry.acked.map((ack) => ack.opId)).toEqual([a.opId]);
+    expect(retry.rejected).toEqual([
+      { opId: b.opId, code: 'conflict', message: expect.any(String) as string },
+    ]);
+    const rows = latestRows((await pullAll(rasika)).changes);
+    expect(rows.get(`events:${event.id}`)).toEqual(ipadEdit);
+  });
+
+  it('(c) acks a new edit after two replayed ops on the record, from two lost replies', async () => {
+    const rasika = await signUpWriter();
+    const { event, seq } = await syncedEvent(rasika);
+    const a1 = op('events', { ...event, note: 'Edit 1' }, seq);
+    const a2 = op('events', { ...event, note: 'Edit 2' }, seq);
+    await pushOk(rasika, [a1]); // lost
+    await pushOk(rasika, [a1, a2]); // lost too: a1 replayed, a2 applied
+
+    const c = op('events', { ...event, note: 'Edit 3' }, seq);
+    const retry = await pushOk(rasika, [a1, a2, c]);
+
+    expect(retry.rejected).toEqual([]);
+    expect(retry.acked.map((ack) => ack.opId)).toEqual([a1.opId, a2.opId, c.opId]);
+    const rows = latestRows((await pullAll(rasika)).changes);
+    expect(rows.get(`events:${event.id}`)).toEqual(c.row);
+  });
+
+  it('does not let a write to one table excuse a stale op on another table with the same id', async () => {
+    const rasika = await signUpWriter();
+    const { event, seq } = await syncedEvent(rasika);
+    await pushOk(rasika, [op('events', { ...event, note: 'Newer' }, seq)]);
+
+    // An Artist created with the Event's id, then an Event op based on the old seq.
+    const artist = { ...newArtist('Same id'), id: event.id };
+    const stale = op('events', { ...event, note: 'Stale' }, 0);
+    const response = await pushOk(rasika, [op('artists', artist), stale]);
+
+    expect(response.rejected).toEqual([
+      { opId: stale.opId, code: 'conflict', message: expect.any(String) as string },
+    ]);
+    const rows = latestRows((await pullAll(rasika)).changes);
+    expect(rows.get(`events:${event.id}`)).toEqual({ ...event, note: 'Newer' });
+  });
+});
+
 describe('rejected ops (eng review D11)', () => {
   it('rejects an op based on an older version as conflict and keeps the newer row', async () => {
     const rasika = await signUpWriter();
