@@ -38,10 +38,19 @@ jobs:
 
       - run: npm ci
 
+      # The local Supabase stack for the server tests (T067, T068), from the CLI pinned in
+      # package-lock.json: only the database, Auth, the API and its gateway. Google sign-in
+      # has no credentials here and is not used by the tests.
+      - name: Start the local Supabase stack
+        run: npx supabase start -x studio,mailpit,postgres-meta,imgproxy,logflare,vector,supavisor,realtime,storage-api,edge-runtime
+
       # The browser matching the locked @playwright/test, with its system libraries.
       - run: npx playwright install --with-deps chromium
 
       - run: npm run check
+
+      # The required sync and privacy tests gate every merge (constitution IV).
+      - run: npm run test:server
 
       # The failed end-to-end tests' traces, kept for a week. The repository is public, so anyone
       # can download them: test-results/ holds only the traces and the browser profiles of tests
