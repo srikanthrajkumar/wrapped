@@ -43,6 +43,11 @@ Maintainer 2026-10-31 in the design consultation; recorded in
 - The class helper is `clsx` with `tailwind-merge`, as shadcn used for years, not the `cn`
   package shadcn's CLI now installs: that npm name changed hands in September 2026 and its
   current version was two days old.
+  *Replaced 2026-11-06:* shadcn's `cn`, pinned to exactly 0.5.2 since it is on 0.x and changes
+  every few weeks, once the Maintainer agreed (2026-11-05) to move after PR #14. `@/lib/utils`
+  re-exports it. Every class string in the app merges as before; the first install grew 2.0 KB
+  (brotli), because `cn`'s merge tables compress less well than tailwind-merge's and
+  class-variance-authority still brings clsx.
 - Source Sans 3 is trimmed by `tools/fonts/subset.sh` to two variable woff2 files (Latin,
   27.6 KB; the IAST and ISO 15919 letters of Latin Extended, 19.3 KB), loaded with
   `unicode-range`, in the first download. Fontsource's subsets have no arrows, so "Next Item →"
