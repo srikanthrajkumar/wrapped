@@ -212,8 +212,9 @@ the phone's data (FR-020, FR-021).
 
 ### Processed op
 
-`rasikaId`, `opId`, `receivedAt`. A primary key on (`rasikaId`, `opId`) makes a repeated push a
-no-op (FR-015).
+`rasikaId`, `opId`, `receivedAt`, and the answer the op got: the record's new `seq`, or a
+rejection's `code` and `message`. A primary key on (`rasikaId`, `opId`) makes a repeated push a
+no-op (FR-015), and the kept answer lets a retried push get the same reply.
 
 ### Promotion candidates (view)
 
