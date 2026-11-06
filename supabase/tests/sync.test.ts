@@ -171,13 +171,14 @@ describe('an offline delete and a reorder come back identical on pull', () => {
     expect(stored!.deleted_at?.toISOString()).toBe(deletedAt);
   });
 
-  it('keeps an Item deleted with its Event when the Event is deleted first in the batch', async () => {
+  it('stores an Event deleted with its Items and Appearances, in the order the phone sends them', async () => {
     const rasika = await signUpWriter();
     const event = newEvent();
     const item = newItem(event.id, 1);
     const synced = await pushOk(rasika, [op('events', event), op('items', item)]);
     const [eventSeq, itemSeq] = synced.acked.map((ack) => ack.seq) as [number, number];
 
+    // deleteEvent tombstones the children first, then the Event.
     const deletedAt = '2026-12-15T10:00:00.000Z';
     const response = await pushOk(rasika, [
       op('items', { ...item, deletedAt }, itemSeq),
@@ -188,6 +189,46 @@ describe('an offline delete and a reorder come back identical on pull', () => {
     const rows = latestRows((await pullAll(rasika)).changes);
     expect(rows.get(`events:${event.id}`)).toEqual({ ...event, deletedAt });
     expect(rows.get(`items:${item.id}`)).toEqual({ ...item, deletedAt });
+  });
+
+  it('stores a deleted Item or Appearance under an Event whose deletion is already on the server', async () => {
+    const rasika = await signUpWriter();
+    const event = newEvent();
+    const artist = newArtist('Sikkil Gurucharan');
+    const item = newItem(event.id, 1);
+    const appearance = newAppearance(event.id, artist.id, 0);
+    const synced = await pushOk(rasika, [
+      op('events', event),
+      op('artists', artist),
+      op('items', item),
+      op('appearances', appearance),
+    ]);
+    const [eventSeq, , itemSeq, appearanceSeq] = synced.acked.map((ack) => ack.seq) as number[];
+
+    // The Event's tombstone reaches the server first, in its own push.
+    const deletedAt = '2026-12-15T10:00:00.000Z';
+    expect(
+      (await pushOk(rasika, [op('events', { ...event, deletedAt }, eventSeq)])).rejected,
+    ).toEqual([]);
+
+    // The children's tombstones arrive after it: stored, not rejected missing_event.
+    const tombstones = [
+      op('items', { ...item, deletedAt }, itemSeq),
+      op('appearances', { ...appearance, deletedAt }, appearanceSeq),
+    ];
+    const response = await pushOk(rasika, tombstones);
+
+    expect(response.rejected).toEqual([]);
+    expect(response.acked.map((ack) => ack.opId)).toEqual(tombstones.map((t) => t.opId));
+    const rows = latestRows((await pullAll(rasika)).changes);
+    expect(rows.get(`items:${item.id}`)).toEqual({ ...item, deletedAt });
+    expect(rows.get(`appearances:${appearance.id}`)).toEqual({ ...appearance, deletedAt });
+
+    // A live Item under the deleted Event is still refused.
+    const live = op('items', newItem(event.id, 2));
+    expect((await pushOk(rasika, [live])).rejected).toEqual([
+      { opId: live.opId, code: 'missing_event', message: expect.any(String) as string },
+    ]);
   });
 });
 
