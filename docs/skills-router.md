@@ -44,7 +44,7 @@ All project-scoped (no `-g`) and copied (not symlinked) into `.claude/skills/`, 
 
 **Installed state**
 - spec-kit CLI `specify` 1.2.3 via `uv` 0.13.5 (`~/.local/bin`, release binary checksum-verified). Scaffold in `.specify/`; 10 `speckit-*` skills in `.claude/skills/`, all `disable-model-invocation: true` (call them by name). Restore them on a new box by running the `specify init` command below in an empty folder and copying its `.claude/skills/speckit-*` across (run here, it would touch `.specify/`).
-- 10 skills via `npx skills add … -a claude-code -y --copy`, pinned by content hash in `skills-lock.json`. The tenth, `vitest`, was added 2026-10-31 (T009) once the plan locked Vite + React. Restore on a new box with `npx skills experimental_install`; update deliberately with `npx skills update -p` and re-read the diff.
+- 11 skills via `npx skills add … -a claude-code -y --copy`, pinned by content hash in `skills-lock.json`. The tenth, `vitest`, was added 2026-10-31 (T009) once the plan locked Vite + React. The eleventh, `supabase`, was added 2026-11-06 (T065) once ADR 0001 chose Supabase. Restore on a new box with `npx skills experimental_install`; update deliberately with `npx skills update -p` and re-read the diff.
 - `tdd` sends refactoring to "the `code-review` skill" — in this project that means gstack `/review` (mattpocock `code-review` is not approved).
 
 Commands used (for reference / re-install):
@@ -76,6 +76,9 @@ npx skills add addyosmani/web-quality-skills@accessibility
 ```bash
 npx skills add antfu/skills@vitest -a claude-code -y --copy
 ```
+```bash
+npx skills add supabase/agent-skills@supabase -a claude-code -y --copy
+```
 
 | Skill | Why it earns a place | Evidence |
 |---|---|---|
@@ -87,6 +90,7 @@ npx skills add antfu/skills@vitest -a claude-code -y --copy
 | **vercel-react-best-practices** | 70 impact-ranked rules (waterfalls, bundle size, re-renders), lazily loaded. ~10 rules are Next-server-only; ignore them if not on Next. | Official Vercel, 33K★ |
 | **web-design-guidelines** | Code-level UI audit with `file:line` output: `inputmode`, `autocomplete`, `touch-action`, safe-area, no mobile `autoFocus`. Fetches its rule list remotely — pin it if it drifts. Invoke explicitly; gstack `/design-review` owns *visual* review. | Official Vercel |
 | **antfu `vitest`** | Contingent on Vite + React (§3), now locked. Reference only: Vitest 5 config, `projects`, mocking, environments, generated from Vitest's own docs. No scripts or hooks; references scanned for fetch/exec instructions. | Anthony Fu, 6K★, pushed 2026-10-30, MIT; based on Vitest 5.1 beta (we run 5.0.5) |
+| **supabase `supabase`** | Contingent on Supabase (§3), chosen in ADR 0001. Its security checklist names the traps the server work hits: views that bypass row-level security, `SECURITY DEFINER` functions callable by everyone in `public`, UPDATE policies without `WITH CHECK`, `user_metadata` in authorization. It also says to check the CLI's own `--help` and to run `supabase db advisors`. Markdown only (SKILL.md, CHANGELOG.md, two feedback files), no scripts. It triggers on any Supabase task, which overlaps `supabase-postgres-best-practices` on migrations; the two agree, and this one adds the Supabase-specific rules. | Official Supabase, 3K★, pushed 2026-11-05, MIT; v0.1.2, SKILL.md read in full 2026-11-06 |
 | **addyosmani `accessibility`** | WCAG 2.2 incl. target size 2.5.8 and focus-not-obscured — matters for one-handed use in a dark hall. | 3K★ |
 
 ---
