@@ -33,7 +33,12 @@ export interface PushAck {
   seq: number;
 }
 
-export const REJECT_CODES = ['foreign_rasika', 'missing_event', 'conflict'] as const;
+/**
+ * Why an op was rejected. `invalid_op` is an op the server cannot read (an unknown table, a row
+ * without a uuid id or eventId, a baseSeq that is not a whole number, a deletedAt that is not a
+ * timestamp): a phone bug, kept and listed like any rejection.
+ */
+export const REJECT_CODES = ['foreign_rasika', 'missing_event', 'conflict', 'invalid_op'] as const;
 export type RejectCode = (typeof REJECT_CODES)[number];
 
 export interface PushRejection {
@@ -48,16 +53,25 @@ export interface PushResponse {
   rejected: PushRejection[];
 }
 
-/** 409: another device is the writer (FR-022). */
-export interface NotWriterResponse {
-  code: 'not_writer';
-  writerDeviceId: string;
+/**
+ * PostgREST's error body, which a raised 409 or 426 takes (ADR 0001). PostgREST takes `details`
+ * only as a string, so it holds one plain value.
+ */
+interface ServerError<Code extends string, Details extends string | null> {
+  code: Code;
+  message: string;
+  details: Details;
+  hint: string | null;
 }
 
-/** 426: this app version is below the server's minimum (eng review D14). */
-export interface UpdateRequiredResponse {
-  code: 'update_required';
-}
+/**
+ * 409: another device is the writer (FR-022). `details` is the writer device's id, or null when
+ * no device has claimed writing yet.
+ */
+export type NotWriterResponse = ServerError<'not_writer', string | null>;
+
+/** 426: this app version is below the server's minimum (eng review D14). `details` is the minimum. */
+export type UpdateRequiredResponse = ServerError<'update_required', string>;
 
 /** The tables a pull returns: the rasika's own, their Links and the shared lists. */
 export interface PulledRows extends RasikaRows {
@@ -67,9 +81,27 @@ export interface PulledRows extends RasikaRows {
 }
 export type PulledTable = keyof PulledRows;
 
-export type PullChange = {
-  [T in PulledTable]: { table: T; row: PulledRows[T] };
-}[PulledTable];
+/** The tables whose rows carry a server `seq`: the rasika's own and their Links. */
+export type SeqTable = RasikaTable | 'links';
+
+/**
+ * One pulled row. An own row or Link carries its server `seq`, which the phone keeps as the
+ * baseSeq for its next edit of that record (eng review D11), so a restored record can be
+ * edited without a `conflict`. A shared entry carries its version in `row.listVersion`.
+ */
+export type PullChange =
+  | { [T in SeqTable]: { table: T; seq: number; row: PulledRows[T] } }[SeqTable]
+  | { [T in Exclude<PulledTable, SeqTable>]: { table: T; row: PulledRows[T] } }[Exclude<
+      PulledTable,
+      SeqTable
+    >];
+
+export interface PullRequest {
+  /** The last response's cursor. Empty or missing returns everything (restore). */
+  cursor?: string;
+  /** At most PULL_PAGE_LIMIT, the default. */
+  limit?: number;
+}
 
 export interface PullResponse {
   changes: PullChange[];
@@ -77,3 +109,44 @@ export interface PullResponse {
   cursor: string;
   more: boolean;
 }
+
+/** GET /v1/me (contracts/sync-api.md, "Account"). Consents are null until answered. */
+export interface MeResponse {
+  id: string;
+  name: string | null;
+  shareAdditions: boolean | null;
+  seasonReports: boolean | null;
+  writerDeviceId: string | null;
+  /** Where to ask for deletion (FR-046); null until the server sets one. */
+  deletionContact: string | null;
+}
+
+/** PUT /v1/me/consent. A value left out is unchanged. */
+export interface ConsentRequest {
+  shareAdditions?: boolean;
+  seasonReports?: boolean;
+}
+
+export interface ConsentResponse {
+  shareAdditions: boolean | null;
+  seasonReports: boolean | null;
+}
+
+/** POST /v1/devices/claim: makes this device the writer (FR-022). */
+export interface ClaimRequest {
+  deviceId: string;
+  label: string;
+}
+
+export interface ClaimResponse {
+  writerDeviceId: string;
+}
+
+/** The functions the phone calls through `supabase.rpc` (ADR 0001): contract path -> name. */
+export const SYNC_FUNCTIONS = {
+  push: 'sync_push',
+  pull: 'sync_pull',
+  me: 'me',
+  consent: 'me_consent',
+  claim: 'devices_claim',
+} as const;
