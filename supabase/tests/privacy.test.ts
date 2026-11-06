@@ -31,7 +31,7 @@ const RASIKA_FUNCTIONS: string[] = Object.values(SYNC_FUNCTIONS);
  * The Maintainer's functions in `public` (Phase 8). Every function the API exposes must be
  * listed here or in RASIKA_FUNCTIONS, so a new one is classified before it ships.
  */
-const MAINTAINER_FUNCTIONS: string[] = [];
+const MAINTAINER_FUNCTIONS: string[] = ['admin_deletion'];
 
 /** Runs `body` in a transaction as `rasika` would inside a function: role and JWT claims set. */
 async function asRasika<T>(rasika: Rasika, body: (sql: TransactionSql) => Promise<T>): Promise<T> {
@@ -295,11 +295,20 @@ describe('who may execute what', () => {
     expect(names).toEqual([...RASIKA_FUNCTIONS, ...MAINTAINER_FUNCTIONS].sort());
   });
 
-  it('has every Maintainer function refuse an ordinary rasika', async () => {
+  it('has every Maintainer function refuse an ordinary rasika, and change nothing', async () => {
+    expect(MAINTAINER_FUNCTIONS.length).toBeGreaterThan(0);
+    const [before] = await db`select * from private.rasika where id = ${a.rasikaId}`;
     for (const name of MAINTAINER_FUNCTIONS) {
-      const reply = await call(b.client, name, {});
-      expect(reply.status, name).toBe(403);
+      // An empty body, and one that names a real rasika: both refused before any other check.
+      for (const body of [{}, { email: a.email }]) {
+        const reply = await call(b.client, name, body);
+        expect(reply.status, name).toBe(403);
+        expect(reply.error?.code, name).toBe('not_maintainer');
+      }
     }
+    const [after] = await db`select * from private.rasika where id = ${a.rasikaId}`;
+    expect(after).toEqual(before);
+    expect((await me(a)).status).toBe(200);
   });
 });
 
