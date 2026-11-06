@@ -88,7 +88,9 @@ function useReceiptsClearedOnLeave() {
  * The page keeps the sticky footer's height (its bottom action, any Undo bars, the tab bar) as
  * scroll padding, so a field focused behind the footer scrolls up above it. A field already
  * inside the viewport is not scrolled by the browser, padding or not, so one the footer covers
- * is scrolled up by hand.
+ * is scrolled up by hand. A text field is kept clear while it has focus and the page changes
+ * height: one focused as its fold opens can't be scrolled clear until the page has grown, and
+ * the fold's clipped content, scrolled by the focus, moves the field back down as it grows.
  */
 function useFooterRoom(footer: HTMLElement | null, inset: number) {
   useEffect(() => {
@@ -98,19 +100,33 @@ function useFooterRoom(footer: HTMLElement | null, inset: number) {
       root.style.scrollPaddingBottom = `${footer.offsetHeight + inset}px`;
     });
     observer.observe(footer);
+    let focused: ResizeObserver | undefined;
+    const stop = () => {
+      focused?.disconnect();
+      focused = undefined;
+    };
     const onFocus = (event: FocusEvent) => {
+      stop();
       const field = event.target;
+      const page = footer.previousElementSibling;
       // Only the page's own fields: a sheet sits over the footer.
-      if (!(field instanceof HTMLElement) || !footer.previousElementSibling?.contains(field)) {
-        return;
-      }
-      const covered = field.getBoundingClientRect().bottom - footer.getBoundingClientRect().top;
-      if (covered > 0) window.scrollBy({ top: Math.ceil(covered) });
+      if (!(field instanceof HTMLElement) || !page?.contains(field)) return;
+      const clear = () => {
+        const covered = field.getBoundingClientRect().bottom - footer.getBoundingClientRect().top;
+        if (covered > 0) window.scrollBy({ top: Math.ceil(covered) });
+      };
+      clear();
+      if (!field.matches('input, textarea, [contenteditable]')) return;
+      focused = new ResizeObserver(clear);
+      focused.observe(page);
     };
     document.addEventListener('focusin', onFocus);
+    document.addEventListener('focusout', stop);
     return () => {
       observer.disconnect();
+      stop();
       document.removeEventListener('focusin', onFocus);
+      document.removeEventListener('focusout', stop);
       root.style.scrollPaddingBottom = '';
     };
   }, [footer, inset]);
