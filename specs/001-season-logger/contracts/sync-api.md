@@ -2,9 +2,10 @@
 
 The interface between the phone and the server, served by Supabase
 ([ADR 0001](../../../docs/adr/0001-supabase-for-sign-in-and-server-store.md)). The operations
-below are written as HTTP paths. When the server is built, each becomes a Postgres function
-called through Supabase's API or an Edge Function; the bodies, responses and rules stay as
-written. Records and field names are in [data-model.md](../data-model.md).
+below are written as HTTP paths. Each is a Postgres function called through Supabase's API
+(`supabase.rpc`; ADR 0001, T066): `POST /v1/sync/push` is `sync_push`, and likewise for the
+others. The bodies, responses and rules stay as written, except that error bodies take
+PostgREST's shape (see "Errors" below). Records and field names are in [data-model.md](../data-model.md).
 
 Every call carries the Supabase access token (`Authorization: Bearer <token>`) and the app's
 version (`X-App-Version`). Below the server's minimum supported version, every call answers
@@ -56,7 +57,14 @@ table limits reads and writes to that rasika's own rows.
     is the full row with `deletedAt` set, kept as a tombstone (outside voice 8);
   - an upsert whose `id` already belongs to another rasika is rejected `foreign_rasika`;
   - an op whose `baseSeq` differs from the record's current `seq` (0 for a new record) is
-    rejected `conflict`, so no push silently overwrites a newer version (eng review D11).
+    rejected `conflict`, so no push silently overwrites a newer version (eng review D11). Two
+    ops on one record in the same push may both carry the `seq` from before the push: the phone
+    learns the first op's new `seq` only from the reply, so the second is its own later edit,
+    not a conflict;
+  - an op the server can't read (an unknown table, a row without a uuid `id` or `eventId`, a
+    `baseSeq` that isn't a whole number) is rejected `invalid_op`;
+  - a live Appearance or Item needs a live Event of the same rasika, else `missing_event`. A
+    deleted one needs only the Event, since the phone deletes the children first.
 
 Responses:
 
@@ -64,13 +72,23 @@ Responses:
 |---|---|---|
 | `200` | `{ "acked": [{ "opId", "seq" }], "rejected": [{ "opId", "code", "message" }] }` | Removes acked and rejected ops from the outbox. Keeps rejected records locally, lists them in "needs attention", and keeps counting them as unsynced until fixed or discarded |
 | `401` | | Keeps the outbox; shows the sign-in prompt |
-| `409` | `{ "code": "not_writer", "writerDeviceId" }` | Stops pushing, keeps the outbox, tells the rasika and offers export or "Make this the writing device again", which claims the device and resumes pushing (Edge Cases, "Second device") |
+| `409` | `{ "code": "not_writer", "details": "<writer device id>" }` | Stops pushing, keeps the outbox, tells the rasika and offers export or "Make this the writing device again", which claims the device and resumes pushing (Edge Cases, "Second device") |
 | `5xx` or network error | | Retries with exponential backoff and jitter |
 
 A rejected op is recorded as processed so it is never retried in a loop, and its `code` is
-specific (`foreign_rasika`, `missing_event`, `conflict`, …). A `conflict` is shown with "keep
+specific (`foreign_rasika`, `missing_event`, `conflict`, `invalid_op`). A `conflict` is shown with "keep
 mine" (re-push with the new `baseSeq`) and "keep the server's" (drop the op and pull). A rejected op is
 reported, never dropped quietly.
+
+## Errors
+
+A 409 or 426 is raised by the function with PostgREST's custom error, so its body has
+PostgREST's shape: `{ "code", "message", "details", "hint" }`, with `code` set to `not_writer`
+or `update_required`. PostgREST takes `details` only as a string, so it holds one plain value:
+the writer device's id for a 409 (null if no device has claimed yet), the minimum app version
+for a 426. A 401 is Supabase's API's own response to a missing or expired token.
+The `426` check runs once per request, in a pre-request function that reads `X-App-Version`
+(ADR 0001, "How the contract's responses map").
 
 ## Pull
 
@@ -79,8 +97,8 @@ reported, never dropped quietly.
 ```json
 {
   "changes": [
-    { "table": "events", "row": { "id": "…", "…": "…", "deletedAt": null } },
-    { "table": "links", "row": { "id": "…", "ownTable": "artist", "ownId": "…", "sharedId": "…" } },
+    { "table": "events", "seq": 4182, "row": { "id": "…", "…": "…", "deletedAt": null } },
+    { "table": "links", "seq": 4190, "row": { "id": "…", "ownTable": "artist", "ownId": "…", "sharedId": "…" } },
     { "table": "sharedArtists", "row": { "id": "…", "name": "Anirudh Athreya", "aliases": [], "listVersion": 7 } }
   ],
   "cursor": "<opaque>",
@@ -89,6 +107,9 @@ reported, never dropped quietly.
 ```
 
 - Tables pulled: the five rasika tables, `links`, `sharedArtists` and `sharedSabhas`.
+- Each of the rasika's own changes and Links carries its server `seq`. The phone keeps it as
+  the record's base for its next op, so an edit after a restore, or after "keep the server's",
+  isn't rejected as a `conflict`.
 - An empty or missing cursor returns everything: this is the restore path.
 - The cursor holds two positions:
   - the rasika's own records and Links, by `seq`, written only under that rasika's lock, so

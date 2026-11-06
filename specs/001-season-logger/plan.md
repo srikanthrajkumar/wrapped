@@ -15,7 +15,7 @@ Postgres ([ADR 0001](../../docs/adr/0001-supabase-for-sign-in-and-server-store.m
 A local-first PWA. The phone holds the whole working season in IndexedDB (via Dexie), the
 catalog snapshot in memory, and a search index. Every save is one local transaction that writes
 the record and its outbox entry. When the app is open with signal, the outbox is pushed to
-Supabase (Postgres functions or Edge Functions, ADR 0001), and server changes are pulled by
+Supabase (Postgres functions, ADR 0001), and server changes are pulled by
 cursor. The Wrapped and its Cards
 are computed on the phone from the log. The catalog arrives from the logger project as a
 content-hashed snapshot built into each deploy. See [research.md](research.md) for the evidence
@@ -40,8 +40,8 @@ behind each choice.
 
 **Primary Dependencies** (server): Supabase (ADR 0001). Google sign-in through Supabase Auth,
 with `@supabase/supabase-js` on the phone, used only when syncing. Push and pull follow the
-[sync contract](contracts/sync-api.md), as Postgres functions or Edge Functions, decided when
-the server is built.
+[sync contract](contracts/sync-api.md), as Postgres functions called through Supabase's API
+(decided 2026-11-06, T066).
 
 **Storage**: IndexedDB through Dexie on the phone ([data-model.md](data-model.md)); Supabase
 Postgres on the server. Development uses a local Supabase (CLI on Docker), free and never
@@ -133,7 +133,6 @@ app/                         # the PWA (Vite + React)
 supabase/                    # Supabase CLI project, built last (ADR 0001)
 ├── config.toml              # local stack; Google sign-in
 ├── migrations/              # tables, row-level security, sync functions
-├── functions/               # Edge Functions, only if push and pull go there
 └── tests/                   # sync, privacy and promotion tests against the local stack
 
 tools/
