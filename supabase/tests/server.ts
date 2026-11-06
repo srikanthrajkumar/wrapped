@@ -62,6 +62,7 @@ afterAll(async () => {
 
 export interface Rasika {
   client: SupabaseClient;
+  email: string;
   userId: string;
   rasikaId: string;
   /** This rasika's phone. */
@@ -88,7 +89,13 @@ export async function signUp(
   const [row] = await db<{ id: string }[]>`
     select id from private.rasika where auth_user_id = ${created.data.user.id}`;
   if (!row) throw new Error('The sign-in made no Rasika row');
-  return { client, userId: created.data.user.id, rasikaId: row.id, deviceId: randomUUID() };
+  return {
+    client,
+    email,
+    userId: created.data.user.id,
+    rasikaId: row.id,
+    deviceId: randomUUID(),
+  };
 }
 
 /** A new rasika whose phone has claimed writing, as restore does first (FR-017). */
