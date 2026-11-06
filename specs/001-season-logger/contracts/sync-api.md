@@ -126,8 +126,14 @@ The `426` check runs once per request, in a pre-request function that reads `X-A
   - the shared lists, by `listVersion`, written only under a single shared-lists lock.
   Neither can skip a row committed late by another transaction.
 - The phone applies a page in one local transaction, then stores the new cursor.
-- A pulled row is skipped while the phone still has a pending outbox op for that record: the
-  local row is newer, because only this device writes. It reaches the server with its op.
+- A pulled row is skipped while the phone still has a pending outbox op for that record, or a
+  rejected op in "needs attention": the local row is newer, because only this device writes. It
+  reaches the server with its op. The phone holds the skipped server version aside, since its
+  cursor has moved past it: "keep the server's" stores it, and "keep mine" takes its `seq` as
+  the new base. A held version never becomes the base on its own, so a queued op can't
+  overwrite another device's write unseen.
+- A pulled own row whose `seq` is not above the one the phone already has for that record is
+  skipped: it is the phone's own write coming back, or older.
 
 ## Sync order on the phone
 
