@@ -16,9 +16,8 @@ import { createEvent, today } from '../store/events';
 import { eventStart, isBeingLogged, nowEvent } from '../store/logging-note';
 import { useEventSummaries, useLoggingNotes, type EventSummary } from '../store/queries';
 import { newId } from '../model';
-import { saveWith, SeasonFeedback, useSaveFeedback } from './components/feedback';
-import { InstallRow } from './components/InstallRow';
-import { BottomDock, Screen, useNow } from './components/layout';
+import { saveWith, useSaveFeedback } from './components/feedback';
+import { BottomDock, Screen, TabHeader, useNow } from './components/layout';
 import { dayText, itemCount, nowTime, timeText } from './format';
 import { MESSAGES } from './messages';
 import { subscribeUndo, undoOffers } from './undo';
@@ -122,22 +121,20 @@ function HomeView() {
 
   return (
     <>
-      <h1 className="pt-4 pb-2 text-title font-semibold">Season</h1>
-      <InstallRow />
-      {offline === 'getting-ready' && (
-        <p
-          role="status"
-          className="flex min-h-12 items-center gap-2 text-sub text-muted-foreground"
-        >
-          <IconLoader2
-            aria-hidden
-            className="size-5 shrink-0 animate-spin motion-reduce:animate-none"
-          />
-          {MESSAGES.offline.gettingReady}
-        </p>
-      )}
-      {/* Home has no top bar: the season-wide line goes under its title. */}
-      <SeasonFeedback />
+      <TabHeader title="Season">
+        {offline === 'getting-ready' && (
+          <p
+            role="status"
+            className="flex min-h-12 items-center gap-2 text-sub text-muted-foreground"
+          >
+            <IconLoader2
+              aria-hidden
+              className="size-5 shrink-0 animate-spin motion-reduce:animate-none"
+            />
+            {MESSAGES.offline.gettingReady}
+          </p>
+        )}
+      </TabHeader>
 
       {showUpdate && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-y border-border py-1">

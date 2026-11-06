@@ -582,7 +582,9 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   Safari's steps as marks (the Share glyph, then Add to Home Screen); on Android it has one
   Install button that opens the browser's prompt. Installed, or on a desktop, it shows nothing.
   Why it stays: Safari can clear a website's storage after 7 days without a visit, and leaves
-  installed apps alone. As built and accepted 2026-11-03:
+  installed apps alone. On Season, Wrapped and Settings one tab header draws it 8px under the
+  title, so it sits at the same place on each tab (FB-46): a 48px row with its hairline drawn
+  inside, its text on the gutter. As built and accepted 2026-11-03:
   - **iPhone** (and iPad): "Add to Home Screen:", then Tabler IconShare2 (Safari's Share glyph),
     a small › for "then", and IconSquarePlus (Add to Home Screen). The marks grow with the text
     and wrap together. The row is read as "Install the app so your season stays on this phone.
