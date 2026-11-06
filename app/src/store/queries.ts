@@ -8,6 +8,7 @@ import type { Catalog } from '../catalog/load';
 import type { Appearance, Event, Item, Link, OwnEntry, SharedEntry } from '../model';
 import { db as defaultDb, type WrappedDB } from './db';
 import { eventStart, readLoggingNotes } from './logging-note';
+import { countUnsynced } from './outbox';
 import { listReceipts } from './receipts';
 import { byStage, joinNames, knownBy, knownNames } from './stage';
 
@@ -283,9 +284,9 @@ export async function preloadMeta(keys: readonly string[]): Promise<void> {
   await Promise.all(keys.map(readMeta));
 }
 
-/** Writes not yet on the server (FR-016): the outbox's length. */
+/** Writes not yet on the server (FR-016): the outbox and "needs attention" (store/outbox.ts). */
 export function useUnsyncedCount() {
-  return useLiveQuery(() => defaultDb.outbox.count());
+  return useLiveQuery(() => countUnsynced(defaultDb));
 }
 
 export interface EventSummary {
