@@ -171,7 +171,9 @@ shared Artist id, role, group), `title`, `cancelled`. Not rasika-owned.
 
 | Table | Purpose |
 |---|---|
-| `outbox` | `opId` (uuid, the idempotency key), `table`, `recordId`, `row` (a delete is the full row with `deletedAt` set), `baseSeq` (the last server `seq` known for the record; eng review D11),  `queuedAt`, `firstSentAt` (null until the first push attempt, so D8 knows the entry may already be stored). Written in the same transaction as the record (constitution I). A record has at most one never-sent entry: a save replaces its row in place; an entry sent at least once is never changed (eng review D8). Its length is the unsynced count, which therefore counts records with unsent changes (FR-016) |
+| `outbox` | `opId` (uuid, the idempotency key), `table`, `recordId`, `row` (a delete is the full row with `deletedAt` set), `baseSeq` (the last server `seq` known for the record, from `serverSeqs`, stamped when the entry is first sent and kept for every retry; eng review D11), `queuedAt`, `firstSentAt` (null until the first push attempt, so D8 knows the entry may already be stored). Written in the same transaction as the record (constitution I). A record has at most one never-sent entry: a save replaces its row in place; an entry sent at least once is never changed (eng review D8). Its length, with the `attention` entries, is the unsynced count, which therefore counts records with unsent or rejected changes (FR-016) |
+| `serverSeqs` | Keyed by (`table`, `id`): `seq`, the last server `seq` this phone wrote (from an ack) or applied (from a pull), the base of the record's next op; and `held`, a newer server version (`seq` and row) that a pull skipped because the record had a pending or rejected op (eng review D4). The cursor has moved past a held row, so it is kept for "keep the server's" and as the base for "keep mine"; it never becomes `seq` on its own (eng review D11) |
+| `attention` | Rejected ops ("needs attention"): `opId`, `table`, `recordId`, the `row` as pushed, `code`, `message`, `rejectedAt`. One per record, its latest rejection. Left the outbox, so never re-sent in a loop, but counted as unsynced until the rasika chooses "keep mine", "keep the server's", "try again" or "discard"; an ack of the record clears it (constitution II, outside voice 7) |
 | `meta` | Key/value: `deviceId`, `pullCursor`, `catalogVersion`, `sharedListsVersion`, consent answers, cached identity, "ready for offline" flags |
 
 ### Dexie indexes (draft)
@@ -188,6 +190,8 @@ sharedSabhas:  id, name
 schedule:      id, date
 outbox:        ++seq, opId, recordId
 meta:          key
+serverSeqs:    [table+id]
+attention:     opId, [table+recordId]
 ```
 
 The catalog snapshot is not stored in IndexedDB. It ships as a precached, content-hashed file
