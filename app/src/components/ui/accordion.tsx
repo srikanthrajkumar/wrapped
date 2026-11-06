@@ -56,6 +56,7 @@ function AccordionTrigger({
 function AccordionContent({
   className,
   children,
+  onFocus,
   ...props
 }: React.ComponentProps<typeof AccordionPrimitive.Content>) {
   return (
@@ -63,6 +64,12 @@ function AccordionContent({
       data-slot="accordion-content"
       // A focus ring inside stays inside the clip: 4px of padding, taken back by the margin.
       className="-mx-1 overflow-hidden px-1 ease-sheet data-open:animate-accordion-down data-closed:animate-accordion-up"
+      // Focus moving in as the fold opens finishes the opening, so the field is at its place and
+      // the page at its height when it is scrolled clear of the footer (App's useFooterRoom).
+      onFocus={(event) => {
+        for (const animation of event.currentTarget.getAnimations?.() ?? []) animation.finish();
+        onFocus?.(event);
+      }}
       {...props}
     >
       <div className={cn('pb-4', className)}>{children}</div>
