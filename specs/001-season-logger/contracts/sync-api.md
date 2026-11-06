@@ -50,6 +50,11 @@ table limits reads and writes to that rasika's own rows.
 ```
 
 - At most 200 ops per request, in outbox order. The phone sends one request at a time.
+- The phone sends its outbox oldest first. A retry starts at the oldest op not yet acked or
+  rejected, and never holds fewer ops than the push it repeats. Ops leave the outbox only when
+  acked or rejected, and the cap of 200 doesn't change between attempts. The server's
+  lost-reply rule below relies on this: a shorter retry could get a false `conflict` on an edit
+  made after it. Nothing would be lost, and "keep mine" resolves it.
 - Tables a phone may push: `events`, `appearances`, `items`, `artists`, `sabhas`.
 - The server applies ops in order, in one transaction holding a per-rasika advisory lock:
   - an `opId` already in Processed op is acknowledged again and not reapplied (FR-015);
@@ -60,7 +65,10 @@ table limits reads and writes to that rasika's own rows.
     rejected `conflict`, so no push silently overwrites a newer version (eng review D11). Two
     ops on one record in the same push may both carry the `seq` from before the push: the phone
     learns the first op's new `seq` only from the reply, so the second is its own later edit,
-    not a conflict;
+    not a conflict. The same holds after a lost reply: an op acknowledged again in this push
+    counts as an earlier op of the push while nothing has written its record since, so an edit
+    made before any ack arrived is accepted. An op is never accepted over a write made after
+    that run, such as another device's;
   - an op the server can't read (an unknown table, a row without a uuid `id` or `eventId`, a
     `baseSeq` that isn't a whole number) is rejected `invalid_op`;
   - a live Appearance or Item needs a live Event of the same rasika, else `missing_event`. A
@@ -72,6 +80,7 @@ Responses:
 |---|---|---|
 | `200` | `{ "acked": [{ "opId", "seq" }], "rejected": [{ "opId", "code", "message" }] }` | Removes acked and rejected ops from the outbox. Keeps rejected records locally, lists them in "needs attention", and keeps counting them as unsynced until fixed or discarded |
 | `401` | | Keeps the outbox; shows the sign-in prompt |
+| `400` | `{ "code": "bad_request", "message" }` | The request is malformed (no `ops` array, more than 200 ops, a `deviceId` or `opId` that isn't a uuid) and nothing was applied. Stops pushing, keeps the outbox and lists the batch in "needs attention". Never retried with backoff: a retry would block the outbox behind one bad batch |
 | `409` | `{ "code": "not_writer", "details": "<writer device id>" }` | Stops pushing, keeps the outbox, tells the rasika and offers export or "Make this the writing device again", which claims the device and resumes pushing (Edge Cases, "Second device") |
 | `5xx` or network error | | Retries with exponential backoff and jitter |
 
