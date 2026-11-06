@@ -278,15 +278,41 @@ planned Concert and log it without typing date, Sabha or any billed Artist.
   - **Start logging**: the explicit action that sets `attended` and `touched` (plan.md DD7);
   - **mark Missed**: Missed Events no longer show as upcoming (FR-026)
 - [ ] T056 [US3] Build the Plan (home) screen in `app/src/screens/PlanScreen.tsx`: upcoming Planned Events by date and time, today first; add a Plan entry; mark Missed; open a planned Event to view it, with an explicit "Start logging" that marks it Attended and opens it for logging with everything filled in (SC-004, plan.md DD7). Layout per plan.md DD2: Now, Next, Season so far
-- [ ] T057 [US3] Get the logger project's agreement on contracts/schedule-feed.md, which is "proposed": who assigns `id`s, whether Lecdems are included, and where the file is published. Update the contract's status in `specs/001-season-logger/contracts/schedule-feed.md`
+- [X] T057 [US3] Get the logger project's agreement on contracts/schedule-feed.md, which is "proposed": who assigns `id`s, whether Lecdems are included, and where the file is published. Update the contract's status in `specs/001-season-logger/contracts/schedule-feed.md`
+  - *Agreed 2026-11-06* with the logger project's router; the Maintainer decided publishing, Roles, group names and kinds the same day. Ids are the logger's, kept by its ledger and opaque to the phone; Lecdems are in the same feed; the file goes to a private Supabase Storage bucket and is served at `GET /v1/schedule/{season}` with its sha256 as the `ETag`. Added: the optional `billed[].group`, the kinds `dance` and `harikatha`, and eight Roles; `format` stays 1 (the contract says why). Still open: the musicians at a Dance, the upload credential, and how the server finds the newest file. The app work it creates is T119 to T125
 - [ ] T058 [US3] Implement applying a Schedule version in `app/src/store/schedule.ts`:
   - `touched` false: "copy the new date, time, Sabha and billed Artists; set `cancelled`";
   - `touched` true: "change nothing; set `scheduleChanged` so the hint shows";
-  - "Either way, record `scheduleVersionSeen`" (FR-027);
+  - "Either way, record `scheduleVersionSeen`" (FR-027); the entry's integer `version` is kept in that string field, so compare it as a number;
   - match Sabha and billed names to shared or own entries by name or Alias
-- [ ] T059 [P] [US3] **(required: an overwrite would corrupt the season)** Schedule protection test in `app/tests/store/schedule-apply.test.ts`: an edited or Attended Event is never changed and gets the hint; an untouched Planned Event updates; a cancellation marks only untouched Events
+  - (T057) copy `kind`, `title` and each billed `group` with the Roles; read a Role it doesn't know as null and skip an entry of a kind it doesn't know; accept `billed: []` and a null `startTime`; never read anything from an `id`; and never change or remove an Event because its entry is missing from a newer file (contracts/schedule-feed.md)
+- [ ] T059 [P] [US3] **(required: an overwrite would corrupt the season)** Schedule protection test in `app/tests/store/schedule-apply.test.ts`: an edited or Attended Event is never changed and gets the hint; an untouched Planned Event updates; a cancellation marks only untouched Events; an entry missing from a newer file leaves its Event as it was; an untouched Event takes a changed `group` and kind; an entry of an unknown kind changes nothing (T057)
 - [ ] T060 [US3] Fetch the Schedule when online with `ETag`, storing entries locally, from a configurable URL (a static file until the server serves `GET /v1/schedule/{season}`), in `app/src/store/schedule-fetch.ts`
+  - (T057) The server's `ETag` is the file's sha256 and a match gets `304`; a failed fetch keeps the last stored copy (T124)
 - [ ] T061 [US3] Build the Schedule picker that adds entries to the Plan with `source` `schedule`, and show "schedule changed" and "cancelled" on Plan entries, in `app/src/screens/SchedulePicker.tsx` and `app/src/screens/PlanScreen.tsx`
+  - (T057) The Schedule card shows a Group by its name (T121) and a Dance's or Harikatha's printed title; an entry with no billed Artists leads with its Sabha
+
+### From the schedule-feed decisions (T057, 2026-11-06)
+
+New kinds, Roles and group names, and the Artist seed fixes the logger found. T119 comes first: T058 and T061 need its types. The server needs no change for them: `supabase/migrations/0002_season.sql` and `0004_sync.sql` keep each record's `data` as sent and check only its id, owner and parent Event, never a `kind` or `role` (eng review D7).
+
+- [ ] T119 [US3] **(required: a save refused for a new kind or Role, or a dropped `group`, would lose what the rasika logged)** Add the kinds and Roles to the model and every place that checks them (data-model.md, "Event" and "Appearance"):
+  - `app/src/model/records.ts`: Event `kind` gains `dance` and `harikatha` (as a list, like `ROLES`); `ROLES` gains `support`, `chitravina`, `nagaswaram`, `saxophone`, `mandolin`, `thavil`, `dancer` and `nattuvangam`; Appearance gains `group: string | null`; the sync payload types in `app/src/model/sync-payloads.ts` follow;
+  - `app/src/store/rules.ts`: `eventProblems` checks `kind` against the list, not two literals, and lets a Dance's or Harikatha's `title` be a name or null; `appearanceProblems` checks `group` is null or a non-empty name;
+  - `app/src/store/stage.ts`: the new Roles in `STAGE_ORDER` (DESIGN.md, "Stage order") and `KNOWN_BY` for the new kinds (a Dance by its dancers, a Harikatha by its presenters, a Concert by its lead melodic Roles). Make the compiler or a test check that `STAGE_ORDER` lists every Role: `satisfies readonly Role[]` doesn't, and a Role left out ranks −1 and jumps to the top of Stage;
+  - `app/src/store/events.ts` (the title as entered, by kind) and `app/src/screens/format.ts` (`roleName`: "Vocal support", "Nattuvangam");
+  - tests in `app/tests/store/`: a Dance and a Harikatha with titles, an Appearance in each new Role and one with a `group` save, survive a reopen, appear in the Export (contracts/season-export.md; extend T049's test) and pass the journal check unchanged; and in `supabase/tests/sync.test.ts`, the same rows push and pull back unchanged
+- [ ] T120 [US3] Role chips with the common Roles first and the rest behind "More" (DESIGN.md, "Artist and Sabha pickers"), in `app/src/screens/components/NamePicker.tsx`: the ten current Roles, then More opening the eight new ones; Dancer and Nattuvangam in the first row at a Dance; a current or usual Role behind More shows pressed with More open. The Artist picker's distinguishing line shows the new Roles too
+- [ ] T121 [US3] Show a Group by its name (data-model.md, "Appearance"; DESIGN.md, "Event"): where an Event's known-by Artists share a `group`, `knownBy` and `joinNames` give the group's name once in their place ("Malladi Brothers"), in `app/src/store/stage.ts`, `app/src/store/queries.ts` and the Season rows, the Event heading and the Concert summary. Stage still lists each member. A member removed from the Event leaves the others' `group` as it is. A plan entry typed by hand has no `group`
+- [ ] T122 [US3] Dance and Harikatha on the phone, designed with the Lecdem variant (T063), in `app/src/screens/HomeScreen.tsx`, `app/src/screens/EventScreen.tsx` and `app/src/store/events.ts`:
+  - the Season rows (Now, Next, Season so far) and the Event heading follow T121's known-by, with the kind shown as a mark rather than a word where a Concert would show none;
+  - the Event's facts let the kind be changed among the four, with a title field for a Lecdem, a Dance or a Harikatha; Items work as for a Concert;
+  - **(required: a kind change must not lose a typed title)** a change to Concert, whose title is null, takes the title away only with an Undo that restores it, in one transaction with its outbox op; test in `app/tests/store/reorder-delete.test.ts` or beside it
+- [ ] T123 [US3] Fix the three Artist seed entries the logger found, in `app/src/reference/shared-lists.seed.json`, then regenerate `supabase/seed.sql` with `tools/server-seed/seed-sql.mjs` and rebuild `app/tests/fixtures/reference-2024-25.json` with `tools/import-2024-25/`:
+  - "Anantha R Krishnana" is a typo of "Anantha R Krishnan": keep the latter, with the typo as its Alias;
+  - "Charumati Raghuram" duplicates "Charumati Raghuraman": keep the latter, with the other as its Alias;
+  - "Leela Samson & Spanda Dance Company" is an institution, not an Artist: remove it (whether Leela Samson joins as a dancer is the Maintainer's call);
+  - **(data-loss path once phones hold the shared lists)** do it before T111 loads the seed onto the hosted database and before T078 pulls it onto any phone. After that, removing a shared id would leave Appearances pointing at nothing, and shared records have no `mergedIntoId` (data-model.md); a later fix needs a shared merge designed first
 
 **Checkpoint**: P3 works from hand-entered Plan entries alone (FR-025); the Schedule adds to it
 when the feed exists.
@@ -378,6 +404,7 @@ Use the `supabase-postgres-best-practices` skill for every migration.
   - if `seasonReports` is not true, delete the season (FR-047);
   - keep the `consent_event` rows, which point only at the opaque rasika id, for at least one year (DPDP Rules; data-model.md, "Consent event")
   - *Built 2026-11-06:* the Maintainer calls `admin_deletion` (`POST /v1/admin/deletion`) with the rasika's email, matched without regard to case or spacing; it answers only `{ deidentified }`, false when no account matched, so a repeat is harmless. The allowlist is checked first, before the body, in both the API function and the definer that does the work. The writer is cleared along with the devices. The old access token stays signed until it expires, but every function then answers 403 `no_account`, and its refresh token is gone. The Maintainer's answers (2026-11-06): Supabase Auth's `auth.audit_log_entries` rows for the user go too, matched on exact fields so a similar email is never caught; the processed ops go; a kept season keeps own names, titles and typed Detail values, and still counts in promotion candidates if `shareAdditions` is true; the reply stays `{ deidentified }`. Review (2026-11-06): the rasika is matched by the auth user's current email, and the row's email only once the auth user is gone; a trigger keeps the row's email current; audit entries found by email alone go only if they name no other user; sign-in flow states go with the user; every leading and trailing whitespace, no-break space included, is trimmed; a test proves the rasika lock by a consent change in flight. Accounts are deleted only through `admin_deletion`. Before the hosted deploy, check that the hosted database lets the migration's owner delete from `auth.audit_log_entries`, and time that delete, a full scan, under the authenticated role's statement timeout; the platform's own auth logs, outside the database, keep their retention. Tests in `supabase/tests/deletion.test.ts`
+- [ ] T124 [US2] Serve the Schedule at `GET /v1/schedule/{season}` (contracts/schedule-feed.md, "Delivery"): read the Season's newest file from the private Supabase Storage bucket and answer with the file's sha256 as the `ETag`, `304` on a matching `If-None-Match`, and `404` for a Season with no file. The bucket gets no public or anonymous read; the logger's upload credential is the Maintainer's setup, not in the repository. Push and pull are Postgres functions (T066), which can't stream a Storage object, so record how this one is served (an Edge Function, or a Postgres function returning a short-lived signed URL) in `docs/adr/0001-supabase-for-sign-in-and-server-store.md`, and whether it needs a signed-in rasika. Settle with the logger project how the newest file is found. Tests against the local stack in `supabase/tests/schedule.test.ts`
 - [ ] T077 [US2] Implement sign-in on the phone in `app/src/store/auth.ts`:
   - the method proven by the Phase 1 iPhone spike (eng review D3): Google's sign-in button with `supabase.auth.signInWithIdToken`, or, if that failed, Supabase's email one-time code;
   - the app keeps its own cached identity in `meta`;
@@ -428,7 +455,7 @@ text kept, and a third rasika is offered him from the start.
   - **create shared entry**: adds a shared Artist or Sabha and bumps `list_version` under the shared-lists lock;
   - **promote**: writes a Link for each matching own record of consenting rasikas (FR-044), taking each affected rasika's advisory lock so the Link commits in `seq` order for that rasika (contracts/sync-api.md "Pull"; eng review R7). For an Event, `sharedId` is the id of the Schedule entry the Maintainer added in the logger project (FR-043); this project never writes to the Schedule;
   - all three are callable only by the `maintainer` allowlist, with EXECUTE revoked from PUBLIC and anon (outside voice 10);
-  - Artists and Sabhas are grouped by the folded `nameKey` the phone stores in each own record, so SQL never re-implements the fold (outside voice 9); how hand-typed Events are grouped is not yet defined and is settled with the schedule feed (T057);
+  - Artists and Sabhas are grouped by the folded `nameKey` the phone stores in each own record, so SQL never re-implements the fold (outside voice 9); how hand-typed Events are grouped is not yet defined: the schedule-feed decisions (T057, 2026-11-06) did not settle it, so it is settled before this task is built;
   - the candidates view lives in a private schema that Supabase's API doesn't expose, with no grant for anonymous users or rasikas; the Maintainer reads it only through these functions, which check the allowlist first (eng review D5)
 - [ ] T085 [P] [US7] **(required, privacy)** Promotion tests in `supabase/tests/promotion.test.ts`: two consenting rasikas' entries appear with count 2; a non-consenting rasika's never appear; after promotion both pulls include Links; a new rasika's pull includes the shared Artist (SC-016)
 - [ ] T086 [US7] Check, and fix where needed, that pulled Links make Appearances follow the shared Artist without rewriting them, and that an Event Link sets `scheduleEntryId` without overwriting a `touched` Event (FR-044), in `app/src/store/queries.ts` and `app/src/store/sync.ts`
@@ -464,6 +491,7 @@ rasika's own Wrapped.
   - Unknown counts as "?"; Not applicable counts nowhere; Guesses and Overrides count as their values; Unresolved counts under its text (FR-030);
   - each Raga of a ragamalika counts once for that Item;
   - merged Artists and Links are resolved
+- [ ] T125 [US5] Count Dances and Harikathas in the Wrapped (T057), in `app/src/wrapped/aggregate.ts` and the Wrapped screen (T098): their Items count like a Concert's (a varnam at a Dance counts its Raga); the headline numbers count each kind on its own; each member of a Group counts as their own Artist, never the Group. Extend T091's required test with a Dance, a Harikatha and a Group
 - [ ] T091 [US5] **(required, catalog updates)** Aggregation test in `app/tests/wrapped/aggregate.test.ts`: with Items logged under v1, loading v2 (Pantuvarali linked to Kamavardhini) changes the top-ragas result; plus "?" buckets, Not applicable, Guess and Override counting; plus a merged Artist and an own Artist linked to a shared one each counting as one person (FR-036, FR-044; eng review test gap)
 - [ ] T092 [P] [US5] Reference reproduction test in `app/tests/wrapped/reference-cards.test.ts`: from `app/tests/fixtures/reference-2024-25.json`, colour counts match the sheet (white 23, red 15, blue 15), and the composer timeline matches the Timelines sheet (SC-012)
 - [ ] T093 [US5] Implement rendering a Card to a 1080×1920 PNG offline with the chosen renderer, bundling the Tamil and Devanagari Noto fonts in the phase-2 cache within the 3 MB budget, in `app/src/wrapped/render.ts`. Render only when Share is tapped (plan.md DD5)
@@ -541,8 +569,9 @@ Merge the Artists, match the raga, and confirm all Appearances and the Wrapped u
 - **US2 part 1 (Phase 4)**: after Foundational; it exports whatever exists. T054 (static
   hosting) is decided (ADR 0008); T054a puts the app on the test address for the device
   check, and T054b, the real domain, waits on T088a and must land before any rasika installs.
-- **US3 (Phase 5)**: after US1, since it opens planned Events into the Event screen. T058 to
-  T061 wait on T057, the logger project's agreement.
+- **US3 (Phase 5)**: after US1, since it opens planned Events into the Event screen. T057, the
+  logger project's agreement, is done (2026-11-06). T119 comes before T058 and T061; T122
+  goes with T063; T123 lands before T078 and T111; T124 is in Phase 7 and T125 in Phase 9.
 - **US4 (Phase 6)**: after US1, since it extends the Event screen.
 - **US2 part 2 (Phase 7)**: after US1 and US2 part 1; built and tested locally, deployed last
   (ADR 0001, eng review D12). T073 to T075 wait on T066.
@@ -556,7 +585,7 @@ Merge the Artists, match the raga, and confirm all Appearances and the Wrapped u
 - T030: the design system.
 - T054: static hosting (decided 2026-11-03, ADR 0008).
 - T054b: the real domain, once the name is settled.
-- T057: the schedule feed, with the logger project.
+- T057: the schedule feed, with the logger project (decided 2026-11-06).
 - T066: where push and pull run (decided 2026-11-06: Postgres functions, ADR 0001).
 - T088a: the motif and the logo.
 - T088: the card renderer.

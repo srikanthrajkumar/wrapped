@@ -1,6 +1,6 @@
 # Carnatic Wrapped
 
-The language of logging the Carnatic concerts and lecdems one rasika attends in Chennai's December season, and of the Wrapped built from that log.
+The language of logging the Carnatic concerts, lecdems, dances and harikathas one rasika attends in Chennai's December season, and of the Wrapped built from that log.
 
 ## Language
 
@@ -19,7 +19,7 @@ _Avoid_: seed list, master list, directory
 ### Events
 
 **Event**:
-Something the rasika attends, put on by a Sabha at a given time: either a Concert or a Lecdem.
+Something the rasika attends, put on by a Sabha at a given time: a Concert, a Lecdem, a Dance or a Harikatha.
 _Avoid_: programme, performance, show, kutcheri
 
 **Sabha**:
@@ -33,6 +33,14 @@ _Avoid_: kutcheri, recital
 **Lecdem**:
 An Event in which presenters discuss a titled musical topic, with or without demonstration.
 _Avoid_: lecture, talk, lec-dem
+
+**Dance**:
+An Event in which dancers perform to live Carnatic music, led by a nattuvanar.
+_Avoid_: recital, Bharatanatyam (one style, not the term)
+
+**Harikatha**:
+An Event in which one performer tells a sacred story in song and speech, with accompanists. A spoken discourse (upanyasam) is not a Harikatha and is not logged.
+_Avoid_: kathakalakshepam, discourse
 
 **Schedule**:
 The published list of upcoming Events across Sabhas, supplied by the logger project.
@@ -114,12 +122,16 @@ A person who performs or presents at Events, the same person across the whole se
 _Avoid_: performer, musician, presenter (as a kind of person)
 
 **Role**:
-What an Artist does at one Event: vocal, violin, veena, flute, mridangam, khanjira, ghatam, morsing, other, or presenter. It may be left blank when unknown. A Role says what someone did, not how important they were: no Role ranks above another.
+What an Artist does at one Event: vocal, vocal support, violin, veena, chitravina, flute, nagaswaram, saxophone, mandolin, mridangam, thavil, khanjira, ghatam, morsing, dancer, nattuvangam, other, or presenter. It may be left blank when unknown. A Role says what someone did, not how important they were: no Role ranks above another.
 _Avoid_: instrument, slot, lead, main artist, accompanist
 
 **Appearance**:
-One Artist in one Role at one Event, with the Colour they wore. The same Artist has a new Appearance at every Event. An Event's Appearances are listed by Role, as in a printed kutcheri listing (vocal, veena, flute, violin, mridangam, ghatam, khanjira, morsing, other, presenter, then no Role), and in the order added within a Role. The Event is known by its vocal, veena or flute Artists (a Lecdem by its presenters), or else by the first Artist listed. The listing orders what is shown; no Role ranks above another.
+One Artist in one Role at one Event, with the Colour they wore. The same Artist has a new Appearance at every Event. An Event's Appearances are listed by Role, as in a printed kutcheri listing (dancer, nattuvangam, vocal, vocal support, veena, chitravina, flute, nagaswaram, saxophone, mandolin, violin, mridangam, thavil, ghatam, khanjira, morsing, other, presenter, then no Role), and in the order added within a Role. The Event is known by its vocal, veena, chitravina, flute, nagaswaram, saxophone or mandolin Artists (a Lecdem or a Harikatha by its presenters, a Dance by its dancers), or else by the first Artist listed, with a Group shown by its name. The listing orders what is shown; no Role ranks above another.
 _Avoid_: performance, booking, credit
+
+**Group**:
+Artists billed together under one name, such as the Malladi Brothers. The name is shown in place of theirs; each member is still their own Artist, with their own Appearance, and counts on their own in the Wrapped.
+_Avoid_: band, ensemble, duo
 
 **Colour**:
 What an Artist wore at one Appearance: a primary colour from a fixed palette, plus an optional second colour for a two-tone outfit.

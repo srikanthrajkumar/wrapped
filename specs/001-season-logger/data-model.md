@@ -49,7 +49,7 @@ Rules:
 | Field | Type | Notes |
 |---|---|---|
 | `id` | uuid | |
-| `kind` | `concert` \| `lecdem` | |
+| `kind` | `concert` \| `lecdem` \| `dance` \| `harikatha` | Dance and Harikatha added 2026-11-06 (T057); Items work as for a Concert |
 | `date` | ISO date | Defaults to today (Edge Cases) |
 | `startTime` | `HH:MM` \| null | |
 | `sabhaId` | uuid \| null | Own or shared Sabha |
@@ -60,7 +60,7 @@ Rules:
 | `scheduleVersionSeen` | string \| null | The entry version last applied or acknowledged |
 | `scheduleChanged` | boolean | The "schedule changed" hint |
 | `touched` | boolean | True once the rasika edits it or it becomes Attended. Schedule updates then stop |
-| `title` | string \| null | Required for a Lecdem (FR-013) |
+| `title` | string \| null | Required for a Lecdem (FR-013); null for a Concert; the printed title, or null, for a Dance or a Harikatha |
 | `note` | string \| null | Erased on deletion requests (see Deletion) |
 | `createdAt`, `updatedAt`, `deletedAt` | timestamp | Device clock; display only, never a sync cursor |
 
@@ -73,10 +73,11 @@ leaves it Planned), `planned → missed` (rasika says so),
 | Field | Type | Notes |
 |---|---|---|
 | `id`, `eventId`, `artistId` | uuid | `artistId` is own or shared |
-| `role` | `vocal` \| `violin` \| `veena` \| `flute` \| `mridangam` \| `khanjira` \| `ghatam` \| `morsing` \| `other` \| `presenter` \| null | What they did; null when unknown. No Role ranks above another (FR-004) |
+| `role` | `vocal` \| `support` \| `violin` \| `veena` \| `chitravina` \| `flute` \| `nagaswaram` \| `saxophone` \| `mandolin` \| `mridangam` \| `thavil` \| `khanjira` \| `ghatam` \| `morsing` \| `dancer` \| `nattuvangam` \| `other` \| `presenter` \| null | What they did; null when unknown. No Role ranks above another (FR-004). `support` is vocal support. `support`, `chitravina`, `nagaswaram`, `saxophone`, `mandolin`, `thavil`, `dancer` and `nattuvangam` were added 2026-11-06 (T057) |
 | `colourPrimary` | Colour \| `unknown` \| null | |
 | `colourSecondary` | Colour \| null | Two-tone outfit |
 | `billed` | boolean | Came from the Plan or Schedule |
+| `group` | string \| null | The name the Artist was billed under with others, such as "Malladi Brothers", copied from the Schedule (T057); null otherwise. Display only: never an Artist, never counted |
 | `position` | integer | The order added; Stage lists by Role, then by this (walkthrough S4, 2026-11-04). Kept as a field so Undo restores a removed Artist to its place and the row shape stays as synced |
 | timestamps | | as Event |
 
@@ -84,6 +85,14 @@ Colour palette: the 12 colours in last season's Colours sheet (white, red, blue,
 brown, pink, beige, green, purple, black, grey). Extending it is a project-kept list change.
 
 A Lecdem has at most 3 Appearances with role `presenter` (FR-013).
+
+A group billed together, such as the Malladi Brothers, is kept as each member's own Appearance,
+each with the group's name in `group`. The name sits on the Appearance rather than the Event
+because an Event can bill a group beside other Artists (the brothers with a violinist and a
+mridangist), so only the members' rows say whom it names; and it needs no new record, table or
+sync change, since the server keeps the row as sent. It is display only: the Concert line shows
+it in place of the members' names, and the Wrapped counts each member on their own (Maintainer,
+2026-11-06).
 
 ### Item
 
@@ -156,7 +165,7 @@ FR-027 still protects a `touched` Event.
 
 Copied from the logger's Schedule feed ([contracts/schedule-feed.md](contracts/schedule-feed.md)):
 `id`, `version`, `date`, `startTime`, `sabha` (shared id or name), `kind`, `billed` (name or
-shared Artist id, role), `title`, `cancelled`. Not rasika-owned.
+shared Artist id, role, group), `title`, `cancelled`. Not rasika-owned.
 
 ## Phone-only records
 
@@ -260,7 +269,9 @@ several rows, such as unique positions, are the phone's (eng review R6).
 
 - An Item's `eventId` must point to an Event that is not deleted.
 - `position` is unique among an Event's live Items after each transaction.
-- A Lecdem needs a `title`. A Concert's `title` is null.
+- A Lecdem needs a `title`. A Concert's `title` is null. A Dance's or Harikatha's `title` may be
+  either.
+- `kind` and `role` are one of the values above; `group` is null or a non-empty name.
 - `DetailValue.key` is required for `catalog` and `override` and must be null otherwise.
 - A pushed record whose `id` already belongs to another rasika is rejected (`foreign_rasika`;
   constitution, Privacy).
