@@ -35,6 +35,7 @@ behind each choice.
 | uFuzzy 1.0.x | 4 KB | Decided |
 | vite-plugin-pwa 2.0 / Workbox 7.4 | build-time + service worker | Decided |
 | write-excel-file 4.x | 20 KB, second download | Decided |
+| cn 0.5.2, pinned exactly (class helper, shadcn's; replaces clsx + tailwind-merge) | +2.0 KB brotli on the first install | Decided 2026-11-06 (ADR 0006) |
 | Card renderer: Satori + resvg, Takumi or Canvas 2D | 0 to 1.67 MB, second download | **Pending**, needed before Cards work |
 
 **Primary Dependencies** (server): Supabase (ADR 0001). Google sign-in through Supabase Auth,
