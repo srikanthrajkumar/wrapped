@@ -24,9 +24,8 @@ import { preloadMeta, useMeta } from '../store/queries';
 import { READY_KEY } from '../store/offline-ready';
 import { setTheme, useTheme, type Theme } from '../theme';
 import { APP_VERSION, exportSeason, useExportState } from './components/export-file';
-import { ExportIcon, SeasonFeedback } from './components/feedback';
-import { InstallRow } from './components/InstallRow';
-import { Screen } from './components/layout';
+import { ExportIcon } from './components/feedback';
+import { Screen, TabHeader } from './components/layout';
 import { shortDayText } from './format';
 import { MESSAGES } from './messages';
 
@@ -177,11 +176,9 @@ function SettingsView() {
   const catalogVersion = useMeta<string>(CATALOG_VERSION_KEY);
   return (
     <>
-      {/* 16px to the first row, as Season's title has to the Now card. */}
-      <h1 className="pt-4 pb-4 text-title font-semibold">Settings</h1>
-      <InstallRow />
-      <SeasonFeedback />
-      <ul className="hairline-t">
+      <TabHeader title="Settings" />
+      {/* 16px from the title to the first row, as Season's title has to the Now card. */}
+      <ul className="mt-2 hairline-t">
         <OfflineRow />
         <StorageRow />
         <ExportRow />

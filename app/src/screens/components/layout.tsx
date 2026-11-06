@@ -194,6 +194,23 @@ export function TopBar({
 }
 
 /**
+ * A tab's own screen (Season, Wrapped, Settings) starts with its title, then the install row and
+ * the season-wide line (DESIGN.md "Install", "Status"). One header for all three, so the install
+ * row sits at the same place on each tab. `children` go between the two (Season's "Getting ready
+ * for offline…").
+ */
+export function TabHeader({ title, children }: { title: string; children?: ReactNode }) {
+  return (
+    <>
+      <h1 className="pt-4 pb-2 text-title font-semibold">{title}</h1>
+      <InstallRow />
+      {children}
+      <SeasonFeedback />
+    </>
+  );
+}
+
+/**
  * Focus the screen's first block when it opens, so a screen reader starts there (design D24).
  * Returns the ref for that block, which takes tabIndex -1.
  */

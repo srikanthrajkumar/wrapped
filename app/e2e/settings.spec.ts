@@ -4,7 +4,7 @@
 // Settings shows the season first; and a phone with the app open in a browser tab shows the
 // install row on every screen, which an installed app and a desktop never show.
 
-import { devices, expect, test, type Page } from '@playwright/test';
+import { devices, expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import {
   failWritesOnDemand,
@@ -35,6 +35,40 @@ const INSTALL_NAME =
 /** A bottom tab, not a back link to the same place. */
 const tab = (page: Page, name: string) =>
   page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name, exact: true });
+
+/**
+ * The install row on Season, Wrapped and Settings (walkthrough FB-46): one 48px row, its top at
+ * the same place on each tab, its text and Install label inside the 16px gutters.
+ */
+async function rowOnEachTab(page: Page, row: Locator): Promise<boolean> {
+  const boxes = [];
+  for (const name of ['Season', 'Wrapped', 'Settings']) {
+    await tab(page, name).click();
+    await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
+    await expect(row).toBeVisible();
+    boxes.push((await row.boundingBox())!);
+    // The words on show (not the screen reader's sentence), each text node's own box.
+    const inside = await row.evaluate((el) => {
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      const rects: DOMRect[] = [];
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        if (node.parentElement?.closest('.sr-only')) continue;
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        rects.push(...[...range.getClientRects()].filter((r) => r.width > 0));
+      }
+      return {
+        left: Math.min(...rects.map((r) => r.left)),
+        right: Math.max(...rects.map((r) => r.right)),
+      };
+    });
+    expect(inside.left).toBeGreaterThanOrEqual(16);
+    expect(inside.right).toBeLessThanOrEqual(page.viewportSize()!.width - 16);
+  }
+  expect(boxes.map((box) => box.height)).toEqual([48, 48, 48]);
+  expect(new Set(boxes.map((box) => box.y)).size).toBe(1);
+  return true;
+}
 
 async function newConcert(page: Page) {
   await page.goto('/');
@@ -172,6 +206,15 @@ test.describe('the install row', () => {
     await expect(page.getByRole('button', { name: /dismiss/i })).toHaveCount(0);
   });
 
+  test('an iPhone browser tab shows the row at one place and height on every tab', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await finishFirstLaunch(page);
+    // The sentence is the row's only text for a screen reader; its parent is the row.
+    expect(await rowOnEachTab(page, page.getByText(INSTALL_NAME).locator('..'))).toBe(true);
+  });
+
   test('an installed app shows nothing', async ({ page }) => {
     await page.addInitScript(() => {
       const original = window.matchMedia.bind(window);
@@ -205,6 +248,9 @@ test.describe('the install row', () => {
       });
       await expect(page.getByText('Install on this phone')).toBeVisible();
       await expect(page.getByText('Add to Home Screen:')).toHaveCount(0);
+      expect(
+        await rowOnEachTab(page, page.getByRole('button', { name: /^Install\b/ }).locator('..')),
+      ).toBe(true);
       await page.getByRole('button', { name: /^Install\b/ }).click();
       expect(
         await page.evaluate(() => (window as unknown as { prompted?: boolean }).prompted),
