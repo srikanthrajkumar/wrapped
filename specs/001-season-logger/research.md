@@ -102,8 +102,8 @@ compressed by us. All others cite the source. Decisions are made one at a time b
 - **Timing**: the server is built locally after Plan and Lecdem and deployed last (eng review
   D12). Development runs on a local Supabase (CLI on Docker)
   at no cost; the season's database moves to Pro in Mumbai before rasikas sign up.
-- **Still open**: push and pull as Postgres functions or as Edge Functions, decided when the
-  server is built.
+- **Push and pull** (decided 2026-11-06, T066): Postgres functions called through Supabase's
+  API, not Edge Functions. The reasons and the error mapping are in ADR 0001.
 
 What the research found:
 

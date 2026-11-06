@@ -322,7 +322,8 @@ confirm the full season is back before logging resumes.
 
 - [ ] T064 [US2] Install the Supabase CLI, run `supabase init`, and configure Google sign-in for the local stack, with secrets in `supabase/.env` only (never committed), in `supabase/config.toml`
 - [ ] T065 [P] [US2] Install the router's contingent skill `npx skills add supabase/agent-skills@supabase -a claude-code -y --copy` after reading its SKILL.md, and record it in §2 of `docs/skills-router.md`
-- [ ] T066 [US2] The Maintainer decides whether push and pull run as Postgres functions or as Edge Functions (ADR 0001, "Still open"). The decision includes how errors map to the contract's responses (401, `409 not_writer`, `rejected` codes), since Postgres functions return them through Supabase's API, not as hand-written HTTP. Record it in `docs/adr/0001-supabase-for-sign-in-and-server-store.md`
+- [X] T066 [US2] The Maintainer decides whether push and pull run as Postgres functions or as Edge Functions (ADR 0001, "Still open"). The decision includes how errors map to the contract's responses (401, `409 not_writer`, `rejected` codes), since Postgres functions return them through Supabase's API, not as hand-written HTTP. Record it in `docs/adr/0001-supabase-for-sign-in-and-server-store.md`
+  - *Decided 2026-11-06:* Postgres functions called through Supabase's API. A 401 comes from the API itself; a 409 and a 426 are raised with PostgREST's custom error (`RAISE SQLSTATE 'PGRST'`), the 426 from one pre-request function reading `X-App-Version`; `rejected` is the normal 200 body. The first server test confirms the hosted PostgREST honours the custom error
 
 ### Required tests for the server
 
@@ -347,7 +348,7 @@ Use the `supabase-postgres-best-practices` skill for every migration.
   - row-level security on every table
 - [ ] T071 [US2] Write the season migration in `supabase/migrations/0002_season.sql`: tables for events, appearances, items, artists and sabhas, each with `id`, `rasika_id`, `seq` (bigint from one shared sequence), `deleted_at`, `received_at`, the parent id where there is one (`event_id` for appearances and items), and a `data` jsonb column holding the record exactly as the phone sent it; the record's fields are defined only in `app/src/model/records.ts` (eng review D7); indexes on (`rasika_id`, `seq`); row-level security limited to `(select auth.uid())`'s own rows
 - [ ] T072 [US2] Write the shared migration in `supabase/migrations/0003_shared.sql`: `shared_artist` and `shared_sabha` with `list_version`, `link`, and a `maintainer` allowlist table; plus `supabase/seed.sql` loading `app/src/reference/shared-lists.seed.json`
-- [ ] T073 [US2] Implement push in the place chosen in T066, in `supabase/migrations/0004_sync.sql` or `supabase/functions/sync/`. Per contracts/sync-api.md:
+- [ ] T073 [US2] Implement push as a Postgres function (T066), in `supabase/migrations/0004_sync.sql`. Per contracts/sync-api.md:
   - at most 200 ops, applied in order in one transaction under a per-rasika advisory lock;
   - writer check returning `409 not_writer`;
   - a repeated `opId` is acknowledged without reapplying;
@@ -543,7 +544,7 @@ Merge the Artists, match the raga, and confirm all Appearances and the Wrapped u
 - T054: static hosting (decided 2026-11-03, ADR 0008).
 - T054b: the real domain, once the name is settled.
 - T057: the schedule feed, with the logger project.
-- T066: where push and pull run.
+- T066: where push and pull run (decided 2026-11-06: Postgres functions, ADR 0001).
 - T088a: the motif and the logo.
 - T088: the card renderer.
 
