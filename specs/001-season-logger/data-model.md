@@ -192,7 +192,7 @@ loaded into memory at start ([contracts/catalog-snapshot.md](contracts/catalog-s
 |---|---|---|
 | `id` | uuid | Opaque. Survives de-identification. Not the Supabase user id |
 | `authUserId` | uuid \| null | The Supabase Auth user (`auth.users`). Nulled on a deletion request |
-| `email`, `name` | string \| null | From Google. Erased on a deletion request (FR-047) |
+| `email`, `name` | string \| null | From Google; `email` follows the auth user's on a change. Erased on a deletion request (FR-047) |
 | `shareAdditions` | boolean \| null | Null until answered; nothing pre-selected (FR-042) |
 | `seasonReports` | boolean \| null | Null until answered (FR-049) |
 | `writerDeviceId` | uuid \| null | The current writing device (FR-022) |
@@ -228,12 +228,18 @@ by a folded name, showing only the name and the number of rasikas (FR-042, P7 sc
 
 On request, in one transaction:
 
-1. Delete the Supabase Auth user, which ends its sessions. Null `authUserId`, `email` and
+1. Delete the Supabase Auth user, which ends its sessions, and its sign-in flow states. Null `authUserId`, `email` and
    `name`, set `deidentifiedAt`, and delete devices.
 2. Null every `note` on the rasika's Events and Items, including each Item's `layaVinyasam.note`,
    because free text can identify them.
 3. Delete Supabase Auth's own audit log entries for the user (`auth.audit_log_entries`), which
-   name them by auth user id, email and Google name.
+   name them by auth user id, email and Google name. An entry found by email alone goes only if
+   it names no other user.
+
+The rasika is found by their auth user's current email. The email on the rasika row is used only
+when the auth user is already gone, since an address can pass to someone else. Accounts are
+deleted only through this request: an auth user deleted any other way leaves its rasika row
+behind, and audit entries under an older email can no longer be found.
 4. Delete the rasika's processed ops: no device of theirs can push again.
 5. If `seasonReports` is not true, delete the rasika's season as well.
 

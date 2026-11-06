@@ -7,7 +7,9 @@ import { randomUUID } from 'node:crypto';
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { Item } from '../../app/src/model/records';
 import {
+  asRasika,
   call,
+  changeEmail,
   consent,
   db,
   me,
@@ -91,6 +93,16 @@ async function processedOps(rasikaId: string) {
   return row!.n;
 }
 
+/** Supabase Auth audit log entries about the auth user, by its id. */
+async function auditEntriesAbout(userId: string) {
+  const [row] = await db<{ n: number }[]>`
+    select count(*)::int as n from auth.audit_log_entries x
+    where x.payload ->> 'actor_id' = ${userId} or x.payload -> 'traits' ->> 'user_id' = ${userId}`;
+  return row!.n;
+}
+
+const NO_SEASON = { events: 0, appearances: 0, items: 0, artists: 0, sabhas: 0, link: 0 };
+
 async function consentEvents(rasikaId: string) {
   return db`select purpose, value, at from private.consent_event where rasika_id = ${rasikaId} order by id`;
 }
@@ -120,6 +132,13 @@ describe('a deletion request, with a yes to season reports', () => {
     const consentsBefore = await consentEvents(rasika.rasikaId);
     const countsBefore = await seasonCounts(rasika.rasikaId);
     expect(await processedOps(rasika.rasikaId)).toBeGreaterThan(0);
+    // A sign-in flow state, as Google sign-in leaves one, holding provider tokens. It has no
+    // foreign key to the user, so deleting the user alone would leave it.
+    const flowId = randomUUID();
+    await db`
+      insert into auth.flow_state
+        (id, user_id, provider_type, authentication_method, provider_access_token, created_at)
+      values (${flowId}, ${rasika.userId}, 'google', 'oauth', ${'token-' + flowId}, now())`;
 
     const reply = await deletion(maintainer, rasika.email);
     expect(reply.status).toBe(200);
@@ -139,6 +158,7 @@ describe('a deletion request, with a yes to season reports', () => {
     expect(await db`select 1 from private.device where rasika_id = ${rasika.rasikaId}`).toEqual([]);
     expect(await db`select 1 from auth.users where id = ${rasika.userId}`).toEqual([]);
     expect(await db`select 1 from auth.sessions where user_id = ${rasika.userId}`).toEqual([]);
+    expect(await db`select 1 from auth.flow_state where id = ${flowId}`).toEqual([]);
 
     // The season stays, every note nulled; nothing else in the records changes. Own names and
     // titles stay: season reports count them.
@@ -185,14 +205,7 @@ describe('a deletion request, without a yes to season reports', () => {
 
       expect((await deletion(maintainer, rasika.email)).data).toEqual({ deidentified: true });
 
-      expect(await seasonCounts(rasika.rasikaId)).toEqual({
-        events: 0,
-        appearances: 0,
-        items: 0,
-        artists: 0,
-        sabhas: 0,
-        link: 0,
-      });
+      expect(await seasonCounts(rasika.rasikaId)).toEqual(NO_SEASON);
       const [row] = await db`
         select email, name, auth_user_id, deidentified_at from private.rasika
         where id = ${rasika.rasikaId}`;
@@ -269,9 +282,91 @@ describe('after the deletion', () => {
     expect(await tablesMentioning([rasika.userId])).toEqual([]);
   });
 
+  for (const [what, pad] of [
+    ['a line break', '\n'],
+    ['a tab', '\t'],
+    ['a no-break space', '\u00a0'],
+  ] as const) {
+    it(`ignores ${what} around the email`, async () => {
+      const rasika = await signUp('padded');
+      const reply = await deletion(maintainer, `${pad}${rasika.email}${pad}`);
+      expect(reply.data).toEqual({ deidentified: true });
+    });
+  }
+
   it('answers false for an email with no account', async () => {
     const reply = await deletion(maintainer, `nobody-${randomUUID()}@example.test`);
     expect(reply.data).toEqual({ deidentified: false });
+  });
+});
+
+describe('an email that has passed to someone else', () => {
+  it("de-identifies only its current owner, even where the old owner's row still names it", async () => {
+    // X signs up with e1, then moves to e2; V then signs up with e1.
+    const x = await rasikaWithSeason(false);
+    const e1 = x.rasika.email;
+    await changeEmail(x.rasika, `moved-${randomUUID()}@example.test`);
+    // A row left stale, as one from before its auth user's email changed would be.
+    await db`update private.rasika set email = ${e1} where id = ${x.rasika.rasikaId}`;
+    const xSeason = await seasonCounts(x.rasika.rasikaId);
+    const xAudit = await auditEntriesAbout(x.rasika.userId);
+    const v = await signUp('heir', undefined, e1);
+
+    expect((await deletion(maintainer, e1)).data).toEqual({ deidentified: true });
+
+    const [vRow] = await db`select deidentified_at from private.rasika where id = ${v.rasikaId}`;
+    expect(vRow!.deidentified_at).toBeInstanceOf(Date);
+    const [xRow] = await db`
+      select auth_user_id, deidentified_at from private.rasika where id = ${x.rasika.rasikaId}`;
+    expect(xRow).toEqual({ auth_user_id: x.rasika.userId, deidentified_at: null });
+    expect(await seasonCounts(x.rasika.rasikaId)).toEqual(xSeason);
+    expect((await me(x.rasika)).status).toBe(200);
+    // X's own audit entries, logged under e1 when it was theirs, stay.
+    expect(await auditEntriesAbout(x.rasika.userId)).toBe(xAudit);
+  });
+
+  it("keeps the rasika row's email current when the auth user's changes", async () => {
+    const rasika = await signUp('mover');
+    const moved = `moved-${randomUUID()}@example.test`;
+    await changeEmail(rasika, moved);
+    const [row] = await db`select email from private.rasika where id = ${rasika.rasikaId}`;
+    expect(row!.email).toBe(moved);
+  });
+});
+
+const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+describe('calls arriving during the deletion', () => {
+  it("counts a change to season reports that was in flight, under the rasika's lock", async () => {
+    const { rasika } = await rasikaWithSeason(true);
+    let deleted!: ReturnType<typeof deletion>;
+
+    // The rasika says no to season reports; the deletion arrives before that commits.
+    await asRasika(rasika, async (sql) => {
+      await sql`select public.me_consent(${sql.json({ seasonReports: false })})`;
+      deleted = deletion(maintainer, rasika.email);
+      await pause(1000);
+    });
+
+    expect((await deleted).data).toEqual({ deidentified: true });
+    expect(await seasonCounts(rasika.rasikaId)).toEqual(NO_SEASON);
+  });
+
+  it('stores nothing from a push that arrives while the season is being deleted', async () => {
+    const { rasika } = await rasikaWithSeason(false);
+    let pushed!: ReturnType<typeof push>;
+
+    await asRasika(maintainer, async (sql) => {
+      const [row] = await sql<{ done: boolean }[]>`
+        select private.deidentify(${rasika.email}) as done`;
+      expect(row!.done).toBe(true);
+      pushed = push(rasika, [op('events', newEvent())]);
+      await pause(1000);
+    });
+
+    expect((await pushed).status).not.toBe(200);
+    expect(await seasonCounts(rasika.rasikaId)).toEqual(NO_SEASON);
+    expect(await processedOps(rasika.rasikaId)).toBe(0);
   });
 });
 

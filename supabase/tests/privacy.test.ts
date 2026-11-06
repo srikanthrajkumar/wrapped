@@ -4,10 +4,10 @@
 // Maintainer function refuses an ordinary rasika; and an anonymous caller can execute nothing.
 
 import { randomUUID } from 'node:crypto';
-import type { TransactionSql } from 'postgres';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { SYNC_FUNCTIONS, type PushOp } from '../../app/src/model/sync-payloads';
 import {
+  asRasika,
   apiClient,
   call,
   claim,
@@ -32,16 +32,6 @@ const RASIKA_FUNCTIONS: string[] = Object.values(SYNC_FUNCTIONS);
  * listed here or in RASIKA_FUNCTIONS, so a new one is classified before it ships.
  */
 const MAINTAINER_FUNCTIONS: string[] = ['admin_deletion'];
-
-/** Runs `body` in a transaction as `rasika` would inside a function: role and JWT claims set. */
-async function asRasika<T>(rasika: Rasika, body: (sql: TransactionSql) => Promise<T>): Promise<T> {
-  return (await db.begin(async (sql) => {
-    const claims = JSON.stringify({ sub: rasika.userId, role: 'authenticated' });
-    await sql`select set_config('request.jwt.claims', ${claims}, true)`;
-    await sql`set local role authenticated`;
-    return body(sql);
-  })) as T;
-}
 
 let a: Rasika;
 let b: Rasika;
