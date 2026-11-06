@@ -780,6 +780,7 @@
       "colourPrimary": "yellow",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -793,6 +794,7 @@
       "colourPrimary": "orange",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -806,6 +808,7 @@
       "colourPrimary": "pink",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -819,6 +822,7 @@
       "colourPrimary": "white",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 4,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -832,6 +836,7 @@
       "colourPrimary": "orange",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -845,6 +850,7 @@
       "colourPrimary": "red",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -858,6 +864,7 @@
       "colourPrimary": "red",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -871,6 +878,7 @@
       "colourPrimary": "grey",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 4,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -884,6 +892,7 @@
       "colourPrimary": "brown",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 5,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -897,6 +906,7 @@
       "colourPrimary": "white",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -910,6 +920,7 @@
       "colourPrimary": "brown",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -923,6 +934,7 @@
       "colourPrimary": "white",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -936,6 +948,7 @@
       "colourPrimary": "white",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 4,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -949,6 +962,7 @@
       "colourPrimary": "red",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -962,6 +976,7 @@
       "colourPrimary": "white",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -975,6 +990,7 @@
       "colourPrimary": "purple",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -988,6 +1004,7 @@
       "colourPrimary": "blue",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 4,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1001,6 +1018,7 @@
       "colourPrimary": "blue",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1014,6 +1032,7 @@
       "colourPrimary": "white",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1027,6 +1046,7 @@
       "colourPrimary": "blue",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1040,6 +1060,7 @@
       "colourPrimary": "orange",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 4,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1053,6 +1074,7 @@
       "colourPrimary": "beige",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1066,6 +1088,7 @@
       "colourPrimary": "pink",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1079,6 +1102,7 @@
       "colourPrimary": "white",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1092,6 +1116,7 @@
       "colourPrimary": "orange",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 4,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1105,6 +1130,7 @@
       "colourPrimary": "brown",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1118,6 +1144,7 @@
       "colourPrimary": "white",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1131,6 +1158,7 @@
       "colourPrimary": "yellow",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1144,6 +1172,7 @@
       "colourPrimary": "grey",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 4,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1157,6 +1186,7 @@
       "colourPrimary": "orange",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1170,6 +1200,7 @@
       "colourPrimary": "red",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1183,6 +1214,7 @@
       "colourPrimary": "white",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1196,6 +1228,7 @@
       "colourPrimary": "yellow",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 4,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1209,6 +1242,7 @@
       "colourPrimary": "white",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 5,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1222,6 +1256,7 @@
       "colourPrimary": "yellow",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1235,6 +1270,7 @@
       "colourPrimary": "brown",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1248,6 +1284,7 @@
       "colourPrimary": "orange",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1261,6 +1298,7 @@
       "colourPrimary": "brown",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1274,6 +1312,7 @@
       "colourPrimary": "green",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1287,6 +1326,7 @@
       "colourPrimary": "beige",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1300,6 +1340,7 @@
       "colourPrimary": "black",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 4,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1313,6 +1354,7 @@
       "colourPrimary": "purple",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1326,6 +1368,7 @@
       "colourPrimary": "beige",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1339,6 +1382,7 @@
       "colourPrimary": "blue",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1352,6 +1396,7 @@
       "colourPrimary": "white",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 4,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1365,6 +1410,7 @@
       "colourPrimary": "red",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1378,6 +1424,7 @@
       "colourPrimary": "green",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1391,6 +1438,7 @@
       "colourPrimary": "black",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1404,6 +1452,7 @@
       "colourPrimary": "pink",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 4,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1417,6 +1466,7 @@
       "colourPrimary": "red",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1430,6 +1480,7 @@
       "colourPrimary": "red",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1443,6 +1494,7 @@
       "colourPrimary": "green",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1456,6 +1508,7 @@
       "colourPrimary": "beige",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1469,6 +1522,7 @@
       "colourPrimary": "yellow",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1482,6 +1536,7 @@
       "colourPrimary": "beige",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1495,6 +1550,7 @@
       "colourPrimary": "red",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 4,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1508,6 +1564,7 @@
       "colourPrimary": "white",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1521,6 +1578,7 @@
       "colourPrimary": "red",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1534,6 +1592,7 @@
       "colourPrimary": "purple",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1547,6 +1606,7 @@
       "colourPrimary": "white",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 4,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1560,6 +1620,7 @@
       "colourPrimary": "green",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1573,6 +1634,7 @@
       "colourPrimary": "yellow",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1586,6 +1648,7 @@
       "colourPrimary": "red",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1599,6 +1662,7 @@
       "colourPrimary": "black",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 4,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1612,6 +1676,7 @@
       "colourPrimary": "white",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1625,6 +1690,7 @@
       "colourPrimary": "yellow",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1638,6 +1704,7 @@
       "colourPrimary": "white",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1651,6 +1718,7 @@
       "colourPrimary": "white",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1664,6 +1732,7 @@
       "colourPrimary": "pink",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1677,6 +1746,7 @@
       "colourPrimary": "blue",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1690,6 +1760,7 @@
       "colourPrimary": "purple",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 4,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1703,6 +1774,7 @@
       "colourPrimary": "blue",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1716,6 +1788,7 @@
       "colourPrimary": "orange",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1729,6 +1802,7 @@
       "colourPrimary": "pink",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1742,6 +1816,7 @@
       "colourPrimary": "yellow",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 4,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1755,6 +1830,7 @@
       "colourPrimary": "green",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1768,6 +1844,7 @@
       "colourPrimary": "white",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1781,6 +1858,7 @@
       "colourPrimary": "white",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1794,6 +1872,7 @@
       "colourPrimary": "blue",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 4,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1807,6 +1886,7 @@
       "colourPrimary": "blue",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1820,6 +1900,7 @@
       "colourPrimary": "red",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1833,6 +1914,7 @@
       "colourPrimary": "black",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1846,6 +1928,7 @@
       "colourPrimary": "green",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 4,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1859,6 +1942,7 @@
       "colourPrimary": "white",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1872,6 +1956,7 @@
       "colourPrimary": "white",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1885,6 +1970,7 @@
       "colourPrimary": "orange",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1898,6 +1984,7 @@
       "colourPrimary": "orange",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1911,6 +1998,7 @@
       "colourPrimary": "white",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1924,6 +2012,7 @@
       "colourPrimary": "orange",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1937,6 +2026,7 @@
       "colourPrimary": "orange",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 4,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1945,11 +2035,12 @@
     {
       "id": "6b88fb2a-d823-519e-84c2-464f78eea657",
       "eventId": "bf47cc42-dd58-593f-92b1-7297a1f1eb20",
-      "artistId": "8951f460-d7d3-5864-8e3f-ebf14b224383",
+      "artistId": "efa88de6-4372-5a73-851c-7a8c9e944996",
       "role": null,
       "colourPrimary": "blue",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1963,6 +2054,7 @@
       "colourPrimary": "brown",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1976,6 +2068,7 @@
       "colourPrimary": "green",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -1989,6 +2082,7 @@
       "colourPrimary": "blue",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2002,6 +2096,7 @@
       "colourPrimary": "brown",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2015,6 +2110,7 @@
       "colourPrimary": "blue",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2028,6 +2124,7 @@
       "colourPrimary": "blue",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 4,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2041,6 +2138,7 @@
       "colourPrimary": "pink",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2054,6 +2152,7 @@
       "colourPrimary": "brown",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2067,6 +2166,7 @@
       "colourPrimary": "green",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2080,6 +2180,7 @@
       "colourPrimary": "yellow",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 4,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2093,6 +2194,7 @@
       "colourPrimary": "beige",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2101,11 +2203,12 @@
     {
       "id": "8e2b4748-b34c-5874-8a5e-3ece265065c3",
       "eventId": "3a97d436-ba63-5cd8-b5c1-05e813d1bc79",
-      "artistId": "69e82b51-81e8-5770-87c5-a16de313092e",
+      "artistId": "3cd99d42-a77d-514b-9802-0dc7373fed40",
       "role": "mridangam",
       "colourPrimary": "white",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2119,6 +2222,7 @@
       "colourPrimary": "grey",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2127,11 +2231,12 @@
     {
       "id": "5a874824-e463-5159-af80-d5f9d54ab332",
       "eventId": "62982137-899a-5bf9-9ebb-68230ef5a0d0",
-      "artistId": "d9e6c51a-a736-5721-8099-084ba90037e5",
+      "artistId": "b870e009-47cc-5609-a261-ce7206003813",
       "role": null,
       "colourPrimary": "pink",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2145,6 +2250,7 @@
       "colourPrimary": "yellow",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2158,6 +2264,7 @@
       "colourPrimary": "yellow",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2171,6 +2278,7 @@
       "colourPrimary": "brown",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2184,6 +2292,7 @@
       "colourPrimary": "beige",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2197,6 +2306,7 @@
       "colourPrimary": "red",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2210,6 +2320,7 @@
       "colourPrimary": "beige",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2223,6 +2334,7 @@
       "colourPrimary": "beige",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 4,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2236,6 +2348,7 @@
       "colourPrimary": "orange",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2249,6 +2362,7 @@
       "colourPrimary": "yellow",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2262,6 +2376,7 @@
       "colourPrimary": "orange",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2275,6 +2390,7 @@
       "colourPrimary": "red",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 4,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2288,6 +2404,7 @@
       "colourPrimary": "white",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 5,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2301,6 +2418,7 @@
       "colourPrimary": "pink",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2314,6 +2432,7 @@
       "colourPrimary": "red",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2327,6 +2446,7 @@
       "colourPrimary": "blue",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2340,6 +2460,7 @@
       "colourPrimary": "beige",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 4,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2353,6 +2474,7 @@
       "colourPrimary": "blue",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2366,6 +2488,7 @@
       "colourPrimary": "blue",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2379,6 +2502,7 @@
       "colourPrimary": "red",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2392,6 +2516,7 @@
       "colourPrimary": "beige",
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 4,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2405,6 +2530,7 @@
       "colourPrimary": null,
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2418,6 +2544,7 @@
       "colourPrimary": null,
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2431,6 +2558,7 @@
       "colourPrimary": null,
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 3,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2444,6 +2572,7 @@
       "colourPrimary": null,
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2457,6 +2586,7 @@
       "colourPrimary": null,
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2470,6 +2600,7 @@
       "colourPrimary": null,
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2483,6 +2614,7 @@
       "colourPrimary": null,
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2496,6 +2628,7 @@
       "colourPrimary": null,
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2509,6 +2642,7 @@
       "colourPrimary": null,
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 1,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2522,6 +2656,7 @@
       "colourPrimary": null,
       "colourSecondary": null,
       "billed": false,
+      "group": null,
       "position": 2,
       "createdAt": "2024-12-31T00:00:00.000Z",
       "updatedAt": "2024-12-31T00:00:00.000Z",
@@ -2721,7 +2856,7 @@
       "form": {
         "state": "catalog",
         "key": "svarajati",
-        "text": "svarajati",
+        "text": "Svarajati",
         "guess": false
       },
       "ragas": [
@@ -2778,7 +2913,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -2898,7 +3033,7 @@
       "form": {
         "state": "catalog",
         "key": "tillana",
-        "text": "tillana",
+        "text": "Tillana",
         "guess": false
       },
       "ragas": [
@@ -3297,7 +3432,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -3423,7 +3558,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -3537,7 +3672,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -3765,7 +3900,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -3822,7 +3957,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -3879,7 +4014,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -4107,7 +4242,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -4164,7 +4299,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -4335,7 +4470,7 @@
       "form": {
         "state": "catalog",
         "key": "tillana",
-        "text": "tillana",
+        "text": "Tillana",
         "guess": false
       },
       "ragas": [
@@ -4392,7 +4527,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -4449,7 +4584,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -5304,7 +5439,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -5532,7 +5667,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -5703,7 +5838,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -6501,7 +6636,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -6672,7 +6807,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -6729,7 +6864,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -6843,7 +6978,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -6900,7 +7035,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -7185,7 +7320,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -7299,7 +7434,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -7413,7 +7548,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -7470,7 +7605,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -7641,7 +7776,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -7812,7 +7947,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -7926,7 +8061,7 @@
       "form": {
         "state": "catalog",
         "key": "varnam",
-        "text": "varnam",
+        "text": "Varnam",
         "guess": false
       },
       "ragas": [
@@ -8088,7 +8223,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -8202,7 +8337,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -8373,7 +8508,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -8715,7 +8850,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -9057,7 +9192,7 @@
       "form": {
         "state": "catalog",
         "key": "tillana",
-        "text": "tillana",
+        "text": "Tillana",
         "guess": false
       },
       "ragas": [
@@ -9228,7 +9363,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -9342,7 +9477,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -9399,7 +9534,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -9456,7 +9591,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -9570,7 +9705,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -9798,7 +9933,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -9855,7 +9990,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -9912,7 +10047,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -9969,7 +10104,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -10140,7 +10275,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -10311,7 +10446,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -10425,7 +10560,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -10482,7 +10617,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -10596,7 +10731,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -10653,7 +10788,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -10710,7 +10845,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -10824,7 +10959,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -10881,7 +11016,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -11109,7 +11244,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -11166,7 +11301,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -11223,7 +11358,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -11394,7 +11529,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -11622,7 +11757,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -11736,7 +11871,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -11907,7 +12042,7 @@
       "form": {
         "state": "catalog",
         "key": "tillana",
-        "text": "tillana",
+        "text": "Tillana",
         "guess": false
       },
       "ragas": [
@@ -11964,7 +12099,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -12135,7 +12270,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -12306,7 +12441,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -12420,7 +12555,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -12477,7 +12612,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -12534,7 +12669,7 @@
       "form": {
         "state": "catalog",
         "key": "svarajati",
-        "text": "svarajati",
+        "text": "Svarajati",
         "guess": false
       },
       "ragas": [
@@ -12648,7 +12783,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -12762,7 +12897,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -12933,7 +13068,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -13503,7 +13638,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -13560,7 +13695,7 @@
       "form": {
         "state": "catalog",
         "key": "kriti",
-        "text": "kriti",
+        "text": "Kriti",
         "guess": false
       },
       "ragas": [
@@ -13597,6 +13732,17 @@
       }
     }
   ],
-  "artists": [],
+  "artists": [
+    {
+      "id": "b870e009-47cc-5609-a261-ce7206003813",
+      "name": "Leela Samson & Spanda Dance Company",
+      "nameKey": "lila samson spanda dance company",
+      "aliases": [],
+      "mergedIntoId": null,
+      "createdAt": "2024-12-31T00:00:00.000Z",
+      "updatedAt": "2024-12-31T00:00:00.000Z",
+      "deletedAt": null
+    }
+  ],
   "sabhas": []
 }
