@@ -34,6 +34,17 @@ REPORT = ROOT / "tools/reference-seed/unmatched.md"
 NAMESPACE = uuid.UUID("6f1c2a52-3b0e-4f43-9d1e-7a4c0b8e5d21")
 LIST_VERSION = 1
 
+# Corrections to the sheet's Artist names, found by the logger project (T123, 2026-11-06). Made
+# before any phone or hosted database holds the shared lists: after that, removing a shared id
+# would leave Appearances pointing at nothing.
+# A misspelling or a second spelling of one person: kept as an Alias of the name it belongs to.
+ARTIST_ALIASES = {
+    "Anantha R Krishnana": "Anantha R Krishnan",
+    "Charumati Raghuram": "Charumati Raghuraman",
+}
+# Names in the Artist columns that are not an Artist: left out of the shared list.
+NOT_ARTISTS = {"Leela Samson & Spanda Dance Company"}
+
 # Project-kept forms an Item uses when it has no Composition (data-model.md, Item `form`).
 # Where the catalog has the same form, the key is the catalog's ("viruttam", "shlokam"), so
 # the two never split one form's count.
@@ -71,12 +82,13 @@ def rows(sheet):
             yield {header[i]: row[i] for i in range(min(len(header), len(row)))}
 
 
-def shared(kind, names):
+def shared(kind, names, aliases=None):
+    aliases = aliases or {}
     return [
         {
             "id": str(uuid.uuid5(NAMESPACE, f"{kind}:{name}")),
             "name": name,
-            "aliases": [],
+            "aliases": [alias for alias, of in aliases.items() if of == name],
             "listVersion": LIST_VERSION,
         }
         for name in names
@@ -141,7 +153,11 @@ def main():
         if (topic := clean(row.get("Topic"))) and topic not in {"?", "-", "None"}
     )
 
-    write_json(OUT / "shared-lists.seed.json", {"sabhas": shared("sabha", sabhas), "artists": shared("artist", artists)})
+    artists = [name for name in artists if name not in NOT_ARTISTS and name not in ARTIST_ALIASES]
+    write_json(
+        OUT / "shared-lists.seed.json",
+        {"sabhas": shared("sabha", sabhas), "artists": shared("artist", artists, ARTIST_ALIASES)},
+    )
     write_json(OUT / "composer-dates.json", {})
     write_json(OUT / "topics.json", {})
     write_json(OUT / "forms.json", FORMS)
@@ -181,7 +197,7 @@ def main():
         "Seeded as separate Shared Artists. Merge them, or keep one as an alias, if they are the",
         "same person.",
         "",
-        *(f"- {a} / {b}" for a, b in near_duplicates(artists)),
+        *([f"- {a} / {b}" for a, b in near_duplicates(artists)] or ["None left."]),
         "",
         f"Seeded: {len(sabhas)} Sabhas, {len(artists)} Artists, {len(FORMS)} forms.",
         "",

@@ -116,7 +116,6 @@ the snapshot exists. Counts are Items in the sheet.
 Seeded as separate Shared Artists. Merge them, or keep one as an alias, if they are the
 same person.
 
-- Anantha R Krishnan / Anantha R Krishnana
-- Charumati Raghuraman / Charumati Raghuram
+None left.
 
-Seeded: 11 Sabhas, 102 Artists, 4 forms.
+Seeded: 11 Sabhas, 99 Artists, 4 forms.
