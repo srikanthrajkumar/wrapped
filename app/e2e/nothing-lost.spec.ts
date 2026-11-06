@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs';
 import {
   failWritesOnDemand,
   finishFirstLaunch,
+  openFold,
   readTable,
   setFailingWrites,
   setHangingWrites,
@@ -79,7 +80,7 @@ test('A6: the Laya vinyasam note is saved when the page is hidden, before any bl
   await page.getByRole('link', { name: 'Add Item' }).click();
   await page.getByRole('button', { name: '? Don’t know' }).click();
   // One fold for what was improvised; the Laya vinyasam is a chip in it (walkthrough S14).
-  await page.getByRole('button', { name: 'Improvised' }).click();
+  await openFold(page, 'Improvised');
   await page.getByRole('button', { name: 'Laya vinyasam' }).click();
   const note = page.getByRole('textbox', { name: 'Note' });
   // Time stands still, so the autosave's pause never ends: only pagehide can save the note.
@@ -103,6 +104,50 @@ test('A6: the Laya vinyasam note is saved when the page is hidden, before any bl
     })
     .toBe('tisram, then khandam');
   await expect(note).toBeFocused();
+});
+
+test('a tap on a chip as it shows, while the fold still grows, marks it', async ({ page }) => {
+  await newConcert(page);
+  await page.getByRole('link', { name: 'Add Item' }).click();
+  await page.getByRole('button', { name: '? Don’t know' }).click();
+  await expect(page.getByRole('button', { name: /^Tala,/ })).toBeVisible();
+  // The fold grows over two seconds instead of 200ms, so the tap surely lands while it grows.
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Animation.enable');
+  await cdp.send('Animation.setPlaybackRate', { playbackRate: 0.1 });
+  await page.getByRole('button', { name: 'Improvised', exact: true }).click();
+
+  // As a rasika would: scroll down after the growing fold, and tap the chip near its top edge
+  // as soon as that edge shows, inside the fold and above the bottom bar.
+  const tap = await page.waitForFunction(
+    () => {
+      window.scrollTo(0, document.documentElement.scrollHeight);
+      const chip = [...document.querySelectorAll('button')].find(
+        (button) => button.textContent === 'Laya vinyasam',
+      );
+      const fold = document.querySelector('[data-slot=accordion-content]');
+      if (!chip || !fold) return null;
+      const { left, top, width } = chip.getBoundingClientRect();
+      const point = { x: left + width / 2, y: top + 4 };
+      if (document.elementFromPoint(point.x, point.y) !== chip) return null;
+      const growing = fold.getAnimations().some((opening) => opening.playState === 'running');
+      return { ...point, growing };
+    },
+    undefined,
+    { polling: 'raf' },
+  );
+  const { x, y, growing } = (await tap.jsonValue())!;
+  expect(growing).toBe(true);
+  await page.mouse.click(x, y);
+
+  await expect(page.getByRole('button', { name: 'Laya vinyasam' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(page.getByRole('textbox', { name: 'Note' })).toBeVisible();
+  await expect
+    .poll(async () => (await readTable<{ layaVinyasam: unknown }>(page, 'items'))[0]?.layaVinyasam)
+    .toBeTruthy();
 });
 
 test('A8: the note keeps focus and every keystroke across its autosave', async ({ page }) => {
@@ -478,7 +523,7 @@ test('a Laya note typed over a failed Nadai keeps the Nadai entered', async ({ p
   await page.getByRole('link', { name: 'Add Item' }).click();
   await page.getByRole('button', { name: '? Don’t know' }).click();
   // One fold for what was improvised; the Laya vinyasam is a chip in it (walkthrough S14).
-  await page.getByRole('button', { name: 'Improvised' }).click();
+  await openFold(page, 'Improvised');
   await page.getByRole('button', { name: 'Laya vinyasam' }).click();
   await expect(page.getByRole('textbox', { name: 'Note' })).toBeVisible();
   // The screen shows the Laya vinyasam as entered, before it is stored: wait for the store.

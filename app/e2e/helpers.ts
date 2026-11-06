@@ -69,6 +69,23 @@ export async function setHangingWrites(page: Page, hanging: boolean): Promise<vo
   }, hanging);
 }
 
+/**
+ * Open a fold with a tap on its title, and wait until it has grown open, as a rasika sees it
+ * before tapping a row in it. While it grows, the rows below its edge are clipped. Playwright
+ * would reach such a row by scrolling inside the fold, which no finger can do. The tap's focus
+ * then finishes the opening, the row moves from under the pointer and the tap is lost.
+ */
+export async function openFold(page: Page, title: string): Promise<void> {
+  const trigger = page.getByRole('button', { name: title, exact: true });
+  await trigger.click();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  await page
+    .getByRole('region', { name: title })
+    .evaluate((fold) =>
+      Promise.all(fold.getAnimations().map((opening) => opening.finished.catch(() => undefined))),
+    );
+}
+
 /** Every row of one table, straight from IndexedDB. */
 export function readTable<T = Record<string, unknown>>(page: Page, table: string): Promise<T[]> {
   return page.evaluate(
