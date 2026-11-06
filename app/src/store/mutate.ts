@@ -101,7 +101,7 @@ function ownFields<T extends RasikaTable>(table: T, row: RasikaRows[T]): Partial
  * the reply was lost, may already be stored under its opId, so it is never changed and the
  * save adds a new entry (eng review D8).
  */
-async function enqueue(
+export async function enqueue(
   db: WrappedDB,
   table: RasikaTable,
   row: RasikaRows[RasikaTable],

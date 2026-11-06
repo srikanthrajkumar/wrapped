@@ -5,6 +5,7 @@
 
 import { db as defaultDb, type WrappedDB } from './db';
 import { CATALOG_VERSION_KEY } from './catalog-version';
+import { countUnsynced } from './outbox';
 
 export interface NotSavedValue {
   table: string;
@@ -110,14 +111,24 @@ function readSeason(
 ): Promise<SeasonExport> {
   return db.transaction(
     'r',
-    [db.events, db.appearances, db.items, db.artists, db.sabhas, db.links, db.outbox, db.meta],
+    [
+      db.events,
+      db.appearances,
+      db.items,
+      db.artists,
+      db.sabhas,
+      db.links,
+      db.outbox,
+      db.attention,
+      db.meta,
+    ],
     async () => ({
       format: 1 as const,
       exportedAt: localTimestamp(now),
       appVersion,
       catalogVersion:
         ((await db.meta.get(CATALOG_VERSION_KEY))?.value as string | undefined) ?? null,
-      unsyncedOps: await db.outbox.count(),
+      unsyncedOps: await countUnsynced(db),
       events: await db.events.toArray(),
       appearances: await db.appearances.toArray(),
       items: await db.items.toArray(),
