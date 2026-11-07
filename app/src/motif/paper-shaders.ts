@@ -6,7 +6,9 @@
 // see PAPER-NOTICE.txt. Powered by Paper Shaders: https://shaders.paper.design
 //
 // Changes from the original: the vertex shader keeps only the object sizing the mesh reads
-// (v_objectUV), and the helper snippets are inlined.
+// (v_objectUV); the helper snippets are inlined; and the mesh runs at highp, since at sharp
+// mixing its weights pass 65,504 near each colour's centre, which overflows the 16-bit mediump
+// of phone GPUs (WebGL2 guarantees highp in fragment shaders).
 
 export const MAX_COLORS = 10;
 
@@ -71,7 +73,7 @@ void main() {
 `;
 
 export const staticMeshGradientShader = `#version 300 es
-precision mediump float;
+precision highp float;
 
 uniform vec4 u_colors[${MAX_COLORS}];
 uniform float u_colorsCount;
