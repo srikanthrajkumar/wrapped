@@ -55,7 +55,8 @@ const entry = (fields: Partial<ScheduleEntry> = {}): ScheduleEntry => ({
 let published = 0;
 async function publish(db: WrappedDB, ...entries: ScheduleEntry[]) {
   published += 1;
-  const at = `2026-11-${String(published).padStart(2, '0')}T10:00:00Z`;
+  // Each file an hour after the last, so every publishedAt is a real instant.
+  const at = new Date(Date.UTC(2026, 10, 1, published)).toISOString();
   await storeSchedule({ season: '2026-27', publishedAt: at, entries }, null, { db });
   return applySchedule({ db });
 }
@@ -141,6 +142,47 @@ describe('A: whose Appearance it is', () => {
     expect(await db.appearances.get(krishna.id)).toEqual(before);
     expect((await db.events.get(event.id))?.startTime).toBe('16:00');
   });
+
+  it.each(['promoted', 'merged'] as const)(
+    'brings back the tombstone of an Artist since %s, Colours and Role kept (Codex, PR #25)',
+    async (how) => {
+      const db = freshDb();
+      const violin = { name: 'Akkarai Subhalakshmi', role: 'violin' as const, group: null };
+      const event = await planned(db, entry({ billed: [violin] }));
+      const [row] = await stageRows(db, event.id);
+      await editAppearance(row!.id, { colourPrimary: 'green', role: 'veena' }, { db });
+      await removeAppearance(row!.id, { db });
+      // The own Artist the name made becomes another: promoted to a shared one, or merged.
+      let name = violin.name;
+      if (how === 'promoted') {
+        await db.sharedArtists.put({ id: 's-akkarai', name, aliases: [], listVersion: 1 });
+        await db.links.put({
+          id: 'l1',
+          ownTable: 'artist',
+          ownId: row!.artistId,
+          sharedId: 's-akkarai',
+        });
+      } else {
+        name = 'Akkarai S. Subhalakshmi';
+        const survivor = await createArtist(name, { db });
+        await db.artists.update(row!.artistId, { mergedIntoId: survivor.id });
+      }
+      await publish(
+        db,
+        entry({ version: 2, startTime: '18:00', billed: [{ name, role: null, group: null }] }),
+      );
+      await takeSchedule(event.id, 2, { db });
+      const stage = await stageRows(db, event.id);
+      expect(stage).toHaveLength(1);
+      expect(stage[0]).toMatchObject({
+        id: row!.id,
+        artistId: row!.artistId,
+        colourPrimary: 'green',
+        role: 'veena',
+        billed: true,
+      });
+    },
+  );
 
   it('keeps every Schedule id derived from the Event and the Artist, never the place', async () => {
     const db = freshDb();
@@ -228,6 +270,19 @@ describe('E: a stale file never moves the stored copy', () => {
       true,
     );
     expect(await scheduleMeta(db)).toMatchObject({ tag: '"c"' });
+  });
+
+  it('refuses a publishedAt that is no real day or time, so a corrected file still lands (Codex, PR #25)', async () => {
+    const db = freshDb();
+    // 31 November would be read as 1 December, and the corrected 30 November refused as older.
+    expect(await storeSchedule(file('2026-27', '2026-11-31T10:00:00Z'), '"bad"', { db })).toBe(
+      false,
+    );
+    expect(await scheduleMeta(db)).toBeNull();
+    expect(await storeSchedule(file('2026-27', '2026-11-30T12:00:00Z'), '"good"', { db })).toBe(
+      true,
+    );
+    expect(await scheduleMeta(db)).toMatchObject({ tag: '"good"' });
   });
 
   it('refuses a file for an earlier Season than the one stored', async () => {

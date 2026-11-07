@@ -54,8 +54,13 @@ export const ENTRY_CANCELLED = 'this Schedule entry is cancelled';
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 const SEASON = /^\d{4}-\d{2}$/;
-/** An instant with its offset, as `2026-11-20T10:00:00Z` or `2026-11-20T15:30:00+05:30`. */
-const INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
+/**
+ * An instant with its offset, as `2026-11-20T10:00:00Z` or `2026-11-20T15:30:00+05:30`: a time
+ * of day that exists (no 24:00 or :60) and an offset of hours and minutes. Its date is checked
+ * apart (`realDate`), since `2026-11-31` would otherwise be read as 1 December.
+ */
+const INSTANT =
+  /^(\d{4}-\d{2}-\d{2})T([01]\d|2[0-3]):[0-5]\d(:[0-5]\d(\.\d+)?)?(Z|[+-]([01]\d|2[0-3]):[0-5]\d)$/;
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -63,15 +68,18 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
 const text = (value: unknown): string | null =>
   typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
 
-/** A calendar date that exists: `2026-02-30` is not one. */
-const realDate = (date: unknown): date is string =>
-  typeof date === 'string' &&
-  ISO_DATE.test(date) &&
-  new Date(`${date}T00:00:00Z`).toISOString().startsWith(date);
+/** A calendar date that exists: `2026-02-30` and `2026-13-01` are not. Never throws. */
+function realDate(date: unknown): date is string {
+  if (typeof date !== 'string' || !ISO_DATE.test(date)) return false;
+  const day = new Date(`${date}T00:00:00Z`);
+  return !Number.isNaN(day.getTime()) && day.toISOString().startsWith(date);
+}
 
-/** The instant a `publishedAt` names, in ms; NaN for one that names none. */
-export const publishedInstant = (publishedAt: string) =>
-  INSTANT.test(publishedAt) ? Date.parse(publishedAt) : Number.NaN;
+/** The instant a `publishedAt` names, in ms; NaN for one that names none, or no real day. */
+export function publishedInstant(publishedAt: string): number {
+  const match = INSTANT.exec(publishedAt);
+  return match && realDate(match[1]) ? Date.parse(publishedAt) : Number.NaN;
+}
 
 /** Why a file is refused whole; read by the tests and the fetch, never shown. */
 const MALFORMED = Symbol('malformed');
@@ -81,6 +89,7 @@ function readBilled(value: unknown): BilledArtist | typeof MALFORMED {
   const name = text(value.name);
   if (name === null) return MALFORMED;
   if (value.group != null && typeof value.group !== 'string') return MALFORMED;
+  if (value.role != null && typeof value.role !== 'string') return MALFORMED;
   // A Role is a hint: one this reader doesn't know reads as none.
   const role = ROLES.includes(value.role as Role) ? (value.role as Role) : null;
   return { name, role, group: text(value.group) };
@@ -98,8 +107,11 @@ function readEntry(value: unknown): ScheduleEntry | null | typeof MALFORMED {
   if (startTime != null && (typeof startTime !== 'string' || !TIME.test(startTime))) {
     return MALFORMED;
   }
+  // Only `startTime`, `title`, a billed `role` and `group` may be null (contracts/schedule-feed.md):
+  // a `cancelled` of null would read as false and reinstate a cancelled Event (Codex, PR #25).
   if (title != null && typeof title !== 'string') return MALFORMED;
-  if (cancelled != null && typeof cancelled !== 'boolean') return MALFORMED;
+  if (typeof cancelled !== 'boolean') return MALFORMED;
+  if (typeof value.kind !== 'string') return MALFORMED;
   if (!Array.isArray(value.billed)) return MALFORMED;
   const billed = value.billed.map(readBilled);
   if (billed.includes(MALFORMED)) return MALFORMED;
@@ -115,7 +127,7 @@ function readEntry(value: unknown): ScheduleEntry | null | typeof MALFORMED {
     kind,
     title: kind === 'concert' ? null : text(title),
     billed: billed as BilledArtist[],
-    cancelled: cancelled === true,
+    cancelled,
   };
 }
 
@@ -157,6 +169,7 @@ export async function storeSchedule(
 ): Promise<boolean> {
   return db.transaction('rw', [db.schedule, db.meta], async () => {
     const stored = (await db.meta.get(SCHEDULE_META))?.value as ScheduleMeta | undefined;
+    if (Number.isNaN(publishedInstant(file.publishedAt))) return false;
     if (stored) {
       if (file.season < stored.season) return false;
       if (
@@ -250,8 +263,9 @@ export const ID_TAKEN = "this Artist's Schedule record is used by another Artist
  *   and group never changed, never removed, and never doubled by a Schedule row;
  * - an Artist the Schedule billed before keeps their Appearance, taking the entry's group, and its
  *   Role unless the entry gives none (a null Role names nothing);
- * - a new one gets the Artist's Schedule id; when that id is a tombstone (the Artist dropped by
- *   an earlier version, or removed), it is that row brought back, Colours and all;
+ * - a new one gets the Artist's Schedule id; when the Event holds a Schedule tombstone of this
+ *   Artist, or of one now resolved to them (promoted or merged), it is that row brought back,
+ *   Colours and Role and all;
  * - a Schedule Artist the entry no longer bills is removed as a tombstone, unless the rasika gave
  *   them a Colour, when they stay, no longer billed.
  * The Schedule's rows take their places in billing order, among the places they held, new ones
@@ -264,6 +278,11 @@ async function syncStage(event: Event, entry: ScheduleEntry, names: Names, db: W
   const live = await liveStage(event.id, db);
   const scheduleRows = live.filter(fromSchedule);
   const own = live.filter((appearance) => !fromSchedule(appearance));
+  // The Schedule's tombstones on this Event: each keeps the Artist it was made for, who may
+  // since have been promoted to a shared Artist or merged into another (Codex, PR #25).
+  const tombstones = (await db.appearances.where('eventId').equals(event.id).toArray()).filter(
+    (appearance) => appearance.deletedAt !== null && fromSchedule(appearance),
+  );
   const used = new Set<string>();
   const billedArtists = new Set<string>();
   const billed: { row: Appearance; existing: boolean }[] = [];
@@ -283,10 +302,17 @@ async function syncStage(event: Event, entry: ScheduleEntry, names: Names, db: W
       });
       continue;
     }
-    const id = scheduleAppearanceId(event.id, artistId);
-    const earlier = await db.appearances.get(id);
+    // A tombstone of any Artist who is now this one (by Link or merge) comes back as itself,
+    // Colours and Role kept. Its Artist stays the one it was made for, which reads as this one:
+    // an Appearance's Artist never changes on the phone.
+    const resolvedTo = tombstones.find(
+      (appearance) => !used.has(appearance.id) && artistOf(appearance) === artistId,
+    );
+    const id = resolvedTo?.id ?? scheduleAppearanceId(event.id, artistId);
+    if (resolvedTo) used.add(resolvedTo.id);
+    const earlier = resolvedTo ?? (await db.appearances.get(id));
     // A record never takes another Artist's id: refused whole, nothing written.
-    if (earlier && (earlier.deletedAt === null || earlier.artistId !== artistId)) {
+    if (earlier && !resolvedTo && (earlier.deletedAt === null || earlier.artistId !== artistId)) {
       throw new RuleError([ID_TAKEN]);
     }
     const row: Appearance = earlier
