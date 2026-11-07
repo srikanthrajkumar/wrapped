@@ -26,18 +26,28 @@ table limits reads and writes to that rasika's own rows.
 - The phone asks supabase-js for a token only when syncing. Logging never checks the session.
 - A 401, or a session Supabase has ended, shows a non-blocking "sign in again" prompt. The
   phone MUST keep its outbox and local data (constitution I).
-- One account per phone's season. The phone keeps who signed in (`identity` in `meta`). When a
-  different account signs in:
+- A token refresh with no answer, or answered 408, 429 or any 5xx (a captive portal's 511
+  among them), keeps the session and is retried with backoff: none of these says the refresh
+  token is bad. Only a refresh the server refused (a 4xx such as `invalid_grant`) with the access
+  token already expired ends the session.
+- One account per phone's season. The phone keeps who signed in (`identity` in `meta`). A
+  sign-in runs on a client that stores nothing; its session is written to the phone only after
+  the account check below passes, in one transaction with the identity, and under the same Web
+  Lock as a sync, so a sync in flight (a restore page still to land) finishes first and counts.
+  When a different account signs in:
   - if the phone holds any season data (a record or tombstone, a queued op, or an op needing
-    attention), the sign-in is refused before anything is written, and that session is signed
-    out with scope `local`, on this phone only. The season, outbox and identity stay as they
+    attention), the sign-in is refused. Its session was never stored, so it is gone from the
+    phone at once; revoking it on the server (sign-out with scope `local`) is tried without
+    waiting for it. The season, outbox, identity and the last account's session stay as they
     were, so one rasika's season is never pushed into another's account;
   - on an empty phone, the new account is let in. The last account's pull cursor, last-synced
-    time and known seqs (`serverSeqs`) are cleared first: the cursor is a position in one
-    sequence shared by every rasika, so kept it would skip the new account's earlier rows on
-    restore.
+    time and known seqs (`serverSeqs`) are cleared in the same transaction: the cursor is a
+    position in one sequence shared by every rasika, so kept it would skip the new account's
+    earlier rows on restore.
 
-  The same account signing in again keeps everything.
+  The same account signing in again keeps everything. Before each sync the phone also checks
+  that the session's user is the recorded identity; if not, it sends nothing and stops with
+  `other_account` (not a sign-out), keeping the outbox, until the right account signs in.
 
 ## Account
 
