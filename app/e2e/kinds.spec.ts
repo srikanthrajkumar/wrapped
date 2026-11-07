@@ -2,8 +2,17 @@
 // in the Event's facts and shown as a mark, a title taken by a change to Concert comes back with
 // Undo, and a Role behind More is never hidden once chosen.
 
-import { expect, test } from '@playwright/test';
-import { finishFirstLaunch } from './helpers';
+import { expect, test, type Page } from '@playwright/test';
+import { finishFirstLaunch, readTable } from './helpers';
+
+/** A new Concert's facts sheet, open. */
+async function openFacts(page: Page) {
+  await page.goto('/');
+  await finishFirstLaunch(page);
+  await page.getByRole('button', { name: 'Log a Concert' }).click();
+  await page.getByRole('button', { name: /Sat|Sun|Mon|Tue|Wed|Thu|Fri/ }).click();
+  return page.getByRole('dialog');
+}
 
 test('a kind and its title, the Undo of a title taken, and the Roles behind More', async ({
   page,
@@ -65,4 +74,24 @@ test('a kind and its title, the Undo of a title taken, and the Roles behind More
   await expect(
     page.getByRole('region', { name: 'Now' }).getByRole('img', { name: 'Dance' }),
   ).toBeVisible();
+});
+
+test('a space typed before a pause stays for the next word', async ({ page }) => {
+  const facts = await openFacts(page);
+  await facts.getByRole('button', { name: 'Dance' }).click();
+  const title = facts.getByRole('textbox', { name: 'Title' });
+  await title.click();
+  // A phone keyboard's suggested word comes with its space, then the rasika pauses.
+  await title.pressSequentially('Foo ');
+  await expect
+    .poll(async () => (await readTable<{ title: string | null }>(page, 'events'))[0]?.title)
+    .toBe('Foo');
+  await page.waitForTimeout(400);
+  await title.pressSequentially('Bar');
+  await expect(title).toHaveValue('Foo Bar');
+  await title.blur();
+  await expect
+    .poll(async () => (await readTable<{ title: string | null }>(page, 'events'))[0]?.title)
+    .toBe('Foo Bar');
+  await expect(title).toHaveValue('Foo Bar');
 });

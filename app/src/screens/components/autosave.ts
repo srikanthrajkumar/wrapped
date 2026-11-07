@@ -5,31 +5,36 @@
 // Until it is written, typed text is handed to `onPending`, which copies it to save feedback's
 // storage at once, so a kill inside the pause loses nothing (null: nothing to write after all;
 // when `onPending` answers false, a write for the field is still running and may land after, so
-// the text is written anyway).
+// the text is written anyway). A field that stores its text tidied (a title, trimmed) says so
+// with `same`: stored text that matches what is typed never replaces it, so a space typed before
+// a pause stays, and the next word doesn't join on (PR #23 review).
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const PAUSE_MS = 800;
 
+const exactly = (a: string, b: string) => a === b;
+
 export function useAutosave(
   stored: string,
   save: (text: string) => void,
   onPending?: (text: string | null) => boolean | void,
+  same: (typed: string, stored: string) => boolean = exactly,
 ) {
   const [text, setText] = useState(stored);
   const [dirty, setDirty] = useState(false);
   const [seen, setSeen] = useState(stored);
   const pending = useRef<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const latest = useRef({ stored, save, onPending });
+  const latest = useRef({ stored, save, onPending, same });
   useEffect(() => {
-    latest.current = { stored, save, onPending };
+    latest.current = { stored, save, onPending, same };
   });
 
   // Resync from the store (another tab, an Undo) while nothing typed is waiting.
   if (stored !== seen) {
     setSeen(stored);
-    if (!dirty) setText(stored);
+    if (!dirty && !same(text, stored)) setText(stored);
   }
 
   const flush = useCallback(() => {
@@ -39,7 +44,7 @@ export function useAutosave(
     pending.current = null;
     setDirty(false);
     if (value === null) return;
-    if (value !== latest.current.stored) latest.current.save(value);
+    if (!latest.current.same(value, latest.current.stored)) latest.current.save(value);
     else if (latest.current.onPending?.(null) === false) latest.current.save(value);
   }, []);
 
