@@ -93,7 +93,7 @@ export async function createEvent(
  * A title as entered, by kind (FR-013, T057): a Concert's is kept as given, so the rule refuses
  * one; any other kind's is trimmed, and an empty one is none.
  */
-function titleFor(kind: EventKind, title: string | null): string | null {
+export function titleFor(kind: EventKind, title: string | null): string | null {
   if (kind === 'concert') return title;
   return title?.trim() || null;
 }
@@ -117,7 +117,7 @@ export async function editEvent(
  * FR-013 holds however an Event comes to be a Lecdem: one with more than 3 presenters is
  * refused with the same rule as a 4th presenter added, so its presenters stay editable.
  */
-async function checkLecdem(event: Event, db: WrappedDB) {
+export async function checkLecdem(event: Event, db: WrappedDB) {
   if (event.kind !== 'lecdem') return;
   const presenters = await db.appearances
     .where('eventId')

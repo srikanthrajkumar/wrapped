@@ -119,6 +119,42 @@ export function findSabhas(
   return findNames('sabha', query, limit, db);
 }
 
+/** Finds the entry a Schedule name means, by its fold, made once for many names. */
+export interface NameMatcher {
+  /** The id to store for `name`, or undefined when no entry has that name or Alias. */
+  match(name: string): string | undefined;
+  /** Count an entry made since the matcher was read, so the same name again finds it. */
+  remember(name: string, id: string): void;
+}
+
+/**
+ * Exact matches for the names the Schedule prints (T058, contracts/schedule-feed.md): the
+ * Artist or Sabha whose name or an Alias folds to the same text, as a typed name would find it
+ * first. A shared entry wins over an own one, and an own one the Maintainer promoted reads as
+ * the shared one (ADR 0005). Read once, inside the caller's transaction.
+ */
+export async function nameMatcher(kind: Kind, db: WrappedDB = defaultDb): Promise<NameMatcher> {
+  const { own, shared, resolve } = await loadEntries(kind, db);
+  const byKey = new Map<string, string>();
+  const offer = (names: readonly string[], id: string) => {
+    for (const name of names) {
+      const key = fold(name);
+      if (key !== '' && !byKey.has(key)) byKey.set(key, id);
+    }
+  };
+  for (const entry of shared) offer([entry.name, ...entry.aliases], entry.id);
+  for (const entry of own) {
+    if (entry.deletedAt !== null || entry.mergedIntoId !== null) continue;
+    const resolved = resolve(entry.id);
+    if (resolved)
+      offer([resolved.name, ...resolved.aliases, entry.name, ...entry.aliases], resolved.id);
+  }
+  return {
+    match: (name) => byKey.get(fold(name)),
+    remember: (name, id) => offer([name], id),
+  };
+}
+
 function ownEntry(name: string, id: string): OwnEntry {
   const trimmed = name.trim();
   if (fold(trimmed) === '') throw new RuleError(['a name needs at least one letter or digit']);
@@ -230,6 +266,17 @@ async function liveAppearances(eventId: string, db: WrappedDB) {
   );
 }
 
+/**
+ * A change the rasika makes to an Event's Stage is an edit of the Event (FR-027): a Planned
+ * Event not yet `touched` becomes touched in the same transaction, so a Schedule update never
+ * replaces an Artist, Role or Colour the rasika changed (T058).
+ */
+async function touchEvent(eventId: string, db: WrappedDB) {
+  const event = await db.events.get(eventId);
+  if (!event || event.deletedAt !== null || event.touched) return;
+  await save('events', { ...event, touched: true }, { db });
+}
+
 async function checkPresenters(appearance: Appearance, db: WrappedDB) {
   if (appearance.role !== 'presenter') return;
   const event = await getLive('events', appearance.eventId, { db });
@@ -273,6 +320,7 @@ export async function addAppearance(
     };
     check(appearanceProblems(appearance));
     await checkPresenters(appearance, db);
+    await touchEvent(eventId, db);
     return save('appearances', appearance, { db });
   });
 }
@@ -287,6 +335,7 @@ export async function editAppearance(
     const edited: Appearance = { ...(await getLive('appearances', id, { db })), ...changes };
     check(appearanceProblems(edited));
     await checkPresenters(edited, db);
+    await touchEvent(edited.eventId, db);
     return save('appearances', edited, { db });
   });
 }
@@ -296,9 +345,10 @@ export async function removeAppearance(
   id: string,
   { db = defaultDb }: WriteOptions = {},
 ): Promise<Deleted<Appearance> | undefined> {
-  return db.transaction('rw', [db.appearances, db.outbox, db.meta], async () => {
+  return db.transaction('rw', [db.events, db.appearances, db.outbox, db.meta], async () => {
     const current = await db.appearances.get(id);
     if (!current || current.deletedAt !== null) return undefined;
+    await touchEvent(current.eventId, db);
     const tombstone = (await remove('appearances', id, { db }))!;
     const receipt = await writeReceipt(db, {
       kind: 'appearance',
@@ -332,6 +382,7 @@ export async function restoreAppearance(
     if (!tombstone) return null;
     // Throwing rolls the transaction back, receipt included.
     await checkPresenters(tombstone, db);
+    await touchEvent(tombstone.eventId, db);
     const live = (await liveAppearances(tombstone.eventId, db)).sort(
       (a, b) => a.position - b.position,
     );
