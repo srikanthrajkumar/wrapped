@@ -177,9 +177,10 @@ curves and a hand-drawn mist were each turned down). The full board history is i
 mesh gradient, its two shader strings copied into `app/src/motif/` with Paper's Apache-2.0
 licence and notice (no package). One shared WebGL2 context draws every mark once into a still
 canvas, so a Schedule of forty cards opens one context, and nothing animates or keeps running.
-Each mark is softened by a blur of 7% of its shorter side as it is copied out, since the mesh
-leaves a sharp point at every colour's centre (a streak or a pinhole where two tones meet). No
-grain. With no WebGL2 nothing is drawn and the surface under it shows. About 4.5 KB of the first
+Each mark is softened by a CSS blur of 7% of its shorter side (Safari has no canvas filter),
+drawn larger than its box and clipped, since the mesh leaves a sharp point at every colour's
+centre (a streak or a pinhole where two tones meet). The shader runs at `highp`: at sharp mixing
+its weights overflow a phone GPU's 16-bit `mediump`. No grain. With no WebGL2 nothing is drawn and the surface under it shows. About 4.5 KB of the first
 install.
 
 **Tones: Ink and rose.** Six theme tokens, each defined in both themes: neutral greys and one
@@ -233,7 +234,10 @@ the fields so they hold no glare.
   the only mark that moves: its folds drift back and forth on slow periods (11, 14 and 19
   seconds, so it never visibly loops), drawn in its own WebGL2 context at the screen's CSS
   pixels, at most 30 frames a second, and not at all while the app is hidden. With reduced
-  motion it holds still. The movement is about 0.4 KB of code; no video.
+  motion it holds still, also when that is turned on while it moves; a lost GL context stops it
+  until the browser restores one. The movement is about 0.4 KB of code; no video. With large
+  text the words rise into the silk, so a full-bleed scrim fades in behind them from 64px above
+  (measured 13.7:1 at 200% text on a 320px phone).
 - **The Schedule card's tile:** 48px with 14px corners, the main billed Artist's avatar (the first
   in Stage order); plain surface-raised when nobody is billed, and dimmed with a cancelled card.
 
