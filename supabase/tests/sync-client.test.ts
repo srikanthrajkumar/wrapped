@@ -11,7 +11,7 @@ import { keepMine, listAttention } from '../../app/src/store/attention';
 import { WrappedDB } from '../../app/src/store/db';
 import { save } from '../../app/src/store/mutate';
 import { countUnsynced } from '../../app/src/store/outbox';
-import { DEVICE_ID_KEY, pushBatch, syncOnce } from '../../app/src/store/sync';
+import { DEVICE_ID_KEY, syncOnce } from '../../app/src/store/sync';
 import { rpcSyncApi, SyncError, type RpcClient, type SyncApi } from '../../app/src/store/sync-api';
 import {
   claim,
@@ -185,20 +185,31 @@ describe('sync client against the server (required)', () => {
     expect(await countUnsynced(phone)).toBe(0);
   });
 
-  it('a row edited while a pull is in flight keeps the edit, and the edit reaches the server (D4)', async () => {
+  it('a row edited while a pull brings another device’s newer version keeps the edit, which then reaches the server (D4)', async () => {
     const rasika = await signUpWriter();
     const api = apiFor(rasika);
     const phone = await phoneStore(rasika.deviceId);
     const event = newEvent({ note: 'first' });
     await save('events', event, { db: phone });
-    // Pushed and acked; the pull that follows brings the same row back from the server.
-    expect(await pushBatch(api, { db: phone })).toBe(1);
+    await syncOnce(api, { db: phone });
+
+    // The iPad takes writing, restores, edits the Event, and the phone takes writing back.
+    const ipadId = randomUUID();
+    await api.claim({ deviceId: ipadId, label: 'iPad' });
+    const ipad = await phoneStore(ipadId);
+    await syncOnce(api, { db: ipad });
+    await save('events', { ...(await ipad.events.get(event.id))!, note: 'iPad' }, { db: ipad });
+    await syncOnce(api, { db: ipad });
+    await api.claim({ deviceId: rasika.deviceId, label: 'Phone' });
 
     const racing: SyncApi = {
       ...api,
       pull: async (request) => {
         const page = await api.pull(request);
-        expect(page.changes.map((change) => change.row.id)).toContain(event.id);
+        // A version this phone has never applied, not its own write coming back.
+        expect(page.changes.find((change) => change.row.id === event.id)?.row).toMatchObject({
+          note: 'iPad',
+        });
         // The rasika edits while the page is on its way.
         await save('events', { ...event, note: 'edited in the hall' }, { db: phone });
         return page;
@@ -207,9 +218,19 @@ describe('sync client against the server (required)', () => {
     await syncOnce(racing, { db: phone });
     expect((await phone.events.get(event.id))?.note).toBe('edited in the hall');
 
+    // The edit is based on the phone's last version, so the server refuses it as a conflict
+    // and keeps the iPad's; "keep mine" then sends it on the iPad's version.
+    await syncOnce(api, { db: phone });
+    expect((await serverEvents(rasika)).get(event.id)?.data.note).toBe('iPad');
+    const [entry] = await listAttention(phone);
+    expect(entry).toMatchObject({
+      code: 'conflict',
+      local: { note: 'edited in the hall' },
+      server: { note: 'iPad' },
+    });
+    await keepMine(entry!.opId, phone);
     await syncOnce(api, { db: phone });
     expect((await serverEvents(rasika)).get(event.id)?.data.note).toBe('edited in the hall');
-    expect(await listAttention(phone)).toEqual([]);
     expect(await countUnsynced(phone)).toBe(0);
   });
 

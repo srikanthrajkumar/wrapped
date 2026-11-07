@@ -62,14 +62,22 @@ export interface ServerSeq {
  */
 export interface AttentionEntry {
   opId: string;
+  /**
+   * The op's place in the outbox (`OutboxEntry.seq`). A record keeps its latest rejection, and
+   * an ack clears only a rejection of the same op or an earlier one.
+   */
+  queueSeq: number;
   table: RasikaTable;
   recordId: string;
   /** The row as pushed. */
   row: RasikaRow;
-  code: RejectCode;
+  /** The server's rejection code, or `bad_request` for an op in a batch the server refused. */
+  code: AttentionCode;
   message: string;
   rejectedAt: string;
 }
+
+export type AttentionCode = RejectCode | 'bad_request';
 
 export interface MetaEntry {
   key: string;

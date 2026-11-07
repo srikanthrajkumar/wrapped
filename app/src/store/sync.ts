@@ -5,7 +5,10 @@
 // What it promises, on the paths that could lose data (constitution II):
 // - an op leaves the outbox only when the server acked or rejected it; a rejected op's row stays
 //   in "needs attention" and in the unsynced count;
-// - no failure (401, 409, 426, 400, a lost reply) touches the outbox or the season;
+// - no failure (401, 409, 426, a lost reply) touches the outbox or the season; a 400 moves its
+//   batch into "needs attention", still counted, so one bad batch can't block every later sync;
+// - a late copy of a reply (another tab's push, a choice made while the push was on its way)
+//   never undoes what was settled since; and one sync runs at a time across tabs;
 // - a pulled row never replaces a record that still has a pending or rejected op (eng review D4);
 //   the server's version is held aside instead, because the cursor has moved past it.
 
@@ -13,7 +16,13 @@ import { newId, PULL_PAGE_LIMIT, RASIKA_TABLES, type RasikaRow, type RasikaTable
 import type { PullChange, PullResponse, PushOp, PushResponse } from '../model/sync-payloads';
 import { remapPulledRow } from '../catalog/upgrade';
 import type { Remap } from '../catalog/load';
-import { db as defaultDb, type OutboxEntry, type ServerSeq, type WrappedDB } from './db';
+import {
+  db as defaultDb,
+  type AttentionCode,
+  type OutboxEntry,
+  type ServerSeq,
+  type WrappedDB,
+} from './db';
 import { claimBatch } from './outbox';
 import { SyncError, type SyncApi, type SyncFailure } from './sync-api';
 
@@ -51,7 +60,9 @@ function toOp(entry: OutboxEntry): PushOp {
 
 /**
  * Push one batch: the oldest ops, at most PUSH_BATCH_LIMIT. Returns the number of ops the
- * server answered, 0 when the outbox was empty. Throws SyncError, leaving the outbox as it was.
+ * server answered, 0 when the outbox was empty. Throws SyncError, leaving the outbox as it was,
+ * except after a 400: the server applied nothing and would refuse the same batch again, so its
+ * ops move into "needs attention" (still unsynced) and the error names them.
  */
 export async function pushBatch(
   api: SyncApi,
@@ -64,6 +75,10 @@ export async function pushBatch(
     response = await api.push({ deviceId: await deviceId(db), ops: batch.map(toOp) });
   } catch (error) {
     if (error instanceof SyncError && error.failure.kind === 'bad_request') {
+      const { message } = error.failure;
+      await db.transaction('rw', db.outbox, db.attention, async () => {
+        for (const entry of batch) await setAside(db, entry, 'bad_request', message);
+      });
       const opIds = batch.map((entry) => entry.opId);
       throw new SyncError({ ...error.failure, opIds });
     }
@@ -75,9 +90,12 @@ export async function pushBatch(
 /**
  * Settle a push's 200 answer in one transaction, in the batch's order:
  * - an acked op leaves the outbox, and its `seq` becomes the record's base; a held server
- *   version it supersedes is dropped, and so is any earlier rejection of the record;
- * - a rejected op leaves the outbox into "needs attention", with the row as pushed; a record
- *   keeps one entry there, its latest rejection.
+ *   version it supersedes is dropped, and so is a rejection of this op or an earlier op of the
+ *   record. A later op's rejection stays, so a late copy of this answer (another tab's push of
+ *   the same batch) can't clear it;
+ * - a rejected op leaves the outbox into "needs attention", with the row as pushed. Only an op
+ *   still in the outbox: one that has left was settled already, and the rasika may have chosen
+ *   since.
  * An op the answer doesn't mention stays queued. Returns how many ops were answered.
  */
 export async function settlePush(
@@ -87,7 +105,6 @@ export async function settlePush(
 ): Promise<number> {
   const acked = new Map(response.acked.map((ack) => [ack.opId, ack.seq]));
   const rejected = new Map(response.rejected.map((rejection) => [rejection.opId, rejection]));
-  const now = new Date().toISOString();
   let answered = 0;
   await db.transaction('rw', db.outbox, db.serverSeqs, db.attention, async () => {
     for (const entry of batch) {
@@ -96,26 +113,41 @@ export async function settlePush(
       if (seq !== undefined) {
         await db.outbox.where('opId').equals(entry.opId).delete();
         await recordSeq(db, entry.table, entry.recordId, seq);
-        await db.attention.where({ table: entry.table, recordId: entry.recordId }).delete();
+        const queueSeq = entry.seq ?? 0;
+        await db.attention
+          .where({ table: entry.table, recordId: entry.recordId })
+          .filter((listed) => listed.queueSeq <= queueSeq)
+          .delete();
         answered += 1;
       } else if (rejection) {
-        await db.outbox.where('opId').equals(entry.opId).delete();
-        // One entry per record: its latest rejection, with the row as last pushed.
-        await db.attention.where({ table: entry.table, recordId: entry.recordId }).delete();
-        await db.attention.put({
-          opId: entry.opId,
-          table: entry.table,
-          recordId: entry.recordId,
-          row: entry.row,
-          code: rejection.code,
-          message: rejection.message,
-          rejectedAt: now,
-        });
+        await setAside(db, entry, rejection.code, rejection.message);
         answered += 1;
       }
     }
   });
   return answered;
+}
+
+/**
+ * Move a queued op into "needs attention", if it is still queued. A record keeps one entry
+ * there, its latest, with the row as pushed. Runs in the caller's transaction over `outbox`
+ * and `attention`.
+ */
+async function setAside(db: WrappedDB, entry: OutboxEntry, code: AttentionCode, message: string) {
+  const queued = await db.outbox.where('opId').equals(entry.opId).first();
+  if (queued?.seq === undefined) return;
+  await db.outbox.delete(queued.seq);
+  await db.attention.where({ table: queued.table, recordId: queued.recordId }).delete();
+  await db.attention.put({
+    opId: queued.opId,
+    queueSeq: queued.seq,
+    table: queued.table,
+    recordId: queued.recordId,
+    row: queued.row,
+    code,
+    message,
+    rejectedAt: new Date().toISOString(),
+  });
 }
 
 /** Make `seq` the record's known server seq, unless the phone already knows a later one. */
@@ -263,11 +295,45 @@ export type SyncStatus =
   /** Stopped until `resume()`, a sign-in, or the next launch; the outbox is kept. */
   | { state: 'stopped'; failure: SyncFailure };
 
+/**
+ * Runs `work` while holding the store's sync lock. Each open tab runs its own loop; the lock
+ * keeps their syncs one at a time, so two tabs never push the same batch.
+ */
+export type SyncLock = (name: string, work: () => Promise<void>) => Promise<void>;
+
+/**
+ * The Web Locks API, which every browser the app supports has (iOS Safari 15.4, Chrome 69).
+ * It is required: two tabs syncing at once can strand a record, since one tab's batch can
+ * apply an op whose echo the other's pull skips, and the other's next op then conflicts with
+ * no server version held. Without it the sync doesn't run and the loop stops; the season stays
+ * on the phone, counted as unsynced, and export still works.
+ */
+export const webLock: SyncLock = (name, work) => {
+  const locks = (
+    globalThis as {
+      navigator?: { locks?: { request(name: string, work: () => Promise<void>): Promise<void> } };
+    }
+  ).navigator?.locks;
+  if (!locks) {
+    return Promise.reject(
+      new SyncError({
+        kind: 'refused',
+        status: 0,
+        code: 'web_locks_missing',
+        message: 'This browser can’t keep two tabs from syncing at once',
+      }),
+    );
+  }
+  return locks.request(name, work);
+};
+
 export interface SyncLoopOptions extends SyncOptions {
   /** The server, signed in with a fresh token; null when no one is signed in (FR-018). */
   getApi: () => Promise<SyncApi | null>;
   /** The catalog's remap, read when each sync starts. */
   getRemap?: () => Remap | undefined;
+  /** The cross-tab lock each sync holds; the Web Locks API by default. */
+  lock?: SyncLock;
   /** Backoff: the first wait's ceiling, and the longest (exponential, full jitter). */
   baseDelayMs?: number;
   maxDelayMs?: number;
@@ -292,6 +358,7 @@ export function createSyncLoop(options: SyncLoopOptions): SyncLoop {
   const {
     getApi,
     getRemap,
+    lock = webLock,
     baseDelayMs = 2_000,
     maxDelayMs = 5 * 60_000,
     random = Math.random,
@@ -326,7 +393,8 @@ export function createSyncLoop(options: SyncLoopOptions): SyncLoop {
         set({ state: 'stopped', failure: { kind: 'signed_out' } });
         return;
       }
-      await syncOnce(api, { db, remap: getRemap?.() ?? options.remap });
+      const remap = getRemap?.() ?? options.remap;
+      await lock(`wrapped-sync:${db.name}`, () => syncOnce(api, { db, remap }));
       attempt = 0;
       set({ state: 'idle' });
     } catch (error) {
