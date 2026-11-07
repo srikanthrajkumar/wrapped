@@ -24,6 +24,7 @@ to clean up on any phone or server.
 | Long names    | Sri Parthasarathy Swami Sabha, Vidya Bharathi Kalyana Mandapam, yesterday | Three Artists with names that wrap; two songs and a typed Item with a long title.                                                                                                                                                                                        |
 | No Artist yet | no Sabha, Sat 12 Dec                                                      | Attended, nothing added: the "Add Artist" heading and "Add Sabha".                                                                                                                                                                                                       |
 | Next          | Sri Krishna Gana Sabha 15 Dec; Narada Gana Sabha 16 Dec                   | Planned, one Artist each.                                                                                                                                                                                                                                                |
+| Schedule      | seven entries, 15 to 17 Dec                                               | `SCHEDULE` in seed.ts: a vocal group with a violinist, a Dance, a violinist, a veena, a mridangam, one with nobody billed, and one cancelled. Written into the store as a fetched file leaves them (the feed isn't rasika data, so no store action writes it), as e2e/schedule.spec.ts does. |
 
 **Colours:** all 12 swatches and "didn't notice" appear across the Stage rows. Two-tone:
 red and white, blue and orange, green and beige, brown and pink. One colour: yellow, black,
@@ -31,15 +32,17 @@ purple, grey. Didn't notice: the khanjira.
 
 ## Views
 
-`season-empty`, `season`, `concert`, `concert-full` (whole page), `concert-bare`,
+`welcome` (first launch, on a phone of its own that never finishes it), `season-empty`, `season`, `concert`, `concert-full` (whole page), `concert-bare`,
 `concert-long` (whole page), `concert-order` (Edit order on), `concert-drag` (Item 3 held
 mid-drag by its grip), `concert-facts` (date and time sheet), `artist-picker` (Add Artist, "S" typed), `artist-sheet` (Gayatri), `colour-sheet`
 (Ranjani, two-tone), `item-search` (new Item, "rama" typed), `item` (Chakkani Raja, whole page,
 the Improvised fold open with its Laya vinyasam), `item-rtp` (two Ragas), `raga-sheet`,
-`tala-sheet`, `settings`, and last `concert-summary` (the clock three hours on, so the Concert in
+`tala-sheet`, `schedule`, `settings`, and last `concert-summary` (the clock three hours on, so the Concert in
 progress has ended and its summary shows; "shown" is reset for it on each look).
 
-Each at 390×844 and 393×852 (iPhone 16), dark and light. The keyboard isn't drawn: Chromium
+Each at 390×844 and 393×852 (iPhone 16), dark and light. Chromium runs with software WebGL
+(SwiftShader), so the motif draws as it does on a phone. `HC_VIEWS=welcome,season` narrows a
+round to some views; `council` then composes only the views shot. The keyboard isn't drawn: Chromium
 has none, so search views show the results with the box at the bottom.
 
 **Motion strips** (`rig.ts motion`): `sheet-open` (the Colour sheet rising), `colour-pick` (a
