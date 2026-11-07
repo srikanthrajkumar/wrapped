@@ -97,10 +97,14 @@ new value. From the first reader on:
 
 - the phone ignores fields it doesn't know;
 - it refuses the whole file, keeping the copy it has, when any entry is malformed (an `id`,
-  `version`, `date` that doesn't exist, `startTime`, `sabha`, `title` or `cancelled` of the wrong
-  type, or `billed` not a list of named people), when `publishedAt` isn't an instant with its
-  offset, or when the file is for an earlier Season than the one it has, or published before it
-  in the same Season (compared as instants, so `+05:30` and `Z` order right) (PR #25 review);
+  `version`, `date` that doesn't exist, `startTime`, `sabha`, `kind`, `title`, `cancelled` or a
+  billed `role` of the wrong type, or `billed` not a list of named people), when `publishedAt`
+  isn't a real day and time with its offset (`2026-11-31`, `24:00` or `:60` is none), or when the
+  file is for an earlier Season than the one it has, or published before it in the same Season
+  (compared as instants, so `+05:30` and `Z` order right) (PR #25 review);
+- only `startTime`, `title`, a billed `role` and `group` may be null. `id`, `version`, `date`,
+  `sabha`, `kind`, `cancelled`, `billed` and a billed `name` are always given, never null: a
+  `cancelled` of null is refused, never read as false, so it can't reinstate a cancelled Event;
 - it reads a Role it doesn't know as null, since a Role is only a hint;
 - it skips an entry of a kind it doesn't know, leaving any Event already made from it alone.
 
@@ -121,7 +125,9 @@ For each Event with a `scheduleEntryId`:
 - Billed Artists are matched Artist by Artist, never by place. A Schedule-made Appearance has the
   id derived from the Event and the Artist, so two phones write the same record. One billed again
   keeps its Appearance and takes the group, and the Role unless the entry gives none (a null Role
-  names nothing). One whose id is a tombstone comes back as that row, Colours kept. One the
+  names nothing). A Schedule tombstone of the Artist, or of one since promoted or merged into
+  them, comes back as that row, Colours and Role kept, still naming the Artist it was made for
+  (which reads as the billed one). One the
   rasika added by hand stands for their billing as it is: never billed, its Role and group never
   changed, never removed, never doubled.
 - Either way, on a Planned Event, record `scheduleVersionSeen`.
