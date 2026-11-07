@@ -26,6 +26,18 @@ table limits reads and writes to that rasika's own rows.
 - The phone asks supabase-js for a token only when syncing. Logging never checks the session.
 - A 401, or a session Supabase has ended, shows a non-blocking "sign in again" prompt. The
   phone MUST keep its outbox and local data (constitution I).
+- One account per phone's season. The phone keeps who signed in (`identity` in `meta`). When a
+  different account signs in:
+  - if the phone holds any season data (a record or tombstone, a queued op, or an op needing
+    attention), the sign-in is refused before anything is written, and that session is signed
+    out with scope `local`, on this phone only. The season, outbox and identity stay as they
+    were, so one rasika's season is never pushed into another's account;
+  - on an empty phone, the new account is let in. The last account's pull cursor, last-synced
+    time and known seqs (`serverSeqs`) are cleared first: the cursor is a position in one
+    sequence shared by every rasika, so kept it would skip the new account's earlier rows on
+    restore.
+
+  The same account signing in again keeps everything.
 
 ## Account
 

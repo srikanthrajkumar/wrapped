@@ -282,6 +282,10 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
   keeps its unsynced changes and can export them or take writing back. Taking writing back sends
   them; a record changed meanwhile on the other device appears as a conflict for the rasika to
   resolve: keep mine, or keep the other device's.
+- **Another account on this phone.** If a different account signs in on a phone that holds a
+  season (anything logged, deleted, or not yet synced), the sign-in is refused and that account
+  is signed out on this phone only; the season stays, and can still be exported. On an empty
+  phone the new account signs in and restores its own season, from the start (FR-021).
 - **Browser tab, then installed.** A rasika can use the app fully in a phone browser tab, and
   sees a banner suggesting they add it to the Home Screen. On iPhone the installed app has
   separate storage, so after installing they sign in again and restore brings the season back;
@@ -364,7 +368,8 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
   network error MUST never sign them out.
 - **FR-021**: Any rasika MUST be able to create an account by signing in with Google. The
   account stores the rasika's name. The server MUST let only the signed-in rasika read or change
-  their own season. A lost phone's sign-in MUST be revocable from another device.
+  their own season. A lost phone's sign-in MUST be revocable from another device. A phone that
+  holds one rasika's season MUST refuse a sign-in to another account.
 - **FR-022**: The app MUST allow each rasika only one writing device at a time. The device most
   recently signed in is the writer, and others are told so when they try to sync. A former writer
   can take writing back; its queued changes are then sent, and a change based on an older
