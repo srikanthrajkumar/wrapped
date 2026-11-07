@@ -26,6 +26,10 @@ export class RuleError extends Error {
 /** Why an Undo of an Item or Artist can't run: the Concert it belonged to is deleted. */
 export const EVENT_DELETED = 'its Concert is deleted';
 
+/** FR-013: a Lecdem has at most 3 presenters, however it came to be a Lecdem. */
+export const MAX_PRESENTERS = 3;
+export const TOO_MANY_PRESENTERS = `a Lecdem has at most ${MAX_PRESENTERS} presenters`;
+
 /**
  * Why a title taken by a change to Concert can't come back: the Event is no longer the Concert
  * that change made, so restoring would undo the rasika's newer choice of kind (T122).

@@ -17,7 +17,14 @@ import { renumber, type Deleted } from './items';
 import { getLive, newTimestamps, remove, save, type WriteOptions } from './mutate';
 import { entryResolver, loadEntries, MAX_MERGE_HOPS, type ResolvedEntry } from './queries';
 import { peekReceipt, takeReceipt, writeReceipt } from './receipts';
-import { appearanceProblems, check, EVENT_DELETED, RuleError } from './rules';
+import {
+  appearanceProblems,
+  check,
+  EVENT_DELETED,
+  MAX_PRESENTERS,
+  RuleError,
+  TOO_MANY_PRESENTERS,
+} from './rules';
 
 type Kind = 'artist' | 'sabha';
 
@@ -217,9 +224,6 @@ export interface AppearanceFields {
   group?: string | null;
 }
 
-// FR-013: a Lecdem has at most 3 presenters.
-const MAX_PRESENTERS = 3;
-
 async function liveAppearances(eventId: string, db: WrappedDB) {
   return (await db.appearances.where('eventId').equals(eventId).toArray()).filter(
     (appearance) => appearance.deletedAt === null,
@@ -234,7 +238,7 @@ async function checkPresenters(appearance: Appearance, db: WrappedDB) {
     (other) => other.id !== appearance.id && other.role === 'presenter',
   );
   if (others.length >= MAX_PRESENTERS) {
-    throw new RuleError([`a Lecdem has at most ${MAX_PRESENTERS} presenters`]);
+    throw new RuleError([TOO_MANY_PRESENTERS]);
   }
 }
 
