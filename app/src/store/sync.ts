@@ -301,6 +301,11 @@ export type SyncStatus =
  */
 export type SyncLock = (name: string, work: () => Promise<void>) => Promise<void>;
 
+/** The lock every sync holds, and every change of who is signed in (store/auth.ts). */
+export function syncLockName(db: WrappedDB): string {
+  return `wrapped-sync:${db.name}`;
+}
+
 /**
  * The Web Locks API, which every browser the app supports has (iOS Safari 15.4, Chrome 69).
  * It is required: two tabs syncing at once can strand a record, since one tab's batch can
@@ -397,7 +402,7 @@ export function createSyncLoop(options: SyncLoopOptions): SyncLoop {
         return;
       }
       const remap = (await getRemap?.()) ?? options.remap;
-      await lock(`wrapped-sync:${db.name}`, () => syncOnce(api, { db, remap }));
+      await lock(syncLockName(db), () => syncOnce(api, { db, remap }));
       attempt = 0;
       set({ state: 'idle' });
     } catch (error) {
@@ -431,9 +436,10 @@ export function createSyncLoop(options: SyncLoopOptions): SyncLoop {
 
   const request = (trigger: SyncTrigger): Promise<void> => {
     if (current.state === 'stopped' && trigger !== 'resume') {
-      // A stop waits for the rasika (sign in, claim, update); only a missing session is
-      // looked at again, since signing in clears it without any call to the server.
-      if (current.failure.kind !== 'signed_out') return Promise.resolve();
+      // A stop waits for the rasika (sign in, claim, update); only the session is looked at
+      // again, since signing in fixes it without any call to the server.
+      const kind = current.failure.kind;
+      if (kind !== 'signed_out' && kind !== 'other_account') return Promise.resolve();
     }
     if (current.state === 'waiting' && trigger === 'save') return Promise.resolve();
     if (running) {

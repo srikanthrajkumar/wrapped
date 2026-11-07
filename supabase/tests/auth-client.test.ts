@@ -12,13 +12,13 @@ import {
   getSyncApi,
   metaStorage,
   readIdentity,
-  recordIdentity,
+  signIn as signInOnPhone,
   supabaseClient,
   type AuthConfig,
 } from '../../app/src/store/auth';
 import { WrappedDB } from '../../app/src/store/db';
 import { save } from '../../app/src/store/mutate';
-import { DEVICE_ID_KEY, syncOnce } from '../../app/src/store/sync';
+import { DEVICE_ID_KEY, syncOnce, type SyncLock } from '../../app/src/store/sync';
 import { SyncError } from '../../app/src/store/sync-api';
 import { APP_VERSION, db as server, newEvent } from './server';
 
@@ -42,7 +42,10 @@ function config(appVersion = APP_VERSION): AuthConfig {
   return { url: stack.apiUrl, anonKey: stack.anonKey, appVersion };
 }
 
-/** A new user, signed in on `store` through the phone's own client, as sign-in leaves it. */
+// Node has no Web Locks; these tests run one sign-in or sync at a time.
+const noLock: SyncLock = (_name, work) => work();
+
+/** A new user, signed in on `store` by the phone's own sign-in, as it leaves the phone. */
 async function signIn(store: WrappedDB, settings = config()) {
   const email = `phone-${randomUUID()}@example.test`;
   const password = randomUUID();
@@ -53,18 +56,12 @@ async function signIn(store: WrappedDB, settings = config()) {
     user_metadata: { full_name: 'Phone Rasika' },
   });
   if (created.error) throw created.error;
+  await signInOnPhone((candidate) => candidate.auth.signInWithPassword({ email, password }), {
+    config: settings,
+    db: store,
+    lock: noLock,
+  });
   const client = await supabaseClient(settings, store);
-  const signedIn = await client.auth.signInWithPassword({ email, password });
-  if (signedIn.error) throw signedIn.error;
-  await recordIdentity(
-    {
-      userId: created.data.user.id,
-      email,
-      name: 'Phone Rasika',
-      signedInAt: new Date().toISOString(),
-    },
-    store,
-  );
   const deviceId = randomUUID();
   await store.meta.put({ key: DEVICE_ID_KEY, value: deviceId });
   return { client, userId: created.data.user.id, deviceId };

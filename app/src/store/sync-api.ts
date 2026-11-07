@@ -21,6 +21,11 @@ export type SyncFailure =
   | { kind: 'network'; status: number; message: string }
   /** 401: the session is missing or ended. Keep everything; ask to sign in again. */
   | { kind: 'signed_out' }
+  /**
+   * The session belongs to another account than the season on this phone (store/auth.ts). Found
+   * before any call, so nothing was sent; keep everything, and sign in as this phone's account.
+   */
+  | { kind: 'other_account' }
   /** 409: another device writes for this rasika (FR-022). */
   | { kind: 'not_writer'; writerDeviceId: string | null }
   /** 426: this app is below the server's minimum version (eng review D14). */
