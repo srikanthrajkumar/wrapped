@@ -96,6 +96,11 @@ the additions; the first dev feed already says `format: 1`; and every addition i
 new value. From the first reader on:
 
 - the phone ignores fields it doesn't know;
+- it refuses the whole file, keeping the copy it has, when any entry is malformed (an `id`,
+  `version`, `date` that doesn't exist, `startTime`, `sabha`, `title` or `cancelled` of the wrong
+  type, or `billed` not a list of named people), when `publishedAt` isn't an instant with its
+  offset, or when the file is for an earlier Season than the one it has, or published before it
+  in the same Season (compared as instants, so `+05:30` and `Z` order right) (PR #25 review);
 - it reads a Role it doesn't know as null, since a Role is only a hint;
 - it skips an entry of a kind it doesn't know, leaving any Event already made from it alone.
 
@@ -110,8 +115,15 @@ For each Event with a `scheduleEntryId`:
   what happened (2026-11-07).
 - `touched` is false: copy the new date, time, Sabha, kind, title and billed Artists, with their
   Roles and group names; set `cancelled`.
-- `touched` is true: change nothing; set `scheduleChanged` so the hint shows. A Planned Event
-  whose Stage the rasika changed counts as touched (T058).
+- `touched` is true: change nothing; set `scheduleChanged` so the hint shows, but only when the
+  version differs in a field the hint's sheet shows (date, time, Sabha, kind, title, cancelled,
+  billed Artists). A Planned Event whose Stage the rasika changed counts as touched (T058).
+- Billed Artists are matched Artist by Artist, never by place. A Schedule-made Appearance has the
+  id derived from the Event and the Artist, so two phones write the same record. One billed again
+  keeps its Appearance and takes the group, and the Role unless the entry gives none (a null Role
+  names nothing). One whose id is a tombstone comes back as that row, Colours kept. One the
+  rasika added by hand stands for their billing as it is: never billed, its Role and group never
+  changed, never removed, never doubled.
 - Either way, on a Planned Event, record `scheduleVersionSeen`.
 - A version that would break a rule (a Lecdem billed with more than 3 presenters) changes
   nothing and is not recorded, so a corrected version still applies.
@@ -122,13 +134,13 @@ When the rasika answers the hint (2026-11-07):
 
 - **Take it** gives the Event what the stored entry names, in one transaction: its date, its time
   and printed title when it gives them (a null one names none, so the rasika's stays), its Sabha,
-  kind and `cancelled`, and, when it bills anyone, its billed Artists in billing order. An Artist
-  billed again keeps their Appearance and Colours and takes the entry's Role and group; an
-  Artist no longer billed is removed, unless the rasika gave them a Colour, when they stay, no
-  longer billed; the rasika's own Artists stay. Notes, status, Items and everything else stay. A
-  rule the result would break refuses it whole, and so does a stored entry newer than the one
-  shown. A change to Concert that takes a typed title keeps it in a receipt for Undo, as a kind
-  change does.
+  kind and `cancelled` (a reinstated entry clears it), and, when it bills anyone, its billed
+  Artists, matched as above. A Schedule Artist no longer billed is removed, unless the rasika
+  gave them a Colour, when they stay, no longer billed; the rasika's own Artists stay as they
+  are. Notes, status, Items and everything else stay. Only a Planned Event takes it. A rule the
+  result would break refuses it whole, and so does a stored entry newer than the one shown, or
+  an Artist's Schedule id held by a row of another Artist. A change to Concert that takes a typed
+  title keeps it in a receipt for Undo, as a kind change does.
 - **Keep mine** clears `scheduleChanged` and changes nothing else.
 
 ## Still open

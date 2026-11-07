@@ -266,18 +266,20 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   - **Next and the Schedule** (the Maintainer, 2026-11-07; T061): a calendar icon button sits
     at the right of Next's heading, its 48px reaching past the line, once a Schedule is stored;
     it pushes the Schedule. A Planned Event whose Schedule entry is cancelled stays in its place
-    in Next until the rasika removes it (Delete Event), its title muted and a cancelled mark (a
-    calendar with a cross) at the row's right, spoken "Cancelled". One the Schedule changed
-    after the rasika edited it carries a calendar with "!" there, spoken "Schedule changed": a
-    48px button of its own beside the row, which opens what changed (2026-11-07). An Attended
-    or Missed Event never gets it: it is the rasika's record of what happened. The sheet,
-    titled "Schedule changed", lists only the fields that differ, each led by its mark (calendar,
-    clock, building, category, "T", people) and spoken by its name: the Event's value muted, an
-    arrow, the Schedule's. Billed Artists list a name per line, the Role under it. Two buttons
-    share the bottom: "Keep mine" (outline, an X) and "Take it" (primary, a check). Either
-    closes the sheet once saved; a failure shows its row in the sheet. A change to Concert that
-    takes a typed title offers Undo, as a kind change does.
-    Season no longer hides a cancelled Event; it is never Now.
+    in Next until the rasika removes it (Delete Event), even once its start time has passed,
+    its title muted and a cancelled mark (a calendar with a cross) at the row's right, spoken
+    "Cancelled". One the Schedule changed after the rasika edited it carries a calendar with "!"
+    there, spoken "Schedule changed": a 48px button of its own beside the row, which opens what
+    changed (2026-11-07), on a cancelled row as on any other. An Attended or Missed Event never
+    gets it: it is the rasika's record of what happened. The sheet, titled "Schedule changed",
+    lists only the fields that differ, each led by its mark (calendar, clock, building,
+    category, "T", a ban sign for cancelled or on, people) and spoken by its name: the Event's
+    value muted, an arrow, the Schedule's. Cancelled and on are a calendar with a cross and one
+    with a check. Billed Artists list a name per line, the Role under it. Two buttons share the
+    bottom: "Keep mine" (outline, an X) and "Take it" (primary, a check). Either closes the
+    sheet once saved; a failure shows its row in the sheet. A change to Concert that takes a
+    typed title offers Undo, as a kind change does. Season no longer hides a cancelled Event;
+    it is never Now.
   - **Which Event is Now** (decided 2026-11-01; D3, refined by D17): an Event being logged (an
     Item added or changed in the last 60 minutes) holds Now while it is inside its window.
     Otherwise the Event with the nearest start holds it. Any other Event in its window shows as
@@ -805,5 +807,5 @@ in the phase that builds it):
 | 2026-11-06 | The bottom bar is one frame owned by the shell, kept across Season, Concert and Item (FB-45, the flicker on every screen change): a screen supplies only its action, the bar keeps the last one while the next screen loads, and a changed action fades in its label alone (150ms). No whole-bar fade. |
 | 2026-11-06 | The schedule-feed decisions (T057): Event kinds Dance and Harikatha; Roles Vocal support, Nagaswaram, Thavil, Mandolin, Chitravina, Saxophone, Dancer and Nattuvangam, with the common Roles first in the Role chips and the rest behind "More"; a Group billed together shows by its name on the Event heading, the Event rows and the Schedule card, while each member keeps their own Appearance. The builder's calls, for the Maintainer to check: where the new Roles sit in Stage order, which ten chips count as common, Dancer and Nattuvangam in the first row at a Dance, and which Roles an Event is known by. |
 | 2026-11-07 | The Maintainer's answers for the Schedule (T061): it opens from a calendar icon button beside Season's "Next" heading, as a pushed screen grouped by day with the D5 top bar; each entry is a card with an empty tile at its leading edge kept for the motif, the title, the billed Artists or group, the Sabha and the time, and an add button that puts it in Next as Planned. A cancelled entry stays on its day, dimmed, with a cancelled mark and no add button; a Planned Event whose entry is cancelled stays in Next, marked, until the rasika removes it, so Season no longer hides it. The builder's calls, for the Maintainer to check: Next shows once a Schedule is stored, for its button; a cancelled card gives up its fill for an outline; the marks are Tabler's calendar-x and calendar-exclamation; an added entry's button becomes a check that opens the Event; the Schedule lists from today on; an Event the rasika changed is shown cancelled from its entry while its stored `cancelled` stays false. |
-| 2026-11-07 | The Maintainer's answer for the "schedule changed" hint: tapping it opens a sheet of what changed, old beside new, only the fields that differ (date, time, Sabha, kind, title, billed Artists), with two icon-first buttons. "Take it" gives the Event the version's values, in one transaction, its rules checked; "keep mine" changes nothing and clears the hint until a newer version. The builder's calls, for the Maintainer to check: the hint is its own 48px button beside the row; field marks are Tabler's calendar, clock, building-community, category, letter-t and users; a value the version leaves null (time, title) or a version billing no one names nothing, so the rasika's stays; a billed Artist dropped by the version is removed unless the rasika gave them a Colour, when they stay unbilled; "Keep mine" is an outline button with an X, "Take it" the primary with a check. Settled the same day: an Attended or Missed Event never gets the hint; a later version leaves it alone. |
+| 2026-11-07 | The Maintainer's answer for the "schedule changed" hint: tapping it opens a sheet of what changed, old beside new, only the fields that differ (date, time, Sabha, kind, title, billed Artists), with two icon-first buttons. "Take it" gives the Event the version's values, in one transaction, its rules checked; "keep mine" changes nothing and clears the hint until a newer version. The builder's calls, for the Maintainer to check: the hint is its own 48px button beside the row; field marks are Tabler's calendar, clock, building-community, category, letter-t and users; a value the version leaves null (time, title) or a version billing no one names nothing, so the rasika's stays; a billed Artist dropped by the version is removed unless the rasika gave them a Colour, when they stay unbilled; "Keep mine" is an outline button with an X, "Take it" the primary with a check. Settled the same day: an Attended or Missed Event never gets the hint; a later version leaves it alone. After the PR #25 review: the hint shows on a cancelled row too, and the sheet lists cancelled or reinstated as a row (Tabler's ban as its mark, calendar-x and calendar-check as its values); a cancelled Planned Event stays in Next past its start time until deleted, and is never Now. |
 | 2026-11-06 | T119 to T122, the builder's calls: an Event's kind is a mark before its name on the Season rows and the Event heading, none for a Concert (Presentation for a Lecdem, a figure in movement for a Dance, a book for a Harikatha); the kind is four chips at the top of the Event's facts sheet, which takes the kind's name as its title, with a Title field under them for any kind but a Concert; a title reads first on the facts line, above the Sabha; a change to Concert that takes a title offers "Title removed · Undo" as a delete does; "More" opens in place and stays open; a Group shows by its name only where two or more of the known-by Artists share it. |
