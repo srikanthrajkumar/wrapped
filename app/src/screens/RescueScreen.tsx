@@ -1,6 +1,7 @@
 // The one screen left when the phone's database won't open (DESIGN.md "The store can't be
 // opened"). It needs no database: Export writes the journal of values not saved into a file
-// marked store-unreadable, and the Export icon then carries a check badge. A store that is only slow
+// marked store-unreadable, and the Export icon then carries a check badge. The same screen, with
+// Reload, is left when a newer version of the app has the store. A store that is only slow
 // to open keeps the screens, with "Still opening your season…" (muted, a spinner, no alert) and
 // Export at the top.
 
@@ -20,13 +21,15 @@ import { MESSAGES } from './messages';
 /** Back to the app's start, never the screen that broke, so one broken screen can't trap it. */
 const restart = () => window.location.assign(import.meta.env.BASE_URL);
 
-export function RescueScreen() {
+export function RescueScreen({ replaced = false }: { replaced?: boolean }) {
   const { handover, failed } = useExportState();
   return (
     <div className="flex min-h-dvh flex-col pt-[env(safe-area-inset-top)] pr-[calc(16px+env(safe-area-inset-right))] pb-[calc(16px+env(safe-area-inset-bottom))] pl-[calc(16px+env(safe-area-inset-left))]">
       <div role="alert" className="flex flex-1 flex-col items-center justify-center gap-3 py-8">
         <IconAlertCircle aria-hidden className="size-10 text-destructive" />
-        <h1 className="text-center text-title font-semibold">{MESSAGES.rescue.title}</h1>
+        <h1 className="text-center text-title font-semibold">
+          {replaced ? MESSAGES.replaced.title : MESSAGES.rescue.title}
+        </h1>
       </div>
       <div className="flex flex-col gap-2">
         {failed && (
@@ -40,7 +43,7 @@ export function RescueScreen() {
           />
         )}
         <Button size="lg" className="w-full" onClick={restart}>
-          {MESSAGES.actions.tryAgain}
+          {replaced ? MESSAGES.actions.reload : MESSAGES.actions.tryAgain}
         </Button>
         <Button
           size="lg"
@@ -73,6 +76,7 @@ export function StoreGate({ children }: { children: ReactNode }) {
     if (health.state === 'open') storeOpened();
   }, [health.state]);
   if (health.state === 'failed') return <RescueScreen />;
+  if (health.state === 'replaced') return <RescueScreen replaced />;
   const slow = health.state === 'slow';
   return (
     // While the row shows, it takes the top safe area, and the app below adds none of its own.

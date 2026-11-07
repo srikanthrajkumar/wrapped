@@ -14,6 +14,7 @@ function opening() {
   let finish!: () => void;
   let fail!: (error: Error) => void;
   const db = {
+    on: () => undefined,
     open: () =>
       new Promise<void>((resolve, reject) => {
         finish = resolve;

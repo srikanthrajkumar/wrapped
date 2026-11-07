@@ -107,6 +107,13 @@ export const MESSAGES = {
   rescue: {
     title: "Can't open your season",
   },
+  /**
+   * Not in the table yet: the screen shown when a newer version of the app, in another tab, has
+   * the store, so this tab no longer writes to it.
+   */
+  replaced: {
+    title: 'A newer version of the app is open in another tab',
+  },
   newCatalog: 'An updated song catalog is ready.',
   /** Not in the table: the app update without a new catalog (T028's wording, kept). */
   appUpdate: 'A new version is ready.',
@@ -144,6 +151,7 @@ export const MESSAGES = {
   },
   actions: {
     tryAgain: 'Try again',
+    reload: 'Reload',
     yes: 'Yes',
     no: 'No',
     start: 'Start',
