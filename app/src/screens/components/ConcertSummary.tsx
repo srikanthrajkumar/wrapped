@@ -20,6 +20,9 @@ import { openCatalog } from '../../catalog/current';
 import { CATALOG_WAIT_MS } from '../../catalog/use-catalog';
 import { dueSummary, markSummaryShown } from '../../store/concert-summary';
 import { countRagas, listEventSummaries, listItems, whatItAdded } from '../../store/queries';
+import { Motif } from '../../motif/Motif';
+import { ragaSeeds } from '../../motif/ragas';
+import type { RagaSeed } from '../../motif/seed';
 import { eventLine } from '../format';
 
 interface Summary {
@@ -29,6 +32,8 @@ interface Summary {
   ragas: number;
   firstRagas: string[];
   newComposers: string[];
+  /** What its edge's motif is drawn from. */
+  played: RagaSeed[];
 }
 
 const SLOW = Symbol('catalog still opening');
@@ -61,6 +66,10 @@ async function readSummary(eventId: string): Promise<Summary | null> {
     ragas: countRagas(items, catalog),
     firstRagas: added.ragas,
     newComposers: added.composers,
+    played: ragaSeeds(
+      items.flatMap((item) => item.ragas.flatMap((raga) => (raga.key === null ? [] : [raga.key]))),
+      catalog,
+    ),
   };
 }
 
@@ -112,7 +121,13 @@ export function ConcertSummary() {
           (event.currentTarget as HTMLElement).focus();
         }}
       >
-        <DialogHeader className="gap-0 py-2 pr-16 pl-6">
+        {/* The Concert as one field at the modal's top edge, the summary drawn up over it as a
+            sheet (DESIGN.md "The motif"). */}
+        <div aria-hidden className="relative h-24 overflow-hidden rounded-t-2xl bg-secondary">
+          <Motif seed={{ kind: 'concert', ragas: summary.played }} className="size-full" />
+          <div className="absolute inset-x-0 bottom-0 h-[18px] rounded-t-[18px] bg-popover" />
+        </div>
+        <DialogHeader className="-mt-2 gap-0 pt-0 pr-16 pb-2 pl-6">
           <DialogTitle className="flex min-h-12 items-center break-words">
             {summary.title}
           </DialogTitle>

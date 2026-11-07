@@ -209,6 +209,28 @@ export async function listItems(eventId: string, db: WrappedDB = defaultDb): Pro
   return items.filter(live);
 }
 
+/**
+ * The Ragas logged at the season's Attended Events, as catalog keys, one per Item that names
+ * one: what the Season shelf's motif is drawn from (DESIGN.md "The motif").
+ */
+export async function listSeasonRagaKeys(db: WrappedDB = defaultDb): Promise<string[]> {
+  const attended = new Set(
+    (await db.events.toArray())
+      .filter((event) => live(event) && event.status === 'attended')
+      .map((event) => event.id),
+  );
+  const keys: string[] = [];
+  for (const item of await db.items.toArray()) {
+    if (!live(item) || !attended.has(item.eventId)) continue;
+    for (const raga of item.ragas) if (raga.key !== null) keys.push(raga.key);
+  }
+  return keys;
+}
+
+export function useSeasonRagaKeys() {
+  return useLiveQuery(() => listSeasonRagaKeys());
+}
+
 /** An Event's live Appearances in Stage order (store/stage.ts), each with its Artist resolved. */
 export async function listAppearances(
   eventId: string,

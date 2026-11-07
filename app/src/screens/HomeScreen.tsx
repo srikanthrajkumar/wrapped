@@ -26,9 +26,13 @@ import {
   useEventSummaries,
   useHasSchedule,
   useLoggingNotes,
+  useSeasonRagaKeys,
   type EventSummary,
 } from '../store/queries';
+import { useCatalog } from '../catalog/use-catalog';
 import { newId } from '../model';
+import { Motif } from '../motif/Motif';
+import { ragaSeeds } from '../motif/ragas';
 import { saveWith, useSaveFeedback } from './components/feedback';
 import { KindMark } from './components/kind-mark';
 import { ScheduleChangedSheet } from './components/ScheduleChanged';
@@ -39,6 +43,20 @@ import { MESSAGES } from './messages';
 import { asNowReads, nextEvents } from './next';
 import { subscribeUndo, undoOffers } from './undo';
 import { offersUpdate } from './update-offer';
+
+/** The season so far as one field (DESIGN.md "The motif"), drawn once its Ragas are known. */
+function SeasonArt() {
+  const keys = useSeasonRagaKeys();
+  const catalog = useCatalog();
+  if (keys === undefined || catalog.status === 'loading') return null;
+  const ragas = ragaSeeds(keys, catalog.status === 'ready' ? catalog.catalog : null);
+  return (
+    <Motif
+      seed={{ kind: 'season', ragas }}
+      className="size-full animate-in duration-300 fade-in motion-reduce:animate-none"
+    />
+  );
+}
 
 // "Later" hides the catalog row until the next launch (design D29): kept for this page's life.
 let updateLater = false;
@@ -142,7 +160,7 @@ function HomeView() {
 
   return (
     <>
-      <TabHeader title="Season">
+      <TabHeader title="Season" art={<SeasonArt />}>
         {offline === 'getting-ready' && (
           <p
             role="status"

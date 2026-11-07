@@ -6,18 +6,38 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { retryReadiness, useReadiness } from '../pwa';
+import { Motif } from '../motif/Motif';
 import { finishFirstLaunch } from '../store/first-launch';
 import { MESSAGES } from './messages';
 
 export function FirstLaunch() {
   const [step, setStep] = useState<'welcome' | 'ready'>('welcome');
-  return step === 'welcome' ? <Welcome onContinue={() => setStep('ready')} /> : <GettingReady />;
+  return (
+    <>
+      {/* The app's own mark, Silk, as a horizon behind every step (DESIGN.md "The motif"):
+          full-bleed from the top, dissolving above the words, drifting slowly. The same across
+          steps, so it never restarts. */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-x-0 top-0 h-[74dvh] [mask-image:linear-gradient(black_45%,rgb(0_0_0/0.55)_72%,transparent)]"
+      >
+        <Motif
+          seed={{ kind: 'mark' }}
+          moving
+          soft={0.012}
+          className="size-full animate-in duration-300 fade-in motion-reduce:animate-none"
+        />
+      </div>
+      {step === 'welcome' ? <Welcome onContinue={() => setStep('ready')} /> : <GettingReady />}
+    </>
+  );
 }
 
 function Screen({ children, action }: { children: React.ReactNode; action: React.ReactNode }) {
   return (
-    <div className="flex min-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom))] flex-col pb-4">
-      <div className="flex flex-1 flex-col justify-center gap-4 py-8">{children}</div>
+    <div className="relative flex min-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom))] flex-col pb-4">
+      {/* Under the horizon, low, near the thumb. */}
+      <div className="flex flex-1 flex-col justify-end gap-4 py-8">{children}</div>
       {action}
     </div>
   );
