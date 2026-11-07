@@ -3,9 +3,16 @@
 // transaction with the Event and its outbox entry.
 
 import { describe, expect, it } from 'vitest';
-import { changeKind, createEvent, editEvent, restoreTitle } from '../../src/store/events';
+import {
+  changeKind,
+  createEvent,
+  deleteEvent,
+  editEvent,
+  restoreEvent,
+  restoreTitle,
+} from '../../src/store/events';
 import { listReceipts, peekReceipt } from '../../src/store/receipts';
-import { RuleError } from '../../src/store/rules';
+import { EVENT_DELETED, KIND_CHANGED, RuleError } from '../../src/store/rules';
 import type { WrappedDB } from '../../src/store/db';
 import { freshDb, reopen } from '../helpers';
 
@@ -65,14 +72,63 @@ describe('a change to Concert keeps the title it takes (required)', () => {
     expect(await db.outbox.count()).toBe(before);
   });
 
-  it('never overwrites a title typed since', async () => {
+  it('never overwrites a title typed since, nor a kind chosen since, and keeps the receipt', async () => {
     const db = freshDb();
     const lecdem = await createEvent({ kind: 'lecdem', title: 'On Begada' }, { db });
     const { receipt } = await changeKind(lecdem.id, 'concert', { db });
     await changeKind(lecdem.id, 'dance', { db, title: 'Tillana' });
 
-    expect(await restoreTitle(receipt!.id, { db })).toBeNull();
+    await expect(restoreTitle(receipt!.id, { db })).rejects.toThrow(KIND_CHANGED);
     expect(await db.events.get(lecdem.id)).toMatchObject({ kind: 'dance', title: 'Tillana' });
+    // An untitled Harikatha chosen since is the rasika's newer word too.
+    await changeKind(lecdem.id, 'harikatha', { db, title: null });
+    await expect(restoreTitle(receipt!.id, { db })).rejects.toThrow(KIND_CHANGED);
+    expect(await db.events.get(lecdem.id)).toMatchObject({ kind: 'harikatha', title: null });
+
+    // Kept: back to a Concert, the title comes back after all.
+    expect(await peekReceipt(db, receipt!.id)).toEqual(receipt);
+    await changeKind(lecdem.id, 'concert', { db });
+    expect(await restoreTitle(receipt!.id, { db })).toMatchObject({
+      kind: 'lecdem',
+      title: 'On Begada',
+    });
+  });
+
+  it('keeps a title receipt refused while its Event is deleted, for after the Event is back', async () => {
+    const db = freshDb();
+    const dance = await createEvent({ kind: 'dance', title: 'Margam' }, { db });
+    const { receipt } = await changeKind(dance.id, 'concert', { db });
+    const deleted = await deleteEvent(dance.id, { db });
+
+    await expect(restoreTitle(receipt!.id, { db })).rejects.toThrow(EVENT_DELETED);
+    expect(await peekReceipt(db, receipt!.id)).toEqual(receipt);
+
+    await restoreEvent(deleted!.receipt.id, { db });
+    expect(await restoreTitle(receipt!.id, { db })).toMatchObject({
+      kind: 'dance',
+      title: 'Margam',
+    });
+    expect(await peekReceipt(db, receipt!.id)).toBeUndefined();
+  });
+
+  it('loses neither title when two changes to Concert are undone in either order', async () => {
+    const db = freshDb();
+    const event = await createEvent({ kind: 'lecdem', title: 'X' }, { db });
+    const first = (await changeKind(event.id, 'concert', { db })).receipt!;
+    await changeKind(event.id, 'lecdem', { db, title: 'Y' });
+    const second = (await changeKind(event.id, 'concert', { db })).receipt!;
+
+    // The older Undo first: X comes back, and Y waits in its receipt.
+    expect(await restoreTitle(first.id, { db })).toMatchObject({ kind: 'lecdem', title: 'X' });
+    await expect(restoreTitle(second.id, { db })).rejects.toThrow(KIND_CHANGED);
+    expect(await db.events.get(event.id)).toMatchObject({ kind: 'lecdem', title: 'X' });
+    expect(await peekReceipt(db, second.id)).toEqual(second);
+
+    // Back to Concert, X is kept in a receipt of its own, and Y comes back.
+    const third = (await changeKind(event.id, 'concert', { db })).receipt!;
+    expect(await restoreTitle(second.id, { db })).toMatchObject({ kind: 'lecdem', title: 'Y' });
+    expect(third.title).toEqual({ kind: 'lecdem', title: 'X' });
+    expect((await listReceipts(event.id, db)).map((r) => r.id)).toEqual([third.id]);
   });
 
   it('writes no receipt when there is no title to take', async () => {
