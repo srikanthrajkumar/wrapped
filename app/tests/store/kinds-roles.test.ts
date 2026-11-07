@@ -103,11 +103,13 @@ describe('new kinds, Roles and group names are kept (required)', () => {
       expect(await holdsValue({ table: 'events', id: row.id, field: '*', value: {} }, db)).toBe(
         true,
       );
-      for (const field of ['kind', 'title'] as const) {
-        expect(
-          await holdsValue({ table: 'events', id: row.id, field, value: row[field] }, db),
-        ).toBe(true);
-      }
+      expect(
+        await holdsValue({ table: 'events', id: row.id, field: 'title', value: row.title }, db),
+      ).toBe(true);
+      const pair = { kind: row.kind, title: row.title };
+      expect(
+        await holdsValue({ table: 'events', id: row.id, field: 'kind', value: pair }, db),
+      ).toBe(true);
     }
     // A title typed with spaces around it is held once stored trimmed.
     expect(
@@ -118,10 +120,16 @@ describe('new kinds, Roles and group names are kept (required)', () => {
         await holdsValue({ table: 'appearances', id: row.id, field: 'role', value: row.role }, db),
       ).toBe(true);
     }
-    // And says no while the store does not hold the value.
-    expect(
-      await holdsValue({ table: 'events', id: dance.id, field: 'kind', value: 'concert' }, db),
-    ).toBe(false);
+    // And says no while the store does not hold the value: a kind is held only with its title.
+    for (const pair of [
+      { kind: 'concert', title: null },
+      { kind: 'dance', title: 'Tillana' },
+      { kind: 'lecdem', title: 'Margam' },
+    ]) {
+      expect(
+        await holdsValue({ table: 'events', id: dance.id, field: 'kind', value: pair }, db),
+      ).toBe(false);
+    }
   });
 
   it('accepts every kind and Role, and refuses what is not one', async () => {

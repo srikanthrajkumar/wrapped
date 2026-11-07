@@ -50,6 +50,7 @@ Built entirely from the phone store, then handed to the share sheet or saved.
   | `artists` / `*`, `sabhas` / `*` | A new own Artist or Sabha | the name as typed |
   | `artists` / `name` | A renamed own Artist (walkthrough S5) | the new name |
   | `events` / `sabhaId` | A changed Sabha | `{ "id", "name" }` |
+  | `events` / `kind` | A changed kind, with the title it is saved with (`null` for a Concert; a title as typed) | `{ "kind", "title" }` |
   | `events` / `logging` | Legacy: "Done with this Concert", removed 2026-11-05 (walkthrough S13); only an Export from before then holds it | `"done"` |
   | `appearances` / `colours` | Changed Colours | `{ "colourPrimary", "colourSecondary" }` |
   | any / `deletedAt` | A delete | `{ "label" }`, what it deleted, as `"Concert, Mon 2 Nov"` |

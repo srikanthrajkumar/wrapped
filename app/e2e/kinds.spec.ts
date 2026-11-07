@@ -3,7 +3,7 @@
 // Undo, and a Role behind More is never hidden once chosen.
 
 import { expect, test, type Page } from '@playwright/test';
-import { finishFirstLaunch, readTable } from './helpers';
+import { failWritesOnDemand, finishFirstLaunch, readTable, setFailingWrites } from './helpers';
 
 /** A new Concert's facts sheet, open. */
 async function openFacts(page: Page) {
@@ -12,6 +12,14 @@ async function openFacts(page: Page) {
   await page.getByRole('button', { name: 'Log a Concert' }).click();
   await page.getByRole('button', { name: /Sat|Sun|Mon|Tue|Wed|Thu|Fri/ }).click();
   return page.getByRole('dialog');
+}
+
+/** The journal's copy of one Event field, as a reload would find it (ADR 0007). */
+function journalled(page: Page, id: string, field: string) {
+  return page.evaluate(
+    (key) => JSON.parse(localStorage.getItem(key) ?? 'null') as Record<string, unknown> | null,
+    `wrapped.notSaved.v1:events:${id}:${field}`,
+  );
 }
 
 test('a kind and its title, the Undo of a title taken, and the Roles behind More', async ({
@@ -94,4 +102,37 @@ test('a space typed before a pause stays for the next word', async ({ page }) =>
     .poll(async () => (await readTable<{ title: string | null }>(page, 'events'))[0]?.title)
     .toBe('Foo Bar');
   await expect(title).toHaveValue('Foo Bar');
+});
+
+test('a Lecdem chosen with its title is journalled with it, typed and after a failed write', async ({
+  page,
+}) => {
+  await failWritesOnDemand(page);
+  const facts = await openFacts(page);
+  const [concert] = await readTable<{ id: string }>(page, 'events');
+
+  // Lecdem waits for its title; the phone stops storing anything.
+  await facts.getByRole('button', { name: 'Lecdem' }).click();
+  await setFailingWrites(page, true);
+  const title = facts.getByRole('textbox', { name: 'Title' });
+  await title.pressSequentially('On Todi');
+  // While typed, the kind is journalled with the title.
+  expect(await journalled(page, concert!.id, 'kind')).toMatchObject({
+    value: { kind: 'lecdem', title: 'On Todi' },
+    state: 'typed',
+  });
+  await title.blur();
+  await expect(page.getByText('Not saved', { exact: true }).first()).toBeVisible();
+
+  // The app closes: the journal still has both, and so has the Export.
+  await page.reload();
+  await expect(page.getByText('Not saved', { exact: true }).first()).toBeVisible();
+  expect(await journalled(page, concert!.id, 'kind')).toMatchObject({
+    value: { kind: 'lecdem', title: 'On Todi' },
+    state: 'failed',
+  });
+  expect(await journalled(page, concert!.id, 'title')).toBeNull();
+  expect(await readTable(page, 'events')).toEqual([
+    expect.objectContaining({ kind: 'concert', title: null }),
+  ]);
 });

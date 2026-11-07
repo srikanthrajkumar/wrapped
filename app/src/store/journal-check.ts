@@ -64,8 +64,13 @@ function fieldHolds(table: string, field: string, value: unknown, row: Row): boo
     if (field === 'note') return (row.note ?? '') === (value ?? '');
     if (field === 'sabhaId') return row.sabhaId === (value as { id?: string } | null)?.id;
     // A title is stored trimmed, and an emptied one as null (store/events.ts).
-    if (field === 'title') {
-      return (row.title ?? '') === (typeof value === 'string' ? value.trim() : '');
+    const titleHolds = (title: unknown) =>
+      (row.title ?? '') === (typeof title === 'string' ? title.trim() : '');
+    if (field === 'title') return titleHolds(value);
+    // A kind is entered with the title it is saved with, and held only with both.
+    if (field === 'kind') {
+      const entered = value as { kind?: unknown; title?: unknown } | null;
+      return row.kind === entered?.kind && titleHolds(entered?.title);
     }
   }
   if (table === 'appearances' && field === 'colours') {
@@ -143,6 +148,10 @@ export function storedHolds(
   stored: unknown,
 ): boolean {
   if (table === 'appearances' && field === 'colours') {
+    return fieldHolds(table, field, entered, { ...(stored as Row) });
+  }
+  // A kind is read back with the Event's title.
+  if (table === 'events' && field === 'kind') {
     return fieldHolds(table, field, entered, { ...(stored as Row) });
   }
   if (table === 'events' && field === 'sabhaId') {
