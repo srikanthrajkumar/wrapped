@@ -91,21 +91,10 @@ The app has two surfaces with opposite jobs:
 - **The Wrapped cards** are shared. They should look like the rasika's own season, not like the
   app (proposed: coloured by the outfits the Artists wore; settled with the Cards, T088 to T096).
 
-**The motif (direction, 2026-11-02; designed late, before the Cards).** One ethereal mark runs
-through the app: soft, blurred light-rose forms, like a held note seen rather than heard. It is
-generated per Concert from what was played, in the spirit of antfu's generative sketches (line
-and field from simple rules, never illustration):
-
-- a violin draws long bowed waves;
-- a veena draws plucked ripples that fade, abstractly a yazh;
-- three percussionists bring pulse and movement;
-- a vocal-led Concert reads as breath.
-
-The same Concert always draws the same mark. The motif is the logo, the ground of the Wrapped
-cards, and one thin strip or profile mark per Concert (perhaps only today's, or only the Now
-block). It stays out of the logging surfaces themselves (search, Details, the running order),
-which keep receding. It is drawn in code (SVG or canvas, a few KB), so it works offline and
-fits the size budget.
+**The motif** (direction 2026-11-02, designed 2026-11-07; see "The motif" below). One soft mark
+of light in Ink and rose runs through the app's edges, drawn in code from the rasika's own data:
+the season's Ragas, a Concert's Ragas, an Artist's instrument and name. It is atmosphere, never
+illustration, and it stays out of the logging surfaces, which keep receding.
 
 Built with shadcn/ui on Tailwind ([ADR 0006](docs/adr/0006-shadcn-and-tailwind-for-the-screens.md)),
 starting from preset `b51rn04Qt`. The preset's values are the base; this file records where the
@@ -178,6 +167,80 @@ strip, is planned as T118 and changes what a Colour is (2026-11-05)._
 | Orange | `#E8711A` | Green  | `#2E7D4F` |
 | Yellow | `#F2C230` | Purple | `#6A3D9A` |
 | Black  | `#111111` | Grey   | `#8C8C8C` |
+
+## The motif
+
+Settled with the Maintainer on 2026-11-07, after three rounds of boards (line hatching, rose
+curves and a hand-drawn mist were each turned down). The full board history is in the PR.
+
+**What a mark is.** A soft mesh of light: [Paper Shaders](https://shaders.paper.design)' static
+mesh gradient, its two shader strings copied into `app/src/motif/` with Paper's Apache-2.0
+licence and notice (no package). One shared WebGL2 context draws every mark once into a still
+canvas, so a Schedule of forty cards opens one context, and nothing animates or keeps running.
+Each mark is softened by a blur of 7% of its shorter side as it is copied out, since the mesh
+leaves a sharp point at every colour's centre (a streak or a pinhole where two tones meet). No
+grain. With no WebGL2 nothing is drawn and the surface under it shows. About 4.5 KB of the first
+install.
+
+**Tones: Ink and rose.** Six theme tokens, each defined in both themes: neutral greys and one
+rose, nothing cool. A mark names tones, never colours, so it redraws when the theme changes.
+`ground` is the field's base (in dark, the page itself, so nothing is darker than the page and
+the status bar meets the motif without a seam) and `far` its strongest contrast, kept out of
+the fields so they hold no glare.
+
+| Token            | Dark                      | Light                     |
+| ---------------- | ------------------------- | ------------------------- |
+| `--motif-ground` | oklch(0.148 0.004 228.8)  | oklch(0.975 0 0)          |
+| `--motif-near`   | oklch(0.22 0 0)           | oklch(0.92 0 0)           |
+| `--motif-mid`    | oklch(0.38 0 0)           | oklch(0.8 0 0)            |
+| `--motif-rose`   | oklch(0.6 0.19 16)        | oklch(0.62 0.17 16)       |
+| `--motif-blush`  | oklch(0.78 0.1 12)        | oklch(0.8 0.1 12)         |
+| `--motif-far`    | oklch(0.8 0 0)            | oklch(0.3 0 0)            |
+
+**Seeds.** The same seed always draws the same mark (`app/src/motif/seed.ts`):
+
+- **The season** (Season's curtain): the Ragas heard at Attended Events, the most heard first,
+  Linked ragas once. The three most heard take the field's voices, each toned by its melakarta's
+  chakra (a prati madhyamam melakarta one on); the rest is ground, so the title on it stays
+  quiet. Day one is ink with one faint rose; a second rose comes once three Ragas are heard, so
+  the field grows with the season and never starts loudest.
+- **A Concert** (its summary's edge): its Ragas; mostly ground, one rose glow, toned by the Raga
+  heard most.
+- **An Artist** (the Schedule tile): the instrument sets the form, the name varies it, all in one
+  soft rendering. Bowed (violin, dance): one long fold. Plucked (veena, chitravina, mandolin):
+  ripples. Struck (mridangam, ghatam, khanjira, morsing, thavil, nattuvangam): several small
+  glows, like beats. Breath (voice, flute, nagaswaram, saxophone, presenter): one soft swell.
+- **The app's own mark** (first launch; the logo once the name is settled): Silk, one fixed
+  field of long rose-and-ink folds, kept sharp (blur 1.2%, not 7%). Chosen by the Maintainer
+  from four bolder fields on 2026-11-07: the one place the motif may be as wavy and vivid as it
+  likes.
+
+**Where it appears, and nowhere else:**
+
+- **Season, as a curtain:** full-bleed from the top of the screen behind the title ("Season",
+  `heading`, its bottom 16px above the sheet), with the page drawn up over it as a sheet with
+  18px top corners from 112px under the status bar. The field fades halfway to the page over
+  its bottom 80px, so the title holds at least 7:1 (measured). An installed Android web app
+  can't draw under the status bar; the dark ground is the page colour, so there is no seam.
+  In a phone's browser tab, where the install row shows, Season keeps its plain title until
+  the app is installed, so the row stays at one place on every tab (FB-46). What else the shelf
+  holds is to be decided.
+- **The Concert summary's top edge, as a curtain:** 96px, the summary drawn up over it with
+  18px corners. The page behind it goes grey under the scrim, so only this Concert's field
+  carries rose.
+- **First launch, as a horizon:** Silk, full-bleed from the top over 74% of the screen,
+  dissolving into the page above the words; the words and the button sit low, under it. It is
+  the only mark that moves: its folds drift back and forth on slow periods (11, 14 and 19
+  seconds, so it never visibly loops), drawn in its own WebGL2 context at the screen's CSS
+  pixels, at most 30 frames a second, and not at all while the app is hidden. With reduced
+  motion it holds still. The movement is about 0.4 KB of code; no video.
+- **The Schedule card's tile:** 48px with 14px corners, the main billed Artist's avatar (the first
+  in Stage order); plain surface-raised when nobody is billed, and dimmed with a cancelled card.
+
+It is never on the running order, search, Details, Stage, the sheets or any other logging
+surface, and never on Artist rows: an avatar on every Artist read as too much (2026-11-07). It
+fades in over 300ms when first drawn on Season and first launch, and simply appears with reduced
+motion. Only first launch moves. It is decoration: hidden from screen readers.
 
 ## Typography
 
@@ -313,7 +376,7 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
 - **Schedule (T061; the Maintainer, 2026-11-07):** a pushed screen, the D5 top bar
   "‹ Season", then "Schedule" in `title`, then the logger's entries from today on, by day under
   the same day labels as Next. Each entry is a card (surface, 16px corners, 8px apart): at its
-  leading edge a bounded 48px tile in surface-raised, empty, kept for the motif; then the
+  leading edge a bounded 48px tile, the main billed Artist's avatar (see "The motif"); then the
   Artists it is billed by (a Group by its name) with its kind's mark, or its Sabha when nobody is
   billed; a printed title under it; then "Sabha · time", muted; at its right a 48px "+" that puts
   it in Next as Planned, spoken "Add to Next: …", which becomes a muted check opening the Event
@@ -390,7 +453,7 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
 - **Light:** borders do the same job; only sheets and menus take a soft shadow.
 - **Sheets** (Colour picker, edit menus) rise from the bottom over a 50% black scrim. Menus use
   the preset's inverted translucent style. The Concert summary is shadcn's Dialog: centred,
-  `surface` with 18px corners, over its own blurred scrim.
+  `surface` with 18px corners, over its own blurred scrim (50% black, the page behind in grey).
 
 ## Shapes
 
@@ -635,7 +698,9 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
 
 ## Motion
 
-Motion explains a change and is otherwise absent. Reopened 2026-11-04 by FB-30 ("fast but
+Motion explains a change and is otherwise absent. One exception (the Maintainer, 2026-11-07): the motif on the
+first-launch screens drifts slowly, back and forth, since nothing is being logged there ("The
+motif"). Reopened 2026-11-04 by FB-30 ("fast but
 finicky"): every change of place now moves, briefly, in CSS only, and nothing waits on it.
 
 - Press feedback: 100ms. State changes (a value updating): 150ms ease-out.
@@ -775,12 +840,8 @@ in the phase that builds it):
 - The product's name and where its logo appears (deferred 2026-11-01: the Maintainer is
   considering other names; a logo will appear somewhere). "Carnatic Wrapped" stays the working
   name until then. The logo is drawn from the motif.
-- The motif itself (T088a), settled before the Card template:
-  - how instruments, the number of percussionists and perhaps the Ragas map to form and movement;
-  - the rose range in both themes;
-  - which Concerts show it and where (a strip, a profile mark, the Now card);
-  - the logo;
-  - its accessible name.
+- The motif's remaining uses (T088a): the ground of the Wrapped cards, the logo, and what the
+  Season shelf holds beyond its title. The motif itself was settled on 2026-11-07.
 
 ## Decisions Log
 
@@ -809,3 +870,5 @@ in the phase that builds it):
 | 2026-11-07 | The Maintainer's answers for the Schedule (T061): it opens from a calendar icon button beside Season's "Next" heading, as a pushed screen grouped by day with the D5 top bar; each entry is a card with an empty tile at its leading edge kept for the motif, the title, the billed Artists or group, the Sabha and the time, and an add button that puts it in Next as Planned. A cancelled entry stays on its day, dimmed, with a cancelled mark and no add button; a Planned Event whose entry is cancelled stays in Next, marked, until the rasika removes it, so Season no longer hides it. The builder's calls, for the Maintainer to check: Next shows once a Schedule is stored, for its button; a cancelled card gives up its fill for an outline; the marks are Tabler's calendar-x and calendar-exclamation; an added entry's button becomes a check that opens the Event; the Schedule lists from today on; an Event the rasika changed is shown cancelled from its entry while its stored `cancelled` stays false. |
 | 2026-11-07 | The Maintainer's answer for the "schedule changed" hint: tapping it opens a sheet of what changed, old beside new, only the fields that differ (date, time, Sabha, kind, title, billed Artists), with two icon-first buttons. "Take it" gives the Event the version's values, in one transaction, its rules checked; "keep mine" changes nothing and clears the hint until a newer version. The builder's calls, for the Maintainer to check: the hint is its own 48px button beside the row; field marks are Tabler's calendar, clock, building-community, category, letter-t and users; a value the version leaves null (time, title) or a version billing no one names nothing, so the rasika's stays; a billed Artist dropped by the version is removed unless the rasika gave them a Colour, when they stay unbilled; "Keep mine" is an outline button with an X, "Take it" the primary with a check. Settled the same day: an Attended or Missed Event never gets the hint; a later version leaves it alone. After the PR #25 review: the hint shows on a cancelled row too, and the sheet lists cancelled or reinstated as a row (Tabler's ban as its mark, calendar-x and calendar-check as its values); a cancelled Planned Event stays in Next past its start time until deleted, and is never Now. |
 | 2026-11-06 | T119 to T122, the builder's calls: an Event's kind is a mark before its name on the Season rows and the Event heading, none for a Concert (Presentation for a Lecdem, a figure in movement for a Dance, a book for a Harikatha); the kind is four chips at the top of the Event's facts sheet, which takes the kind's name as its title, with a Title field under them for any kind but a Concert; a title reads first on the facts line, above the Sabha; a change to Concert that takes a title offers "Title removed · Undo" as a delete does; "More" opens in place and stays open; a Group shows by its name only where two or more of the known-by Artists share it. |
+| 2026-11-07 | The motif, settled with the Maintainer after three boards: Paper Shaders' static mesh gradient (its shader copied in under Apache-2.0, no package) in Ink and rose, seeded from the rasika's data, one shared WebGL2 context drawing still canvases. Placed as a curtain on Season and the Concert summary's top edge, a horizon on first launch, and the main billed Artist's avatar on the Schedule card's tile; not on Artist rows or any logging surface. One council round (Codex and two Claude reviewers; 6.2, 6 and 5) agreed on a shorter curtain, a quieter day one, no glare or black stops, neutral greys, one soft rendering for avatars, a longer fade on first launch, no top strip, less grain and a grey backdrop behind the summary; all built and checked. The builder's calls: the title on the curtain is `heading`; in a phone's browser tab, where the install row shows, Season keeps its plain title until installed (FB-46 keeps that row at one place on every tab); a card with nobody billed keeps a plain tile; the season's field waits for the catalog and fades in over 300ms. |
+| 2026-11-07 | First launch's mark: Silk, picked from four bolder fields (Bloom horizon, Ribbon block, Full bleed, Silk), kept sharp, and moving: its folds drift back and forth on 11, 14 and 19 second periods, the one moving mark and the one exception to "motion explains a change". About 0.4 KB; reduced motion holds it still. Season's colours follow the Ragas logged (the three most heard, a second rose at three), not the day or the number of Concerts. |
