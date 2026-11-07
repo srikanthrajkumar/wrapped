@@ -79,6 +79,17 @@ export interface AttentionEntry {
 
 export type AttentionCode = RejectCode | 'bad_request';
 
+/**
+ * A newer build of the app has this store: this build may not know its records' shape, so it
+ * must not write to it (a save would drop the fields it doesn't know, and the outbox is shared).
+ */
+export class NewerStoreError extends Error {
+  constructor() {
+    super('A newer version of the app has opened this store');
+    this.name = 'NewerStoreError';
+  }
+}
+
 export interface MetaEntry {
   key: string;
   value: unknown;
@@ -121,6 +132,26 @@ export class WrappedDB extends Dexie {
       serverSeqs: '[table+id]',
       attention: 'opId, [table+recordId]',
     });
+    // Any release that changes a record's shape bumps the version (contracts/sync-api.md,
+    // "Errors"), so tabs still running an older build close their store (below). 3: Dance and
+    // Harikatha, their Roles, and an Appearance's `group` (T119-T122), which came without a bump.
+    this.version(3).stores({});
+
+    // A newer build is opening the store: close it for good, with no auto-open, so this build
+    // never writes again; the screens ask for a reload (store/health.ts). Dexie's own handler
+    // closes too, but reopens on the next write, and a reopen accepts the newer version.
+    this.on('versionchange', () => {
+      this.close({ disableAutoOpen: true });
+    });
+    // The same when this build opens a store a newer build already upgraded: Dexie would open it
+    // at that version. Checked on every open, reopens included.
+    this.on(
+      'ready',
+      () => {
+        if (Math.floor(this.backendDB().version / 10) > this.verno) throw new NewerStoreError();
+      },
+      true,
+    );
   }
 }
 
