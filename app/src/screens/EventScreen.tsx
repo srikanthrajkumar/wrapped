@@ -511,14 +511,17 @@ function ConcertBlock({
   });
   const resolved = useSabha(chosen.id);
   const sabhaName = resolved?.name ?? chosen.name;
-  const kind = feedback.shown(target('kind'), event.kind);
-  const title = feedback.shown(target('title'), event.title);
+  // A kind is entered with the title it is saved with, as one value (journal-check.ts).
+  const kind = feedback.shown(target('kind'), { kind: event.kind, title: event.title });
+  const title = feedback.shown(target('title'), kind.title);
 
-  // A change to Concert that takes a typed title away offers Undo, as a delete does (T122).
-  const saveKind = async (next: EventKind, nextTitle?: string | null) => {
-    const field = nextTitle === undefined ? 'kind' : 'title';
-    const changed = await saveWith(target(field), field === 'kind' ? next : nextTitle, () =>
-      changeKind(event.id, next, nextTitle === undefined ? {} : { title: nextTitle }),
+  // The kind and its title are written, journalled and checked together, so a failed write
+  // keeps both. A change to Concert that takes a typed title away offers Undo, as a delete does
+  // (T122).
+  const saveKind = async (next: EventKind, nextTitle: string | null = title) => {
+    const entered = { kind: next, title: next === 'concert' ? null : nextTitle };
+    const changed = await saveWith(target('kind'), entered, () =>
+      changeKind(event.id, next, next === 'concert' ? {} : { title: nextTitle }),
     );
     if (changed?.receipt) offerUndo(changed.receipt);
   };
@@ -526,7 +529,7 @@ function ConcertBlock({
   return (
     <section className="pt-2">
       <h1 ref={head} tabIndex={-1} className="text-title font-semibold break-words">
-        {knownBy !== null && <KindMark kind={kind} className="mr-2" />}
+        {knownBy !== null && <KindMark kind={kind.kind} className="mr-2" />}
         {knownBy ?? (
           <button
             type="button"
@@ -573,7 +576,9 @@ function ConcertBlock({
             className="min-h-14 rounded-xl py-2 text-left text-muted-foreground underline decoration-border underline-offset-4"
           >
             {/* A Lecdem's, a Dance's or a Harikatha's title reads first, as printed. */}
-            {kind !== 'concert' && title && <span className="block text-foreground">{title}</span>}
+            {kind.kind !== 'concert' && title && (
+              <span className="block text-foreground">{title}</span>
+            )}
             {eventLine({ date, startTime }, sabhaName)}
           </button>
         </div>
@@ -583,11 +588,11 @@ function ConcertBlock({
         open={factsOpen}
         onOpenChange={setFactsOpen}
         eventId={event.id}
-        kind={kind}
+        kind={kind.kind}
         title={title}
         onKind={(next) => void saveKind(next)}
         onTitle={(next, as) => {
-          if (as !== kind) void saveKind(as, next);
+          if (as !== kind.kind) void saveKind(as, next);
           else {
             void saveWith(target('title'), next, () => editEvent(event.id, { title: next }));
           }
@@ -993,6 +998,7 @@ function EventFacts({
             key={`${eventId}:${shownKind}`}
             eventId={eventId}
             stored={title}
+            waitingAs={waiting}
             required={shownKind === 'lecdem'}
             autoFocus={waiting !== null}
             onSave={(next) => {
@@ -1053,25 +1059,29 @@ function EventFacts({
 /**
  * A Lecdem's, a Dance's or a Harikatha's title, saved as the rasika pauses or leaves the field,
  * journalled as typed (ADR 0007). Emptied, a Dance's or a Harikatha's title is none; a Lecdem's
- * is required, so an emptied one is not written and the title stays. It is stored trimmed, and
- * the stored title never replaces the text typed, so a space typed before a pause stays for
- * the next word.
+ * is required, so an emptied one is not written and the title stays. Typed for a kind not yet
+ * saved (`waitingAs`), it is journalled with that kind, as the one value they are saved as. It is
+ * stored trimmed, and the stored title never replaces the text typed, so a space typed before a
+ * pause stays for the next word.
  */
 function TitleField({
   eventId,
   stored,
+  waitingAs,
   required,
   autoFocus,
   onSave,
 }: {
   eventId: string;
   stored: string | null;
+  waitingAs: EventKind | null;
   required: boolean;
   autoFocus: boolean;
   onSave(title: string | null): void;
 }) {
   const feedback = useSaveFeedback();
-  const target = eventTarget(eventId, 'title');
+  const target = eventTarget(eventId, waitingAs ? 'kind' : 'title');
+  const entered = (text: string) => (waitingAs ? { kind: waitingAs, title: text } : text);
   const title = useAutosave(
     stored ?? '',
     (value) => {
@@ -1081,7 +1091,7 @@ function TitleField({
       }
       onSave(value.trim() === '' ? null : value);
     },
-    (value) => (value === null ? feedback.release(target) : feedback.hold(target, value)),
+    (value) => (value === null ? feedback.release(target) : feedback.hold(target, entered(value))),
     (typed, saved) => typed.trim() === saved.trim(),
   );
   return (
