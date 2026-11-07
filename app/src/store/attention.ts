@@ -26,12 +26,16 @@ export interface AttentionView {
   server: RasikaRow | null;
 }
 
-/** Every record needing attention, oldest rejection first. */
+/**
+ * Every record needing attention, in outbox order (the op saved first comes first). Not by
+ * `rejectedAt`: a batch set aside at once shares one time, and the table's own order is the
+ * opId, which is random.
+ */
 export async function listAttention(db: WrappedDB = defaultDb): Promise<AttentionView[]> {
   const tables = [db.attention, db.serverSeqs, ...tablesOf(db)];
   return db.transaction('r', tables, async () => {
     const entries = await db.attention.toArray();
-    entries.sort((a, b) => a.rejectedAt.localeCompare(b.rejectedAt));
+    entries.sort((a, b) => a.queueSeq - b.queueSeq);
     const views: AttentionView[] = [];
     for (const entry of entries) {
       const local = ((await db.table(entry.table).get(entry.recordId)) as RasikaRow) ?? null;
