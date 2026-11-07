@@ -60,6 +60,12 @@ function isNewerStore(error: unknown): boolean {
 }
 
 describe('a tab running an older build (required)', () => {
+  it('opens the store at version 3 at least, for the shape Dance, Harikatha and group brought', async () => {
+    const store = freshDb();
+    await store.open();
+    expect(store.backendDB().version / 10).toBeGreaterThanOrEqual(3);
+  });
+
   it('closes its store when a newer build opens it, and saves nothing after', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const older = freshDb();
