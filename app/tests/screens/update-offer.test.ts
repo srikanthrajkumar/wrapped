@@ -2,7 +2,8 @@
 // offered while a value that failed to save is held only in memory.
 
 import { describe, expect, it } from 'vitest';
-import { appliesWaitingUpdate, offersUpdate } from '../../src/screens/update-offer';
+import { SaveFeedback } from '../../src/screens/save-feedback';
+import { appliesWaitingUpdate, offersUpdate, onReloadTap } from '../../src/screens/update-offer';
 
 describe('the update offer', () => {
   const base = { available: true, later: false, logging: false, unsaved: false };
@@ -25,5 +26,15 @@ describe('the update offer', () => {
     // Later, a stale request must never reload the page mid-Concert.
     expect(appliesWaitingUpdate({ requested: true, firstLaunchDone: true })).toBe(false);
     expect(appliesWaitingUpdate({ requested: false, firstLaunchDone: false })).toBe(false);
+  });
+
+  it('Update asks to Export first while a value lives only in memory, and applies on the next tap', () => {
+    // No storage: the journal can't keep what is entered, and a reload would lose it.
+    const feedback = new SaveFeedback({ storage: null });
+    expect(onReloadTap(feedback, false)).toBe('reload');
+
+    feedback.hold({ table: 'events', id: 'e1', field: 'note' }, 'Tisram');
+    expect(onReloadTap(feedback, false)).toBe('ask');
+    expect(onReloadTap(feedback, true)).toBe('reload');
   });
 });

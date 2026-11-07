@@ -589,3 +589,56 @@ test('a second first pick while the first is written makes no second Item', asyn
     )
     .toEqual([]);
 });
+
+test('a value only memory holds survives a newer build taking the store: Reload asks, Export keeps it', async ({
+  page,
+}) => {
+  // Storage is full: the journal can't keep a copy of what is entered.
+  await page.addInitScript(() => {
+    const setItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (this: Storage, key: string, value: string) {
+      if (key.startsWith('wrapped.notSaved.v1:')) {
+        throw new DOMException('The quota has been exceeded', 'QuotaExceededError');
+      }
+      setItem.call(this, key, value);
+    };
+  });
+  await newConcert(page);
+  await page.getByRole('link', { name: 'Add Item' }).click();
+  await page.getByRole('button', { name: '? Don’t know' }).click();
+  await openFold(page, 'Improvised');
+  await page.getByRole('button', { name: 'Laya vinyasam' }).click();
+  // Time stands still, so the autosave's pause never ends: only memory holds the note.
+  await page.clock.install();
+  await page.clock.pauseAt(Date.now() + 1000);
+  await page.getByRole('textbox', { name: 'Note' }).fill('tisram, then khandam');
+
+  // A newer build opens the store in another tab.
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const request = indexedDB.open('carnatic-wrapped', 1000);
+        request.onsuccess = () => {
+          request.result.close();
+          resolve();
+        };
+        request.onerror = () => reject(request.error);
+      }),
+  );
+
+  await expect(
+    page.getByRole('heading', { name: 'A newer version is open in another tab' }),
+  ).toBeVisible();
+  await expect(page.getByText('Not kept on this phone')).toBeVisible();
+  // Reload asks first: it would lose the note.
+  await page.getByRole('button', { name: 'Reload', exact: true }).click();
+  await expect(page.getByText("Reloading loses what isn't kept. Export it first.")).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Reload anyway' })).toBeVisible();
+
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export' }).click();
+  const file = JSON.parse(readFileSync((await (await download).path())!, 'utf8'));
+  expect(file.notSaved).toEqual(
+    expect.arrayContaining([expect.objectContaining({ value: 'tisram, then khandam' })]),
+  );
+});

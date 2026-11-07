@@ -34,6 +34,7 @@ import { newId } from '../model';
 import { Motif } from '../motif/Motif';
 import { ragaSeeds } from '../motif/ragas';
 import { saveWith, useSaveFeedback } from './components/feedback';
+import { useReloadGuard } from './components/reload-guard';
 import { KindMark } from './components/kind-mark';
 import { ScheduleChangedSheet } from './components/ScheduleChanged';
 import { useLingering } from './components/sheet-frame';
@@ -96,6 +97,8 @@ function HomeView() {
   const [later, setLater] = useState(updateLater);
   const [, navigate] = useLocation();
   const feedback = useSaveFeedback();
+  // Update reloads the page: while a value lives only in memory, it asks to Export first.
+  const updating = useReloadGuard(updateNow);
   const undos = useSyncExternalStore(subscribeUndo, undoOffers);
   const hasSchedule = useHasSchedule();
   // The Event whose "schedule changed" sheet is open, kept drawn while it closes.
@@ -180,9 +183,14 @@ function HomeView() {
           <span className="py-2">
             {update.newCatalog ? MESSAGES.newCatalog : MESSAGES.appUpdate}
           </span>
+          {updating.asking && (
+            <p role="alert" className="w-full text-sub text-destructive">
+              {MESSAGES.reloadLoses}
+            </p>
+          )}
           <span className="flex gap-1">
-            <Button variant="ghost" onClick={updateNow}>
-              {MESSAGES.actions.update}
+            <Button variant="ghost" onClick={updating.tap}>
+              {updating.asking ? MESSAGES.actions.updateAnyway : MESSAGES.actions.update}
             </Button>
             <Button
               variant="ghost"

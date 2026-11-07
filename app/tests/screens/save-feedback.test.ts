@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { unresolvedValue } from '../../src/model';
 import { offersUpdate } from '../../src/screens/update-offer';
 import { NOT_SAVED_PREFIX, SaveFeedback } from '../../src/screens/save-feedback';
+import { reloadLoses } from '../../src/screens/update-offer';
 import { createEvent } from '../../src/store/events';
 import { buildExport } from '../../src/store/export';
 import { addItem, editItem, removeItem, setDetail } from '../../src/store/items';
@@ -549,6 +550,36 @@ describe('save feedback, fourth review (required)', () => {
     storage.full = false;
     feedback.hold(target, 'Tisram, Misram, Khandam');
     expect(feedback.journalBlocked()).toBe(false);
+  });
+
+  it('a value whose copy failed stays held only in memory, even once a later copy is written', () => {
+    const storage = memoryStorage();
+    const feedback = new SaveFeedback({ storage });
+    const first = { table: 'events', id: 'e1', field: 'note' } as const;
+    const second = { table: 'events', id: 'e2', field: 'note' } as const;
+    storage.full = true;
+    feedback.hold(first, 'Tisram');
+    storage.full = false;
+    feedback.hold(second, 'Misram');
+
+    expect(feedback.journalBlocked()).toBe(false);
+    expect(feedback.heldOnlyInMemory()).toEqual([
+      expect.objectContaining({ ...first, value: 'Tisram' }),
+    ]);
+    // A reload would lose it: the reload and rescue screens ask first, with Export.
+    expect(reloadLoses(feedback)).toBe(true);
+
+    // Written at last, it is kept again.
+    feedback.hold(first, 'Tisram, Misram');
+    expect(feedback.heldOnlyInMemory()).toEqual([]);
+    expect(reloadLoses(feedback)).toBe(false);
+  });
+
+  it('with no storage at all, every value entered is held only in memory', () => {
+    const feedback = new SaveFeedback({ storage: null });
+    feedback.hold({ table: 'events', id: 'e1', field: 'note' }, 'Tisram');
+    expect(feedback.heldOnlyInMemory()).toHaveLength(1);
+    expect(reloadLoses(feedback)).toBe(true);
   });
 
   it('Dismiss on a failed delete keeps the record, and takes only that entry', async () => {

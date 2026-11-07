@@ -107,13 +107,12 @@ export const MESSAGES = {
   rescue: {
     title: "Can't open your season",
   },
-  /**
-   * Not in the table yet: the screen shown when a newer version of the app, in another tab, has
-   * the store, so this tab no longer writes to it.
-   */
+  /** The screen shown when a newer version of the app has the store, from another tab. */
   replaced: {
-    title: 'A newer version of the app is open in another tab',
+    title: 'A newer version is open in another tab',
   },
+  /** Asked before a reload (Reload, Try again, Update) would lose values only memory holds. */
+  reloadLoses: "Reloading loses what isn't kept. Export it first.",
   newCatalog: 'An updated song catalog is ready.',
   /** Not in the table: the app update without a new catalog (T028's wording, kept). */
   appUpdate: 'A new version is ready.',
@@ -152,6 +151,9 @@ export const MESSAGES = {
   actions: {
     tryAgain: 'Try again',
     reload: 'Reload',
+    reloadAnyway: 'Reload anyway',
+    tryAgainAnyway: 'Try again anyway',
+    updateAnyway: 'Update anyway',
     yes: 'Yes',
     no: 'No',
     start: 'Start',
