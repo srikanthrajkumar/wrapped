@@ -13,8 +13,8 @@ import {
 import { db as defaultDb } from './db';
 import { restoreItemRows, type Deleted, type RestoreOptions } from './items';
 import { getLive, newTimestamps, remove, save, type WriteOptions } from './mutate';
-import { takeReceipt, writeReceipt, type DeletionReceipt } from './receipts';
-import { check, eventProblems, RuleError } from './rules';
+import { peekReceipt, takeReceipt, writeReceipt, type DeletionReceipt } from './receipts';
+import { check, EVENT_DELETED, eventProblems, KIND_CHANGED, RuleError } from './rules';
 
 /** Today on the phone's own clock, as `YYYY-MM-DD` (Edge Cases: the date defaults to today). */
 export function today(now = new Date()): string {
@@ -109,7 +109,8 @@ export async function editEvent(
  * Change an Event's kind among the four (T122), with its title where the new kind has one. A
  * change to Concert, whose title is null, takes a typed title away only with a receipt that
  * Undo restores it from, written in the same transaction as the Event and its outbox entry, so
- * no title is ever lost to a kind change. Without `title`, the title stays as it is.
+ * no title is ever lost to a kind change. Each change to Concert keeps its own receipt. Without
+ * `title`, the title stays as it is.
  */
 export async function changeKind(
   id: string,
@@ -143,19 +144,26 @@ export async function changeKind(
 
 /**
  * Undo a title taken by a change to Concert: the Event goes back to the kind and title it had,
- * in one transaction. Only while it still has no title: a title typed since is the rasika's
- * newer word, so the receipt is used up and nothing changes. A used, stale or deleted Event's
- * receipt restores nothing and returns null.
+ * in one transaction. The receipt is used up only when the title comes back. It restores only
+ * while the Event is still a live Concert, as that change left it: while the Event is deleted
+ * the Undo is refused with EVENT_DELETED, and once it is another kind with KIND_CHANGED, since
+ * restoring would undo the rasika's newer choice; either way the receipt is kept, so the title
+ * can still come back. A used receipt, or one whose Event is gone, restores nothing and returns
+ * null.
  */
 export async function restoreTitle(
   receiptId: string,
   { db = defaultDb }: WriteOptions = {},
 ): Promise<Event | null> {
   return db.transaction('rw', [db.events, db.outbox, db.meta], async () => {
+    const pending = await peekReceipt(db, receiptId);
+    if (pending?.kind !== 'title' || !pending.title) return null;
+    const event = await db.events.get(pending.eventId);
+    if (event && event.deletedAt !== null) throw new RuleError([EVENT_DELETED]);
+    if (event && event.kind !== 'concert') throw new RuleError([KIND_CHANGED]);
+    // Taken only now: a refusal above, or a rule below, leaves the receipt in place.
     const receipt = await takeReceipt(db, receiptId, 'title');
-    if (!receipt?.title) return null;
-    const event = await db.events.get(receipt.eventId);
-    if (!event || event.deletedAt !== null || event.title !== null) return null;
+    if (!receipt?.title || !event) return null;
     const restored: Event = { ...event, ...receipt.title, touched: true };
     check(eventProblems(restored));
     return save('events', restored, { db });
