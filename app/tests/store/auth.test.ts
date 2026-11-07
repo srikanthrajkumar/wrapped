@@ -59,12 +59,18 @@ function concert(): Event {
   };
 }
 
-/** One sign-in or sync at a time, as the Web Lock gives them in the browser. */
+/**
+ * One holder per lock name at a time, as Web Locks give them in the browser; locks of other
+ * names don't wait, so a sign-in and a sync serialize only if they use the same name.
+ */
 function mutex(): SyncLock {
-  let tail: Promise<unknown> = Promise.resolve();
-  return (_name, work) => {
-    const run = tail.then(work);
-    tail = run.catch(() => undefined);
+  const tails = new Map<string, Promise<unknown>>();
+  return (name, work) => {
+    const run = (tails.get(name) ?? Promise.resolve()).then(work);
+    tails.set(
+      name,
+      run.catch(() => undefined),
+    );
     return run;
   };
 }
