@@ -29,6 +29,7 @@ import {
   type SyncLock,
 } from '../../src/store/sync';
 import { startSync } from '../../src/store/sync-runtime';
+import type { SupportedStorage } from '@supabase/supabase-js';
 import { SyncError, type SyncApi } from '../../src/store/sync-api';
 import { freshDb } from '../helpers';
 
@@ -121,12 +122,13 @@ function fakeClient(answer: Awaited<ReturnType<SessionClient['auth']['getSession
 describe('sign-in on the phone', () => {
   it('keeps supabase-js’s session in the store, under its own prefix', async () => {
     const db = freshDb();
+    const me = identity();
+    await recordIdentity(me, db, { lock: noLock });
     const storage = metaStorage(db);
-    await storage.setItem('wrapped-session', '{"access_token":"t"}');
-    expect(await storage.getItem('wrapped-session')).toBe('{"access_token":"t"}');
-    expect((await db.meta.get(`${AUTH_STORAGE_PREFIX}wrapped-session`))?.value).toBe(
-      '{"access_token":"t"}',
-    );
+    const session = JSON.stringify(sessionOf(me.userId));
+    await storage.setItem('wrapped-session', session);
+    expect(await storage.getItem('wrapped-session')).toBe(session);
+    expect((await db.meta.get(`${AUTH_STORAGE_PREFIX}wrapped-session`))?.value).toBe(session);
     await storage.removeItem('wrapped-session');
     expect(await storage.getItem('wrapped-session')).toBeNull();
   });
@@ -172,7 +174,8 @@ describe('sign-in on the phone', () => {
 
   it('with real auth-js: an expired token and no signal keep the session and the season', async () => {
     const db = freshDb();
-    await recordIdentity(identity(), db, { lock: noLock });
+    const me = identity();
+    await recordIdentity(me, db, { lock: noLock });
     await save('events', concert(), { db });
     const expired = {
       access_token: 'expired',
@@ -180,7 +183,7 @@ describe('sign-in on the phone', () => {
       token_type: 'bearer',
       expires_in: 3600,
       expires_at: Math.floor(Date.now() / 1000) - 60,
-      user: { id: newId(), aud: 'authenticated', app_metadata: {}, user_metadata: {} },
+      user: { id: me.userId, aud: 'authenticated', app_metadata: {}, user_metadata: {} },
     };
     await metaStorage(db).setItem('wrapped-session', JSON.stringify(expired));
     // Nothing listens on port 9: every refresh fails for want of an answer.
@@ -452,6 +455,60 @@ describe('another account, a crash and a race (required)', () => {
     expect(await signIn).toBeInstanceOf(AccountMismatchError);
     expect(await readIdentity(db)).toEqual(a);
     expect((await db.meta.get(PULL_CURSOR_KEY))?.value).toBe('a-cursor');
+  });
+
+  it('a refresh of the last account answering after another account signed in leaves the new session', async () => {
+    const db = freshDb();
+    const a = identity();
+    await recordIdentity(a, db, { lock: noLock });
+    const inner = metaStorage(db);
+    await inner.setItem(
+      'wrapped-session',
+      JSON.stringify(sessionOf(a.userId, 'expired', Date.now() / 1000 - 60)),
+    );
+    const b = identity();
+    const sessionB = JSON.stringify(sessionOf(b.userId));
+    let refreshAnswered = false;
+    let signedInB: Promise<void> | null = null;
+    vi.stubGlobal('fetch', async (input: RequestInfo | URL) => {
+      if (!String(input).includes('grant_type=refresh_token'))
+        return new Response('{}', { status: 404 });
+      refreshAnswered = true;
+      return new Response(JSON.stringify(sessionOf(a.userId, 'refreshed')), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+    // auth-js reads the session once more after the refresh answers, then writes it: the other
+    // account's sign-in (another tab, outside the sync lock) lands in between.
+    const storage: SupportedStorage = {
+      getItem: async (key) => {
+        const value = await inner.getItem(key);
+        if (refreshAnswered && !signedInB && key === 'wrapped-session') {
+          signedInB = recordIdentity(b, db, { lock: noLock, session: JSON.parse(sessionB) });
+        }
+        return value;
+      },
+      setItem: (key, value) => inner.setItem(key, value),
+      removeItem: (key) => inner.removeItem(key),
+    };
+    const { createClient } = await import('@supabase/supabase-js');
+    const client = createClient(server.url, server.anonKey, {
+      auth: {
+        storage,
+        storageKey: 'wrapped-session',
+        persistSession: true,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    });
+
+    await client.auth.getSession();
+    await signedInB;
+
+    expect(signedInB).not.toBeNull();
+    expect(await readIdentity(db)).toEqual(b);
+    expect(await inner.getItem('wrapped-session')).toBe(sessionB);
   });
 
   it('a sign-in that fails part-way changes nothing', async () => {

@@ -50,7 +50,21 @@ export interface AuthConfig {
   appVersion: string;
 }
 
-/** supabase-js's session storage, kept in `meta`. auth-js stores strings. */
+/** The user of a session as auth-js stores it; undefined for anything else. */
+function sessionUser(value: string): unknown {
+  try {
+    return (JSON.parse(value) as { user?: { id?: unknown } } | null)?.user?.id;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * supabase-js's session storage, kept in `meta`. auth-js stores strings. A session is written
+ * only for the recorded identity, checked in the write's own transaction: a refresh of the last
+ * account's session that answers after another account signed in (from another tab, outside the
+ * sync lock) must not put that session back over the new one.
+ */
 export function metaStorage(db: WrappedDB): SupportedStorage {
   return {
     async getItem(key) {
@@ -58,7 +72,15 @@ export function metaStorage(db: WrappedDB): SupportedStorage {
       return typeof value === 'string' ? value : null;
     },
     async setItem(key, value) {
-      await db.meta.put({ key: AUTH_STORAGE_PREFIX + key, value });
+      if (key !== STORAGE_KEY) {
+        await db.meta.put({ key: AUTH_STORAGE_PREFIX + key, value });
+        return;
+      }
+      await db.transaction('rw', db.meta, async () => {
+        const identity = await readIdentity(db);
+        if (!identity || sessionUser(value) !== identity.userId) return;
+        await db.meta.put({ key: AUTH_STORAGE_PREFIX + key, value });
+      });
     },
     async removeItem(key) {
       await db.meta.delete(AUTH_STORAGE_PREFIX + key);
