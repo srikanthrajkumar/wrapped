@@ -11,8 +11,9 @@ import {
   restoreEvent,
   restoreTitle,
 } from '../../src/store/events';
+import { addAppearance, createArtist, editAppearance } from '../../src/store/people';
 import { listReceipts, peekReceipt } from '../../src/store/receipts';
-import { EVENT_DELETED, KIND_CHANGED, RuleError } from '../../src/store/rules';
+import { EVENT_DELETED, KIND_CHANGED, RuleError, TOO_MANY_PRESENTERS } from '../../src/store/rules';
 import type { WrappedDB } from '../../src/store/db';
 import { freshDb, reopen } from '../helpers';
 
@@ -157,5 +158,48 @@ describe('a change to Concert keeps the title it takes (required)', () => {
     // An edit never sneaks a title onto a Concert.
     const plain = await createEvent({ kind: 'concert' }, { db });
     await expect(editEvent(plain.id, { title: 'x' }, { db })).rejects.toBeInstanceOf(RuleError);
+  });
+});
+
+describe('a change to Lecdem keeps FR-013 (required)', () => {
+  async function withPresenters(db: WrappedDB, count: number) {
+    const harikatha = await createEvent({ kind: 'harikatha', title: 'Sita Kalyanam' }, { db });
+    const appearances = [];
+    for (let i = 1; i <= count; i += 1) {
+      const artist = await createArtist(`Presenter ${i}`, { db });
+      appearances.push(await addAppearance(harikatha.id, artist.id, { role: 'presenter' }, { db }));
+    }
+    return { harikatha, appearances };
+  }
+
+  it('refuses a Harikatha with 4 presenters as a Lecdem, as a 4th presenter is', async () => {
+    const db = freshDb();
+    const { harikatha, appearances } = await withPresenters(db, 4);
+    const before = await db.outbox.count();
+
+    await expect(changeKind(harikatha.id, 'lecdem', { db })).rejects.toThrow(TOO_MANY_PRESENTERS);
+    expect(await db.events.get(harikatha.id)).toEqual(harikatha);
+    expect(await db.outbox.count()).toBe(before);
+    // Its presenters stay editable.
+    expect((await editAppearance(appearances[0]!.id, { colourPrimary: 'red' }, { db })).id).toBe(
+      appearances[0]!.id,
+    );
+    // Three are a Lecdem's most.
+    const three = await withPresenters(db, 3);
+    expect((await changeKind(three.harikatha.id, 'lecdem', { db })).event.kind).toBe('lecdem');
+  });
+
+  it('refuses an Undo that would make a Lecdem of more than 3, and keeps the receipt', async () => {
+    const db = freshDb();
+    const lecdem = await createEvent({ kind: 'lecdem', title: 'On Todi' }, { db });
+    const { receipt } = await changeKind(lecdem.id, 'concert', { db });
+    for (let i = 1; i <= 4; i += 1) {
+      const artist = await createArtist(`Presenter ${i}`, { db });
+      await addAppearance(lecdem.id, artist.id, { role: 'presenter' }, { db });
+    }
+
+    await expect(restoreTitle(receipt!.id, { db })).rejects.toThrow(TOO_MANY_PRESENTERS);
+    expect(await db.events.get(lecdem.id)).toMatchObject({ kind: 'concert', title: null });
+    expect(await peekReceipt(db, receipt!.id)).toEqual(receipt);
   });
 });

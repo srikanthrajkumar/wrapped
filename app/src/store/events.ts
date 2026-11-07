@@ -10,11 +10,19 @@ import {
   type EventStatus,
   type Item,
 } from '../model';
-import { db as defaultDb } from './db';
+import { db as defaultDb, type WrappedDB } from './db';
 import { restoreItemRows, type Deleted, type RestoreOptions } from './items';
 import { getLive, newTimestamps, remove, save, type WriteOptions } from './mutate';
 import { peekReceipt, takeReceipt, writeReceipt, type DeletionReceipt } from './receipts';
-import { check, EVENT_DELETED, eventProblems, KIND_CHANGED, RuleError } from './rules';
+import {
+  check,
+  EVENT_DELETED,
+  eventProblems,
+  KIND_CHANGED,
+  MAX_PRESENTERS,
+  RuleError,
+  TOO_MANY_PRESENTERS,
+} from './rules';
 
 /** Today on the phone's own clock, as `YYYY-MM-DD` (Edge Cases: the date defaults to today). */
 export function today(now = new Date()): string {
@@ -106,6 +114,20 @@ export async function editEvent(
 }
 
 /**
+ * FR-013 holds however an Event comes to be a Lecdem: one with more than 3 presenters is
+ * refused with the same rule as a 4th presenter added, so its presenters stay editable.
+ */
+async function checkLecdem(event: Event, db: WrappedDB) {
+  if (event.kind !== 'lecdem') return;
+  const presenters = await db.appearances
+    .where('eventId')
+    .equals(event.id)
+    .filter((appearance) => appearance.deletedAt === null && appearance.role === 'presenter')
+    .count();
+  if (presenters > MAX_PRESENTERS) throw new RuleError([TOO_MANY_PRESENTERS]);
+}
+
+/**
  * Change an Event's kind among the four (T122), with its title where the new kind has one. A
  * change to Concert, whose title is null, takes a typed title away only with a receipt that
  * Undo restores it from, written in the same transaction as the Event and its outbox entry, so
@@ -117,7 +139,7 @@ export async function changeKind(
   kind: EventKind,
   { db = defaultDb, title }: WriteOptions & { title?: string | null } = {},
 ): Promise<{ event: Event; receipt: DeletionReceipt | null }> {
-  return db.transaction('rw', [db.events, db.outbox, db.meta], async () => {
+  return db.transaction('rw', [db.events, db.appearances, db.outbox, db.meta], async () => {
     const event = await getLive('events', id, { db });
     const kept = titleFor(kind, title === undefined ? event.title : title);
     const taken = kind === 'concert' && event.title?.trim() ? event.title : null;
@@ -128,6 +150,7 @@ export async function changeKind(
       touched: true,
     };
     check(eventProblems(edited));
+    await checkLecdem(edited, db);
     const saved = await save('events', edited, { db });
     const receipt = taken
       ? await writeReceipt(db, {
@@ -155,7 +178,7 @@ export async function restoreTitle(
   receiptId: string,
   { db = defaultDb }: WriteOptions = {},
 ): Promise<Event | null> {
-  return db.transaction('rw', [db.events, db.outbox, db.meta], async () => {
+  return db.transaction('rw', [db.events, db.appearances, db.outbox, db.meta], async () => {
     const pending = await peekReceipt(db, receiptId);
     if (pending?.kind !== 'title' || !pending.title) return null;
     const event = await db.events.get(pending.eventId);
@@ -166,6 +189,7 @@ export async function restoreTitle(
     if (!receipt?.title || !event) return null;
     const restored: Event = { ...event, ...receipt.title, touched: true };
     check(eventProblems(restored));
+    await checkLecdem(restored, db);
     return save('events', restored, { db });
   });
 }
