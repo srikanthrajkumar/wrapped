@@ -1053,7 +1053,9 @@ function EventFacts({
 /**
  * A Lecdem's, a Dance's or a Harikatha's title, saved as the rasika pauses or leaves the field,
  * journalled as typed (ADR 0007). Emptied, a Dance's or a Harikatha's title is none; a Lecdem's
- * is required, so an emptied one is not written and the title stays.
+ * is required, so an emptied one is not written and the title stays. It is stored trimmed, and
+ * the stored title never replaces the text typed, so a space typed before a pause stays for
+ * the next word.
  */
 function TitleField({
   eventId,
@@ -1080,6 +1082,7 @@ function TitleField({
       onSave(value.trim() === '' ? null : value);
     },
     (value) => (value === null ? feedback.release(target) : feedback.hold(target, value)),
+    (typed, saved) => typed.trim() === saved.trim(),
   );
   return (
     <label className="flex flex-col gap-1">
