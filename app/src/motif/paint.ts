@@ -60,6 +60,8 @@ function makePainter(canvas: HTMLCanvasElement): Painter | null {
     gl.attachShader(program, fragment);
     gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return null;
+    gl.deleteShader(vertex);
+    gl.deleteShader(fragment);
     gl.useProgram(program);
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
     gl.bufferData(
@@ -128,8 +130,16 @@ function draw(
   gl.drawArrays(gl.TRIANGLES, 0, 6);
 }
 
-/** The theme's tones as GL colours, read from --motif-<tone> through a 1px canvas. */
+const toneCache = new Map<string, Record<Tone, Colour>>();
+
+/**
+ * The theme's tones as GL colours, read from --motif-<tone> through a 1px canvas once per theme
+ * (a Schedule's forty tiles share one read).
+ */
 function tones(): Record<Tone, Colour> {
+  const theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+  const cached = toneCache.get(theme);
+  if (cached) return cached;
   const style = getComputedStyle(document.documentElement);
   const probe = document.createElement('canvas').getContext('2d', { willReadFrequently: true })!;
   probe.canvas.width = probe.canvas.height = 1;
@@ -141,6 +151,7 @@ function tones(): Record<Tone, Colour> {
     const [r, g, b, a] = probe.getImageData(0, 0, 1, 1).data;
     out[tone] = [r! / 255, g! / 255, b! / 255, a! / 255];
   }
+  toneCache.set(theme, out);
   return out;
 }
 
@@ -165,26 +176,35 @@ export function paintMotif(
   const w = Math.round(width * ratio);
   const h = Math.round(height * ratio);
   // The mesh weighs each colour by 1/distance, which leaves a sharp point at every colour's
-  // centre: a streak or a pinhole where two tones meet. A blur scaled to the mark smooths them,
-  // drawn from a field larger than the mark so its edges don't blur in from transparent.
+  // centre: a streak or a pinhole where two tones meet. A blur scaled to the mark smooths them.
+  // It is a CSS filter (Safari has no canvas filter), on a field drawn larger than the mark and
+  // scaled up past its box, so the blur's soft edge falls outside and the caller's overflow
+  // clips it.
   const blur = Math.max(2, Math.round(Math.min(w, h) * soft));
   const pad = blur * 2;
-  draw(p, params, tones(), w + pad * 2, h + pad * 2, ratio);
-  target.width = w;
-  target.height = h;
-  // Copied in the same task as the draw, so the GL canvas needs no preserved buffer. A browser
-  // without canvas filters copies it unblurred.
-  context.filter = `blur(${blur}px)`;
-  context.drawImage(p.gl.canvas, -pad, -pad);
-  context.filter = 'none';
+  const W = w + pad * 2;
+  const H = h + pad * 2;
+  draw(p, params, tones(), W, H, ratio);
+  target.width = W;
+  target.height = H;
+  // Copied in the same task as the draw, so the GL canvas needs no preserved buffer.
+  context.drawImage(p.gl.canvas, 0, 0);
+  target.style.filter = `blur(${blur / ratio}px)`;
+  // `scale`, not `transform`, which a fade-in animation would override while it runs.
+  target.style.scale = `${W / w} ${H / h}`;
   return true;
 }
+
+/** The moving marks' painters, one per canvas, so a resize or a theme change reuses it. */
+const moving = new WeakMap<HTMLCanvasElement, Painter>();
 
 /**
  * Draws the mark into `target` itself (a canvas used for nothing else), and keeps it moving:
  * its folds drift back and forth on slow, unrelated periods, so it never visibly loops. At the
  * screen's own CSS pixels (a soft field needs no more), at most 30 frames a second, and not at
- * all while the page is hidden. Returns a stop; false when it couldn't draw.
+ * all while the page is hidden. Reduced motion, asked for while it moves, holds it on its frame;
+ * a lost GL context stops it until the browser restores one. Returns a stop; false when it
+ * couldn't draw.
  */
 export function animateMotif(
   target: HTMLCanvasElement,
@@ -192,19 +212,24 @@ export function animateMotif(
   width: number,
   height: number,
 ): (() => void) | false {
-  const p = makePainter(target);
-  if (!p || width < 1 || height < 1) return false;
+  if (width < 1 || height < 1) return false;
+  const painterFor = () => {
+    let p = moving.get(target);
+    if (!p || p.gl.isContextLost()) {
+      p = makePainter(target) ?? undefined;
+      if (p) moving.set(target, p);
+    }
+    return p ?? null;
+  };
+  if (!painterFor()) return false;
   const palette = tones();
   const W = Math.round(width);
   const H = Math.round(height);
   const swing = (t: number, period: number, phase = 0) =>
     Math.sin((t / period + phase) * 2 * Math.PI);
-  let frame = 0;
-  let last = 0;
-  const tick = (now: number) => {
-    frame = requestAnimationFrame(tick);
-    if (now - last < 33) return;
-    last = now;
+  const frameAt = (now: number) => {
+    const p = painterFor();
+    if (!p || p.gl.isContextLost()) return;
     const t = now / 1000;
     draw(
       p,
@@ -220,6 +245,44 @@ export function animateMotif(
       1,
     );
   };
-  frame = requestAnimationFrame(tick);
-  return () => cancelAnimationFrame(frame);
+  const still = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+  let frame = 0;
+  let last = 0;
+  let running = false;
+  const tick = (now: number) => {
+    frame = requestAnimationFrame(tick);
+    if (now - last < 33) return;
+    last = now;
+    frameAt(now);
+  };
+  const start = () => {
+    if (running || still?.matches) return;
+    running = true;
+    frame = requestAnimationFrame(tick);
+  };
+  const halt = () => {
+    running = false;
+    cancelAnimationFrame(frame);
+  };
+  const onMotion = () => (still?.matches ? halt() : start());
+  const onLost = (event: Event) => {
+    event.preventDefault(); // so the browser may restore it
+    halt();
+  };
+  const onRestored = () => {
+    moving.delete(target);
+    frameAt(performance.now());
+    start();
+  };
+  frameAt(performance.now());
+  start();
+  still?.addEventListener?.('change', onMotion);
+  target.addEventListener('webglcontextlost', onLost);
+  target.addEventListener('webglcontextrestored', onRestored);
+  return () => {
+    halt();
+    still?.removeEventListener?.('change', onMotion);
+    target.removeEventListener('webglcontextlost', onLost);
+    target.removeEventListener('webglcontextrestored', onRestored);
+  };
 }

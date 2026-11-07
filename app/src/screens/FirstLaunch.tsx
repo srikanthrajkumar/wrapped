@@ -19,7 +19,7 @@ export function FirstLaunch() {
           steps, so it never restarts. */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-x-0 top-0 h-[74dvh] [mask-image:linear-gradient(black_45%,rgb(0_0_0/0.55)_72%,transparent)]"
+        className="pointer-events-none fixed inset-x-0 top-0 h-[74dvh] overflow-hidden [mask-image:linear-gradient(black_45%,rgb(0_0_0/0.55)_72%,transparent)]"
       >
         <Motif
           seed={{ kind: 'mark' }}
@@ -36,8 +36,13 @@ export function FirstLaunch() {
 function Screen({ children, action }: { children: React.ReactNode; action: React.ReactNode }) {
   return (
     <div className="relative flex min-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom))] flex-col pb-4">
-      {/* Under the horizon, low, near the thumb. */}
-      <div className="flex flex-1 flex-col justify-end gap-4 py-8">{children}</div>
+      {/* Under the horizon, low, near the thumb. With large text the words rise into the silk,
+          so a scrim fades in behind them from 64px above, the page's colour by their first line. */}
+      <div className="flex flex-1 flex-col justify-end py-8">
+        <div className="relative isolate flex flex-col gap-4 before:absolute before:right-[calc(-16px-env(safe-area-inset-right))] before:left-[calc(-16px-env(safe-area-inset-left))] before:-top-16 before:bottom-0 before:-z-10 before:bg-gradient-to-b before:from-transparent before:to-background before:to-[64px] before:content-['']">
+          {children}
+        </div>
+      </div>
       {action}
     </div>
   );
