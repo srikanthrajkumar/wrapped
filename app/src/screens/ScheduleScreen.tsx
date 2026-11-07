@@ -1,6 +1,6 @@
 // The Schedule (T061; the Maintainer, 2026-11-07): pushed from the calendar button beside
 // Season's "Next", with the D5 top bar back to Season. The logger's entries from today on, by day,
-// each a card: an empty tile at its leading edge kept for the motif, the Artists it is billed by
+// each a card: the main billed Artist's avatar at its leading edge, the Artists it is billed by
 // (a Group by its name) or else its Sabha, a printed title, the Sabha and time, and an add
 // button that puts it in Next as Planned. A cancelled entry stays on its day, dimmed, with a
 // cancelled mark and no add button. Few words: marks carry the meaning, their names the words.
@@ -16,6 +16,7 @@ import { useSchedule, type ScheduleListing } from '../store/queries';
 import { addFromSchedule } from '../store/schedule';
 import { byStage, joinNames, knownBy, knownNames } from '../store/stage';
 import { NotSavedLine, saveWith, useSaveFeedback } from './components/feedback';
+import { Motif } from '../motif/Motif';
 import { KindMark } from './components/kind-mark';
 import { Screen, TopBar } from './components/layout';
 import { dayText, timeText } from './format';
@@ -26,6 +27,11 @@ function billedNames(entry: ScheduleEntry): string | null {
   const stage = entry.billed.map((person, i) => ({ ...person, position: i + 1 })).sort(byStage);
   const names = knownNames(knownBy(entry.kind, stage), (person) => person.name);
   return names.length > 0 ? joinNames(names) : null;
+}
+
+/** The Artist billed first, in Stage order: whose avatar the card's tile shows. */
+function mainBilled(entry: ScheduleEntry): ScheduleEntry['billed'][number] | null {
+  return entry.billed.map((person, i) => ({ ...person, position: i + 1 })).sort(byStage)[0] ?? null;
 }
 
 export function ScheduleScreen() {
@@ -111,6 +117,7 @@ function EntryCard({
 }) {
   const names = billedNames(entry);
   const lead = names ?? entry.sabha;
+  const leadArtist = mainBilled(entry);
   const line = [names && entry.sabha, entry.startTime && timeText(entry.startTime)]
     .filter(Boolean)
     .join(' · ');
@@ -123,15 +130,21 @@ function EntryCard({
           entry.cancelled && 'bg-transparent text-muted-foreground dark:border-border',
         )}
       >
-        {/* Kept for the motif (DESIGN.md "The motif"): bounded, empty until it is drawn. */}
+        {/* The main billed Artist's avatar (DESIGN.md "The motif"); plain when nobody is billed. */}
         <span
           aria-hidden
-          data-motif=""
           className={cn(
-            'size-12 shrink-0 rounded-xl bg-secondary',
+            'size-12 shrink-0 overflow-hidden rounded-xl bg-secondary',
             entry.cancelled && 'opacity-50',
           )}
-        />
+        >
+          {leadArtist && (
+            <Motif
+              seed={{ kind: 'artist', name: leadArtist.name, role: leadArtist.role }}
+              className="size-full"
+            />
+          )}
+        </span>
         <div className="flex min-w-0 flex-1 flex-col py-1">
           <span className="font-semibold break-words">
             <KindMark kind={entry.kind} className="mr-1.5" />

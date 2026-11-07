@@ -15,6 +15,7 @@ import {
 import { createPortal } from 'react-dom';
 import { Link, useLocation } from 'wouter';
 import { cn } from '@/lib/utils';
+import { useInstall } from '../../install';
 import { SeasonFeedback } from './feedback';
 import { InstallRow } from './InstallRow';
 import { UndoBar } from './UndoBar';
@@ -199,14 +200,64 @@ export function TopBar({
  * row sits at the same place on each tab. `children` go between the two (Season's "Getting ready
  * for offline…").
  */
-export function TabHeader({ title, children }: { title: string; children?: ReactNode }) {
+export function TabHeader({
+  title,
+  art,
+  children,
+}: {
+  title: string;
+  /** The motif to draw the title on, as a curtain (DESIGN.md "The motif"). */
+  art?: ReactNode;
+  children?: ReactNode;
+}) {
+  // In a phone's browser tab the install row shows on every tab, at one place (FB-46), so the
+  // curtain waits until the app is installed.
+  const { way } = useInstall();
   return (
     <>
-      <h1 className="pt-4 pb-2 text-title font-semibold">{title}</h1>
+      {art && way === null ? (
+        <Curtain art={art}>
+          <h1 className="text-heading font-bold">{title}</h1>
+        </Curtain>
+      ) : (
+        <h1 className="pt-4 pb-2 text-title font-semibold">{title}</h1>
+      )}
       <InstallRow />
       {children}
       <SeasonFeedback />
     </>
+  );
+}
+
+/** The top inset the shell pads the page by, as App.tsx sets it. */
+const TOP = 'var(--app-top-inset,env(safe-area-inset-top))';
+
+/**
+ * A curtain (DESIGN.md "The motif"): the motif drawn full-bleed behind a tab's title, from the
+ * top of the screen, and the page drawn up over it as a sheet with 18px top corners. The
+ * motif's ground is the page's own colour, so the status bar above it (which an Android web app
+ * can't draw under) never shows a seam.
+ */
+export function Curtain({ art, children }: { art: ReactNode; children: ReactNode }) {
+  return (
+    <div
+      className="relative mr-[calc(-16px-env(safe-area-inset-right))] ml-[calc(-16px-env(safe-area-inset-left))]"
+      style={{ marginTop: `calc(-1 * ${TOP})` }}
+    >
+      <div className="absolute inset-0 overflow-hidden">{art}</div>
+      {/* The title holds its contrast: the field fades halfway to the page behind it. */}
+      <div
+        aria-hidden
+        className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-background/50 to-transparent"
+      />
+      <div
+        className="relative flex flex-col justify-end pr-[calc(16px+env(safe-area-inset-right))] pb-4 pl-[calc(16px+env(safe-area-inset-left))]"
+        style={{ minHeight: `calc(${TOP} + 112px)`, paddingTop: `calc(${TOP} + 40px)` }}
+      >
+        {children}
+      </div>
+      <div aria-hidden className="relative h-[18px] rounded-t-[18px] bg-background" />
+    </div>
   );
 }
 

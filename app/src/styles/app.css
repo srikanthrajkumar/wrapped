@@ -151,6 +151,15 @@
   --chart-3: oklch(0.586 0.253 17.585);
   --chart-4: oklch(0.514 0.222 16.935);
   --chart-5: oklch(0.455 0.188 13.697);
+  /* The motif's six tones, Ink and rose (DESIGN.md "The motif"): neutral greys and one rose.
+     Ground is the field's base (in dark, the page itself), far its strongest contrast. Rose is
+     allowed only here and in charts. */
+  --motif-ground: oklch(0.975 0 0);
+  --motif-near: oklch(0.92 0 0);
+  --motif-mid: oklch(0.8 0 0);
+  --motif-rose: oklch(0.62 0.17 16);
+  --motif-blush: oklch(0.8 0.1 12);
+  --motif-far: oklch(0.3 0 0);
 }
 
 /* On iOS the root follows Dynamic Type: -apple-system-body is 17px at the default size. */
@@ -185,6 +194,12 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.56 0.021 213.5);
+  --motif-ground: oklch(0.148 0.004 228.8);
+  --motif-near: oklch(0.22 0 0);
+  --motif-mid: oklch(0.38 0 0);
+  --motif-rose: oklch(0.6 0.19 16);
+  --motif-blush: oklch(0.78 0.1 12);
+  --motif-far: oklch(0.8 0 0);
 }
 
 @layer base {
