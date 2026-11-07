@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@leeoniya/ufuzzy": "~1.0.19",
+    "@supabase/supabase-js": "2.118.0",
     "@tabler/icons-react": "~3.50.0",
     "class-variance-authority": "~0.7.1",
     "cn": "0.5.2",

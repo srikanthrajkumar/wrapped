@@ -13,6 +13,7 @@ import { holdsValue, storedHolds } from './store/journal-check';
 import { ensurePersistentStorage } from './store/persist';
 import { pruneReceipts } from './store/receipts';
 import { startScheduleFetch } from './store/schedule-fetch';
+import { startSync } from './store/sync-runtime';
 import './styles/app.css';
 
 const root = document.getElementById('root');
@@ -40,6 +41,9 @@ void ensurePersistentStorage().catch(() => undefined);
 void openCatalog().catch(() => undefined);
 // The Schedule, when this build has a feed: applied as stored, then fetched when online (T060).
 startScheduleFetch();
+// Sync (FR-014): on start, `online`, the app shown again and each save. Each sync waits for the
+// catalog, so pulled Items are remapped to it; without a signed-in session it does nothing.
+startSync({ getRemap: async () => (await openCatalog().catch(() => null))?.remap });
 // Undo receipts a crash left behind are dropped after a day (eng review D7), except those a
 // failed Undo bar still offers.
 void pruneReceipts(24 * 60 * 60 * 1000, db, Date.now(), failedUndoReceipts()).catch(
