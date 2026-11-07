@@ -388,7 +388,12 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
   until the rasika removes it (the Maintainer, 2026-11-07). The hint MUST show what the newer
   version changes, only the fields that differ (date, time, Sabha, kind, title, billed Artists),
   beside the Event's own; "take it" gives the Event those values and nothing else, its rules
-  checked, and "keep mine" changes nothing but the hint, which a newer version sets again.
+  checked, and "keep mine" changes nothing but the hint, which a newer version sets again. The
+  hint MUST be set only when such a field differs, and MUST show on a cancelled row too, with
+  cancelled or reinstated as a field. An Artist the rasika added MUST never be billed, changed
+  or removed by the Schedule. A Schedule entry MUST hold at most one live Event. A feed file
+  that is malformed in any entry, or older than the one stored, MUST be refused whole (PR #25
+  review, 2026-11-07).
 
 **The Wrapped (P5)**
 

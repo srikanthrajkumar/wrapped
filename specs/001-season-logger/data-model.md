@@ -56,9 +56,9 @@ Rules:
 | `status` | `planned` \| `attended` \| `missed` | Only `attended` counts in the Wrapped (FR-026) |
 | `cancelled` | boolean | Set from the Schedule only while `touched` is false (FR-027). Never hides the Event: a Planned one stays in Next, shown as cancelled, until the rasika removes it, and one whose Schedule entry is cancelled is shown so whatever this says (2026-11-07) |
 | `source` | `schedule` \| `plan` \| `spot` | Where the Event came from |
-| `scheduleEntryId` | string \| null | The Schedule entry's id, set at pick time or by promotion |
+| `scheduleEntryId` | string \| null | The Schedule entry's id, set at pick time or by promotion. One live Event per entry: adding it again returns the one planned, and the Undo of a deleted one is refused while another holds the entry (PR #25 review) |
 | `scheduleVersionSeen` | string \| null | The entry version last applied or acknowledged |
-| `scheduleChanged` | boolean | The "schedule changed" hint, set only on a Planned Event: an Attended or Missed one is the rasika's record, and a later version leaves it alone, hint and all (2026-11-07). Cleared when the rasika answers it: "take it" gives the Event the version's named values, "keep mine" changes nothing else; `scheduleVersionSeen` already holds that version, so only a newer one sets it again (2026-11-07) |
+| `scheduleChanged` | boolean | The "schedule changed" hint, set only on a Planned Event, and only when the version differs in a field the sheet shows (date, time, Sabha, kind, title, cancelled, billed Artists), never for an empty sheet; leaving Planned clears it (PR #25 review). Never on an Attended or Missed one: an Attended or Missed one is the rasika's record, and a later version leaves it alone, hint and all (2026-11-07). Cleared when the rasika answers it: "take it" gives the Event the version's named values, "keep mine" changes nothing else; `scheduleVersionSeen` already holds that version, so only a newer one sets it again (2026-11-07) |
 | `touched` | boolean | True once the rasika edits it, changes its Stage (adds, edits or removes an Appearance; T058), or it becomes Attended. Schedule updates then stop |
 | `title` | string \| null | Required for a Lecdem (FR-013); null for a Concert; the printed title, or null, for a Dance or a Harikatha |
 | `note` | string \| null | Erased on deletion requests (see Deletion) |
@@ -72,11 +72,11 @@ leaves it Planned), `planned → missed` (rasika says so),
 
 | Field | Type | Notes |
 |---|---|---|
-| `id`, `eventId`, `artistId` | uuid | `artistId` is own or shared |
+| `id`, `eventId`, `artistId` | uuid | `artistId` is own or shared. An Appearance the Schedule makes has the id it derives from the Event and the Artist (a version-3 UUID, the same on every phone, whatever place the Artist is billed at); that id is how the phone tells a Schedule row from one the rasika added, which the Schedule never bills, changes or removes (PR #25 review, 2026-11-07). An Appearance's Artist never changes on the phone, so the id keeps saying where the row came from |
 | `role` | `vocal` \| `support` \| `violin` \| `veena` \| `chitravina` \| `flute` \| `nagaswaram` \| `saxophone` \| `mandolin` \| `mridangam` \| `thavil` \| `khanjira` \| `ghatam` \| `morsing` \| `dancer` \| `nattuvangam` \| `other` \| `presenter` \| null | What they did; null when unknown. No Role ranks above another (FR-004). `support` is vocal support. `support`, `chitravina`, `nagaswaram`, `saxophone`, `mandolin`, `thavil`, `dancer` and `nattuvangam` were added 2026-11-06 (T057) |
 | `colourPrimary` | Colour \| `unknown` \| null | |
 | `colourSecondary` | Colour \| null | Two-tone outfit |
-| `billed` | boolean | Came from the Plan or Schedule |
+| `billed` | boolean | Billed by the current Schedule version (or the Plan). A Schedule row the newer version drops but the rasika gave a Colour stays, with `billed` false; one the rasika added is never billed |
 | `group` | string \| null | The name the Artist was billed under with others, such as "Malladi Brothers", copied from the Schedule (T057); null otherwise. Display only: never an Artist, never counted |
 | `position` | integer | The order added; Stage lists by Role, then by this (walkthrough S4, 2026-11-04). Kept as a field so Undo restores a removed Artist to its place and the row shape stays as synced |
 | timestamps | | as Event |
@@ -167,7 +167,7 @@ Copied from the logger's Schedule feed ([contracts/schedule-feed.md](contracts/s
 `id`, `version`, `date`, `startTime`, `sabha` (shared id or name), `kind`, `billed` (name or
 shared Artist id, role, group), `title`, `cancelled`. Not rasika-owned. Each file fetched
 replaces the stored entries whole (T060); an Event made from an entry the newer file lacks is
-never changed. The file's Season, `publishedAt` and the fetch's tag for it (today its `ETag`; after T124 its sha256) are kept in `meta` as `schedule`.
+never changed. The file's Season, `publishedAt` and the fetch's tag for it (today its `ETag`; after T124 its sha256) are kept in `meta` as `schedule`. A file is refused whole, the stored copy and its tag kept, when any entry is malformed, its `publishedAt` is not an instant with its offset, or it is for an earlier Season, or published earlier in the same one (compared as instants).
 
 ## Phone-only records
 
