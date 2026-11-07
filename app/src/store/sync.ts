@@ -330,8 +330,11 @@ export const webLock: SyncLock = (name, work) => {
 export interface SyncLoopOptions extends SyncOptions {
   /** The server, signed in with a fresh token; null when no one is signed in (FR-018). */
   getApi: () => Promise<SyncApi | null>;
-  /** The catalog's remap, read when each sync starts. */
-  getRemap?: () => Remap | undefined;
+  /**
+   * The catalog's remap, read when each sync starts. A sync waits for it, so no Item is pulled
+   * before the catalog that remaps it has opened (outside voice 6).
+   */
+  getRemap?: () => Remap | undefined | Promise<Remap | undefined>;
   /** The cross-tab lock each sync holds; the Web Locks API by default. */
   lock?: SyncLock;
   /** Backoff: the first wait's ceiling, and the longest (exponential, full jitter). */
@@ -393,7 +396,7 @@ export function createSyncLoop(options: SyncLoopOptions): SyncLoop {
         set({ state: 'stopped', failure: { kind: 'signed_out' } });
         return;
       }
-      const remap = getRemap?.() ?? options.remap;
+      const remap = (await getRemap?.()) ?? options.remap;
       await lock(`wrapped-sync:${db.name}`, () => syncOnce(api, { db, remap }));
       attempt = 0;
       set({ state: 'idle' });
