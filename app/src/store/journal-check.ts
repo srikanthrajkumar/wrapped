@@ -72,6 +72,15 @@ function fieldHolds(table: string, field: string, value: unknown, row: Row): boo
       const entered = value as { kind?: unknown; title?: unknown } | null;
       return row.kind === entered?.kind && titleHolds(entered?.title);
     }
+    // The "schedule changed" hint answered, "take" or "keep", for one version: held once the
+    // hint is clear, or a newer version has set it again (the answer then no longer applies).
+    if (field === 'scheduleChanged') {
+      const version = (value as { version?: unknown } | null)?.version;
+      return (
+        row.scheduleChanged === false ||
+        (typeof version === 'number' && Number(row.scheduleVersionSeen) > version)
+      );
+    }
   }
   if (table === 'appearances' && field === 'colours') {
     const colours = value as { colourPrimary?: unknown; colourSecondary?: unknown };

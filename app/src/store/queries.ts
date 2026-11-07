@@ -5,7 +5,7 @@
 import Dexie from 'dexie';
 import { useLiveQuery } from 'dexie-react-hooks';
 import type { Catalog } from '../catalog/load';
-import type { Appearance, Event, Item, Link, OwnEntry, SharedEntry } from '../model';
+import type { Appearance, Event, Item, Link, OwnEntry, ScheduleEntry, SharedEntry } from '../model';
 import { db as defaultDb, type WrappedDB } from './db';
 import { eventStart, readLoggingNotes } from './logging-note';
 import { countUnsynced } from './outbox';
@@ -298,6 +298,12 @@ export interface EventSummary {
    */
   knownBy: string | null;
   itemCount: number;
+  /**
+   * Marked cancelled (T061): the Event was, or its Schedule entry is now. An Event the rasika
+   * changed keeps `cancelled` false (FR-027), but is still shown as cancelled once its entry is;
+   * read here, never stored.
+   */
+  cancelled: boolean;
 }
 
 /**
@@ -308,10 +314,17 @@ export interface EventSummary {
 export async function listEventSummaries(db: WrappedDB = defaultDb): Promise<EventSummary[]> {
   const events = await listEvents(db);
   const ids = events.map((event) => event.id);
-  const [appearances, items] = await Promise.all([
+  const entryIds = [
+    ...new Set(events.map((event) => event.scheduleEntryId).filter((id) => id !== null)),
+  ];
+  const [appearances, items, entries] = await Promise.all([
     db.appearances.where('eventId').anyOf(ids).toArray(),
     db.items.where('eventId').anyOf(ids).toArray(),
+    db.schedule.bulkGet(entryIds),
   ]);
+  const cancelledEntries = new Set(
+    entries.filter((entry) => entry?.cancelled).map((entry) => entry!.id),
+  );
   const stages = new Map<string, Appearance[]>();
   for (const appearance of appearances.filter(live)) {
     const stage = stages.get(appearance.eventId);
@@ -346,12 +359,52 @@ export async function listEventSummaries(db: WrappedDB = defaultDb): Promise<Eve
       sabha: event.sabhaId ? (sabhas(event.sabhaId) ?? null) : null,
       knownBy: names.length > 0 ? joinNames(names) : null,
       itemCount: counts.get(event.id) ?? 0,
+      cancelled:
+        event.cancelled ||
+        (event.scheduleEntryId !== null && cancelledEntries.has(event.scheduleEntryId)),
     };
   });
 }
 
 export function useEventSummaries() {
   return useLiveQuery(() => listEventSummaries());
+}
+
+/** A Schedule entry as its card shows it, with the live Event planned from it, if any. */
+export interface ScheduleListing {
+  entry: ScheduleEntry;
+  /** The Event in the Plan made from this entry; null until it is added, or once deleted. */
+  plannedId: string | null;
+}
+
+/** The stored Schedule from `from` (an ISO date) on, by day, then start time, then Sabha. */
+export async function listSchedule(
+  from: string,
+  db: WrappedDB = defaultDb,
+): Promise<ScheduleListing[]> {
+  const [entries, planned] = await Promise.all([
+    db.schedule.where('date').aboveOrEqual(from).toArray(),
+    db.events
+      .filter((event) => event.deletedAt === null && event.scheduleEntryId !== null)
+      .toArray(),
+  ]);
+  const plannedBy = new Map(planned.map((event) => [event.scheduleEntryId!, event.id]));
+  entries.sort(
+    (a, b) =>
+      a.date.localeCompare(b.date) ||
+      (a.startTime ?? '99').localeCompare(b.startTime ?? '99') ||
+      a.sabha.localeCompare(b.sabha),
+  );
+  return entries.map((entry) => ({ entry, plannedId: plannedBy.get(entry.id) ?? null }));
+}
+
+export function useSchedule(from: string) {
+  return useLiveQuery(() => listSchedule(from), [from]);
+}
+
+/** Whether a Schedule is stored, so Season offers it (T061). */
+export function useHasSchedule() {
+  return useLiveQuery(async () => (await defaultDb.schedule.count()) > 0);
 }
 
 /** The per-phone logging notes, for the Now selector. */

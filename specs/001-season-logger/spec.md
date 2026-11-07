@@ -149,12 +149,16 @@ planned Concert and log it without typing the date, Sabha or any billed Artist.
    time, Sabha and billed Artists are filled in, and only Colours and Items remain to add.
 2. **Given** a Planned Event the rasika did not attend, **When** they mark it Missed, **Then** it
    no longer appears as upcoming and does not count in the Wrapped.
-3. **Given** a Schedule entry that changes after the rasika has edited or attended its Event,
+3. **Given** a Schedule entry that changes after the rasika has edited its Planned Event,
    **When** the change arrives, **Then** the Event is not overwritten and a "schedule changed"
-   hint appears.
+   hint appears. Tapping it shows what changed, the Event's value beside the Schedule's, and
+   the rasika takes the new version or keeps theirs (the Maintainer, 2026-11-07). An Attended
+   or Missed Event is the rasika's record of what happened: the change leaves it alone, with no
+   hint (2026-11-07).
 4. **Given** a Schedule entry the Sabha cancels, **When** the cancellation arrives, **Then** an
-   untouched Planned Event is shown as cancelled, and an edited or Attended one only gets the
-   hint.
+   untouched Planned Event is marked cancelled, an edited one is not changed and only gets the
+   hint, and an Attended or Missed one is left alone. A Planned Event whose entry is cancelled stays in Next, shown as
+   cancelled, until the rasika removes it (the Maintainer, 2026-11-07).
 5. **Given** no Schedule exists this season, **When** the rasika uses the app, **Then** every
    other capability works fully from hand-entered Plan entries.
 
@@ -376,9 +380,15 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
 - **FR-026**: An Event MUST move from Planned to Attended only when the rasika starts logging it
   (an explicit "Start logging"), and to Missed when the rasika says so. Viewing or editing a
   Planned Event leaves it Planned. Only Attended Events count in the Wrapped.
-- **FR-027**: Once the rasika has edited or attended an Event, Schedule updates MUST NOT change
-  it and MUST show a "schedule changed" hint instead. A cancelled Schedule entry marks an
-  untouched Planned Event as cancelled.
+- **FR-027**: Once the rasika has edited or attended an Event, or changed its Stage, Schedule
+  updates MUST NOT change it. A Planned one MUST show a "schedule changed" hint instead; an
+  Attended or Missed one, the rasika's record of what happened, MUST get no hint (2026-11-07). A cancelled
+  Schedule entry marks an untouched Planned Event as cancelled. A cancellation never hides or
+  removes an Event: a Planned Event whose entry is cancelled stays in Next, shown as cancelled,
+  until the rasika removes it (the Maintainer, 2026-11-07). The hint MUST show what the newer
+  version changes, only the fields that differ (date, time, Sabha, kind, title, billed Artists),
+  beside the Event's own; "take it" gives the Event those values and nothing else, its rules
+  checked, and "keep mine" changes nothing but the hint, which a newer version sets again.
 
 **The Wrapped (P5)**
 

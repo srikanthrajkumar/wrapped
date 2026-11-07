@@ -178,7 +178,8 @@ and bind the screen tasks.
     card, tapped to open it: the Artists it is known by, then Sabha, start time and Item count. "+ Log a
     Concert" sits in a fixed bar at the bottom, always, so another Concert can be started while one is open
     (walkthrough S1, S2, 2026-11-04; DESIGN.md "Season").
-  - **Next:** upcoming Planned Events, grouped by day.
+  - **Next:** upcoming Planned Events, grouped by day; a cancelled one stays, marked, until the rasika
+    removes it. A calendar button beside its heading opens the Schedule (T061, 2026-11-07).
   - **Season so far:** Attended Events, newest first, each with its Item count, and one line
     linking to the Wrapped.
 - **DD3 Event screen (D3, approved; order revised by the information priorities, then by the iPhone

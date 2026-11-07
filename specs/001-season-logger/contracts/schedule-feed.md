@@ -106,10 +106,30 @@ existing field changes meaning or type, or a field a reader needs becomes requir
 
 For each Event with a `scheduleEntryId`:
 
+- Attended or Missed: change nothing, set no hint, record nothing. It is the rasika's record of
+  what happened (2026-11-07).
 - `touched` is false: copy the new date, time, Sabha, kind, title and billed Artists, with their
   Roles and group names; set `cancelled`.
-- `touched` is true: change nothing; set `scheduleChanged` so the hint shows.
-- Either way, record `scheduleVersionSeen`.
+- `touched` is true: change nothing; set `scheduleChanged` so the hint shows. A Planned Event
+  whose Stage the rasika changed counts as touched (T058).
+- Either way, on a Planned Event, record `scheduleVersionSeen`.
+- A version that would break a rule (a Lecdem billed with more than 3 presenters) changes
+  nothing and is not recorded, so a corrected version still applies.
+- A cancelled entry never hides or removes an Event: a Planned one stays in Next, shown as
+  cancelled, until the rasika removes it (2026-11-07).
+
+When the rasika answers the hint (2026-11-07):
+
+- **Take it** gives the Event what the stored entry names, in one transaction: its date, its time
+  and printed title when it gives them (a null one names none, so the rasika's stays), its Sabha,
+  kind and `cancelled`, and, when it bills anyone, its billed Artists in billing order. An Artist
+  billed again keeps their Appearance and Colours and takes the entry's Role and group; an
+  Artist no longer billed is removed, unless the rasika gave them a Colour, when they stay, no
+  longer billed; the rasika's own Artists stay. Notes, status, Items and everything else stay. A
+  rule the result would break refuses it whole, and so does a stored entry newer than the one
+  shown. A change to Concert that takes a typed title keeps it in a receipt for Undo, as a kind
+  change does.
+- **Keep mine** clears `scheduleChanged` and changes nothing else.
 
 ## Still open
 

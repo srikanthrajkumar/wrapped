@@ -19,9 +19,9 @@ import { SeasonFeedback } from './feedback';
 import { InstallRow } from './InstallRow';
 import { UndoBar } from './UndoBar';
 
-/** How deep a screen sits: a tab's root, an Event, or an Item in it. */
+/** How deep a screen sits: a tab's root, an Event or the Schedule, or an Item in an Event. */
 const depth = (path: string) =>
-  path.startsWith('/event/') ? (path.includes('/item/') ? 2 : 1) : 0;
+  path.startsWith('/event/') ? (path.includes('/item/') ? 2 : 1) : path === '/schedule' ? 1 : 0;
 // The path of the screen shown last, so the next one knows which way the rasika went.
 let shownPath: string | null = null;
 
