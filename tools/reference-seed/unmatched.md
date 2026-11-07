@@ -118,4 +118,14 @@ same person.
 
 None left.
 
+## Not Artists, still in the 2024-25 test fixture
+
+Left out of the shared list above (`NOT_ARTISTS`). The 2024-25 import
+(`tools/import-2024-25/`) still makes each one an Artist on a Concert in
+`app/tests/fixtures/reference-2024-25.json`. That is a test fixture only, never in a
+rasika's log. Once Appearances keep a `group` (T121) and the import learns it (T058),
+import each one as the group name its performers were billed under.
+
+- Leela Samson & Spanda Dance Company
+
 Seeded: 11 Sabhas, 99 Artists, 4 forms.
