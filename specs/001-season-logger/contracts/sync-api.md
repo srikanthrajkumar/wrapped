@@ -110,7 +110,20 @@ or `update_required`. PostgREST takes `details` only as a string, so it holds on
 the writer device's id for a 409 (null if no device has claimed yet), the minimum app version
 for a 426. A 401 is Supabase's API's own response to a missing or expired token.
 The `426` check runs once per request, in a pre-request function that reads `X-App-Version`
-(ADR 0001, "How the contract's responses map").
+(ADR 0001, "How the contract's responses map"). It gates pull as well as push, so a change that
+brings a value or field an older build would mishandle (a new Event kind or Role, a new field
+that build's store would drop on save) raises the app's version and `min_app_version` together:
+an older build on another device then gets 426 before it pulls such a row.
+
+The 426 can't reach an older build in another tab on the same phone, which shares the store and
+its outbox: a save there would drop the fields it doesn't know, and the newer tab would push it.
+So any release that changes a record's shape also bumps the phone store's schema version
+(`app/src/store/db.ts`). Every build closes its store for good when a newer version opens it
+(Dexie's `versionchange`), and refuses to open a store a newer build has already upgraded; either
+way it shows a reload prompt instead of writing. Builds before T077 lack this and reopen the store
+after a bump (Dexie's own behaviour). None of them syncs, and the last one deployed already has
+the shape from T119-T122, so only a tab left open on a build from before that could still drop
+those fields.
 
 ## Pull
 

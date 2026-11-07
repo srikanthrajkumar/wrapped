@@ -196,6 +196,11 @@ serverSeqs:    [table+id]
 attention:     opId, [table+recordId]
 ```
 
+The schema version is 3: 1 the first tables, 2 sync (`serverSeqs`, `attention`), 3 Dance, Harikatha
+and an Appearance's `group` (no index change). Any release that changes a record's shape bumps it,
+so a tab still running an older build closes its store instead of writing
+([contracts/sync-api.md](contracts/sync-api.md), "Errors").
+
 The catalog snapshot is not stored in IndexedDB. It ships as a precached, content-hashed file
 loaded into memory at start ([contracts/catalog-snapshot.md](contracts/catalog-snapshot.md)).
 

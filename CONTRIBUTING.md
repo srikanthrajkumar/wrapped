@@ -75,6 +75,12 @@ Deploys run from the Maintainer's machine, because it holds the snapshot.
   - Until the golden set is reviewed (T027) it fails, so the deploy needs
     `--without-golden-set`, which it repeats at the end.
 - **Cache rules** are in `app/public/_headers`; the Worker's config is `app/wrangler.jsonc`.
+- **A release that changes a record's shape** (a new field, Event kind or Role) does two more
+  things, in the same change (contracts/sync-api.md, "Errors"):
+  - bumps the phone store's schema version (`app/src/store/db.ts`), so a tab still running the
+    older build closes its store and asks for a reload instead of writing;
+  - raises the app's version (`app/package.json`) and the server's `min_app_version` together, so
+    an older build on another device gets 426 instead of pulling rows it would mishandle.
 
 ## Secrets
 
