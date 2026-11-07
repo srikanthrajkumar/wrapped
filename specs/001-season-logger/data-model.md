@@ -54,12 +54,12 @@ Rules:
 | `startTime` | `HH:MM` \| null | |
 | `sabhaId` | uuid \| null | Own or shared Sabha |
 | `status` | `planned` \| `attended` \| `missed` | Only `attended` counts in the Wrapped (FR-026) |
-| `cancelled` | boolean | Set from the Schedule only while `touched` is false (FR-027) |
+| `cancelled` | boolean | Set from the Schedule only while `touched` is false (FR-027). Never hides the Event: a Planned one stays in Next, shown as cancelled, until the rasika removes it, and one whose Schedule entry is cancelled is shown so whatever this says (2026-11-07) |
 | `source` | `schedule` \| `plan` \| `spot` | Where the Event came from |
 | `scheduleEntryId` | string \| null | The Schedule entry's id, set at pick time or by promotion |
 | `scheduleVersionSeen` | string \| null | The entry version last applied or acknowledged |
-| `scheduleChanged` | boolean | The "schedule changed" hint |
-| `touched` | boolean | True once the rasika edits it or it becomes Attended. Schedule updates then stop |
+| `scheduleChanged` | boolean | The "schedule changed" hint, set only on a Planned Event: an Attended or Missed one is the rasika's record, and a later version leaves it alone, hint and all (2026-11-07). Cleared when the rasika answers it: "take it" gives the Event the version's named values, "keep mine" changes nothing else; `scheduleVersionSeen` already holds that version, so only a newer one sets it again (2026-11-07) |
+| `touched` | boolean | True once the rasika edits it, changes its Stage (adds, edits or removes an Appearance; T058), or it becomes Attended. Schedule updates then stop |
 | `title` | string \| null | Required for a Lecdem (FR-013); null for a Concert; the printed title, or null, for a Dance or a Harikatha |
 | `note` | string \| null | Erased on deletion requests (see Deletion) |
 | `createdAt`, `updatedAt`, `deletedAt` | timestamp | Device clock; display only, never a sync cursor |
@@ -165,7 +165,9 @@ FR-027 still protects a `touched` Event.
 
 Copied from the logger's Schedule feed ([contracts/schedule-feed.md](contracts/schedule-feed.md)):
 `id`, `version`, `date`, `startTime`, `sabha` (shared id or name), `kind`, `billed` (name or
-shared Artist id, role, group), `title`, `cancelled`. Not rasika-owned.
+shared Artist id, role, group), `title`, `cancelled`. Not rasika-owned. Each file fetched
+replaces the stored entries whole (T060); an Event made from an entry the newer file lacks is
+never changed. The file's Season, `publishedAt` and the fetch's tag for it (today its `ETag`; after T124 its sha256) are kept in `meta` as `schedule`.
 
 ## Phone-only records
 
@@ -174,7 +176,7 @@ shared Artist id, role, group), `title`, `cancelled`. Not rasika-owned.
 | `outbox` | `opId` (uuid, the idempotency key), `table`, `recordId`, `row` (a delete is the full row with `deletedAt` set), `baseSeq` (the last server `seq` known for the record, from `serverSeqs`, stamped when the entry is first sent and kept for every retry; eng review D11), `queuedAt`, `firstSentAt` (null until the first push attempt, so D8 knows the entry may already be stored). Written in the same transaction as the record (constitution I). A record has at most one never-sent entry: a save replaces its row in place; an entry sent at least once is never changed (eng review D8). Its length, with the `attention` entries, is the unsynced count, which therefore counts records with unsent or rejected changes (FR-016) |
 | `serverSeqs` | Keyed by (`table`, `id`): `seq`, the last server `seq` this phone wrote (from an ack) or applied (from a pull), the base of the record's next op; and `held`, a newer server version (`seq` and row) that a pull skipped because the record had a pending or rejected op (eng review D4). The cursor has moved past a held row, so it is kept for "keep the server's" and as the base for "keep mine"; it never becomes `seq` on its own (eng review D11) |
 | `attention` | Rejected ops ("needs attention"): `opId`, `queueSeq` (the op's outbox `seq`), `table`, `recordId`, the `row` as pushed, `code` (the server's rejection code, or `bad_request` for an op of a batch the server refused with a 400), `message`, `rejectedAt`. One per record, its latest rejection, listed in outbox order (`queueSeq`). Left the outbox, so never re-sent in a loop, but counted as unsynced until the rasika chooses "keep mine" or "keep the server's" (a `conflict`; "discard" is "keep the server's" there), or "try again" or "discard" (any other code). An ack of the same op or a later one of the record clears it; an ack of an earlier op doesn't (constitution II, outside voice 7) |
-| `meta` | Key/value: `deviceId`, `pullCursor`, `catalogVersion`, `sharedListsVersion`, consent answers, cached identity, "ready for offline" flags |
+| `meta` | Key/value: `deviceId`, `pullCursor`, `catalogVersion`, `sharedListsVersion`, `schedule` (the stored Schedule file's `season`, `publishedAt` and `tag`, opaque outside the fetch; T060), consent answers, cached identity, "ready for offline" flags |
 
 ### Dexie indexes (draft)
 
