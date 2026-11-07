@@ -49,12 +49,17 @@ table limits reads and writes to that rasika's own rows.
 }
 ```
 
-- At most 200 ops per request, in outbox order. The phone sends one request at a time.
+- At most 200 ops per request, in outbox order. The phone sends one request at a time, across
+  all its open tabs: each sync holds a Web Lock, which every supported browser has. Two tabs
+  syncing at once could strand a record in "needs attention", so without Web Locks the phone
+  doesn't sync; the season stays on the phone, counted as unsynced, and export still works.
 - The phone sends its outbox oldest first. A retry starts at the oldest op not yet acked or
   rejected, and never holds fewer ops than the push it repeats. Ops leave the outbox only when
   acked or rejected, and the cap of 200 doesn't change between attempts. The server's
   lost-reply rule below relies on this: a shorter retry could get a false `conflict` on an edit
-  made after it. Nothing would be lost, and "keep mine" resolves it.
+  made after it. Nothing would be lost, and "keep mine" resolves it. The one exception is "keep
+  the server's", which drops every queued op of its record, sent or not: the lost-reply rule
+  runs record by record, so the retry still repeats every other record's ops.
 - Tables a phone may push: `events`, `appearances`, `items`, `artists`, `sabhas`.
 - The server applies ops in order, in one transaction holding a per-rasika advisory lock:
   - an `opId` already in Processed op is acknowledged again and not reapplied (FR-015);
@@ -80,14 +85,22 @@ Responses:
 |---|---|---|
 | `200` | `{ "acked": [{ "opId", "seq" }], "rejected": [{ "opId", "code", "message" }] }` | Removes acked and rejected ops from the outbox. Keeps rejected records locally, lists them in "needs attention", and keeps counting them as unsynced until fixed or discarded |
 | `401` | | Keeps the outbox; shows the sign-in prompt |
-| `400` | `{ "code": "bad_request", "message" }` | The request is malformed (no `ops` array, more than 200 ops, a `deviceId` or `opId` that isn't a uuid) and nothing was applied. Stops pushing, keeps the outbox and lists the batch in "needs attention". Never retried with backoff: a retry would block the outbox behind one bad batch |
+| `400` | `{ "code": "bad_request", "message" }` | The request is malformed (no `ops` array, more than 200 ops, a `deviceId` or `opId` that isn't a uuid) and nothing was applied. Stops pushing and moves the batch's ops from the outbox into "needs attention" (code `bad_request`), kept across a relaunch and still counted as unsynced, with "try again" and "discard". Never retried with backoff: a retry would block the outbox behind one bad batch |
 | `409` | `{ "code": "not_writer", "details": "<writer device id>" }` | Stops pushing, keeps the outbox, tells the rasika and offers export or "Make this the writing device again", which claims the device and resumes pushing (Edge Cases, "Second device") |
 | `5xx` or network error | | Retries with exponential backoff and jitter |
 
 A rejected op is recorded as processed so it is never retried in a loop, and its `code` is
 specific (`foreign_rasika`, `missing_event`, `conflict`, `invalid_op`). A `conflict` is shown with "keep
-mine" (re-push with the new `baseSeq`) and "keep the server's" (drop the op and pull). A rejected op is
+mine" (re-push with the new `baseSeq`) and "keep the server's" (store the held server version and
+drop the record's queued ops, sent or not); "discard" on a `conflict` is "keep the server's". Any
+other rejection is shown with "try again" (queue the row again as a new op) and "discard" (keep the
+row on the phone and stop counting it; it is sent again with its next edit). A rejected op is
 reported, never dropped quietly.
+
+The phone settles a reply in batch order. An ack clears the record's rejection only if it is
+for the same op or an earlier one, and a rejection is listed only for an op still in the outbox,
+so a late copy of a reply (another tab's push of the same batch, or a reply to an op the
+rasika has since settled) never undoes what was settled after it.
 
 ## Errors
 
