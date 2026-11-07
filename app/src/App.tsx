@@ -9,6 +9,7 @@ import { FirstLaunch } from './screens/FirstLaunch';
 import { HomeScreen } from './screens/HomeScreen';
 import { ItemEditor } from './screens/ItemEditor';
 import { Placeholder } from './screens/Placeholder';
+import { ScheduleScreen } from './screens/ScheduleScreen';
 import { preloadSettings, SettingsScreen } from './screens/SettingsScreen';
 import { leaveEvent } from './screens/undo';
 import { db } from './store/db';
@@ -16,8 +17,8 @@ import { useFirstLaunchDone } from './store/first-launch';
 import { clearReceipts } from './store/receipts';
 
 // Navigation per plan.md DD1: three bottom tabs (Season, Wrapped, Settings). Event and Item
-// open as pushed screens; the tab bar hides while the Item editor is open. Tidy is reached
-// from Season, and the Maintainer's /admin from Settings.
+// open as pushed screens; the tab bar hides while the Item editor is open. The Schedule and Tidy
+// are reached from Season, and the Maintainer's /admin from Settings.
 
 const ITEM_ROUTE = '/event/:eventId/item/:itemId';
 
@@ -163,6 +164,9 @@ export function App() {
               </Route>
               <Route path="/event/:eventId">
                 {({ eventId }) => <EventScreen eventId={eventId} />}
+              </Route>
+              <Route path="/schedule">
+                <ScheduleScreen />
               </Route>
               <Route path="/tidy">
                 <Placeholder title="Tidy" back="/" />

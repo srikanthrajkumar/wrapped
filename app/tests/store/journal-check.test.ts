@@ -60,6 +60,17 @@ describe('the journal, checked against the store', () => {
     expect(await holdsValue(entry('events', 'missing', '*', {}), db)).toBe(false);
   });
 
+  it('the "schedule changed" hint answered, held once it is clear or set again by a newer version', async () => {
+    const db = freshDb();
+    const event = await createEvent({ kind: 'concert' }, { db });
+    const kept = entry('events', event.id, 'scheduleChanged', { answer: 'keep', version: 2 });
+    expect(await holdsValue(kept, db)).toBe(true);
+    await db.events.update(event.id, { scheduleChanged: true, scheduleVersionSeen: '2' });
+    expect(await holdsValue(kept, db)).toBe(false);
+    await db.events.update(event.id, { scheduleVersionSeen: '10' });
+    expect(await holdsValue(kept, db)).toBe(true);
+  });
+
   it('a pick, and a Detail the store settled as an Override', async () => {
     const db = freshDb();
     const event = await createEvent({ kind: 'concert' }, { db });

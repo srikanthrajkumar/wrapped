@@ -12,6 +12,7 @@ import { storeHealth, subscribeStoreHealth, watchStore } from './store/health';
 import { holdsValue, storedHolds } from './store/journal-check';
 import { ensurePersistentStorage } from './store/persist';
 import { pruneReceipts } from './store/receipts';
+import { startScheduleFetch } from './store/schedule-fetch';
 import './styles/app.css';
 
 const root = document.getElementById('root');
@@ -37,6 +38,8 @@ createRoot(root).render(
 startServiceWorker();
 void ensurePersistentStorage().catch(() => undefined);
 void openCatalog().catch(() => undefined);
+// The Schedule, when this build has a feed: applied as stored, then fetched when online (T060).
+startScheduleFetch();
 // Undo receipts a crash left behind are dropped after a day (eng review D7), except those a
 // failed Undo bar still offers.
 void pruneReceipts(24 * 60 * 60 * 1000, db, Date.now(), failedUndoReceipts()).catch(
