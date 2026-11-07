@@ -4,10 +4,9 @@
 // queues or settles locally, and the next sync carries it.
 
 import type { RasikaRow, RasikaTable } from '../model';
-import type { RejectCode } from '../model/sync-payloads';
 import { remapPulledRow } from '../catalog/upgrade';
 import type { Remap } from '../catalog/load';
-import { db as defaultDb, type AttentionEntry, type WrappedDB } from './db';
+import { db as defaultDb, type AttentionCode, type AttentionEntry, type WrappedDB } from './db';
 import { enqueue } from './mutate';
 import { RuleError } from './rules';
 
@@ -15,7 +14,7 @@ export interface AttentionView {
   opId: string;
   table: RasikaTable;
   recordId: string;
-  code: RejectCode;
+  code: AttentionCode;
   message: string;
   rejectedAt: string;
   /** The row on the phone now, which "keep mine" and "try again" send. */
@@ -90,13 +89,23 @@ export async function keepMine(opId: string, db: WrappedDB = defaultDb): Promise
 
 /**
  * "Try again" for a rejection other than `conflict`, such as `missing_event` once the Event is on
- * the server: queue the phone's row again as a new op.
+ * the server, or an op of a batch the server refused (`bad_request`): queue the phone's row
+ * again as a new op.
  */
 export const tryAgain = keepMine;
 
 /**
- * "Keep the server's" for a `conflict`: store the server's version on the phone and drop the
- * phone's unsent changes to the record. Needs the server's version from a pull.
+ * "Keep the server's" for a `conflict`: store the server's version on the phone and drop every
+ * queued op of the record, sent or not. Needs the server's version from a pull.
+ *
+ * An op already sent keeps the base it was first sent with, older than the held version, so
+ * kept it could come back `conflict` again, after `held` is gone and with the cursor past the
+ * server's row: a record stuck in "needs attention". Dropping it is safe either way. If the
+ * server never applied it, nothing of it is there to keep. If it did, the held version is that
+ * op's own write coming back (or a later one), so keeping the held version keeps the applied
+ * row and its seq. The server's lost-reply rule runs record by record, so a retry without this
+ * record's ops still repeats every other record's ops. A reply to it that arrives later
+ * settles nothing, since it has left the outbox (`settlePush`).
  */
 export async function keepServers(
   opId: string,
@@ -120,7 +129,7 @@ export async function keepServers(
       await db.outbox
         .where('recordId')
         .equals(entry.recordId)
-        .filter((queued) => queued.table === entry.table && queued.firstSentAt === null)
+        .filter((queued) => queued.table === entry.table)
         .delete();
       await settle(db, entry);
     },
@@ -128,10 +137,17 @@ export async function keepServers(
 }
 
 /**
- * "Discard": take the record out of "needs attention" and the unsynced count. Its row stays on
- * the phone as it is, and reaches the server with its next edit.
+ * "Discard". For a `conflict` it is "keep the server's": the phone's change is dropped and the
+ * server's version stored. For any other rejection it takes the record out of "needs attention"
+ * and the unsynced count; its row stays on the phone as it is, and is sent again only with the
+ * record's next edit.
  */
-export async function discard(opId: string, db: WrappedDB = defaultDb): Promise<void> {
+export async function discard(
+  opId: string,
+  { db = defaultDb, remap }: { db?: WrappedDB; remap?: Remap } = {},
+): Promise<void> {
+  const entry = await entryFor(db, opId);
+  if (entry.code === 'conflict') return keepServers(opId, { db, remap });
   await db.transaction('rw', db.attention, async () => {
     await settle(db, await entryFor(db, opId));
   });

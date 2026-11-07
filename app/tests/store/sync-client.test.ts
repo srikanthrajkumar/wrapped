@@ -4,7 +4,7 @@
 // phone still has to send. The scenarios that need the server's own rules (re-claiming, another
 // device's edit, a lost reply) run against the local stack in supabase/tests/sync-client.test.ts.
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   newId,
   type Event,
@@ -14,7 +14,7 @@ import {
   type PushRequest,
   type PushResponse,
 } from '../../src/model';
-import { keepMine, keepServers, listAttention } from '../../src/store/attention';
+import { discard, keepMine, keepServers, listAttention, tryAgain } from '../../src/store/attention';
 import type { WrappedDB } from '../../src/store/db';
 import { save } from '../../src/store/mutate';
 import { countUnsynced } from '../../src/store/outbox';
@@ -22,12 +22,13 @@ import {
   applyPullPage,
   createSyncLoop,
   PULL_CURSOR_KEY,
+  pushBatch,
   syncOnce,
   type SyncLoop,
   type SyncLoopOptions,
 } from '../../src/store/sync';
 import { readReply, SyncError, type SyncApi } from '../../src/store/sync-api';
-import { freshDb } from '../helpers';
+import { freshDb, reopen } from '../helpers';
 
 function concert(overrides: Partial<Event> = {}): Event {
   const now = new Date().toISOString();
@@ -114,9 +115,69 @@ async function snapshot(db: WrappedDB) {
 const loops: SyncLoop[] = [];
 afterEach(() => {
   for (const loop of loops.splice(0)) loop.dispose();
+  vi.unstubAllGlobals();
 });
 
-/** A loop with a recorded, never-firing retry timer, so a test can fire it itself. */
+/** Wait until `done()` holds; for a push or pull a test has left on its way. */
+async function until(done: () => boolean) {
+  for (let tries = 0; !done(); tries += 1) {
+    if (tries > 200) throw new Error('timed out');
+    await new Promise((resolve) => setTimeout(resolve, 1));
+  }
+}
+
+/** A reply the test lets through when it chooses. */
+function gate() {
+  let open!: () => void;
+  const opened = new Promise<void>((resolve) => (open = resolve));
+  return { open, opened };
+}
+
+const rejectAll =
+  (code: 'conflict' | 'invalid_op') =>
+  (request: PushRequest): PushResponse => ({
+    acked: [],
+    rejected: request.ops.map((op) => ({ opId: op.opId, code, message: 'rejected' })),
+  });
+
+/**
+ * A synced Event whose next edit (`note: 'mine'`) the server rejected `conflict`, with the
+ * other device's version (seq 150, `note: 'iPad'`) held by the pull that followed.
+ */
+async function conflicted(db: WrappedDB, server: ScriptedServer) {
+  const event = concert({ note: 'v1' });
+  await save('events', event, { db });
+  await syncOnce(server, { db });
+  await save('events', { ...event, note: 'mine' }, { db });
+  server.onPush = rejectAll('conflict');
+  server.onPull = () => ({
+    changes: [{ table: 'events', seq: 150, row: { ...event, note: 'iPad' } }],
+    cursor: 'c2',
+    more: false,
+  });
+  await syncOnce(server, { db });
+  server.onPull = () => ({ changes: [], cursor: 'c2', more: false });
+  const [entry] = await listAttention(db);
+  expect(entry).toMatchObject({ code: 'conflict', server: { note: 'iPad' } });
+  return { event, entry: entry! };
+}
+
+/** A server that refuses an op on `event` unless it is based on seq 150, as the real one does. */
+function onlyOn150(server: ScriptedServer) {
+  return (request: PushRequest): PushResponse => {
+    const answer: PushResponse = { acked: [], rejected: [] };
+    for (const op of request.ops) {
+      if (op.baseSeq === 150) answer.acked.push({ opId: op.opId, seq: ++server.seq });
+      else answer.rejected.push({ opId: op.opId, code: 'conflict', message: 'newer (seq 150)' });
+    }
+    return answer;
+  };
+}
+
+/**
+ * A loop with a recorded, never-firing retry timer, so a test can fire it itself. It holds a
+ * stand-in for the Web Lock, since Node has none; pass `{ lock: undefined }` for the real one.
+ */
 function loopFor(db: WrappedDB, server: SyncApi | null, extra: Partial<SyncLoopOptions> = {}) {
   const timers: { run: () => void; ms: number }[] = [];
   const loop = createSyncLoop({
@@ -128,6 +189,7 @@ function loopFor(db: WrappedDB, server: SyncApi | null, extra: Partial<SyncLoopO
       return timers.length;
     },
     clearTimer: () => {},
+    lock: (_name, work) => work(),
     ...extra,
   });
   loops.push(loop);
@@ -268,9 +330,12 @@ describe('sync client (required)', () => {
     expect(await db.outbox.count()).toBe(0);
   });
 
-  it('a 400 stops the loop at once, keeps the outbox, and names the batch', async () => {
+  it('a 400 stops the loop at once and moves the batch into "needs attention", kept across a relaunch', async () => {
     const db = freshDb();
-    await save('events', concert(), { db });
+    const first = concert({ note: 'first' });
+    const second = concert({ note: 'second' });
+    await save('events', first, { db });
+    await save('events', second, { db });
     const before = await snapshot(db);
     const server = new ScriptedServer();
     server.onPush = failWith(400, { code: 'bad_request', message: 'opId must be a uuid' });
@@ -285,9 +350,33 @@ describe('sync client (required)', () => {
       state: 'stopped',
       failure: { kind: 'bad_request', opIds: before.outbox.map((entry) => entry.opId) },
     });
-    expect((await snapshot(db)).outbox.map((entry) => entry.opId)).toEqual(
-      before.outbox.map((entry) => entry.opId),
-    );
+    // Out of the outbox, so the batch can't block every later sync, but kept and counted.
+    expect(await db.outbox.count()).toBe(0);
+    expect(await countUnsynced(db)).toBe(2);
+    expect((await snapshot(db)).events).toEqual(before.events);
+
+    // A relaunch finds the batch still listed, and syncs past it.
+    const relaunched = reopen(db);
+    const listed = await listAttention(relaunched);
+    expect(listed.map((entry) => [entry.recordId, entry.code, entry.message])).toEqual([
+      [first.id, 'bad_request', 'opId must be a uuid'],
+      [second.id, 'bad_request', 'opId must be a uuid'],
+    ]);
+    expect(await countUnsynced(relaunched)).toBe(2);
+    server.onPush = (request) => server.ackAll(request);
+    await loopFor(relaunched, server).loop.request('start');
+    expect(server.pushes).toHaveLength(1);
+    expect(server.pulls).toHaveLength(1);
+
+    // "Try again" sends the record again; "discard" lets it go and keeps the row.
+    const opFor = (id: string) => listed.find((entry) => entry.recordId === id)!.opId;
+    await tryAgain(opFor(first.id), relaunched);
+    await syncOnce(server, { db: relaunched });
+    expect(server.pushes.at(-1)!.ops.map((op) => (op.row as Event).note)).toEqual(['first']);
+    await discard(opFor(second.id), { db: relaunched });
+    expect(await listAttention(relaunched)).toEqual([]);
+    expect(await countUnsynced(relaunched)).toBe(0);
+    expect((await relaunched.events.get(second.id))?.note).toBe('second');
   });
 
   it('keeps a rejected op locally, lists it as needing attention, and still counts it', async () => {
@@ -416,6 +505,8 @@ describe('sync client (required)', () => {
     const attention = await listAttention(db);
     const opFor = (id: string) => attention.find((entry) => entry.recordId === id)!.opId;
 
+    // Edited again before choosing: a queued op "keep the server's" drops with the rest.
+    await save('events', { ...other, note: 'mine, edited again' }, { db });
     await keepMine(opFor(mine.id), db);
     await keepServers(opFor(other.id), { db });
     server.onPush = (request) => server.ackAll(request);
@@ -461,5 +552,294 @@ describe('sync client (required)', () => {
 
     expect(loop.status()).toMatchObject({ state: 'stopped', failure: { kind: 'signed_out' } });
     expect(await db.outbox.count()).toBe(1);
+  });
+});
+
+describe('late replies, tabs and the rasika’s choices (required)', () => {
+  it('runs one sync at a time across tabs, through the Web Locks API', async () => {
+    const names: string[] = [];
+    let tail = Promise.resolve();
+    vi.stubGlobal('navigator', {
+      locks: {
+        request(name: string, work: () => Promise<void>) {
+          names.push(name);
+          const run = tail.then(work);
+          tail = run.catch(() => undefined);
+          return run;
+        },
+      },
+    });
+    const db = freshDb();
+    await save('events', concert(), { db });
+    const server = new ScriptedServer();
+    let sending = 0;
+    let most = 0;
+    server.onPush = async (request) => {
+      most = Math.max(most, ++sending);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      sending -= 1;
+      return server.ackAll(request);
+    };
+    // Two tabs, each with its own loop on the same store.
+    const tabs = [
+      loopFor(db, server, { lock: undefined }).loop,
+      loopFor(db, server, { lock: undefined }).loop,
+    ];
+
+    await Promise.all(tabs.map((tab) => tab.request('start')));
+
+    expect(names).toEqual([`wrapped-sync:${db.name}`, `wrapped-sync:${db.name}`]);
+    expect(most).toBe(1);
+    expect(server.pushes).toHaveLength(1);
+    expect(await countUnsynced(db)).toBe(0);
+  });
+
+  it('does not sync without Web Locks, and keeps the outbox', async () => {
+    vi.stubGlobal('navigator', {});
+    const db = freshDb();
+    await save('events', concert(), { db });
+    const server = new ScriptedServer();
+    const { loop } = loopFor(db, server, { lock: undefined });
+
+    await loop.request('start');
+
+    expect(server.pushes).toHaveLength(0);
+    expect(server.pulls).toHaveLength(0);
+    expect(loop.status()).toMatchObject({
+      state: 'stopped',
+      failure: { kind: 'refused', code: 'web_locks_missing' },
+    });
+    expect(await countUnsynced(db)).toBe(1);
+  });
+
+  it('a late ack of an earlier op never clears a later op’s rejection', async () => {
+    const db = freshDb();
+    const server = new ScriptedServer();
+    const event = concert({ note: 'v1' });
+    await save('events', event, { db });
+    await syncOnce(server, { db });
+    await save('events', { ...event, note: 'A' }, { db });
+
+    // Tab 2 sends A, and its reply is slow.
+    const slow = gate();
+    server.onPush = async (request) => {
+      const answer = server.ackAll(request);
+      await slow.opened;
+      return answer;
+    };
+    const late = pushBatch(server, { db });
+    await until(() => server.pushes.length === 2);
+    // Tab 1 sends A again and gets the server's repeated answer at once.
+    const seqOfA = server.seq;
+    server.onPush = (request) => ({
+      acked: request.ops.map((op) => ({ opId: op.opId, seq: seqOfA })),
+      rejected: [],
+    });
+    await pushBatch(server, { db });
+    // Edit B is rejected `conflict`, and the pull holds the other device's version.
+    await save('events', { ...event, note: 'B' }, { db });
+    server.onPush = rejectAll('conflict');
+    server.onPull = () => ({
+      changes: [{ table: 'events', seq: 150, row: { ...event, note: 'iPad' } }],
+      cursor: 'c2',
+      more: false,
+    });
+    await syncOnce(server, { db });
+
+    slow.open();
+    await late;
+
+    expect(await listAttention(db)).toMatchObject([
+      { code: 'conflict', local: { note: 'B' }, server: { note: 'iPad' } },
+    ]);
+    expect(await countUnsynced(db)).toBe(1);
+  });
+
+  it('a late rejection of an op the rasika has settled since changes nothing', async () => {
+    const db = freshDb();
+    const server = new ScriptedServer();
+    const event = concert({ note: 'v1' });
+    await save('events', event, { db });
+    await syncOnce(server, { db });
+    await save('events', { ...event, note: 'mine' }, { db });
+
+    // Tab 2 sends the edit, and its reply is slow.
+    const slow = gate();
+    server.onPush = async (request) => {
+      await slow.opened;
+      return rejectAll('conflict')(request);
+    };
+    const late = pushBatch(server, { db });
+    await until(() => server.pushes.length === 2);
+    // Tab 1 sends it too, is refused, and the pull holds the other device's version.
+    server.onPush = rejectAll('conflict');
+    server.onPull = () => ({
+      changes: [{ table: 'events', seq: 150, row: { ...event, note: 'iPad' } }],
+      cursor: 'c2',
+      more: false,
+    });
+    await syncOnce(server, { db });
+    const [entry] = await listAttention(db);
+    await keepServers(entry!.opId, { db });
+
+    slow.open();
+    await late;
+
+    expect(await listAttention(db)).toEqual([]);
+    expect(await countUnsynced(db)).toBe(0);
+    expect((await db.events.get(event.id))?.note).toBe('iPad');
+  });
+
+  it('"keep the server’s" drops an op already sent, so the record can’t be stuck in "needs attention"', async () => {
+    const db = freshDb();
+    const server = new ScriptedServer();
+    const { event, entry } = await conflicted(db, server);
+    // Edited again in a hall with bad signal: the push goes out and no reply comes back.
+    await save('events', { ...event, note: 'mine again' }, { db });
+    server.onPush = failWith(0, { message: 'TypeError: fetch failed' });
+    await expect(syncOnce(server, { db })).rejects.toThrow(SyncError);
+
+    await keepServers(entry.opId, { db });
+    server.onPush = onlyOn150(server);
+    await syncOnce(server, { db });
+
+    expect(await listAttention(db)).toEqual([]);
+    expect(await countUnsynced(db)).toBe(0);
+    expect((await db.events.get(event.id))?.note).toBe('iPad');
+    // The next edit is based on the server's version, and is acked.
+    await save('events', { ...event, note: 'after' }, { db });
+    await syncOnce(server, { db });
+    expect(server.pushes.at(-1)!.ops).toMatchObject([{ baseSeq: 150, row: { note: 'after' } }]);
+    expect(await countUnsynced(db)).toBe(0);
+  });
+
+  it('"keep the server’s" chosen while a push is on its way: its reply settles nothing', async () => {
+    const db = freshDb();
+    const server = new ScriptedServer();
+    const { event, entry } = await conflicted(db, server);
+    await save('events', { ...event, note: 'mine again' }, { db });
+    const slow = gate();
+    server.onPush = async (request) => {
+      await slow.opened;
+      return onlyOn150(server)(request);
+    };
+    const sync = syncOnce(server, { db });
+    await until(() => server.pushes.length === 3);
+
+    await keepServers(entry.opId, { db });
+    slow.open();
+    await sync;
+
+    expect(await listAttention(db)).toEqual([]);
+    expect(await countUnsynced(db)).toBe(0);
+    expect((await db.events.get(event.id))?.note).toBe('iPad');
+  });
+
+  it('"discard" of a conflict keeps the server’s version', async () => {
+    const db = freshDb();
+    const server = new ScriptedServer();
+    const { event, entry } = await conflicted(db, server);
+    await save('events', { ...event, note: 'mine, edited again' }, { db });
+
+    await discard(entry.opId, { db });
+    server.onPush = onlyOn150(server);
+    await syncOnce(server, { db });
+
+    expect((await db.events.get(event.id))?.note).toBe('iPad');
+    expect(await listAttention(db)).toEqual([]);
+    expect(await countUnsynced(db)).toBe(0);
+    expect(server.pushes).toHaveLength(2);
+  });
+
+  it('an ack of a later edit clears the record’s earlier rejection', async () => {
+    const db = freshDb();
+    const event = concert({ note: 'rejected' });
+    await save('events', event, { db });
+    const server = new ScriptedServer();
+    server.onPush = rejectAll('invalid_op');
+    await syncOnce(server, { db });
+    expect(await countUnsynced(db)).toBe(1);
+
+    await save('events', { ...event, note: 'fixed' }, { db });
+    server.onPush = (request) => server.ackAll(request);
+    await syncOnce(server, { db });
+
+    expect(await listAttention(db)).toEqual([]);
+    expect(await countUnsynced(db)).toBe(0);
+  });
+
+  it('a pull page answered before the phone’s latest ack never rolls the record back', async () => {
+    const db = freshDb();
+    const event = concert({ note: 'v1' });
+    await save('events', event, { db });
+    const server = new ScriptedServer();
+    await syncOnce(server, { db });
+    // A page another tab asked for while v1 (seq 101) was the server's latest.
+    const early: PullResponse = {
+      changes: [{ table: 'events', seq: 101, row: event }],
+      cursor: 'c1',
+      more: false,
+    };
+    await save('events', { ...event, note: 'v2' }, { db });
+    await syncOnce(server, { db });
+
+    await applyPullPage(db, early);
+
+    expect((await db.events.get(event.id))?.note).toBe('v2');
+    await save('events', { ...event, note: 'v3' }, { db });
+    await syncOnce(server, { db });
+    expect(server.pushes.at(-1)!.ops[0]!.baseSeq).toBe(102);
+  });
+
+  it('stops when a pull answers `more` without moving its cursor', async () => {
+    const db = freshDb();
+    const server = new ScriptedServer();
+    server.onPull = () => {
+      if (server.pulls.length > 5) throw new Error('pulled forever');
+      return { changes: [], cursor: 'same', more: true };
+    };
+
+    const failure = await syncOnce(server, { db }).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(SyncError);
+    expect((failure as SyncError).failure).toMatchObject({ kind: 'refused', code: 'stuck_cursor' });
+    expect(server.pulls).toHaveLength(2);
+  });
+
+  it('stops when a push is answered with none of its ops, and keeps them', async () => {
+    const db = freshDb();
+    await save('events', concert(), { db });
+    const server = new ScriptedServer();
+    server.onPush = () => {
+      if (server.pushes.length > 5) throw new Error('pushed forever');
+      return { acked: [], rejected: [] };
+    };
+
+    const failure = await syncOnce(server, { db }).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(SyncError);
+    expect((failure as SyncError).failure).toMatchObject({ kind: 'refused', code: 'unanswered' });
+    expect(server.pushes).toHaveLength(1);
+    expect(await db.outbox.count()).toBe(1);
+  });
+
+  it('a retry repeats the lost push with the bases it was first sent with', async () => {
+    const db = freshDb();
+    const server = new ScriptedServer();
+    const { event, entry } = await conflicted(db, server);
+    await save('events', { ...event, note: 'mine again' }, { db });
+    server.onPush = failWith(0, { message: 'TypeError: fetch failed' });
+    await expect(syncOnce(server, { db })).rejects.toThrow(SyncError);
+    const lost = server.pushes.at(-1)!;
+
+    // "Keep mine" moves the record's base to the server's version before the retry.
+    await keepMine(entry.opId, db);
+    server.onPush = (request) => server.ackAll(request);
+    await syncOnce(server, { db });
+
+    const retry = server.pushes.at(-1)!;
+    expect(retry.ops.slice(0, lost.ops.length)).toEqual(lost.ops);
+    expect(lost.ops[0]!.baseSeq).toBe(101);
+    expect(retry.ops.at(-1)).toMatchObject({ baseSeq: 150, row: { note: 'mine again' } });
   });
 });
