@@ -55,16 +55,36 @@ describe('reading the feed (contracts/schedule-feed.md)', () => {
     expect(readScheduleFile(fileOf([raw({ billed: [] })]))!.entries[0]!.billed).toEqual([]);
   });
 
-  it('skips an entry of a kind it does not know, or one it cannot read, and keeps the rest', () => {
+  it('skips an entry of a kind it does not know, and keeps the rest', () => {
     const file = readScheduleFile(
       fileOf([
         raw({ id: 'talk', kind: 'upanyasam' }),
-        raw({ id: 'no-date', date: '15 Dec' }),
-        raw({ id: 'no-version', version: '3' }),
         raw({ id: 'kept', kind: 'harikatha', title: ' Sita Kalyanam ' }),
       ]),
     )!;
     expect(file.entries.map((e) => [e.id, e.title])).toEqual([['kept', 'Sita Kalyanam']]);
+  });
+
+  it.each([
+    ['a date it cannot read', { date: '15 Dec' }],
+    ['a date that does not exist', { date: '2026-02-30' }],
+    ['a version as text', { version: '3' }],
+    ['billed not a list', { billed: { name: 'A' } }],
+    ['billed missing', { billed: undefined }],
+    ['a billed name missing', { billed: [{ role: 'vocal' }] }],
+    ['a time out of range', { startTime: '25:00' }],
+    ['cancelled as text', { cancelled: 'yes' }],
+  ])('refuses the whole file for one entry with %s (Codex, PR #25)', (_, fields) => {
+    expect(readScheduleFile(fileOf([raw({ id: 'good' }), raw(fields)]))).toBeNull();
+  });
+
+  it('refuses a file whose publishedAt is not an instant with its offset', () => {
+    for (const publishedAt of ['yesterday', '2026-11-20', '2026-11-20T10:00:00', '']) {
+      expect(readScheduleFile(fileOf([raw()], { publishedAt }))).toBeNull();
+    }
+    expect(
+      readScheduleFile(fileOf([raw()], { publishedAt: '2026-11-20T15:30:00+05:30' })),
+    ).not.toBeNull();
   });
 
   it('refuses a file of another format, or not the feed', () => {

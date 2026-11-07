@@ -164,18 +164,17 @@ describe('"take it" (required)', () => {
       ['Pakkala Ramadas', 'violin', null, false],
       ['Patri Satish Kumar', 'mridangam', null, false],
     ]);
-    // In the order kept: billed first, in billing order, then the rest as they were.
-    expect(
-      Object.values(after.appearances)
-        .filter((a) => a.deletedAt === null)
-        .sort((a, b) => a.position - b.position)
-        .map((a) => a.position),
-    ).toEqual([1, 2, 3, 4]);
+    // The Schedule's rows in billing order among their places; the rasika's keep theirs.
+    const own = Object.values(before.appearances).find((a) => !a.billed)!;
+    expect(after.appearances[own.id]!.position).toBe(own.position);
+    const valli = Object.values(after.appearances).find(
+      (a) => a.deletedAt === null && a.role === 'dancer',
+    )!;
+    expect(valli.position).toBeLessThan(after.appearances[stage[1]!.id]!.position);
     const [sreeramprasad, ravikumar, pakkala] = stage.map((a) => after.appearances[a.id]!);
     expect(sreeramprasad!.deletedAt).not.toBeNull();
     expect(ravikumar).toMatchObject({ colourPrimary: 'blue', deletedAt: null });
     expect(pakkala).toMatchObject({ colourPrimary: 'red', billed: false, deletedAt: null });
-    const own = Object.values(before.appearances).find((a) => !a.billed)!;
     expect(after.appearances[own.id]).toMatchObject({
       artistId: own.artistId,
       role: own.role,

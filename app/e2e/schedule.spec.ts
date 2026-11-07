@@ -193,4 +193,12 @@ test('the "schedule changed" hint opens what changed: keep mine, then take a new
     'events',
   );
   expect(taken).toMatchObject({ startTime: '18:30', note: 'front row', scheduleChanged: false });
+
+  // The Sabha cancels: the row is marked, and its hint still opens, listing the cancellation.
+  await storeEntries(page, [brothers({ version: 4, startTime: '18:30', cancelled: true })]);
+  const row = next.getByRole('listitem').filter({ hasText: 'Malladi Brothers' });
+  await expect(row.getByRole('img', { name: 'Cancelled' })).toBeVisible();
+  await row.getByRole('button', { name: 'Schedule changed' }).click();
+  await expect(sheet.getByRole('img', { name: 'Cancelled', exact: true })).toBeVisible();
+  await expect(sheet.getByRole('img', { name: 'On', exact: true })).toBeVisible();
 });

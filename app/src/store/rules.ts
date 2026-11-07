@@ -36,6 +36,12 @@ export const TOO_MANY_PRESENTERS = `a Lecdem has at most ${MAX_PRESENTERS} prese
  */
 export const KIND_CHANGED = 'its kind changed since';
 
+/**
+ * Why a deleted Event from the Schedule can't come back: its entry is planned again as another
+ * Event, and an entry is planned once (one Event per entry).
+ */
+export const ENTRY_PLANNED_AGAIN = 'its Schedule entry is planned again';
+
 export function check(problems: string[]): void {
   if (problems.length > 0) throw new RuleError(problems);
 }

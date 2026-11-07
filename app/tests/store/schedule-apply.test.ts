@@ -16,6 +16,7 @@ import {
   addFromSchedule,
   applySchedule,
   readScheduleFile,
+  scheduleAppearanceId,
   storeSchedule,
 } from '../../src/store/schedule';
 import type { WrappedDB } from '../../src/store/db';
@@ -329,30 +330,37 @@ describe('a new Schedule version (FR-027, required)', () => {
   });
 
   it('bills the same Appearance on two phones applying one version, never the Artist twice', async () => {
-    // One Event, synced to a second phone; each applies a version that bills one more Artist.
+    // One Event, synced to a second phone with the Artists both know; each applies a version
+    // that bills one more Artist, at the front, so every place shifts (Codex, PR #25).
     const one = freshDb();
+    await createArtist('Tiruvarur Bakthavathsalam', { db: one });
     const event = await planned(one);
     const two = freshDb();
+    await two.artists.bulkPut(await one.artists.toArray());
     await two.events.bulkPut(await one.events.toArray());
     await two.appearances.bulkPut(await one.appearances.toArray());
     const more = entry({
       version: 2,
       billed: [
-        ...entry().billed,
         { name: 'Tiruvarur Bakthavathsalam', role: 'mridangam', group: null },
+        ...entry().billed,
       ],
     });
     await publish(one, more);
     await publish(two, more);
-    const added = async (db: WrappedDB) =>
-      (await listAppearances(event.id, db)).find((a) => a.role === 'mridangam')!.id;
-    expect(await added(two)).toBe(await added(one));
-    expect(await added(one)).toMatch(
+    const ids = async (db: WrappedDB) =>
+      (await db.appearances.toArray()).map((a) => [a.id, a.artistId, a.deletedAt]).sort();
+    // The same records on both phones: the new Artist's id, and the others' kept.
+    expect(await ids(two)).toEqual(await ids(one));
+    expect(await one.appearances.count()).toBe(4);
+    const added = (await listAppearances(event.id, one)).find((a) => a.role === 'mridangam')!;
+    expect(added.id).toBe(scheduleAppearanceId(event.id, added.artistId));
+    expect(added.id).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-3[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     );
   });
 
-  it('brings a place a version dropped back as the same record when billed again', async () => {
+  it('brings an Artist a version dropped back as the same record when billed again', async () => {
     const db = freshDb();
     const event = await planned(db);
     const third = (await listAppearances(event.id, db))[2]!;
