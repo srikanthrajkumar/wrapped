@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { dayText, timeText } from '../format';
 import { MESSAGES } from '../messages';
 import { saveFeedback, type Target, type WriteKind } from '../save-feedback';
+import { reloadLoses } from '../update-offer';
 import { dismissExportFailure, exportSeason, useExportState } from './export-file';
 import { SheetFrame } from './sheet-frame';
 
@@ -406,7 +407,8 @@ export function SeasonFeedback() {
   const feedback = useSaveFeedback();
   const { failed: exportFailed } = useExportState();
   const unshown = feedback.unshown();
-  const blocked = feedback.journalBlocked();
+  // Storage refused a copy, now or of a value still held: a reload would lose it.
+  const blocked = reloadLoses(feedback);
   if (unshown.length === 0 && !exportFailed && !blocked) return null;
   // Each delete is its own row: its Try again acts on one record.
   const rows = byKind(feedback, unshown).flatMap((group) =>

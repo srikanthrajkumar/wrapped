@@ -1,7 +1,10 @@
 // The one screen left when the phone's database won't open (DESIGN.md "The store can't be
 // opened"). It needs no database: Export writes the journal of values not saved into a file
 // marked store-unreadable, and the Export icon then carries a check badge. The same screen, with
-// Reload, is left when a newer version of the app has the store. A store that is only slow
+// Reload, is left when a newer version of the app has the store. When values entered live only
+// in this page's memory (the journal couldn't keep them), it says so, as every screen does, and
+// its Try again or Reload asks first, since a reload loses them; Export keeps them. A store that
+// is only slow
 // to open keeps the screens, with "Still opening your season…" (muted, a spinner, no alert) and
 // Export at the top.
 
@@ -16,6 +19,7 @@ import {
   useExportState,
 } from './components/export-file';
 import { ExportIcon, SafetyRow } from './components/feedback';
+import { useReloadGuard } from './components/reload-guard';
 import { MESSAGES } from './messages';
 
 /** Back to the app's start, never the screen that broke, so one broken screen can't trap it. */
@@ -23,6 +27,14 @@ const restart = () => window.location.assign(import.meta.env.BASE_URL);
 
 export function RescueScreen({ replaced = false }: { replaced?: boolean }) {
   const { handover, failed } = useExportState();
+  const { unkept, asking, tap: reload } = useReloadGuard(restart);
+  const reloadLabel = replaced
+    ? asking
+      ? MESSAGES.actions.reloadAnyway
+      : MESSAGES.actions.reload
+    : asking
+      ? MESSAGES.actions.tryAgainAnyway
+      : MESSAGES.actions.tryAgain;
   return (
     <div className="flex min-h-dvh flex-col pt-[env(safe-area-inset-top)] pr-[calc(16px+env(safe-area-inset-right))] pb-[calc(16px+env(safe-area-inset-bottom))] pl-[calc(16px+env(safe-area-inset-left))]">
       <div role="alert" className="flex flex-1 flex-col items-center justify-center gap-3 py-8">
@@ -32,6 +44,13 @@ export function RescueScreen({ replaced = false }: { replaced?: boolean }) {
         </h1>
       </div>
       <div className="flex flex-col gap-2">
+        {/* The store is closed here, so the row's Export is the one below. */}
+        {unkept && <SafetyRow label={MESSAGES.short.notKept} sentence={MESSAGES.journalBlocked} />}
+        {asking && (
+          <p role="alert" className="text-sub text-destructive">
+            {MESSAGES.reloadLoses}
+          </p>
+        )}
         {failed && (
           <SafetyRow
             label={MESSAGES.short.exportFailed}
@@ -42,8 +61,8 @@ export function RescueScreen({ replaced = false }: { replaced?: boolean }) {
             }}
           />
         )}
-        <Button size="lg" className="w-full" onClick={restart}>
-          {replaced ? MESSAGES.actions.reload : MESSAGES.actions.tryAgain}
+        <Button size="lg" className="w-full" onClick={reload}>
+          {reloadLabel}
         </Button>
         <Button
           size="lg"

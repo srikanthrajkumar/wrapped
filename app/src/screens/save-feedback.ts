@@ -128,6 +128,8 @@ export class SaveFeedback {
   private retrying = false;
   /** The last copy to storage failed: values entered now live only in this page's memory. */
   private blocked = false;
+  /** Entries whose last copy to storage failed (or that had no storage): memory holds them alone. */
+  private uncopied = new Set<string>();
   private storage: Storage | null;
   private confirm: Confirm;
   private matches: Matches;
@@ -237,6 +239,18 @@ export class SaveFeedback {
   /** Whether values entered now can't be copied to storage, so a reload would lose them. */
   journalBlocked(): boolean {
     return this.blocked;
+  }
+
+  /**
+   * The values not saved that only this page's memory holds, whose copy failed even if a later
+   * one was written (so `journalBlocked` is false again), or that had no storage: a reload loses
+   * them, Export doesn't.
+   */
+  heldOnlyInMemory(): JournalEntry[] {
+    return [...this.entries.values()]
+      .filter((entry) => this.journalled(entry) && this.uncopied.has(keyOf(entry.target)))
+      .sort(byEntered)
+      .map((entry) => this.toJournal(entry));
   }
 
   /** Text typed and not yet written (the autosave's pause): journalled at once. */
@@ -507,16 +521,22 @@ export class SaveFeedback {
       return;
     }
     const copy: Copy = { ...this.toJournal(entry), kind: entry.kind };
-    if (!this.storage) return;
+    const key = keyOf(entry.target);
+    if (!this.storage) {
+      this.uncopied.add(key);
+      return;
+    }
     const was = this.blocked;
     try {
       this.storage.setItem(storageKey(entry.target), JSON.stringify(copy));
       this.blocked = false;
+      this.uncopied.delete(key);
     } catch {
       // The in-memory copy still holds it for this page's life. An older copy must not stay:
       // after a relaunch it would hide the newer value the store holds.
       this.uncopy(entry.target);
       this.blocked = true;
+      this.uncopied.add(key);
     }
     if (was !== this.blocked) this.notify();
   }

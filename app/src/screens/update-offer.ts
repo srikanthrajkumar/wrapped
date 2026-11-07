@@ -22,6 +22,29 @@ export function offersUpdate({
 }
 
 /**
+ * Whether a reload now would lose a value entered: the journal can't be written, or a value lives
+ * only in this page's memory. Every screen then shows "Not kept on this phone" with Export, and
+ * whatever reloads (Reload, the rescue screen's Try again, Update) asks first.
+ */
+export function reloadLoses(feedback: {
+  journalBlocked(): boolean;
+  heldOnlyInMemory(): readonly unknown[];
+}): boolean {
+  return feedback.journalBlocked() || feedback.heldOnlyInMemory().length > 0;
+}
+
+/**
+ * What a tap on Reload, Try again or Update does: reload, or first ask to Export while a reload
+ * would lose a value; a second tap, once asked, reloads.
+ */
+export function onReloadTap(
+  feedback: Parameters<typeof reloadLoses>[0],
+  asking: boolean,
+): 'reload' | 'ask' {
+  return reloadLoses(feedback) && !asking ? 'ask' : 'reload';
+}
+
+/**
  * Whether a waiting update may be applied without asking: only when first launch's Try again
  * found a newer build (`requested`) and first launch isn't finished, so nothing is being logged
  * and the reload loses nothing. A request left over must never reload the page mid-Concert.
