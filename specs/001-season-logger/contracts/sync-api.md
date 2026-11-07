@@ -47,7 +47,10 @@ table limits reads and writes to that rasika's own rows.
 
   The same account signing in again keeps everything. Before each sync the phone also checks
   that the session's user is the recorded identity; if not, it sends nothing and stops with
-  `other_account` (not a sign-out), keeping the outbox, until the right account signs in.
+  `other_account` (not a sign-out), keeping the outbox, until the right account signs in. And
+  the phone's session storage writes a session only for the recorded identity, checked in the
+  write's own transaction, so a refresh of the last account that answers after another account
+  signed in can't put its session back.
 
 ## Account
 
@@ -131,6 +134,12 @@ PostgREST's shape: `{ "code", "message", "details", "hint" }`, with `code` set t
 or `update_required`. PostgREST takes `details` only as a string, so it holds one plain value:
 the writer device's id for a 409 (null if no device has claimed yet), the minimum app version
 for a 426. A 401 is Supabase's API's own response to a missing or expired token.
+Every sync call has a 30 s deadline: unanswered by then, it is aborted and counts as a network
+failure, retried with backoff. A sync holds the cross-tab lock that a sign-in also takes, so a call
+that never settles must not hold it for ever. The server stops a statement after 8 s, and the
+largest reply (a 500-row pull page) arrives well within the rest on a slow hall connection; every
+call is safe to repeat (FR-015).
+
 The `426` check runs once per request, in a pre-request function that reads `X-App-Version`
 (ADR 0001, "How the contract's responses map"). It gates pull as well as push, so a change that
 brings a value or field an older build would mishandle (a new Event kind or Role, a new field
