@@ -81,4 +81,16 @@ describe('fetching the Schedule (T060)', () => {
     await fetchSchedule({ url, db, fetch: server(ok(later, '"later"')).fetch });
     expect((await db.events.get(event.id))?.startTime).toBe('18:00');
   });
+
+  it('keeps a cancellation when a later file says cancelled: null (Codex, PR #25)', async () => {
+    const db = freshDb();
+    const first = fileOf([raw({ cancelled: true })]);
+    await fetchSchedule({ url, db, fetch: server(ok(first, '"a"')).fetch });
+    const bad = fileOf([raw({ version: 4, cancelled: null })], {
+      publishedAt: '2026-11-21T10:00:00Z',
+    });
+    expect(await fetchSchedule({ url, db, fetch: server(ok(bad, '"b"')).fetch })).toBe('failed');
+    expect(await scheduleMeta(db)).toMatchObject({ tag: '"a"' });
+    expect((await db.schedule.toArray())[0]).toMatchObject({ version: 3, cancelled: true });
+  });
 });

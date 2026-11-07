@@ -41,7 +41,8 @@ const entry = (fields: Partial<ScheduleEntry> = {}): ScheduleEntry => ({
 let published = 0;
 async function publish(db: WrappedDB, ...entries: ScheduleEntry[]) {
   published += 1;
-  const at = `2026-11-${String(published).padStart(2, '0')}T10:00:00Z`;
+  // Each file an hour after the last, so every publishedAt is a real instant.
+  const at = new Date(Date.UTC(2026, 10, 1, published)).toISOString();
   await storeSchedule({ season: '2026-27', publishedAt: at, entries }, null, { db });
   return applySchedule({ db });
 }

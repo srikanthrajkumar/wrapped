@@ -74,12 +74,30 @@ describe('reading the feed (contracts/schedule-feed.md)', () => {
     ['a billed name missing', { billed: [{ role: 'vocal' }] }],
     ['a time out of range', { startTime: '25:00' }],
     ['cancelled as text', { cancelled: 'yes' }],
+    ['cancelled null', { cancelled: null }],
+    ['cancelled missing', { cancelled: undefined }],
+    ['a kind null', { kind: null }],
+    ['a Sabha null', { sabha: null }],
+    ['a version null', { version: null }],
+    ['a billed Role as a number', { billed: [{ name: 'A', role: 3 }] }],
   ])('refuses the whole file for one entry with %s (Codex, PR #25)', (_, fields) => {
     expect(readScheduleFile(fileOf([raw({ id: 'good' }), raw(fields)]))).toBeNull();
   });
 
   it('refuses a file whose publishedAt is not an instant with its offset', () => {
-    for (const publishedAt of ['yesterday', '2026-11-20', '2026-11-20T10:00:00', '']) {
+    for (const publishedAt of [
+      'yesterday',
+      '2026-11-20',
+      '2026-11-20T10:00:00',
+      '',
+      // No such day or time (Codex, PR #25).
+      '2026-11-31T10:00:00Z',
+      '2026-02-29T10:00:00Z',
+      '2026-13-01T10:00:00Z',
+      '2026-11-30T24:00:00Z',
+      '2026-11-30T10:60:00Z',
+      '2026-11-30T10:00:00+25:00',
+    ]) {
       expect(readScheduleFile(fileOf([raw()], { publishedAt }))).toBeNull();
     }
     expect(
