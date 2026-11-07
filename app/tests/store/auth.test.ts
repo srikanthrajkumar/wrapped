@@ -30,7 +30,7 @@ import {
 } from '../../src/store/sync';
 import { startSync } from '../../src/store/sync-runtime';
 import type { SupportedStorage } from '@supabase/supabase-js';
-import { SyncError, type SyncApi } from '../../src/store/sync-api';
+import { rpcSyncApi, SyncError, type RpcClient, type SyncApi } from '../../src/store/sync-api';
 import { freshDb } from '../helpers';
 
 // Node has no Web Locks, and the loop refuses to sync without them; these tests are about
@@ -509,6 +509,35 @@ describe('another account, a crash and a race (required)', () => {
     expect(signedInB).not.toBeNull();
     expect(await readIdentity(db)).toEqual(b);
     expect(await inner.getItem('wrapped-session')).toBe(sessionB);
+  });
+
+  it('a sync call that never answers lets go of the lock, so a sign-in completes', async () => {
+    const db = freshDb();
+    const me = identity();
+    const lock = mutex();
+    await recordIdentity(me, db, { lock });
+    await save('events', concert(), { db });
+    const hung: RpcClient = { rpc: () => new Promise(() => undefined) };
+    const loop = createSyncLoop({
+      db,
+      getApi: async () => rpcSyncApi(hung, { deadlineMs: 50 }),
+      lock,
+      baseDelayMs: 60_000,
+    });
+
+    const syncing = loop.request('start');
+    await later(10);
+    const signIn = recordIdentity({ ...me, signedInAt: new Date().toISOString() }, db, { lock });
+    const settled = await Promise.race([
+      signIn.then(() => 'signed in'),
+      later(2_000).then(() => 'still waiting for the lock'),
+    ]);
+
+    expect(settled).toBe('signed in');
+    await syncing;
+    expect(loop.status()).toMatchObject({ state: 'waiting', failure: { kind: 'network' } });
+    expect(await db.outbox.count()).toBe(1);
+    loop.dispose();
   });
 
   it('a sign-in that fails part-way changes nothing', async () => {
