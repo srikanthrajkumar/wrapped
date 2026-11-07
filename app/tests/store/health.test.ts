@@ -13,15 +13,23 @@ afterEach(() => {
 function opening() {
   let finish!: () => void;
   let fail!: (error: Error) => void;
+  const versionChange: (() => void)[] = [];
   const db = {
-    on: () => undefined,
+    on: (event: string, listener: () => void) => {
+      if (event === 'versionchange') versionChange.push(listener);
+    },
     open: () =>
       new Promise<void>((resolve, reject) => {
         finish = resolve;
         fail = reject;
       }),
   } as unknown as WrappedDB;
-  return { db, finish: () => finish(), fail: (error: Error) => fail(error) };
+  return {
+    db,
+    finish: () => finish(),
+    fail: (error: Error) => fail(error),
+    newerOpens: () => versionChange.forEach((listener) => listener()),
+  };
 }
 
 describe('watching the store open', () => {
@@ -45,5 +53,15 @@ describe('watching the store open', () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(storeHealth()).toMatchObject({ state: 'failed' });
+  });
+
+  it('a newer build opening the store while this one still opens it is a reload, never "open"', async () => {
+    const store = opening();
+    watchStore(store.db);
+    store.newerOpens();
+    store.finish();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(storeHealth()).toEqual({ state: 'replaced' });
   });
 });
