@@ -1,14 +1,18 @@
 // The "schedule changed" sheet (the Maintainer, 2026-11-07): opened from the hint on a row of
 // Next, it shows what the newer Schedule version changes, the Event's value beside the entry's,
-// only for the fields that differ (date, time, Sabha, kind, title, billed Artists), each led by
-// a mark rather than a word. "Take it" gives the Event those values (store/schedule.ts
-// takeSchedule); "Keep mine" leaves it as it is and clears the hint until a newer version.
-// Both are journalled and tracked like any save, so a failure shows its row in the sheet.
+// only for the fields that differ (date, time, Sabha, kind, title, cancelled or on, billed
+// Artists), each led by a mark rather than a word. "Take it" gives the Event those values
+// (store/schedule.ts takeSchedule); "Keep mine" leaves it as it is and clears the hint until a
+// newer version. Both are journalled and tracked like any save, so a failure shows its row in
+// the sheet.
 
 import {
   IconArrowRight,
+  IconBan,
   IconBuildingCommunity,
   IconCalendar,
+  IconCalendarCheck,
+  IconCalendarX,
   IconCategory,
   IconCheck,
   IconClock,
@@ -49,6 +53,7 @@ const FIELDS: Record<ScheduleChange['field'], { mark: Icon; name: string }> = {
   sabha: { mark: IconBuildingCommunity, name: 'Sabha' },
   kind: { mark: IconCategory, name: 'Kind' },
   title: { mark: IconLetterT, name: 'Title' },
+  cancelled: { mark: IconBan, name: 'Cancelled or on' },
   billed: { mark: IconUsers, name: 'Artists' },
 };
 
@@ -91,6 +96,13 @@ function valueOf(change: ScheduleChange, side: 'from' | 'to'): ReactNode {
       );
     case 'billed':
       return <Billed people={change[side]} />;
+    case 'cancelled':
+      // Cancelled, or reinstated: a mark each, spoken by its word.
+      return change[side] ? (
+        <IconCalendarX role="img" aria-label="Cancelled" className="size-5" />
+      ) : (
+        <IconCalendarCheck role="img" aria-label="On" className="size-5" />
+      );
     default: {
       const text = change[side];
       return text === null ? <None /> : <span className="break-words">{text}</span>;

@@ -136,6 +136,18 @@ export async function holdsValue(entry: Entered, db: WrappedDB = defaultDb): Pro
     }
     return artist?.deletedAt === null && artist.mergedIntoId === null && artist.name === value;
   }
+  // An add from the Schedule: held once any live Event holds its entry, since a retry or a
+  // second tap returns the Event already planned, under another id (one Event per entry).
+  const entryId = (value as { scheduleEntryId?: unknown } | null)?.scheduleEntryId;
+  if (table === 'events' && field === '*' && typeof entryId === 'string') {
+    if (row?.deletedAt === null) return true;
+    const planned = await db.events
+      .where('scheduleEntryId')
+      .equals(entryId)
+      .filter((event) => event.deletedAt === null)
+      .count();
+    return planned > 0;
+  }
   if (!row) return false;
   if (field === 'deletedAt') return row.deletedAt != null;
   if (row.deletedAt !== null) return false;

@@ -16,6 +16,7 @@ import { getLive, newTimestamps, remove, save, type WriteOptions } from './mutat
 import { peekReceipt, takeReceipt, writeReceipt, type DeletionReceipt } from './receipts';
 import {
   check,
+  ENTRY_PLANNED_AGAIN,
   EVENT_DELETED,
   eventProblems,
   KIND_CHANGED,
@@ -206,6 +207,7 @@ const TRANSITIONS: Record<EventStatus, readonly EventStatus[]> = {
  * - `planned → attended` is the explicit "Start logging" (FR-026), and marks it `touched`;
  * - `planned → missed` when the rasika says so;
  * - `missed → planned` and `attended → planned` undo either.
+ * Leaving Planned clears a pending "schedule changed" hint: Attended and Missed never carry it.
  */
 export async function setStatus(
   id: string,
@@ -219,7 +221,13 @@ export async function setStatus(
     }
     return save(
       'events',
-      { ...event, status, touched: event.touched || status === 'attended' },
+      {
+        ...event,
+        status,
+        touched: event.touched || status === 'attended',
+        // Attended and Missed never carry the "schedule changed" hint (2026-11-07).
+        scheduleChanged: status === 'planned' && event.scheduleChanged,
+      },
       { db },
     );
   });
@@ -286,6 +294,16 @@ export async function restoreEvent(
           .bulkGet(receipt.records.filter((r) => r.table === table).map((r) => r.id))) as T[];
       const [event] = await rows<Event>('events');
       if (!event) return null;
+      // One Event per Schedule entry: once the entry is planned again, the deleted one stays
+      // deleted. Thrown inside the transaction, so the receipt is kept.
+      if (event.scheduleEntryId !== null) {
+        const again = await db.events
+          .where('scheduleEntryId')
+          .equals(event.scheduleEntryId)
+          .filter((other) => other.deletedAt === null && other.id !== event.id)
+          .count();
+        if (again > 0) throw new RuleError([ENTRY_PLANNED_AGAIN]);
+      }
       const restored = await save('events', event, { db, restore: true });
       for (const appearance of await rows<Appearance>('appearances')) {
         await save('appearances', appearance, { db, restore: true });

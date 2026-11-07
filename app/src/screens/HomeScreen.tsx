@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { updateNow, useOfflineState, useUpdate } from '../pwa';
 import { createEvent, today } from '../store/events';
-import { eventStart, isBeingLogged, nowEvent } from '../store/logging-note';
+import { isBeingLogged, nowEvent } from '../store/logging-note';
 import {
   useEventSummaries,
   useHasSchedule,
@@ -36,6 +36,7 @@ import { useLingering } from './components/sheet-frame';
 import { BottomDock, Screen, TabHeader, useNow } from './components/layout';
 import { dayText, itemCount, nowTime, timeText } from './format';
 import { MESSAGES } from './messages';
+import { asNowReads, nextEvents } from './next';
 import { subscribeUndo, undoOffers } from './undo';
 import { offersUpdate } from './update-offer';
 
@@ -115,22 +116,14 @@ function HomeView() {
   if (summaries === undefined || notes === undefined) return bar;
 
   const byId = new Map(summaries.map((summary) => [summary.event.id, summary]));
-  const selection = nowEvent(
-    summaries.map((summary) => summary.event),
-    notes,
-    now,
-  );
+  // A Planned Event whose entry is cancelled is never Now (asNowReads).
+  const selection = nowEvent(asNowReads(summaries), notes, now);
   const holder = selection.now ? byId.get(selection.now.id)! : null;
   const logging = holder ? isBeingLogged(holder.event, notes.get(holder.event.id), now) : false;
   const inNow = new Set([selection.now, ...selection.others].filter(Boolean).map((e) => e!.id));
 
-  // A cancelled one stays, marked, until the rasika removes it (the Maintainer, 2026-11-07).
-  const upcoming = summaries.filter(
-    (s) =>
-      s.event.status === 'planned' &&
-      !inNow.has(s.event.id) &&
-      (eventStart(s.event) ?? new Date(`${s.event.date}T23:59`)) > now,
-  );
+  // A cancelled one stays, marked, until the rasika removes it, even past its start (next.ts).
+  const upcoming = nextEvents(summaries, inNow, now);
   const days = [...new Set(upcoming.map((s) => s.event.date))].sort();
   const soFar = summaries
     .filter((s) => s.event.status === 'attended')
@@ -325,7 +318,8 @@ function EventRow({
 }) {
   const planned = onHint !== undefined;
   const cancelled = planned && summary.cancelled;
-  const changed = planned && !cancelled && summary.event.scheduleChanged;
+  // The hint shows on a cancelled row too: the sheet lists what else changed (2026-11-07).
+  const changed = planned && summary.event.scheduleChanged;
   return (
     <li className="flex items-center gap-2 hairline-b">
       <Link

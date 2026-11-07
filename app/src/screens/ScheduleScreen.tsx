@@ -56,7 +56,14 @@ function ScheduleList() {
   const add = (entry: ScheduleEntry) => {
     const id = attempts.get(entry.id) ?? newId();
     if (!attempts.has(entry.id)) setAttempts(new Map(attempts).set(entry.id, id));
-    const value = { kind: entry.kind, date: entry.date, startTime: entry.startTime };
+    // The entry's id goes with it, so the journal settles even when the Event returned is one
+    // planned before, under another id (store/journal-check.ts).
+    const value = {
+      kind: entry.kind,
+      date: entry.date,
+      startTime: entry.startTime,
+      scheduleEntryId: entry.id,
+    };
     void saveWith({ table: 'events', id, field: '*' }, value, () =>
       addFromSchedule(entry.id, { id }),
     );

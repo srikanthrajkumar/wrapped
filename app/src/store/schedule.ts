@@ -52,7 +52,10 @@ export const ENTRY_GONE = 'this Schedule entry is no longer on the phone';
 export const ENTRY_CANCELLED = 'this Schedule entry is cancelled';
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
-const TIME = /^\d{2}:\d{2}$/;
+const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+const SEASON = /^\d{4}-\d{2}$/;
+/** An instant with its offset, as `2026-11-20T10:00:00Z` or `2026-11-20T15:30:00+05:30`. */
+const INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -60,28 +63,49 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
 const text = (value: unknown): string | null =>
   typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
 
-function readBilled(value: unknown): BilledArtist | null {
-  if (!isObject(value)) return null;
+/** A calendar date that exists: `2026-02-30` is not one. */
+const realDate = (date: unknown): date is string =>
+  typeof date === 'string' &&
+  ISO_DATE.test(date) &&
+  new Date(`${date}T00:00:00Z`).toISOString().startsWith(date);
+
+/** The instant a `publishedAt` names, in ms; NaN for one that names none. */
+export const publishedInstant = (publishedAt: string) =>
+  INSTANT.test(publishedAt) ? Date.parse(publishedAt) : Number.NaN;
+
+/** Why a file is refused whole; read by the tests and the fetch, never shown. */
+const MALFORMED = Symbol('malformed');
+
+function readBilled(value: unknown): BilledArtist | typeof MALFORMED {
+  if (!isObject(value)) return MALFORMED;
   const name = text(value.name);
-  if (name === null) return null;
+  if (name === null) return MALFORMED;
+  if (value.group != null && typeof value.group !== 'string') return MALFORMED;
   // A Role is a hint: one this reader doesn't know reads as none.
   const role = ROLES.includes(value.role as Role) ? (value.role as Role) : null;
   return { name, role, group: text(value.group) };
 }
 
-function readEntry(value: unknown): ScheduleEntry | null {
-  if (!isObject(value)) return null;
+/** An entry as read; null for one of a kind this reader doesn't know (skipped). */
+function readEntry(value: unknown): ScheduleEntry | null | typeof MALFORMED {
+  if (!isObject(value)) return MALFORMED;
   const id = typeof value.id === 'string' && value.id !== '' ? value.id : null;
   const sabha = text(value.sabha);
-  const { version, date, startTime } = value;
-  if (id === null || sabha === null) return null;
-  if (typeof version !== 'number' || !Number.isInteger(version) || version < 0) return null;
-  if (typeof date !== 'string' || !ISO_DATE.test(date)) return null;
-  if (startTime != null && (typeof startTime !== 'string' || !TIME.test(startTime))) return null;
+  const { version, date, startTime, title, cancelled } = value;
+  if (id === null || sabha === null) return MALFORMED;
+  if (typeof version !== 'number' || !Number.isInteger(version) || version < 0) return MALFORMED;
+  if (!realDate(date)) return MALFORMED;
+  if (startTime != null && (typeof startTime !== 'string' || !TIME.test(startTime))) {
+    return MALFORMED;
+  }
+  if (title != null && typeof title !== 'string') return MALFORMED;
+  if (cancelled != null && typeof cancelled !== 'boolean') return MALFORMED;
+  if (!Array.isArray(value.billed)) return MALFORMED;
+  const billed = value.billed.map(readBilled);
+  if (billed.includes(MALFORMED)) return MALFORMED;
   // An entry of a kind this reader doesn't know is skipped (contracts/schedule-feed.md).
   if (!EVENT_KINDS.includes(value.kind as EventKind)) return null;
   const kind = value.kind as EventKind;
-  const billed = Array.isArray(value.billed) ? value.billed.map(readBilled) : [];
   return {
     id,
     version,
@@ -89,35 +113,42 @@ function readEntry(value: unknown): ScheduleEntry | null {
     startTime: (startTime as string | null | undefined) ?? null,
     sabha,
     kind,
-    title: kind === 'concert' ? null : text(value.title),
-    billed: billed.filter((person): person is BilledArtist => person !== null),
-    cancelled: value.cancelled === true,
+    title: kind === 'concert' ? null : text(title),
+    billed: billed as BilledArtist[],
+    cancelled: cancelled === true,
   };
 }
 
 /**
- * Read a feed file. Null for a file this reader can't use (not format 1, or not the feed's
- * shape), so the last stored copy stays. Fields it doesn't know are ignored, and an entry it
- * can't read, or of a kind it doesn't know, is left out; the rest of the file still counts.
- * Nothing is ever read from an entry's `id`.
+ * Read a feed file. Null for a file this reader can't use, so the last stored copy and its tag
+ * stay: not format 1, not the feed's shape, a Season or `publishedAt` it can't read (an instant
+ * with its offset), or any entry it can't read (a version, date, time or billing of the wrong
+ * shape). Refused whole, never in part, so a damaged file can't stand in for the Schedule.
+ * Fields it doesn't know are ignored, an entry of a kind it doesn't know is left out, and a
+ * repeated id keeps its first entry. Nothing is ever read from an entry's `id`.
  */
 export function readScheduleFile(json: unknown): ScheduleFile | null {
   if (!isObject(json) || json.format !== SCHEDULE_FORMAT) return null;
   const season = text(json.season);
   const publishedAt = text(json.publishedAt);
-  if (season === null || publishedAt === null || !Array.isArray(json.entries)) return null;
+  if (season === null || !SEASON.test(season)) return null;
+  if (publishedAt === null || Number.isNaN(publishedInstant(publishedAt))) return null;
+  if (!Array.isArray(json.entries)) return null;
   const entries = new Map<string, ScheduleEntry>();
   for (const value of json.entries) {
     const entry = readEntry(value);
+    if (entry === MALFORMED) return null;
     if (entry && !entries.has(entry.id)) entries.set(entry.id, entry);
   }
   return { season, publishedAt, entries: [...entries.values()] };
 }
 
 /**
- * Keep a feed file's entries in place of the last ones, in one transaction. A file published
- * before the one stored, for the same Season, is a stale copy and changes nothing (returns
- * false). The entries are the logger's, not the rasika's: replacing them loses nothing logged.
+ * Keep a feed file's entries in place of the last ones, in one transaction. A file for an
+ * earlier Season than the one stored, or published before it in the same Season (compared as
+ * instants, so `+05:30` and `Z` order right), is a stale copy and changes nothing (returns
+ * false): no entry, version or tag moves. The entries are the logger's, not the rasika's:
+ * replacing them loses nothing logged.
  */
 export async function storeSchedule(
   file: ScheduleFile,
@@ -126,7 +157,15 @@ export async function storeSchedule(
 ): Promise<boolean> {
   return db.transaction('rw', [db.schedule, db.meta], async () => {
     const stored = (await db.meta.get(SCHEDULE_META))?.value as ScheduleMeta | undefined;
-    if (stored?.season === file.season && file.publishedAt < stored.publishedAt) return false;
+    if (stored) {
+      if (file.season < stored.season) return false;
+      if (
+        file.season === stored.season &&
+        publishedInstant(file.publishedAt) < publishedInstant(stored.publishedAt)
+      ) {
+        return false;
+      }
+    }
     await db.schedule.clear();
     await db.schedule.bulkPut(file.entries);
     const meta: ScheduleMeta = { season: file.season, publishedAt: file.publishedAt, tag };
@@ -179,68 +218,129 @@ async function idFor(kind: 'artist' | 'sabha', name: string, names: Names, db: W
 }
 
 /**
- * The id of the Appearance the Schedule bills at `place` (1-based) on an Event: a name-based
- * UUID (version 3) of the Event and the place, the same on every phone. Two phones applying the
- * same version before they sync (one of them not the writer, FR-022) then write the same record,
- * which the server sees as a conflict on identical rows, rather than billing the Artist twice.
+ * The id of the Appearance the Schedule makes for an Artist on an Event: a name-based UUID
+ * (version 3) of the Event and the Artist, the same on every phone and whatever place the Artist
+ * is billed at. Two phones applying or taking the same version before they sync (one of them not
+ * the writer, FR-022) then write the same record, which the server sees as a conflict on
+ * identical rows, rather than billing the Artist twice.
  */
-export function billedAppearanceId(eventId: string, place: number): string {
-  const hex = md5(new TextEncoder().encode(`carnatic-wrapped/billed/${eventId}/${place}`));
+export function scheduleAppearanceId(eventId: string, artistId: string): string {
+  const hex = md5(new TextEncoder().encode(`carnatic-wrapped/billed/${eventId}/${artistId}`));
   const variant = ((parseInt(hex[16]!, 16) & 0x3) | 0x8).toString(16);
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-3${hex.slice(13, 16)}-${variant}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
 }
 
 /**
- * Make the Event's billed Stage the entry's, in billing order: each place keeps its Appearance,
- * changed in place where the Artist, Role or group differs; places the entry adds are new
- * Appearances, with the place's id (`billedAppearanceId`), brought back if a version dropped the
- * place before; places it no longer has are removed as tombstones. Only for an Event the rasika
- * never changed, whose Stage is all from the Schedule.
+ * Whether the Schedule made this Appearance: its id is the one the Schedule derives for its Event
+ * and Artist. Any other is the rasika's (added by hand), and the Schedule never bills, changes or
+ * removes it. Nothing else makes such an id, and an Appearance's Artist is never changed on the
+ * phone, so the id says where the row came from without a field of its own.
  */
-async function billStage(event: Event, entry: ScheduleEntry, names: Names, db: WrappedDB) {
-  const stage = (await db.appearances.where('eventId').equals(event.id).toArray())
-    .filter((appearance) => appearance.deletedAt === null)
-    .sort((a, b) => a.position - b.position);
-  for (const [index, person] of entry.billed.entries()) {
+export function fromSchedule(appearance: Pick<Appearance, 'id' | 'eventId' | 'artistId'>) {
+  return appearance.id === scheduleAppearanceId(appearance.eventId, appearance.artistId);
+}
+
+/** Why a billing can't be written: the Artist's Schedule id is held by a row of another Artist. */
+export const ID_TAKEN = "this Artist's Schedule record is used by another Artist";
+
+/**
+ * Make the Event's billed Stage the entry's, Artist by Artist (an apply on an Event the rasika
+ * never changed, and "take it"):
+ * - an Artist the rasika added by hand stands for their billing as it is: never billed, its Role
+ *   and group never changed, never removed, and never doubled by a Schedule row;
+ * - an Artist the Schedule billed before keeps their Appearance, taking the entry's group, and its
+ *   Role unless the entry gives none (a null Role names nothing);
+ * - a new one gets the Artist's Schedule id; when that id is a tombstone (the Artist dropped by
+ *   an earlier version, or removed), it is that row brought back, Colours and all;
+ * - a Schedule Artist the entry no longer bills is removed as a tombstone, unless the rasika gave
+ *   them a Colour, when they stay, no longer billed.
+ * The Schedule's rows take their places in billing order, among the places they held, new ones
+ * after the rest; the rasika's rows keep theirs. Only rows that change are written.
+ */
+async function syncStage(event: Event, entry: ScheduleEntry, names: Names, db: WrappedDB) {
+  const { resolve } = await loadEntries('artist', db);
+  const artistOf = (appearance: Appearance) =>
+    resolve(appearance.artistId)?.id ?? appearance.artistId;
+  const live = await liveStage(event.id, db);
+  const scheduleRows = live.filter(fromSchedule);
+  const own = live.filter((appearance) => !fromSchedule(appearance));
+  const used = new Set<string>();
+  const billedArtists = new Set<string>();
+  const billed: { row: Appearance; existing: boolean }[] = [];
+  for (const person of entry.billed) {
     const artistId = await idFor('artist', person.name, names, db);
-    const current = stage[index];
-    const fields = { artistId, role: person.role, group: person.group, billed: true };
+    if (billedArtists.has(artistId)) continue;
+    billedArtists.add(artistId);
+    if (own.some((appearance) => artistOf(appearance) === artistId)) continue;
+    const current = scheduleRows.find(
+      (appearance) => !used.has(appearance.id) && artistOf(appearance) === artistId,
+    );
+    if (current) {
+      used.add(current.id);
+      billed.push({
+        row: { ...current, role: person.role ?? current.role, group: person.group, billed: true },
+        existing: true,
+      });
+      continue;
+    }
+    const id = scheduleAppearanceId(event.id, artistId);
+    const earlier = await db.appearances.get(id);
+    // A record never takes another Artist's id: refused whole, nothing written.
+    if (earlier && (earlier.deletedAt === null || earlier.artistId !== artistId)) {
+      throw new RuleError([ID_TAKEN]);
+    }
+    const row: Appearance = earlier
+      ? { ...earlier, role: person.role ?? earlier.role, group: person.group, billed: true }
+      : {
+          id,
+          eventId: event.id,
+          artistId,
+          role: person.role,
+          colourPrimary: null,
+          colourSecondary: null,
+          billed: true,
+          group: person.group,
+          position: 0,
+          ...newTimestamps(),
+        };
+    billed.push({ row, existing: false });
+  }
+  // Places: those the Schedule's rows held, in order, then new ones after every row on Stage.
+  let last = Math.max(0, ...live.map((appearance) => appearance.position));
+  const places = [
+    ...billed.filter((b) => b.existing).map((b) => b.row.position),
+    ...billed.filter((b) => !b.existing).map(() => (last += 1)),
+  ].sort((x, y) => x - y);
+  const writes: Appearance[] = billed.map((b, i) => ({ ...b.row, position: places[i]! }));
+  for (const dropped of scheduleRows.filter((appearance) => !used.has(appearance.id))) {
+    if (dropped.colourPrimary === null) {
+      await remove('appearances', dropped.id, { db });
+    } else if (dropped.billed) {
+      writes.push({ ...dropped, billed: false });
+    }
+  }
+  const before = new Map(live.map((appearance) => [appearance.id, appearance]));
+  for (const next of writes) {
+    const current = before.get(next.id);
     if (
       current &&
-      current.artistId === artistId &&
-      current.role === person.role &&
-      (current.group ?? null) === person.group &&
-      current.position === index + 1
+      current.position === next.position &&
+      current.role === next.role &&
+      (current.group ?? null) === next.group &&
+      current.billed === next.billed
     ) {
       continue;
     }
-    if (current) {
-      const appearance: Appearance = { ...current, ...fields, position: index + 1 };
-      check(appearanceProblems(appearance));
-      await save('appearances', appearance, { db });
-      continue;
-    }
-    const placeId = billedAppearanceId(event.id, index + 1);
-    const earlier = await db.appearances.get(placeId);
-    // The place's own tombstone comes back as the same record; a live row of this id (at
-    // another place) or one on another Event is never written over.
-    const reuse = !earlier || (earlier.deletedAt !== null && earlier.eventId === event.id);
-    const appearance: Appearance = {
-      id: reuse ? placeId : newId(),
-      eventId: event.id,
-      ...fields,
-      colourPrimary: null,
-      colourSecondary: null,
-      position: index + 1,
-      ...newTimestamps(),
-    };
-    check(appearanceProblems(appearance));
-    await save('appearances', appearance, { db, restore: reuse && earlier !== undefined });
-  }
-  for (const extra of stage.slice(entry.billed.length)) {
-    await remove('appearances', extra.id, { db });
+    check(appearanceProblems(next));
+    // A tombstone of the Artist's own id comes back (its Colours with it).
+    await save('appearances', next, { db, restore: !current });
   }
 }
+
+const liveStage = async (eventId: string, db: WrappedDB) =>
+  (await db.appearances.where('eventId').equals(eventId).toArray())
+    .filter((appearance) => appearance.deletedAt === null)
+    .sort((a, b) => a.position - b.position);
 
 /**
  * Add a Schedule entry to the Plan (FR-025, T061): a Planned Event with `source` `schedule`, its
@@ -280,7 +380,7 @@ export async function addFromSchedule(
       },
       { db, id },
     );
-    await billStage(event, entry, names, db);
+    await syncStage(event, entry, names, db);
     // A Lecdem billed with more than 3 presenters is refused whole (FR-013).
     await checkLecdem(event, db);
     return event;
@@ -306,7 +406,7 @@ async function changedByRasika(event: Event, db: WrappedDB): Promise<boolean> {
     stage.some(
       (appearance) =>
         appearance.deletedAt === null &&
-        (!appearance.billed ||
+        (!fromSchedule(appearance) ||
           appearance.colourPrimary !== null ||
           appearance.colourSecondary !== null),
     )
@@ -340,15 +440,17 @@ export async function applyEntry(eventId: string, db: WrappedDB = defaultDb): Pr
       // them alone, with no hint (2026-11-07).
       if (event.status !== 'planned') return 'unchanged';
       const version = String(entry.version);
+      const names = await readNames(db);
       if (await changedByRasika(event, db)) {
+        // The hint only for a version that differs in what the sheet shows: never an empty sheet.
+        const differs = (await compare(event, entry, names, db)).length > 0;
         await save(
           'events',
-          { ...event, scheduleChanged: true, scheduleVersionSeen: version },
+          { ...event, scheduleChanged: differs, scheduleVersionSeen: version },
           { db },
         );
-        return 'flagged';
+        return differs ? 'flagged' : 'unchanged';
       }
-      const names = await readNames(db);
       const updated: Event = {
         ...(await getLive('events', eventId, { db })),
         kind: entry.kind,
@@ -362,7 +464,7 @@ export async function applyEntry(eventId: string, db: WrappedDB = defaultDb): Pr
       };
       check(eventProblems(updated));
       await save('events', updated, { db });
-      await billStage(updated, entry, names, db);
+      await syncStage(updated, entry, names, db);
       await checkLecdem(updated, db);
       return 'updated';
     });
@@ -386,6 +488,8 @@ export async function applySchedule({ db = defaultDb }: WriteOptions = {}): Prom
 
 /** Why "take it" is refused: the stored entry is no longer the version the sheet showed. */
 export const ENTRY_MOVED = 'this Schedule entry changed again';
+/** Why "take it" is refused: the Event is no longer Planned. */
+export const TAKE_PLANNED_ONLY = 'only a Planned Event takes the Schedule';
 
 /** A billed Artist as the "schedule changed" sheet shows them. */
 export interface BilledName {
@@ -400,6 +504,7 @@ export type ScheduleChange =
   | { field: 'sabha'; from: string | null; to: string }
   | { field: 'kind'; from: EventKind; to: EventKind }
   | { field: 'title'; from: string | null; to: string | null }
+  | { field: 'cancelled'; from: boolean; to: boolean }
   | { field: 'billed'; from: BilledName[]; to: BilledName[] };
 
 /** What the "schedule changed" hint opens on: the version and the fields it changes. */
@@ -418,15 +523,13 @@ function takenTitle(event: Event, entry: ScheduleEntry): string | null {
   return titleFor(entry.kind, entry.title) ?? event.title;
 }
 
-const liveStage = async (eventId: string, db: WrappedDB) =>
-  (await db.appearances.where('eventId').equals(eventId).toArray())
-    .filter((appearance) => appearance.deletedAt === null)
-    .sort((a, b) => a.position - b.position);
-
 /**
  * The fields the entry names differently from the Event, in the sheet's order (date, time,
- * Sabha, kind, title, billed Artists): what "take it" would change. A name the Schedule prints
- * is matched as an apply matches it, without making anything.
+ * Sabha, kind, title, cancelled, billed Artists): what "take it" would change, and what the hint
+ * is set for. A name the Schedule prints is matched as an apply matches it, without making
+ * anything. Billed Artists differ when one billed has no Appearance, a Schedule-made one has
+ * another Role (when the entry gives one) or group, or is in another order, or one the entry no
+ * longer bills is still billed; an Artist the rasika added stands for their billing as it is.
  */
 async function compare(event: Event, entry: ScheduleEntry, names: Names, db: WrappedDB) {
   const [artists, sabhas] = await Promise.all([
@@ -445,34 +548,51 @@ async function compare(event: Event, entry: ScheduleEntry, names: Names, db: Wra
   }
   if (event.kind !== entry.kind) changes.push({ field: 'kind', from: event.kind, to: entry.kind });
   const title = takenTitle(event, entry);
-  if ((event.title ?? null) !== title)
+  if ((event.title ?? null) !== title) {
     changes.push({ field: 'title', from: event.title, to: title });
+  }
+  if (event.cancelled !== entry.cancelled) {
+    changes.push({ field: 'cancelled', from: event.cancelled, to: entry.cancelled });
+  }
   if (entry.billed.length > 0) {
-    const billed = (await liveStage(event.id, db)).filter((appearance) => appearance.billed);
-    const same =
-      billed.length === entry.billed.length &&
-      entry.billed.every((person, i) => {
-        const appearance = billed[i]!;
-        const artistId = names.artists.match(person.name);
-        return (
-          artistId !== undefined &&
-          (artists.resolve(appearance.artistId)?.id ?? appearance.artistId) === artistId &&
-          appearance.role === person.role &&
-          (appearance.group ?? null) === person.group
-        );
-      });
+    const artistOf = (appearance: Appearance) =>
+      artists.resolve(appearance.artistId)?.id ?? appearance.artistId;
+    const live = await liveStage(event.id, db);
+    const standing = new Set<Appearance>();
+    let same = true;
+    let place = 0;
+    for (const person of entry.billed) {
+      const artistId = names.artists.match(person.name);
+      const row = artistId === undefined ? undefined : live.find((a) => artistOf(a) === artistId);
+      if (!row) {
+        same = false;
+        continue;
+      }
+      if (standing.has(row)) continue;
+      standing.add(row);
+      if (!fromSchedule(row)) continue;
+      if (
+        !row.billed ||
+        (person.role !== null && row.role !== person.role) ||
+        (row.group ?? null) !== person.group ||
+        row.position < place
+      ) {
+        same = false;
+      }
+      place = row.position;
+    }
+    if (live.some((a) => fromSchedule(a) && a.billed && !standing.has(a))) same = false;
     if (!same) {
       changes.push({
         field: 'billed',
-        from: billed.map((appearance) => ({
-          name: artists.resolve(appearance.artistId)?.name ?? '?',
-          role: appearance.role,
-        })),
+        from: live
+          .filter((a) => (fromSchedule(a) && a.billed) || standing.has(a))
+          .map((a) => ({ name: artists.resolve(a.artistId)?.name ?? '?', role: a.role })),
         to: entry.billed.map(({ name, role }) => ({ name, role })),
       });
     }
   }
-  return { changes, resolveArtist: (id: string) => artists.resolve(id)?.id ?? id };
+  return changes;
 }
 
 /**
@@ -487,78 +607,8 @@ export async function scheduleChanges(
   if (!event || event.deletedAt !== null || !event.scheduleChanged) return null;
   const entry = event.scheduleEntryId ? await db.schedule.get(event.scheduleEntryId) : undefined;
   if (!entry) return null;
-  const { changes } = await compare(event, entry, await readNames(db), db);
+  const changes = await compare(event, entry, await readNames(db), db);
   return { version: entry.version, changes };
-}
-
-/**
- * Make the Event's billed Artists the entry's, keeping what the rasika added: an Artist billed
- * again keeps their Appearance, Colours and all, taking the entry's Role and group; a new one
- * is a new Appearance; an Artist the entry no longer bills is removed as a tombstone, unless
- * the rasika gave them a Colour, when they stay, no longer billed. The rasika's own Artists stay.
- * Billed Artists come first, in billing order, then the rest in their order.
- */
-async function rebill(
-  event: Event,
-  entry: ScheduleEntry,
-  names: Names,
-  resolveArtist: (id: string) => string,
-  db: WrappedDB,
-) {
-  const stage = await liveStage(event.id, db);
-  const used = new Set<string>();
-  const placed: Appearance[] = [];
-  for (const [index, person] of entry.billed.entries()) {
-    const artistId = await idFor('artist', person.name, names, db);
-    const free = stage.filter(
-      (appearance) => !used.has(appearance.id) && resolveArtist(appearance.artistId) === artistId,
-    );
-    const found = free.find((appearance) => appearance.billed) ?? free[0];
-    const fields = { role: person.role, group: person.group, billed: true };
-    if (found) {
-      used.add(found.id);
-      placed.push({ ...found, ...fields });
-      continue;
-    }
-    const placeId = billedAppearanceId(event.id, index + 1);
-    const earlier = await db.appearances.get(placeId);
-    const reuse = !earlier || (earlier.deletedAt !== null && earlier.eventId === event.id);
-    placed.push({
-      id: reuse ? placeId : newId(),
-      eventId: event.id,
-      artistId,
-      ...fields,
-      colourPrimary: null,
-      colourSecondary: null,
-      position: 0,
-      ...newTimestamps(),
-      ...(reuse && earlier ? { createdAt: earlier.createdAt } : {}),
-    });
-  }
-  for (const appearance of stage.filter((appearance) => !used.has(appearance.id))) {
-    if (appearance.billed && appearance.colourPrimary === null) {
-      await remove('appearances', appearance.id, { db });
-    } else {
-      placed.push({ ...appearance, billed: false });
-    }
-  }
-  const before = new Map(stage.map((appearance) => [appearance.id, appearance]));
-  for (const [index, appearance] of placed.entries()) {
-    const next = { ...appearance, position: index + 1 };
-    const current = before.get(next.id);
-    if (
-      current &&
-      current.position === next.position &&
-      current.role === next.role &&
-      (current.group ?? null) === next.group &&
-      current.billed === next.billed
-    ) {
-      continue;
-    }
-    check(appearanceProblems(next));
-    const restore = !current && (await db.appearances.get(next.id)) !== undefined;
-    await save('appearances', next, { db, restore });
-  }
 }
 
 /**
@@ -579,13 +629,14 @@ export async function takeSchedule(
 ): Promise<{ event: Event; receipt: DeletionReceipt | null }> {
   return db.transaction('rw', [...tablesOf(db), db.meta], async () => {
     const event = await getLive('events', eventId, { db });
+    // Attended and Missed are the rasika's record of what happened (2026-11-07).
+    if (event.status !== 'planned') throw new RuleError([TAKE_PLANNED_ONLY]);
     if (!event.scheduleChanged) return { event, receipt: null };
     const entry = event.scheduleEntryId ? await db.schedule.get(event.scheduleEntryId) : undefined;
     if (!entry) throw new RuleError([ENTRY_GONE]);
     if (entry.version !== version) throw new RuleError([ENTRY_MOVED]);
     const names = await readNames(db);
-    const { changes, resolveArtist } = await compare(event, entry, names, db);
-    const changed = new Set(changes.map((change) => change.field));
+    const changed = new Set((await compare(event, entry, names, db)).map((c) => c.field));
     const updated: Event = {
       ...event,
       kind: entry.kind,
@@ -599,7 +650,7 @@ export async function takeSchedule(
     };
     check(eventProblems(updated));
     const saved = await save('events', updated, { db });
-    if (changed.has('billed')) await rebill(saved, entry, names, resolveArtist, db);
+    if (changed.has('billed')) await syncStage(saved, entry, names, db);
     await checkLecdem(saved, db);
     const taken = entry.kind === 'concert' && event.title?.trim() ? event.title : null;
     const receipt = taken
