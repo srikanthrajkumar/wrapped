@@ -3,6 +3,7 @@
 // launch, with the clock fixed at SEASON_NOW so the Concert in progress holds Now.
 
 import type { Page } from '@playwright/test';
+import type { ScheduleEntry } from '../../src/model';
 import type { Harness } from '../harness/entry';
 
 /** Mon 14 Dec 2026, 7:30 pm in Chennai: the middle of the season, mid-Concert. */
@@ -142,4 +143,108 @@ export function seed(page: Page, catalogFile: string): Promise<SeedIds> {
 
     return { full: full.id, long: long.id, bare: bare.id, laya: laya.id, rtp: rtp.id };
   }, catalogFile);
+}
+
+/**
+ * The Schedule (SEED.md "Schedule"): entries from the day after SEASON_NOW, one Artist of each
+ * kind of instrument billed first, a group, a Dance, one with nobody billed and one cancelled.
+ * Written into the store as a fetched file leaves them, as e2e/schedule.spec.ts does: the feed
+ * isn't rasika data, so no store action writes it.
+ */
+export const SCHEDULE: ScheduleEntry[] = (
+  [
+    [
+      'academy-1',
+      '2026-12-15',
+      '16:00',
+      'Music Academy',
+      'concert',
+      null,
+      [
+        ['Malladi Sreeramprasad', 'vocal', 'Malladi Brothers'],
+        ['Malladi Ravikumar', 'vocal', 'Malladi Brothers'],
+        ['Pakkala Ramadas', 'violin', null],
+      ],
+    ],
+    [
+      'narada-1',
+      '2026-12-15',
+      '18:30',
+      'Narada Gana Sabha',
+      'dance',
+      'Margam',
+      [['Alarmel Valli', 'dancer', null]],
+    ],
+    [
+      'krishna-1',
+      '2026-12-16',
+      '10:00',
+      'Sri Krishna Gana Sabha',
+      'concert',
+      null,
+      [
+        ['Lalgudi Vijayalakshmi', 'violin', null],
+        ['Patri Satish Kumar', 'mridangam', null],
+      ],
+    ],
+    [
+      'mylapore-1',
+      '2026-12-16',
+      '16:00',
+      'Mylapore Fine Arts',
+      'concert',
+      null,
+      [['Jayanthi Kumaresh', 'veena', null]],
+    ],
+    [
+      'parthasarathy-1',
+      '2026-12-16',
+      '19:00',
+      'Sri Parthasarathy Swami Sabha',
+      'concert',
+      'Tani avartanam',
+      [['Trichy Sankaran', 'mridangam', null]],
+    ],
+    ['brahma-1', '2026-12-17', '09:00', 'Brahma Gana Sabha', 'concert', null, []],
+    [
+      'academy-2',
+      '2026-12-17',
+      '18:00',
+      'Music Academy',
+      'concert',
+      null,
+      [['T. M. Krishna', 'vocal', null]],
+      true,
+    ],
+  ] as const
+).map(([id, date, startTime, sabha, kind, title, billed, cancelled]) => ({
+  id,
+  version: 1,
+  date,
+  startTime,
+  sabha,
+  kind,
+  title,
+  billed: billed.map(([name, role, group]) => ({ name, role, group })),
+  cancelled: cancelled ?? false,
+}));
+
+export function seedSchedule(page: Page): Promise<void> {
+  return page.evaluate(
+    (entries) =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open('carnatic-wrapped');
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const tx = open.result.transaction('schedule', 'readwrite');
+          for (const entry of entries) tx.objectStore('schedule').put(entry);
+          tx.oncomplete = () => {
+            open.result.close();
+            resolve();
+          };
+          tx.onerror = () => reject(tx.error);
+        };
+      }),
+    SCHEDULE,
+  );
 }

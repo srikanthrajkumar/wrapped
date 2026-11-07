@@ -8,13 +8,15 @@
 //   npx tsx e2e/hill-climb/rig.ts council <out> [baseline]   one sheet per view for reviewers
 
 import { chromium, devices, type Browser, type BrowserContext, type Page } from '@playwright/test';
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { harnessScript } from '../harness/build';
 import { measure, type Measures } from './measure';
-import { seed, SEASON_NOW, type SeedIds } from './seed';
+import { seed, seedSchedule, SEASON_NOW, type SeedIds } from './seed';
 
 const BASE = process.env.HC_BASE ?? 'http://localhost:4391';
+// Software WebGL, so the motif (src/motif) draws in a headless browser with no GPU.
+const LAUNCH = { args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'] };
 const VIEWPORTS = [
   { name: '390', width: 390, height: 844 },
   { name: '393', width: 393, height: 852 },
@@ -159,6 +161,7 @@ const VIEWS: View[] = [
       await page.getByRole('button', { name: /^Tala/ }).click();
     },
   },
+  { name: 'schedule', open: (page) => go(page, '/schedule') },
   { name: 'settings', open: (page) => go(page, '/settings') },
   {
     // Last, since it moves the clock: three hours on, the Concert in progress has ended, and its
@@ -207,7 +210,8 @@ async function setTheme(page: Page, theme: Theme) {
   await page.evaluate((theme) => localStorage.setItem('wrapped.theme', theme), theme);
 }
 
-async function newPhone(browser: Browser): Promise<{ context: BrowserContext; page: Page }> {
+/** A phone at first launch, on Welcome, before anything is chosen. */
+async function freshPhone(browser: Browser): Promise<{ context: BrowserContext; page: Page }> {
   const { userAgent } = devices['iPhone 15'];
   const context = await browser.newContext({
     viewport: { width: 393, height: 852 },
@@ -229,6 +233,11 @@ async function newPhone(browser: Browser): Promise<{ context: BrowserContext; pa
   page.on('crash', () => console.error('the page crashed'));
   page.on('pageerror', (error) => console.error('page error:', error.message));
   await page.goto(BASE + '/');
+  return { context, page };
+}
+
+async function newPhone(browser: Browser): Promise<{ context: BrowserContext; page: Page }> {
+  const { context, page } = await freshPhone(browser);
   await page.getByRole('button', { name: 'Continue with Google' }).click();
   await page.getByRole('button', { name: 'Start' }).click({ timeout: 60_000 });
   await page.getByRole('heading', { name: 'Season', exact: true }).waitFor();
@@ -292,7 +301,19 @@ async function seeded(page: Page): Promise<SeedIds> {
 async function shots(out: string) {
   const dir = join(out, 'shots');
   mkdirSync(dir, { recursive: true });
-  const browser = await chromium.launch();
+  const browser = await chromium.launch(LAUNCH);
+  // Welcome first, on a phone of its own that never finishes first launch.
+  if (!process.env.HC_VIEWS || process.env.HC_VIEWS.split(',').includes('welcome')) {
+    const fresh = await freshPhone(browser);
+    // The mark drifts; with reduced motion it holds still, so every round shoots the same frame.
+    await fresh.page.emulateMedia({ reducedMotion: 'reduce' });
+    await forEachLook(fresh.page, async ({ theme, viewport }) => {
+      await fresh.page.reload();
+      await fresh.page.getByRole('button', { name: 'Continue with Google' }).waitFor();
+      await shoot(fresh.page, join(dir, `welcome.${viewport.name}.${theme}.png`));
+    });
+    await fresh.context.close();
+  }
   const { page } = await newPhone(browser);
   const measures: Record<string, Measures> = {};
   const take = async (view: View, ids: SeedIds | null) => {
@@ -316,6 +337,7 @@ async function shots(out: string) {
   // The empty season first, before the seed goes in.
   await take({ name: 'season-empty', open: (page) => go(page, '/') }, null);
   const ids = await seeded(page);
+  await seedSchedule(page);
   writeFileSync(join(out, 'seed-ids.json'), JSON.stringify(ids, null, 2));
   const only = process.env.HC_VIEWS?.split(',');
   for (const view of VIEWS) if (!only || only.includes(view.name)) await take(view, ids);
@@ -330,9 +352,10 @@ async function shots(out: string) {
 async function motion(out: string) {
   const dir = join(out, 'motion');
   mkdirSync(dir, { recursive: true });
-  const browser = await chromium.launch();
+  const browser = await chromium.launch(LAUNCH);
   const { page } = await newPhone(browser);
   const ids = await seeded(page);
+  await seedSchedule(page);
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Animation.enable');
 
@@ -490,8 +513,11 @@ async function compose(
 async function council(out: string, baseline?: string) {
   const dir = join(out, 'council');
   mkdirSync(dir, { recursive: true });
-  const browser = await chromium.launch();
-  const views = ['season-empty', ...VIEWS.map((v) => v.name)];
+  const browser = await chromium.launch(LAUNCH);
+  // Only the views this round shot (HC_VIEWS may have narrowed it).
+  const views = ['welcome', 'season-empty', ...VIEWS.map((v) => v.name)].filter((view) =>
+    existsSync(join(out, 'shots', `${view}.393.dark.png`)),
+  );
   const png = (root: string, view: string, theme: Theme) =>
     dataUrl(readFileSync(join(root, 'shots', `${view}.393.${theme}.png`)));
   for (const view of views) {
