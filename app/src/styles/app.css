@@ -23,6 +23,47 @@
     inset 0 -1px 0 var(--border);
 }
 
+/* First launch's two fades (DESIGN.md "The motif"), eased (smoothstep, in a dozen stops) rather
+   than straight: each leaves and reaches its ends with no slope, so no line shows where it stops.
+   The horizon: Silk whole to 45% of its height, then dissolving into the page by its foot. */
+@utility horizon-fade {
+  mask-image: linear-gradient(
+    rgb(0 0 0 / 1) 45%,
+    rgb(0 0 0 / 0.972) 50.5%,
+    rgb(0 0 0 / 0.896) 56%,
+    rgb(0 0 0 / 0.784) 61.5%,
+    rgb(0 0 0 / 0.648) 67%,
+    rgb(0 0 0 / 0.5) 72.5%,
+    rgb(0 0 0 / 0.352) 78%,
+    rgb(0 0 0 / 0.216) 83.5%,
+    rgb(0 0 0 / 0.104) 89%,
+    rgb(0 0 0 / 0.028) 94.5%,
+    rgb(0 0 0 / 0.007) 97.25%,
+    rgb(0 0 0 / 0) 100%
+  );
+}
+
+/* The scrim behind the words: the page's colour rising over 192px, whole from there down. A mask
+   on a solid fill, as the horizon's, so it needs no colour mixing. */
+@utility scrim-rise {
+  background-color: var(--background);
+  mask-image: linear-gradient(
+    rgb(0 0 0 / 0) 0px,
+    rgb(0 0 0 / 0.007) 9.6px,
+    rgb(0 0 0 / 0.028) 19.2px,
+    rgb(0 0 0 / 0.104) 38.4px,
+    rgb(0 0 0 / 0.216) 57.6px,
+    rgb(0 0 0 / 0.352) 76.8px,
+    rgb(0 0 0 / 0.5) 96px,
+    rgb(0 0 0 / 0.648) 115.2px,
+    rgb(0 0 0 / 0.784) 134.4px,
+    rgb(0 0 0 / 0.896) 153.6px,
+    rgb(0 0 0 / 0.972) 172.8px,
+    rgb(0 0 0 / 0.993) 182.4px,
+    rgb(0 0 0 / 1) 192px
+  );
+}
+
 /* Dark is the default theme; light is the rasika's choice in Settings (DESIGN.md "Colors"). */
 @custom-variant dark (&:is(.dark *));
 /* Hover styles only where a real pointer hovers, so a tap never leaves one stuck on. */
