@@ -142,7 +142,9 @@ or an own one with a Link, is named by the Maintainer and is not renamed on the 
 ### Shared Artist and Shared Sabha
 
 `id` (uuid), `name`, `aliases[]`, `listVersion` (integer). Seeded from the 11 Sabhas and the
-Artists in last season's sheet (FR-005). The Maintainer edits them; every change bumps the list
+Artists in last season's sheet (FR-005), plus three Sabhas frequent in the Schedule feed
+(Krishna Gana Sabha, Vani Mahal, Bharat Kalachar), with the logger's short names as Sabha
+Aliases (2026-11-08). The Maintainer edits them; every change bumps the list
 version, and phones pick it up on the next pull (FR-045).
 
 ### Link

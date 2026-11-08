@@ -5,7 +5,7 @@ Run from the repository root:
     uv run --with openpyxl python -I tools/reference-seed/seed.py
 
 Writes:
-  app/src/reference/shared-lists.seed.json  the 11 Sabhas and the Artists in the sheet
+  app/src/reference/shared-lists.seed.json  the Sabhas and the Artists in the sheet, and EXTRA_SABHAS
   app/src/reference/composer-dates.json     composer key -> born, died, approx
   app/src/reference/topics.json             subject key -> Topic
   app/src/reference/forms.json              the project-kept forms with no Composition
@@ -42,6 +42,25 @@ ARTIST_ALIASES = {
     "Anantha R Krishnana": "Anantha R Krishnan",
     "Charumati Raghuram": "Charumati Raghuraman",
 }
+# The Sabhas' short names, settled by the logger project (2026-11-08), so a typed or fed name
+# finds its Sabha by Alias. The logger keeps the full names the sheet already uses.
+SABHA_ALIASES = {
+    "PSS": "Parthasarathy Swami Sabha",
+    "MA": "Music Academy",
+    "Madras Music Academy": "Music Academy",
+    "NGS": "Narada Gana Sabha",
+    "RR Sabha": "Rasika Ranjani Sabha",
+    "RRS": "Rasika Ranjani Sabha",
+    "IFAS": "Indian Fine Arts",
+    "Indian Fine Arts Society": "Indian Fine Arts",
+    "SRLKM": "Sri Rama Lalitha Kala Mandir",
+    "KGS": "Krishna Gana Sabha",
+    "TBGS": "Vani Mahal",
+    "Sri Thyaga Brahma Gana Sabha": "Vani Mahal",
+}
+# Sabhas not in the sheet but frequent in the Schedule feed, added by the Maintainer
+# (2026-11-08) under the logger's display names. They follow the sheet's Sabhas in the list.
+EXTRA_SABHAS = ["Krishna Gana Sabha", "Vani Mahal", "Bharat Kalachar"]
 # Names in the Artist columns that are not an Artist: left out of the shared list.
 NOT_ARTISTS = {"Leela Samson & Spanda Dance Company"}
 
@@ -119,6 +138,7 @@ def main():
     artist_columns = [c for c in concerts[0] if c.startswith(("Artist", "Accompaniment"))]
 
     sabhas = list(dict.fromkeys(clean(row["Sabha"]) for row in concerts if clean(row["Sabha"])))
+    sabhas += [name for name in EXTRA_SABHAS if name not in sabhas]
     artists = list(
         dict.fromkeys(
             name
@@ -156,7 +176,7 @@ def main():
     artists = [name for name in artists if name not in NOT_ARTISTS and name not in ARTIST_ALIASES]
     write_json(
         OUT / "shared-lists.seed.json",
-        {"sabhas": shared("sabha", sabhas), "artists": shared("artist", artists, ARTIST_ALIASES)},
+        {"sabhas": shared("sabha", sabhas, SABHA_ALIASES), "artists": shared("artist", artists, ARTIST_ALIASES)},
     )
     write_json(OUT / "composer-dates.json", {})
     write_json(OUT / "topics.json", {})
