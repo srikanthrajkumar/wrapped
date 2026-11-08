@@ -1,5 +1,5 @@
-// The Schedule (T058 to T061): opened from the calendar button beside Season's "Next", an entry
-// added to Next as Planned, a cancellation that keeps the Planned Event in Next marked, an add
+// The Schedule (T058 to T061), listed in Season's timeline since 2026-11-08: an entry added from
+// its sheet as Planned, a cancellation that keeps the Planned Event in its day marked, an add
 // whose write failed, tried again, that plans the entry once, and the "schedule changed" sheet.
 
 import { expect, test, type Page } from '@playwright/test';
@@ -72,55 +72,65 @@ async function storeEntries(page: Page, entries: ScheduleEntry[]) {
   await page.reload();
 }
 
-async function openSchedule(page: Page) {
-  await page.getByRole('region', { name: 'Next' }).getByRole('link', { name: 'Schedule' }).click();
-  await expect(page.getByRole('heading', { name: 'Schedule', level: 1 })).toBeVisible();
+/** A listing's row on Season's timeline: the row is its own tap, with no button in it. */
+const listingRow = (page: Page, name: string) =>
+  page.getByRole('main').getByRole('button', { name: new RegExp(`^${name}`) });
+
+/** Open a listing's sheet and add it. */
+async function add(page: Page, name: string) {
+  await listingRow(page, name).click();
+  await page.getByRole('dialog', { name }).getByRole('button', { name: 'Add' }).click();
 }
+
+/** The rasika's own row for an Event, in its day. */
+const ownRow = (page: Page, name: string) =>
+  page.getByRole('main').getByRole('link', { name: new RegExp(`^${name}`) });
 
 test('an entry added from the Schedule is in Next, and stays there marked once cancelled', async ({
   page,
 }) => {
   await page.goto('/');
   await finishFirstLaunch(page);
-  // No Schedule, no Next: day one stays the title and the bar.
-  await expect(page.getByRole('region', { name: 'Next' })).toHaveCount(0);
   await storeEntries(page, [brothers(), margam, called]);
-  await openSchedule(page);
 
-  // A Group by its name, a Dance with its printed title, a cancelled entry with no add button.
-  const cards = page.getByRole('listitem');
-  await expect(cards).toHaveCount(3);
-  await expect(cards.nth(0)).toContainText('Malladi Brothers');
-  await expect(cards.nth(0)).toContainText('Music Academy · 4:00 pm');
-  await expect(cards.nth(1).getByRole('img', { name: 'Dance' })).toBeVisible();
-  await expect(cards.nth(1)).toContainText('Margam');
-  await expect(cards.nth(2).getByRole('img', { name: 'Cancelled' })).toBeVisible();
-  await expect(cards.nth(2).getByRole('button')).toHaveCount(0);
+  // A Group by its name, a Dance with its printed title, a cancelled entry marked; no row has a
+  // button of its own, and a cancelled one's sheet has no add.
+  const rows = page.getByRole('main').getByRole('listitem');
+  await expect(rows).toHaveCount(3);
+  await expect(rows.nth(0)).toContainText('Malladi Brothers');
+  await expect(rows.nth(0)).toContainText('Music Academy · 4:00 pm');
+  await expect(rows.nth(1).getByRole('img', { name: 'Dance' })).toBeVisible();
+  await expect(rows.nth(1)).toContainText('Margam');
+  await expect(rows.nth(2).getByRole('img', { name: 'Cancelled' })).toBeVisible();
+  await expect(rows.getByRole('button')).toHaveCount(3);
+  await listingRow(page, 'T. M. Krishna').click();
+  await expect(page.getByRole('dialog').getByRole('button', { name: 'Add' })).toHaveCount(0);
+  await page.keyboard.press('Escape');
 
-  await page.getByRole('button', { name: 'Add to Next: Malladi Brothers' }).click();
-  await expect(page.getByRole('link', { name: 'In Next: Malladi Brothers' })).toBeVisible();
+  await add(page, 'Malladi Brothers');
+  await expect(page.getByRole('dialog').getByRole('link', { name: 'Planned' })).toBeVisible();
   const [event] = await readTable<{ id: string; status: string; source: string }>(page, 'events');
   expect(event).toMatchObject({ status: 'planned', source: 'schedule' });
   expect(await readTable(page, 'appearances')).toHaveLength(3);
 
-  await page.getByRole('link', { name: 'Season' }).first().click();
-  const next = page.getByRole('region', { name: 'Next' });
-  await expect(next.getByRole('link', { name: /^Malladi Brothers/ })).toBeVisible();
-  await expect(next.getByRole('img', { name: 'Cancelled' })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(ownRow(page, 'Malladi Brothers')).toBeVisible();
+  await expect(
+    ownRow(page, 'Malladi Brothers').getByRole('img', { name: 'Cancelled' }),
+  ).toHaveCount(0);
 
-  // The Sabha cancels: the Planned Event stays in Next, marked, until the rasika removes it.
+  // The Sabha cancels: the Planned Event stays in its day, marked, until the rasika removes it.
   await storeEntries(page, [brothers({ version: 2, cancelled: true }), margam, called]);
   await expect(
-    next.getByRole('link', { name: /^Malladi Brothers/ }).getByRole('img', { name: 'Cancelled' }),
+    ownRow(page, 'Malladi Brothers').getByRole('img', { name: 'Cancelled' }),
   ).toBeVisible();
   await expect
     .poll(async () => (await readTable<{ cancelled: boolean }>(page, 'events'))[0]?.cancelled)
     .toBe(true);
-  await openSchedule(page);
-  await expect(
-    page.getByRole('listitem').nth(0).getByRole('img', { name: 'Cancelled' }),
-  ).toBeVisible();
-  await expect(page.getByRole('button', { name: /^Add to Next/ })).toHaveCount(1);
+  // Shown once, as theirs; the Dance is still the one listing to add.
+  await expect(listingRow(page, 'Malladi Brothers')).toHaveCount(0);
+  await page.getByRole('main').getByRole('button').filter({ hasText: 'Margam' }).click();
+  await expect(page.getByRole('dialog').getByRole('button', { name: 'Add' })).toHaveCount(1);
 });
 
 test('an add whose write failed is tried again and plans the entry once', async ({ page }) => {
@@ -128,18 +138,17 @@ test('an add whose write failed is tried again and plans the entry once', async 
   await page.goto('/');
   await finishFirstLaunch(page);
   await storeEntries(page, [brothers()]);
-  await openSchedule(page);
 
   await setFailingWrites(page, true);
-  await page.getByRole('button', { name: 'Add to Next: Malladi Brothers' }).click();
-  const card = page.getByRole('listitem').filter({ hasText: 'Malladi Brothers' });
-  await expect(card.getByText('Not saved', { exact: true })).toBeVisible();
+  await add(page, 'Malladi Brothers');
+  const sheet = page.getByRole('dialog', { name: 'Malladi Brothers' });
+  await expect(sheet.getByText('Not saved', { exact: true })).toBeVisible();
   expect(await readTable(page, 'events')).toEqual([]);
 
   await setFailingWrites(page, false);
-  await card.getByRole('button', { name: /Try again/ }).click();
-  await expect(page.getByRole('link', { name: 'In Next: Malladi Brothers' })).toBeVisible();
-  await expect(card.getByText('Not saved', { exact: true })).toHaveCount(0);
+  await sheet.getByRole('button', { name: /Try again/ }).click();
+  await expect(sheet.getByRole('link', { name: 'Planned' })).toBeVisible();
+  await expect(sheet.getByText('Not saved', { exact: true })).toHaveCount(0);
   expect(await readTable(page, 'events')).toHaveLength(1);
   expect(await readTable(page, 'artists')).toHaveLength(3);
 });
@@ -150,11 +159,10 @@ test('the "schedule changed" hint opens what changed: keep mine, then take a new
   await page.goto('/');
   await finishFirstLaunch(page);
   await storeEntries(page, [brothers()]);
-  await openSchedule(page);
-  await page.getByRole('button', { name: 'Add to Next: Malladi Brothers' }).click();
+  await add(page, 'Malladi Brothers');
 
   // The rasika makes it theirs: the Schedule then only hints.
-  await page.getByRole('link', { name: 'In Next: Malladi Brothers' }).click();
+  await page.getByRole('dialog').getByRole('link', { name: 'Planned' }).click();
   await page.getByRole('button', { name: 'Note' }).click();
   await page.getByRole('textbox', { name: 'Note' }).fill('front row');
   await page.getByRole('textbox', { name: 'Note' }).blur();
@@ -164,7 +172,7 @@ test('the "schedule changed" hint opens what changed: keep mine, then take a new
   await page.goto('/');
   await storeEntries(page, [brothers({ version: 2, startTime: '18:00' })]);
 
-  const next = page.getByRole('region', { name: 'Next' });
+  const next = page.getByRole('main');
   await next.getByRole('button', { name: 'Schedule changed' }).click();
   const sheet = page.getByRole('dialog', { name: 'Schedule changed' });
   // Only what differs: the time, old beside new.

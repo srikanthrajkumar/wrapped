@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, Route, Switch, useLocation, useRoute } from 'wouter';
+import { Link, Redirect, Route, Switch, useLocation, useRoute } from 'wouter';
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 import { cn } from '@/lib/utils';
 import { ConcertSummary } from './screens/components/ConcertSummary';
@@ -9,7 +9,6 @@ import { FirstLaunch } from './screens/FirstLaunch';
 import { HomeScreen } from './screens/HomeScreen';
 import { ItemEditor } from './screens/ItemEditor';
 import { Placeholder } from './screens/Placeholder';
-import { ScheduleScreen } from './screens/ScheduleScreen';
 import { preloadSettings, SettingsScreen } from './screens/SettingsScreen';
 import { leaveEvent } from './screens/undo';
 import { db } from './store/db';
@@ -165,8 +164,9 @@ export function App() {
               <Route path="/event/:eventId">
                 {({ eventId }) => <EventScreen eventId={eventId} />}
               </Route>
+              {/* The Schedule is in Season's timeline now (the Maintainer, 2026-11-08). */}
               <Route path="/schedule">
-                <ScheduleScreen />
+                <Redirect to="/" replace />
               </Route>
               <Route path="/tidy">
                 <Placeholder title="Tidy" back="/" />

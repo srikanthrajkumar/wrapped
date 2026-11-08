@@ -173,15 +173,17 @@ and bind the screen tasks.
 - **DD1 Navigation (D1, approved):** three bottom tabs: Season (home), Wrapped, Settings. Event and
   Item open as pushed screens with a back gesture. The tab bar hides while the Item editor is
   open. Tidy is reached from home; the Maintainer's `/admin` from Settings.
-- **DD2 Home (D2, approved):** three sections, in order.
+- **DD2 Home (D2, approved; one timeline since the Maintainer's 2026-11-08 answer, DESIGN.md "Season"):**
+  every day of the Season in date order, the days gone above the header, which the page opens on.
   - **Now:** an Event counts as Now from 60 minutes before its start until 4 hours after it. It shows as one
-    card, tapped to open it: the Artists it is known by, then Sabha, start time and Item count. "+ Log a
-    Concert" sits in a fixed bar at the bottom, always, so another Concert can be started while one is open
-    (walkthrough S1, S2, 2026-11-04; DESIGN.md "Season").
-  - **Next:** upcoming Planned Events, grouped by day; a cancelled one stays, marked, until the rasika
-    removes it. A calendar button beside its heading opens the Schedule (T061, 2026-11-07).
-  - **Season so far:** Attended Events, newest first, each with its Item count, and one line
-    linking to the Wrapped.
+    card under the header, tapped to open it: the Artists it is known by, then Sabha, start time and Item
+    count (walkthrough S1, S2, 2026-11-04).
+  - **Each day:** the rasika's own Events by start time (Planned, Attended, cancelled and kept, made by
+    hand), then the Schedule's other entries, quieter, with no button; a tap opens the entry's sheet, whose
+    one add plans it, and it becomes theirs in place. A cancelled Planned Event stays, marked, until the
+    rasika removes it. Next, Season so far and the Schedule screen (T061) are gone.
+  - **The +** at the Season title's right logs a Concert not on the Schedule, in every state; Season has no
+    bottom bar, and a Concert left with nothing entered leaves no trace (the Maintainer, 2026-11-08).
 - **DD3 Event screen (D3, approved; order revised by the information priorities, then by the iPhone
   walkthrough's S2 and S3 on 2026-11-04, DESIGN.md "Event"):**
   1. A heading: the Artists the Event is known by ("+ Add Artist" before any), with Sabha · date ·

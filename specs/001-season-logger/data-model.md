@@ -54,7 +54,7 @@ Rules:
 | `startTime` | `HH:MM` \| null | |
 | `sabhaId` | uuid \| null | Own or shared Sabha |
 | `status` | `planned` \| `attended` \| `missed` | Only `attended` counts in the Wrapped (FR-026) |
-| `cancelled` | boolean | Set from the Schedule only while `touched` is false (FR-027). Never hides the Event: a Planned one stays in Next, shown as cancelled, until the rasika removes it, and one whose Schedule entry is cancelled is shown so whatever this says (2026-11-07) |
+| `cancelled` | boolean | Set from the Schedule only while `touched` is false (FR-027). Never hides the Event: a Planned one stays in its day on Season, shown as cancelled, until the rasika removes it, and one whose Schedule entry is cancelled is shown so whatever this says (2026-11-07) |
 | `source` | `schedule` \| `plan` \| `spot` | Where the Event came from |
 | `scheduleEntryId` | string \| null | The Schedule entry's id, set at pick time or by promotion. One live Event per entry: adding it again returns the one planned, and the Undo of a deleted one is refused while another holds the entry (PR #25 review) |
 | `scheduleVersionSeen` | string \| null | The entry version last applied or acknowledged |

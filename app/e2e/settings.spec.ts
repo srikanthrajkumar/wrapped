@@ -191,6 +191,9 @@ test.describe('Settings puts the season first', () => {
 test.describe('the install row', () => {
   test('an iPhone browser tab shows Safari’s steps on every screen', async ({ page }) => {
     await newConcert(page);
+    // Something entered, so the Concert is kept to come back to.
+    await page.getByRole('button', { name: 'Note' }).click();
+    await page.getByRole('textbox', { name: 'Note' }).fill('front row');
     // The Event screen, home and Settings.
     for (const name of [null, 'Season', 'Settings']) {
       if (name) await tab(page, name).click();

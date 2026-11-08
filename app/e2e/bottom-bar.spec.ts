@@ -1,9 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
 import { finishFirstLaunch } from './helpers';
 
-// The bottom bar is the shell's (DESIGN.md "Motion"): moving between Season, an Event and an
-// Item never empties it or changes its height, so the tab bar never jumps. Sampled every
-// animation frame across each move, as the iPhone walkthrough's flicker was seen (2026-11-06).
+// The bottom bar is the shell's (DESIGN.md "Motion"): moving between an Event and an Item never
+// empties it or changes its height, so the tab bar never jumps; Season and Settings have none
+// (2026-11-08), and the bar comes and goes in one step. Sampled every animation frame across
+// each move, as the iPhone walkthrough's flicker was seen (2026-11-06).
 
 type Sample = { bar: number; footer: number; buttons: number; labels: string };
 
@@ -55,7 +56,26 @@ function expectSteady(samples: Sample[], from: string, to: string) {
   expect(steps(samples.map((s) => s.labels))).toEqual([from, to]);
 }
 
-test('the bottom bar never empties or shrinks between Season, Event and Item', async ({ page }) => {
+/**
+ * The bar comes (`to` its label) or goes (`to` null) in one step, never half there, and the
+ * footer keeps one height while it shows and one while it doesn't: the tab bar never jumps.
+ */
+function expectOneStep(samples: Sample[], to: string | null) {
+  expect(samples.length).toBeGreaterThan(5);
+  const shown = steps(samples.map((s) => s.buttons > 0));
+  expect(shown).toEqual(to === null ? [true, false] : [false, true]);
+  for (const showing of [true, false]) {
+    const heights = samples.filter((s) => s.buttons > 0 === showing).map((s) => s.footer);
+    expect(new Set(heights).size).toBe(1);
+  }
+  const labels = new Set(samples.filter((s) => s.buttons > 0).map((s) => s.labels));
+  expect(labels.size).toBe(1);
+  if (to !== null) expect(labels).toEqual(new Set([to]));
+}
+
+test('the bottom bar never empties or shrinks between Event and Item, and Season has none', async ({
+  page,
+}) => {
   await page.goto('/');
   await finishFirstLaunch(page);
   const main = page.getByRole('main');
@@ -65,7 +85,7 @@ test('the bottom bar never empties or shrinks between Season, Event and Item', a
     await page.getByRole('button', { name: 'Log a Concert' }).click();
     await expect(page.getByRole('button', { name: 'Add Sabha' })).toBeVisible();
   });
-  expectSteady(samples, 'Log a Concert', 'Add Item');
+  expectOneStep(samples, 'Add Item');
 
   // An Item to come back from and go into. The new Item's search has no bar of its own.
   await page.getByRole('link', { name: 'Add Item' }).click();
@@ -96,32 +116,33 @@ test('the bottom bar never empties or shrinks between Season, Event and Item', a
     await main.getByRole('link', { name: 'Season' }).click();
     await expect(page.getByRole('heading', { name: 'Season', exact: true })).toBeVisible();
   });
-  expectSteady(samples, 'Add Item', 'Log a Concert');
+  expectOneStep(samples, null);
 });
 
-test('Settings has no bar, and the Season tab brings it back whole', async ({ page }) => {
+test('Settings has no bar, and the Event screen brings it back whole', async ({ page }) => {
   await page.goto('/');
   await finishFirstLaunch(page);
   const tabs = page.getByRole('navigation', { name: 'Main' });
+  await page.getByRole('button', { name: 'Log a Concert' }).click();
+  await expect(page.getByRole('link', { name: 'Add Item' })).toBeVisible();
+  // Something entered, so the Concert stays to come back to.
+  await page.getByRole('button', { name: 'Note' }).click();
+  await page.getByRole('textbox', { name: 'Note' }).fill('front row');
 
   let samples = await sample(page, async () => {
     await tabs.getByRole('link', { name: 'Settings' }).click();
     await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
   });
-  // Gone in one step, never half there.
-  let shown = steps(samples.map((s) => s.buttons > 0));
-  expect(shown).toEqual([true, false]);
-  expect(new Set(samples.filter((s) => s.buttons === 0).map((s) => s.footer)).size).toBe(1);
+  expectOneStep(samples, null);
 
+  await tabs.getByRole('link', { name: 'Season' }).click();
+  await expect(page.getByRole('heading', { name: 'Season', exact: true })).toBeVisible();
   samples = await sample(page, async () => {
-    await tabs.getByRole('link', { name: 'Season' }).click();
-    await expect(page.getByRole('heading', { name: 'Season', exact: true })).toBeVisible();
+    await page
+      .getByRole('link', { name: /No Sabha yet/ })
+      .first()
+      .click();
+    await expect(page.getByRole('link', { name: 'Add Item' })).toBeVisible();
   });
-  // Back in one step, with Season's first frame, and it stays.
-  shown = steps(samples.map((s) => s.buttons > 0));
-  expect(shown).toEqual([false, true]);
-  expect(new Set(samples.filter((s) => s.buttons > 0).map((s) => s.footer)).size).toBe(1);
-  expect(new Set(samples.filter((s) => s.buttons > 0).map((s) => s.labels))).toEqual(
-    new Set(['Log a Concert']),
-  );
+  expectOneStep(samples, 'Add Item');
 });

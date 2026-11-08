@@ -157,8 +157,7 @@ planned Concert and log it without typing the date, Sabha or any billed Artist.
    hint (2026-11-07).
 4. **Given** a Schedule entry the Sabha cancels, **When** the cancellation arrives, **Then** an
    untouched Planned Event is marked cancelled, an edited one is not changed and only gets the
-   hint, and an Attended or Missed one is left alone. A Planned Event whose entry is cancelled stays in Next, shown as
-   cancelled, until the rasika removes it (the Maintainer, 2026-11-07).
+   hint, and an Attended or Missed one is left alone. A Planned Event whose entry is cancelled stays in its day on Season, shown as cancelled, until the rasika removes it (the Maintainer, 2026-11-07).
 5. **Given** no Schedule exists this season, **When** the rasika uses the app, **Then** every
    other capability works fully from hand-entered Plan entries.
 
@@ -389,7 +388,7 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
   updates MUST NOT change it. A Planned one MUST show a "schedule changed" hint instead; an
   Attended or Missed one, the rasika's record of what happened, MUST get no hint (2026-11-07). A cancelled
   Schedule entry marks an untouched Planned Event as cancelled. A cancellation never hides or
-  removes an Event: a Planned Event whose entry is cancelled stays in Next, shown as cancelled,
+  removes an Event: a Planned Event whose entry is cancelled stays in its day on Season, shown as cancelled,
   until the rasika removes it (the Maintainer, 2026-11-07). The hint MUST show what the newer
   version changes, only the fields that differ (date, time, Sabha, kind, title, billed Artists),
   beside the Event's own; "take it" gives the Event those values and nothing else, its rules

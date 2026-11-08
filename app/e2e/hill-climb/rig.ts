@@ -66,6 +66,27 @@ const stageRow = (page: Page, name: RegExp) =>
 
 const VIEWS: View[] = [
   { name: 'season', open: (page) => go(page, '/') },
+  {
+    // A screen up from the opening: the days gone above the header.
+    name: 'season-up',
+    open: async (page) => {
+      await go(page, '/');
+      // Once Season has opened at its header, which it does as its days arrive.
+      await page.locator('[data-place="header"]').waitFor();
+      await page.waitForFunction(() => window.scrollY > 0);
+      await page.evaluate(() => window.scrollBy(0, -window.innerHeight * 0.6));
+    },
+  },
+  {
+    // A Schedule entry's sheet, from its row on the timeline.
+    name: 'entry-sheet',
+    open: async (page) => {
+      await go(page, '/');
+      await page.locator('main li > button').first().click();
+      await page.getByRole('dialog').waitFor();
+    },
+    release: (page) => page.keyboard.press('Escape'),
+  },
   { name: 'concert', open: concert },
   { name: 'concert-full', full: true, open: concert },
   { name: 'concert-bare', open: (page, ids) => go(page, `/event/${ids.bare}`) },
@@ -161,7 +182,6 @@ const VIEWS: View[] = [
       await page.getByRole('button', { name: /^Tala/ }).click();
     },
   },
-  { name: 'schedule', open: (page) => go(page, '/schedule') },
   { name: 'settings', open: (page) => go(page, '/settings') },
   {
     // Last, since it moves the clock: three hours on, the Concert in progress has ended, and its
@@ -337,9 +357,13 @@ async function shots(out: string) {
   // The empty season first, before the seed goes in.
   await take({ name: 'season-empty', open: (page) => go(page, '/') }, null);
   const ids = await seeded(page);
+  const only = process.env.HC_VIEWS?.split(',');
+  // Season with the rasika's own Events and no Schedule yet, as before a feed is delivered.
+  if (!only || only.includes('season')) {
+    await take({ name: 'season-own', open: (page) => go(page, '/') }, ids);
+  }
   await seedSchedule(page);
   writeFileSync(join(out, 'seed-ids.json'), JSON.stringify(ids, null, 2));
-  const only = process.env.HC_VIEWS?.split(',');
   for (const view of VIEWS) if (!only || only.includes(view.name)) await take(view, ids);
   writeFileSync(join(out, 'measures.json'), JSON.stringify(measures, null, 2));
   await browser.close();
@@ -515,8 +539,8 @@ async function council(out: string, baseline?: string) {
   mkdirSync(dir, { recursive: true });
   const browser = await chromium.launch(LAUNCH);
   // Only the views this round shot (HC_VIEWS may have narrowed it).
-  const views = ['welcome', 'season-empty', ...VIEWS.map((v) => v.name)].filter((view) =>
-    existsSync(join(out, 'shots', `${view}.393.dark.png`)),
+  const views = ['welcome', 'season-empty', 'season-own', ...VIEWS.map((v) => v.name)].filter(
+    (view) => existsSync(join(out, 'shots', `${view}.393.dark.png`)),
   );
   const png = (root: string, view: string, theme: Theme) =>
     dataUrl(readFileSync(join(root, 'shots', `${view}.393.${theme}.png`)));

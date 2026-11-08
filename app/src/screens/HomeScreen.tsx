@@ -1,21 +1,29 @@
 // The Season home (DESIGN.md "Season (home, DD2)"; design D3, D11, D14, D17, D29; walkthrough S1,
-// S2). Under the title, the install row in a phone's browser tab, and "Getting ready for
-// offline…" while the app isn't ready; no status line until sync exists (decided 2026-11-03).
-// Then the new-catalog row when there is one; then Now, the Concert that holds it as a card
-// tapped to continue; then Next and Season so far, each shown only once it has something in it,
-// Next also once a Schedule is stored, for the calendar button beside its heading (T061).
-// "Log a Concert" sits in the fixed bottom bar, always, as Add Item does on the Event screen, so
-// another Concert can be started while one is open.
+// S2): one timeline of the whole Season (the Maintainer, 2026-11-08). The days gone come first,
+// then the header: the title with the + that logs a Concert not on the Schedule at its right,
+// the install row in a phone's browser tab, "Getting ready for offline…" while the app isn't
+// ready, the new-catalog row when there is one, and Now, the Concert that holds it as a card
+// tapped to continue. Then today and the days to come, to the end of the Season. Each day lists
+// the rasika's own Events, then the Schedule's other listings, quieter, with no button: a tap
+// opens the listing's sheet, whose one add plans it (screens/timeline.ts, ListingSheet). The page
+// opens at the header, the past above it, and comes back to where it was left. No bottom bar.
 
 import {
-  IconCalendarEvent,
   IconCalendarExclamation,
+  IconCalendarOff,
   IconCalendarX,
   IconChevronRight,
   IconLoader2,
   IconPlus,
 } from '@tabler/icons-react';
-import { useRef, useState, useSyncExternalStore } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+} from 'react';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -24,10 +32,11 @@ import { createEvent, today } from '../store/events';
 import { isBeingLogged, nowEvent } from '../store/logging-note';
 import {
   useEventSummaries,
-  useHasSchedule,
   useLoggingNotes,
+  useSchedule,
   useSeasonRagaKeys,
   type EventSummary,
+  type ScheduleListing,
 } from '../store/queries';
 import { useCatalog } from '../catalog/use-catalog';
 import { newId } from '../model';
@@ -37,11 +46,13 @@ import { saveWith, useSaveFeedback } from './components/feedback';
 import { useReloadGuard } from './components/reload-guard';
 import { KindMark } from './components/kind-mark';
 import { ScheduleChangedSheet } from './components/ScheduleChanged';
+import { ListingSheet } from './components/ListingSheet';
 import { useLingering } from './components/sheet-frame';
-import { BottomDock, Screen, TabHeader, useNow } from './components/layout';
+import { Screen, TabHeader, useNow } from './components/layout';
 import { dayText, itemCount, nowTime, timeText } from './format';
 import { MESSAGES } from './messages';
-import { asNowReads, nextEvents } from './next';
+import { noteNewConcert, sweepNewConcerts } from './new-concert';
+import { asNowReads, listingLead, timeline, type TimelineDay } from './timeline';
 import { subscribeUndo, undoOffers } from './undo';
 import { offersUpdate } from './update-offer';
 
@@ -88,9 +99,30 @@ export function HomeScreen() {
   );
 }
 
+/**
+ * Where Season was left: the day at the top of the screen (or the header) and how far it was
+ * scrolled past, so coming back finds the same place whatever the days above drew at. Kept for
+ * the page's life; a launch opens at the header.
+ */
+let place: { at: string; offset: number } | null = null;
+
+/** The day or header at the top of the screen. */
+function placeNow(): { at: string; offset: number } | null {
+  for (const node of document.querySelectorAll<HTMLElement>('[data-place]')) {
+    const box = node.getBoundingClientRect();
+    if (box.bottom > 0) return { at: node.dataset.place!, offset: -box.top };
+  }
+  return null;
+}
+
+/** A day's height before it is drawn: its label and a 64px row each (DESIGN.md "Spacing"). */
+const dayHeight = (day: TimelineDay) => 30 + 64 * (day.own.length + day.listings.length);
+
 function HomeView() {
   const summaries = useEventSummaries();
   const notes = useLoggingNotes();
+  // The whole stored Schedule, the days gone included.
+  const listings = useSchedule('');
   const offline = useOfflineState();
   const now = useNow();
   const update = useUpdate();
@@ -100,59 +132,111 @@ function HomeView() {
   // Update reloads the page: while a value lives only in memory, it asks to Export first.
   const updating = useReloadGuard(updateNow);
   const undos = useSyncExternalStore(subscribeUndo, undoOffers);
-  const hasSchedule = useHasSchedule();
   // The Event whose "schedule changed" sheet is open, kept drawn while it closes.
   const [hint, setHint] = useState<string | null>(null);
   const [hintShown, hintOpen] = useLingering(hint);
+  // The Schedule entry whose sheet is open, likewise.
+  const [opened, setOpened] = useState<string | null>(null);
+  const [openedShown, openedOpen] = useLingering(opened);
   // One Concert per tap: a double tap must not make two.
   const creating = useRef(false);
+  // A new Concert left untouched, whose take-back hasn't happened yet, goes now.
+  useEffect(() => sweepNewConcerts(), []);
+  const ready = summaries !== undefined && notes !== undefined && listings !== undefined;
+
+  // Before the first paint with the timeline: back where Season was left, else at the header.
+  // Then held there while the days around draw at their real heights rather than their likely
+  // ones (a browser with no scroll anchoring, as Safari, would otherwise let the page slide
+  // under the rasika), until the rasika scrolls the page themself.
+  useLayoutEffect(() => {
+    if (!ready) return;
+    const target =
+      (place && document.querySelector<HTMLElement>(`[data-place="${place.at}"]`)) ??
+      document.querySelector<HTMLElement>('[data-place="header"]');
+    if (!target) return;
+    const offset = place && target.dataset.place === place.at ? place.offset : 0;
+    let set = 0;
+    const hold = () => {
+      set = Math.max(0, target.getBoundingClientRect().top + window.scrollY + offset);
+      if (Math.abs(window.scrollY - set) >= 1) window.scrollTo(0, set);
+    };
+    hold();
+    // Runs after layout and before paint, so a day drawn at its real height never shows the
+    // page out of place.
+    const sizes = new ResizeObserver(hold);
+    sizes.observe(document.body);
+    const release = () => {
+      sizes.disconnect();
+      window.removeEventListener('scroll', moved);
+      for (const name of ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const) {
+        window.removeEventListener(name, release);
+      }
+    };
+    // A scroll that isn't the hold's own is the rasika's: the page is theirs from then on.
+    const moved = () => {
+      if (Math.abs(window.scrollY - set) >= 1) release();
+    };
+    window.addEventListener('scroll', moved, { passive: true });
+    for (const name of ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const) {
+      window.addEventListener(name, release, { passive: true });
+    }
+    return release;
+  }, [ready]);
+  // Noted as the rasika scrolls, once a frame at most.
+  useEffect(() => {
+    if (!ready) return;
+    let frame = 0;
+    const onScroll = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        place = placeNow();
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, [ready]);
 
   // Each attempt is its own Concert with its own id: a failed one stays listed, by its date and
-  // time, whatever later taps do, and its Try again makes it once (docs/adr/0007).
+  // time, whatever later taps do, and its Try again makes it once (docs/adr/0007). One made and
+  // then left with nothing entered is taken back (screens/new-concert.ts).
   const logNow = async () => {
     if (creating.current) return;
     creating.current = true;
     try {
+      const tappedAt = new Date().toISOString();
       const id = newId();
       const concert = { kind: 'concert' as const, date: today(), startTime: nowTime() };
       const event = await saveWith({ table: 'events', id, field: '*' }, concert, () =>
         createEvent(concert, { id }),
       );
-      if (event) navigate(`/event/${event.id}`);
+      if (!event) return;
+      noteNewConcert(event, tappedAt);
+      navigate(`/event/${event.id}`);
     } finally {
       creating.current = false;
     }
   };
 
-  // The bar needs nothing read, so it shows from the first frame, before the season does.
-  const bar = (
-    <BottomDock>
-      <Button size="lg" className="w-full" onClick={() => void logNow()}>
-        <IconPlus aria-hidden />
-        Log a Concert
-      </Button>
-    </BottomDock>
-  );
-
-  if (summaries === undefined || notes === undefined) return bar;
+  if (!ready) return null;
 
   const byId = new Map(summaries.map((summary) => [summary.event.id, summary]));
   // A Planned Event whose entry is cancelled is never Now (asNowReads).
   const selection = nowEvent(asNowReads(summaries), notes, now);
   const holder = selection.now ? byId.get(selection.now.id)! : null;
   const logging = holder ? isBeingLogged(holder.event, notes.get(holder.event.id), now) : false;
-  const inNow = new Set([selection.now, ...selection.others].filter(Boolean).map((e) => e!.id));
 
-  // A cancelled one stays, marked, until the rasika removes it, even past its start (next.ts).
-  const upcoming = nextEvents(summaries, inNow, now);
-  const days = [...new Set(upcoming.map((s) => s.event.date))].sort();
-  const soFar = summaries
-    .filter((s) => s.event.status === 'attended')
-    .sort(
-      (a, b) =>
-        b.event.date.localeCompare(a.event.date) ||
-        (b.event.startTime ?? '').localeCompare(a.event.startTime ?? ''),
-    );
+  // The one holding Now is its card, under the header; every other Event is in its day.
+  const days = timeline(summaries, listings, new Set(holder ? [holder.event.id] : []));
+  const from = today(now);
+  const gone = days.filter((day) => day.date < from);
+  const coming = days.filter((day) => day.date >= from);
+  const sheetListing = openedShown
+    ? (listings.find((listing) => listing.entry.id === openedShown) ?? null)
+    : null;
 
   const showUpdate = offersUpdate({
     available: update.available,
@@ -161,161 +245,120 @@ function HomeView() {
     unsaved: feedback.hasRetryableFailures() || undos.length > 0,
   });
 
+  const dayList = (list: TimelineDay[]) =>
+    list.map((day) => (
+      <DaySection
+        key={day.date}
+        day={day}
+        onHint={setHint}
+        onOpen={(listing) => setOpened(listing.entry.id)}
+      />
+    ));
+
   return (
     <>
-      <TabHeader title="Season" art={<SeasonArt />}>
-        {offline === 'getting-ready' && (
-          <p
-            role="status"
-            className="flex min-h-12 items-center gap-2 text-sub text-muted-foreground"
-          >
-            <IconLoader2
-              aria-hidden
-              className="size-5 shrink-0 animate-spin motion-reduce:animate-none"
-            />
-            {MESSAGES.offline.gettingReady}
-          </p>
-        )}
-      </TabHeader>
+      {dayList(gone)}
 
-      {showUpdate && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-y border-border py-1">
-          <span className="py-2">
-            {update.newCatalog ? MESSAGES.newCatalog : MESSAGES.appUpdate}
-          </span>
-          {updating.asking && (
-            <p role="alert" className="w-full text-sub text-destructive">
-              {MESSAGES.reloadLoses}
-            </p>
-          )}
-          <span className="flex gap-1">
-            <Button variant="ghost" onClick={updating.tap}>
-              {updating.asking ? MESSAGES.actions.updateAnyway : MESSAGES.actions.update}
-            </Button>
-            <Button
-              variant="ghost"
-              className="text-muted-foreground"
-              onClick={() => {
-                updateLater = true;
-                setLater(true);
-              }}
-            >
-              {MESSAGES.actions.later}
-            </Button>
-          </span>
-        </div>
-      )}
-
-      {(holder || selection.others.length > 0) && (
-        <section aria-label="Now" className="pt-2 pb-8">
-          {holder && (
-            <Link
-              href={`/event/${holder.event.id}`}
-              className="flex min-h-[60px] items-center justify-between gap-2 rounded-2xl border border-border bg-card p-4 text-foreground dark:border-transparent"
-            >
-              <span className="flex min-w-0 flex-col gap-1">
-                <span className="text-title font-semibold break-words">
-                  <Title summary={holder} />
-                </span>
-                <span className="text-sub text-muted-foreground">
-                  {line(
-                    holder,
-                    time(holder),
-                    holder.event.status === 'attended' && itemCount(holder.itemCount),
-                  )}
-                </span>
-              </span>
-              <IconChevronRight aria-hidden className="size-5 shrink-0 text-muted-foreground" />
-            </Link>
-          )}
-          {selection.others.map((other) => {
-            const summary = byId.get(other.id)!;
-            return (
-              <Link
-                key={other.id}
-                href={`/event/${other.id}`}
-                className="flex min-h-12 items-center justify-between gap-2 px-1 text-sub text-muted-foreground"
+      {/* With days gone above: 32px under the last, as a block is under the one above it, and
+          from the header on at least a screen tall, so the page can open with the header at its
+          top however little is to come. Without: it fills the screen and no more, so nothing
+          scrolls that needn't. */}
+      <div className={cn('flex flex-col', gone.length > 0 ? 'mt-8 min-h-dvh' : 'flex-1')}>
+        <div data-place="header">
+          <TabHeader
+            title="Season"
+            art={<SeasonArt />}
+            top={gone.length === 0}
+            action={
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Log a Concert"
+                onClick={() => void logNow()}
               >
-                <span className="break-words">
-                  <KindMark kind={summary.event.kind} className="mr-1.5" />
-                  {[title(summary), time(summary)].filter(Boolean).join(' · ')}
-                </span>
-                <IconChevronRight aria-hidden className="size-5 shrink-0" />
-              </Link>
-            );
-          })}
-        </section>
-      )}
-
-      {(days.length > 0 || hasSchedule) && (
-        <section aria-labelledby="next" className="pb-8">
-          <div className="flex items-center justify-between gap-2 pb-2">
-            <h2 id="next" className="text-heading font-bold">
-              Next
-            </h2>
-            {/* The Schedule, once one is stored (T061): its 48px reaches past the line. */}
-            {hasSchedule && (
-              <Button variant="ghost" size="icon" className="-my-3 -mr-3.5" asChild>
-                <Link href="/schedule" aria-label="Schedule">
-                  <IconCalendarEvent aria-hidden />
-                </Link>
+                <IconPlus aria-hidden />
               </Button>
-            )}
-          </div>
-          {days.map((day, i) => (
-            <div key={day}>
-              {/* The day goes with the rows under it: no hairline between, and its first row's
-                  name 4px under it. The first day sits 8px under "Next"; each later one 16px
-                  under the row above. */}
-              <h3
-                className={cn(
-                  '-mb-1.5 text-sub font-semibold text-muted-foreground',
-                  i > 0 && 'pt-4',
-                )}
-              >
-                {dayText(day)}
-              </h3>
-              <ul>
-                {upcoming
-                  .filter((s) => s.event.date === day)
-                  .map((s) => (
-                    <EventRow
-                      key={s.event.id}
-                      summary={s}
-                      line={line(s, time(s))}
-                      onHint={() => setHint(s.event.id)}
-                    />
-                  ))}
-              </ul>
-            </div>
-          ))}
-        </section>
-      )}
-
-      {soFar.length > 0 && (
-        <section aria-labelledby="so-far" className="pb-8">
-          <h2 id="so-far" className="pb-2 text-heading font-bold">
-            Season so far
-          </h2>
-          {/* Its first name 8px under the heading, as Next's first date is. */}
-          <ul className="-mt-2.5">
-            {soFar.map((s) => (
-              <EventRow
-                key={s.event.id}
-                summary={s}
-                line={line(s, dayText(s.event.date), itemCount(s.itemCount))}
-              />
-            ))}
-          </ul>
-          <Link
-            href="/wrapped"
-            className="flex min-h-12 items-center justify-between gap-2 hairline-b"
+            }
           >
-            Your Wrapped
-            <IconChevronRight aria-hidden className="size-5 shrink-0 text-muted-foreground" />
-          </Link>
-        </section>
-      )}
+            {offline === 'getting-ready' && (
+              <p
+                role="status"
+                className="flex min-h-12 items-center gap-2 text-sub text-muted-foreground"
+              >
+                <IconLoader2
+                  aria-hidden
+                  className="size-5 shrink-0 animate-spin motion-reduce:animate-none"
+                />
+                {MESSAGES.offline.gettingReady}
+              </p>
+            )}
+          </TabHeader>
+
+          {showUpdate && (
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-y border-border py-1">
+              <span className="py-2">
+                {update.newCatalog ? MESSAGES.newCatalog : MESSAGES.appUpdate}
+              </span>
+              {updating.asking && (
+                <p role="alert" className="w-full text-sub text-destructive">
+                  {MESSAGES.reloadLoses}
+                </p>
+              )}
+              <span className="flex gap-1">
+                <Button variant="ghost" onClick={updating.tap}>
+                  {updating.asking ? MESSAGES.actions.updateAnyway : MESSAGES.actions.update}
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="text-muted-foreground"
+                  onClick={() => {
+                    updateLater = true;
+                    setLater(true);
+                  }}
+                >
+                  {MESSAGES.actions.later}
+                </Button>
+              </span>
+            </div>
+          )}
+
+          {holder && (
+            <section aria-label="Now" className="pt-2 pb-4">
+              <Link
+                href={`/event/${holder.event.id}`}
+                className="flex min-h-[60px] items-center justify-between gap-2 rounded-2xl border border-border bg-card p-4 text-foreground dark:border-transparent"
+              >
+                <span className="flex min-w-0 flex-col gap-1">
+                  <span className="text-title font-semibold break-words">
+                    <Title summary={holder} />
+                  </span>
+                  <span className="text-sub text-muted-foreground">
+                    {line(
+                      holder,
+                      time(holder),
+                      holder.event.status === 'attended' && itemCount(holder.itemCount),
+                    )}
+                  </span>
+                </span>
+                <IconChevronRight aria-hidden className="size-5 shrink-0 text-muted-foreground" />
+              </Link>
+            </section>
+          )}
+        </div>
+
+        {/* Nothing logged, planned or listed yet: one quiet mark in the middle of the empty page,
+            clear of the tab bar; no words, no nudge. */}
+        {days.length === 0 && !holder && (
+          <div className="flex flex-1 items-center justify-center pb-24">
+            <IconCalendarOff
+              role="img"
+              aria-label="Nothing yet"
+              className="size-10 text-muted-foreground"
+            />
+          </div>
+        )}
+        <div className="pb-8">{dayList(coming)}</div>
+      </div>
 
       {hintShown && (
         <ScheduleChangedSheet
@@ -326,9 +369,97 @@ function HomeView() {
           }}
         />
       )}
-
-      {bar}
+      {sheetListing && (
+        <ListingSheet
+          listing={sheetListing}
+          open={openedOpen}
+          onOpenChange={(open) => {
+            if (!open) setOpened(null);
+          }}
+        />
+      )}
     </>
+  );
+}
+
+/**
+ * One day of the timeline: its label, the rasika's own Events, then the Schedule's other
+ * listings. A long Season draws only the days near the screen, each held at its likely height
+ * until drawn, so scrolling never jumps.
+ */
+function DaySection({
+  day,
+  onHint,
+  onOpen,
+}: {
+  day: TimelineDay;
+  onHint(eventId: string): void;
+  onOpen(listing: ScheduleListing): void;
+}) {
+  const style = { containIntrinsicSize: `auto ${dayHeight(day)}px` } as CSSProperties;
+  return (
+    <section
+      data-place={day.date}
+      aria-labelledby={`day-${day.date}`}
+      className="[content-visibility:auto]"
+      style={style}
+    >
+      {/* The day goes with the rows under it: its first row's name 4px under it. */}
+      <h2
+        id={`day-${day.date}`}
+        className="-mb-1.5 pt-4 text-sub font-semibold text-muted-foreground"
+      >
+        {dayText(day.date)}
+      </h2>
+      <ul>
+        {day.own.map((s) => (
+          <EventRow
+            key={s.event.id}
+            summary={s}
+            line={line(s, time(s), s.event.status === 'attended' && itemCount(s.itemCount))}
+            onHint={s.event.status === 'planned' ? () => onHint(s.event.id) : undefined}
+          />
+        ))}
+        {day.listings.map((listing) => (
+          <ListingRow key={listing.entry.id} listing={listing} onOpen={() => onOpen(listing)} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * A Schedule listing the rasika hasn't planned: quieter than their own rows, muted and not bold,
+ * with no button of its own; a tap opens its sheet. A cancelled one is dimmed and marked.
+ */
+function ListingRow({ listing: { entry }, onOpen }: { listing: ScheduleListing; onOpen(): void }) {
+  const names = listingLead(entry);
+  const facts = [names !== entry.sabha && entry.sabha, entry.startTime && timeText(entry.startTime)]
+    .filter(Boolean)
+    .join(' · ');
+  return (
+    <li className="hairline-b">
+      <button
+        type="button"
+        onClick={onOpen}
+        className={cn(
+          'flex min-h-16 w-full items-center gap-2 py-2 text-left text-muted-foreground',
+          entry.cancelled && 'opacity-60',
+        )}
+      >
+        <span className="flex min-w-0 flex-1 flex-col justify-center">
+          <span className="break-words">
+            <KindMark kind={entry.kind} className="mr-1.5" />
+            {names}
+          </span>
+          {entry.title && <span className="text-sub break-words">{entry.title}</span>}
+          {facts && <span className="text-sub">{facts}</span>}
+        </span>
+        {entry.cancelled && (
+          <IconCalendarX role="img" aria-label="Cancelled" className="size-5 shrink-0" />
+        )}
+      </button>
+    </li>
   );
 }
 
@@ -339,7 +470,7 @@ function EventRow({
 }: {
   summary: EventSummary;
   line: string;
-  /** A row of Next, which carries the Schedule's marks: opens the "schedule changed" sheet. */
+  /** A Planned row, which carries the Schedule's marks: opens the "schedule changed" sheet. */
   onHint?: () => void;
 }) {
   const planned = onHint !== undefined;

@@ -20,9 +20,9 @@ import { SeasonFeedback } from './feedback';
 import { InstallRow } from './InstallRow';
 import { UndoBar } from './UndoBar';
 
-/** How deep a screen sits: a tab's root, an Event or the Schedule, or an Item in an Event. */
+/** How deep a screen sits: a tab's root, an Event, or an Item in an Event. */
 const depth = (path: string) =>
-  path.startsWith('/event/') ? (path.includes('/item/') ? 2 : 1) : path === '/schedule' ? 1 : 0;
+  path.startsWith('/event/') ? (path.includes('/item/') ? 2 : 1) : 0;
 // The path of the screen shown last, so the next one knows which way the rasika went.
 let shownPath: string | null = null;
 
@@ -38,6 +38,14 @@ export function Screen({ children }: { children: ReactNode }) {
     const by = depth(path) - depth(shownPath);
     return by > 0 ? 'forward' : by < 0 ? 'back' : undefined;
   });
+  // A screen gone into, or a tab, opens at its top, wherever Season's timeline was scrolled;
+  // Season keeps its own place (HomeScreen), and a screen come back to keeps the browser's.
+  useLayoutEffect(() => {
+    if (shownPath === null || shownPath === path) return;
+    if (enter === 'forward' || (depth(path) === 0 && path !== '/')) window.scrollTo(0, 0);
+    // Once, as the screen first draws.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     shownPath = path;
   }, [path]);
@@ -68,7 +76,8 @@ const labels = (slot: HTMLElement) =>
  * A screen supplies only its contents ({@link BottomDock}). While the next screen is still
  * loading ({@link BarHold}) the frame keeps an inert copy of what it last held; when the action
  * changes, only the labels fade in (150ms) inside the same button. With no action the frame
- * hides, as on Settings. Any Undo bars stack above the action.
+ * hides, as on Season and Settings, and any Undo bars sit right on the tab bar; otherwise they
+ * stack above the action.
  */
 export function ActionBar({ onBar }: { onBar(bar: Bar | null): void }) {
   const frame = useRef<HTMLDivElement>(null);
@@ -133,9 +142,9 @@ export function ActionBar({ onBar }: { onBar(bar: Bar | null): void }) {
     };
   }, [onBar]);
   return (
-    <div ref={frame}>
+    <div>
       <UndoBar />
-      <div className="border-t border-border bg-background px-4 py-2">
+      <div ref={frame} className="border-t border-border bg-background px-4 py-2">
         <div ref={live} className="bar-slot" />
         <div ref={kept} inert aria-hidden />
       </div>
@@ -198,29 +207,44 @@ export function TopBar({
  * A tab's own screen (Season, Wrapped, Settings) starts with its title, then the install row and
  * the season-wide line (DESIGN.md "Install", "Status"). One header for all three, so the install
  * row sits at the same place on each tab. `children` go between the two (Season's "Getting ready
- * for offline…").
+ * for offline…"). An `action` (Season's +) sits at the title's right, its 48px reaching past
+ * the line and its mark ending on the gutter.
  */
 export function TabHeader({
   title,
   art,
+  action,
+  top = true,
   children,
 }: {
   title: string;
   /** The motif to draw the title on, as a curtain (DESIGN.md "The motif"). */
   art?: ReactNode;
+  action?: ReactNode;
+  /** At the top of the page; Season's header sits under the days gone once there are any. */
+  top?: boolean;
   children?: ReactNode;
 }) {
   // In a phone's browser tab the install row shows on every tab, at one place (FB-46), so the
   // curtain waits until the app is installed.
   const { way } = useInstall();
+  const heading = (className: string) =>
+    action ? (
+      <div className="flex items-center justify-between gap-2">
+        <h1 className={className}>{title}</h1>
+        <div className="-my-3 -mr-3.5">{action}</div>
+      </div>
+    ) : (
+      <h1 className={className}>{title}</h1>
+    );
   return (
     <>
       {art && way === null ? (
-        <Curtain art={art}>
-          <h1 className="text-heading font-bold">{title}</h1>
+        <Curtain art={art} top={top}>
+          {heading('text-heading font-bold')}
         </Curtain>
       ) : (
-        <h1 className="pt-4 pb-2 text-title font-semibold">{title}</h1>
+        <div className="pt-4 pb-2">{heading('text-title font-semibold')}</div>
       )}
       <InstallRow />
       {children}
@@ -238,11 +262,21 @@ const TOP = 'var(--app-top-inset,env(safe-area-inset-top))';
  * motif's ground is the page's own colour, so the status bar above it (which an Android web app
  * can't draw under) never shows a seam.
  */
-export function Curtain({ art, children }: { art: ReactNode; children: ReactNode }) {
+export function Curtain({
+  art,
+  top = true,
+  children,
+}: {
+  art: ReactNode;
+  /** At the top of the page, drawn up under the status bar; else it starts where it sits. */
+  top?: boolean;
+  children: ReactNode;
+}) {
+  const inset = top ? TOP : '0px';
   return (
     <div
       className="relative mr-[calc(-16px-env(safe-area-inset-right))] ml-[calc(-16px-env(safe-area-inset-left))]"
-      style={{ marginTop: `calc(-1 * ${TOP})` }}
+      style={{ marginTop: `calc(-1 * ${inset})` }}
     >
       <div className="absolute inset-0 overflow-hidden">{art}</div>
       {/* The title holds its contrast: the field fades halfway to the page behind it. */}
@@ -252,7 +286,7 @@ export function Curtain({ art, children }: { art: ReactNode; children: ReactNode
       />
       <div
         className="relative flex flex-col justify-end pr-[calc(16px+env(safe-area-inset-right))] pb-4 pl-[calc(16px+env(safe-area-inset-left))]"
-        style={{ minHeight: `calc(${TOP} + 112px)`, paddingTop: `calc(${TOP} + 40px)` }}
+        style={{ minHeight: `calc(${inset} + 112px)`, paddingTop: `calc(${inset} + 40px)` }}
       >
         {children}
       </div>
