@@ -233,8 +233,9 @@ the fields so they hold no glare.
   dissolving into the page above the words; the words and the button sit low, under it. It is
   the only mark that moves: its folds drift back and forth on slow periods (11, 14 and 19
   seconds, so it never visibly loops), drawn in its own WebGL2 context at the screen's CSS
-  pixels, at most 30 frames a second, and not at all while the app is hidden. With reduced
-  motion it holds still, also when that is turned on while it moves; a lost GL context stops it
+  pixels, at most 30 frames a second, and not at all while the app is hidden, nor where WebGL
+  is drawn by the CPU (no GPU, or a headless test browser), which would take the CPU from typing.
+  With reduced motion it holds still, also when that is turned on while it moves; a lost GL context stops it
   until the browser restores one. The movement is about 0.4 KB of code; no video. With large
   text the words rise into the silk, so a full-bleed scrim fades in behind them from 64px above
   (measured 13.7:1 at 200% text on a 320px phone).
