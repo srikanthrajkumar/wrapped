@@ -19,6 +19,7 @@ export default defineConfig({
       // and the search timing test (T048) needs Chromium's CPU throttling.
       name: 'phone',
       use: { ...devices['iPhone 13'], browserName: 'chromium' },
+      testIgnore: 'search-perf.spec.ts',
     },
     // The iPhone's own engine, for what shows frame by frame (the bottom bar). Opt in with
     // WEBKIT=1 once `npx playwright install --with-deps webkit` has run.
@@ -31,6 +32,17 @@ export default defineConfig({
           },
         ]
       : []),
+    // The search timing test (T048, SC-007) runs last and alone. Its 4x CPU throttle
+    // multiplies any contention, so beside other tests it measured load, not search
+    // (34-44 ms on a quiet machine, 78 ms on a busy one). It starts only once every other
+    // project has finished, in one worker, so nothing else in the suite runs beside it.
+    {
+      name: 'search-perf',
+      use: { ...devices['iPhone 13'], browserName: 'chromium' },
+      testMatch: 'search-perf.spec.ts',
+      dependencies: ['phone', ...(process.env.WEBKIT ? ['iphone-webkit'] : [])],
+      workers: 1,
+    },
   ],
   webServer: {
     // Tests run against the production build (the service worker joins it in T028).
