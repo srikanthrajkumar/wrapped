@@ -241,8 +241,8 @@ the fields so they hold no glare.
   until the browser restores one. The movement is about 0.4 KB of code; no video. With large
   text the words rise into the silk, so a full-bleed scrim rises behind them from 192px above,
   eased the same way (measured 13.7:1 at 200% text on a 320px phone).
-- **The Schedule card's tile:** 48px with 14px corners, the main billed Artist's avatar (the first
-  in Stage order); plain surface-raised when nobody is billed, and dimmed with a cancelled card.
+- **No Schedule tile** (2026-11-08): the Schedule card's avatar tile went with the Schedule
+  screen; an entry on Season's timeline is a quiet row with no tile.
 
 It is never on the running order, search, Details, Stage, the sheets or any other logging
 surface, and never on Artist rows: an avatar on every Artist read as too much (2026-11-07). It
