@@ -52,6 +52,10 @@ test('search p95 from keystroke to results is under 50 ms at 4x CPU slowdown (SC
     (globalThis as unknown as { index: typeof index }).index = index;
     return performance.now() - started;
   }, snapshot!);
+  // Let the page settle after the build (the service worker, the garbage it left) before timing.
+  await page.evaluate(
+    () => new Promise<void>((resolve) => requestIdleCallback(() => resolve(), { timeout: 2_000 })),
+  );
 
   const cdp = await context.newCDPSession(page);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU_SLOWDOWN });

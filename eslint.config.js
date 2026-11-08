@@ -13,6 +13,8 @@ export default tseslint.config(
       'app/public/',
       '**/test-results/',
       '**/playwright-report/',
+      // Worktrees of this repository (each with its own build output) live here.
+      '.claude/',
     ],
   },
   js.configs.recommended,
