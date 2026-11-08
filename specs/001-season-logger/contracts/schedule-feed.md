@@ -133,8 +133,10 @@ For each Event with a `scheduleEntryId`:
 - Either way, on a Planned Event, record `scheduleVersionSeen`.
 - A version that would break a rule (a Lecdem billed with more than 3 presenters) changes
   nothing and is not recorded, so a corrected version still applies.
-- A cancelled entry never hides or removes an Event: a Planned one stays in Next, shown as
-  cancelled, until the rasika removes it (2026-11-07).
+- A cancelled entry never hides or removes an Event: a Planned one stays in its day on Season,
+  shown as cancelled, until the rasika removes it (2026-11-07). The entries are listed in
+  Season's timeline, quieter than the rasika's own, with no add on the row: an entry's sheet adds
+  it (2026-11-08; there is no Schedule screen).
 
 When the rasika answers the hint (2026-11-07):
 

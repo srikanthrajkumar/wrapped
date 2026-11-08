@@ -85,7 +85,7 @@ export function isBeingLogged(
 }
 
 export interface NowSelection<E> {
-  /** The Event that holds Now, or null: home then offers "Log a Concert now". */
+  /** The Event that holds Now, or null. */
   now: E | null;
   /** Other Events in their window, each shown as one smaller line under the block. */
   others: E[];

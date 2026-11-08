@@ -17,13 +17,13 @@ to clean up on any phone or server.
 
 ## What it holds
 
-| Case          | Event                                                                     | What's in it                                                                                                                                                                                                                                                             |
-| ------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Empty season  | none                                                                      | Shot before the seed goes in (`season-empty`).                                                                                                                                                                                                                           |
-| In progress   | Music Academy, today 6:00 pm                                              | A vocal duo (Ranjani & Gayatri) and four accompanists (violin, mridangam, ghatam, khanjira); the event note; 11 Items: nine catalog songs (one tala marked a guess), an RTP in Kalyani and Kanada, and a typed "Tillana". Chakkani Raja has a Laya vinyasam with a note. |
-| Long names    | Sri Parthasarathy Swami Sabha, Vidya Bharathi Kalyana Mandapam, yesterday | Three Artists with names that wrap; two songs and a typed Item with a long title.                                                                                                                                                                                        |
-| No Artist yet | no Sabha, Sat 12 Dec                                                      | Attended, nothing added: the "Add Artist" heading and "Add Sabha".                                                                                                                                                                                                       |
-| Next          | Sri Krishna Gana Sabha 15 Dec; Narada Gana Sabha 16 Dec                   | Planned, one Artist each.                                                                                                                                                                                                                                                |
+| Case          | Event                                                                     | What's in it                                                                                                                                                                                                                                                                                 |
+| ------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Empty season  | none                                                                      | Shot before the seed goes in (`season-empty`).                                                                                                                                                                                                                                               |
+| In progress   | Music Academy, today 6:00 pm                                              | A vocal duo (Ranjani & Gayatri) and four accompanists (violin, mridangam, ghatam, khanjira); the event note; 11 Items: nine catalog songs (one tala marked a guess), an RTP in Kalyani and Kanada, and a typed "Tillana". Chakkani Raja has a Laya vinyasam with a note.                     |
+| Long names    | Sri Parthasarathy Swami Sabha, Vidya Bharathi Kalyana Mandapam, yesterday | Three Artists with names that wrap; two songs and a typed Item with a long title.                                                                                                                                                                                                            |
+| No Artist yet | no Sabha, Sat 12 Dec                                                      | Attended, nothing added: the "Add Artist" heading and "Add Sabha".                                                                                                                                                                                                                           |
+| Next          | Sri Krishna Gana Sabha 15 Dec; Narada Gana Sabha 16 Dec                   | Planned, one Artist each.                                                                                                                                                                                                                                                                    |
 | Schedule      | seven entries, 15 to 17 Dec                                               | `SCHEDULE` in seed.ts: a vocal group with a violinist, a Dance, a violinist, a veena, a mridangam, one with nobody billed, and one cancelled. Written into the store as a fetched file leaves them (the feed isn't rasika data, so no store action writes it), as e2e/schedule.spec.ts does. |
 
 **Colours:** all 12 swatches and "didn't notice" appear across the Stage rows. Two-tone:
@@ -32,12 +32,12 @@ purple, grey. Didn't notice: the khanjira.
 
 ## Views
 
-`welcome` (first launch, on a phone of its own that never finishes it), `season-empty`, `season`, `concert`, `concert-full` (whole page), `concert-bare`,
+`welcome` (first launch, on a phone of its own that never finishes it), `season-empty`, `season-own` (the seed's own Events before the Schedule goes in), `season` (the timeline as it opens), `season-up` (scrolled up into the days gone), `entry-sheet` (the first Schedule entry's sheet), `concert`, `concert-full` (whole page), `concert-bare`,
 `concert-long` (whole page), `concert-order` (Edit order on), `concert-drag` (Item 3 held
 mid-drag by its grip), `concert-facts` (date and time sheet), `artist-picker` (Add Artist, "S" typed), `artist-sheet` (Gayatri), `colour-sheet`
 (Ranjani, two-tone), `item-search` (new Item, "rama" typed), `item` (Chakkani Raja, whole page,
 the Improvised fold open with its Laya vinyasam), `item-rtp` (two Ragas), `raga-sheet`,
-`tala-sheet`, `schedule`, `settings`, and last `concert-summary` (the clock three hours on, so the Concert in
+`tala-sheet`, `settings`, and last `concert-summary` (the clock three hours on, so the Concert in
 progress has ended and its summary shows; "shown" is reset for it on each look).
 
 Each at 390×844 and 393×852 (iPhone 16), dark and light. Chromium runs with software WebGL

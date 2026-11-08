@@ -11,7 +11,8 @@ import {
   type Item,
 } from '../model';
 import { db as defaultDb, type WrappedDB } from './db';
-import { restoreItemRows, type Deleted, type RestoreOptions } from './items';
+import { draftKey, restoreItemRows, type Deleted, type RestoreOptions } from './items';
+import { readLoggingNote } from './logging-note';
 import { getLive, newTimestamps, remove, save, type WriteOptions } from './mutate';
 import { peekReceipt, takeReceipt, writeReceipt, type DeletionReceipt } from './receipts';
 import {
@@ -310,6 +311,63 @@ export async function restoreEvent(
       }
       await restoreItemRows(await rows<Item>('items'), db, catalog);
       return restored;
+    },
+  );
+}
+
+/** What a Concert made by Season's + was born with: its defaults, and its row as first stored. */
+export interface Birth {
+  kind: EventKind;
+  date: string;
+  startTime: string | null;
+  /** The `updatedAt` it was stored with: any later save stamps a new one. */
+  updatedAt: string;
+}
+
+/**
+ * Take back a Concert made by Season's + that the rasika left with nothing entered (the
+ * Maintainer, 2026-11-08): it is still exactly as born, never saved again, with no Appearance
+ * or Item ever made for it (a deleted one included), no Item search text kept and no logging.
+ * Checked and removed in one transaction, so a save landing at the same moment either comes
+ * first and keeps it, or finds it gone. A Concert the server never received leaves no row and
+ * no outbox entry; one already sent is deleted as a tombstone, which syncs as any delete does
+ * (ADR 0003). Anything else keeps it: `kept`.
+ */
+export async function discardUntouched(
+  id: string,
+  birth: Birth,
+  { db = defaultDb }: WriteOptions = {},
+): Promise<'discarded' | 'kept' | 'gone'> {
+  return db.transaction(
+    'rw',
+    [db.events, db.appearances, db.items, db.outbox, db.meta],
+    async () => {
+      const event = await db.events.get(id);
+      if (!event || event.deletedAt !== null) return 'gone';
+      const asBorn =
+        event.updatedAt === birth.updatedAt &&
+        event.kind === birth.kind &&
+        event.date === birth.date &&
+        event.startTime === birth.startTime &&
+        event.status === 'attended' &&
+        event.sabhaId === null &&
+        event.title === null &&
+        event.note === null;
+      if (!asBorn) return 'kept';
+      const made =
+        (await db.appearances.where('eventId').equals(id).count()) +
+        (await db.items.where('eventId').equals(id).count());
+      if (made > 0) return 'kept';
+      if (await db.meta.get(draftKey(id))) return 'kept';
+      if (await readLoggingNote(id, db)) return 'kept';
+      const queued = await db.outbox.where('recordId').equals(id).toArray();
+      if (queued.every((entry) => entry.firstSentAt === null)) {
+        await db.outbox.bulkDelete(queued.map((entry) => entry.seq!));
+        await db.events.delete(id);
+      } else {
+        await remove('events', id, { db });
+      }
+      return 'discarded';
     },
   );
 }

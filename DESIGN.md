@@ -297,7 +297,8 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     8px past the text into the gutter instead of pushing the text in, and a text button's
     label (Remove Laya vinyasam, Edit order) starts or ends on the gutter.
 - **Thumb zone.** Primary actions sit in the bottom third: the fixed "Add Item" bar, the
-  docked search box, "Done" and "Next Item →". The page keeps room for everything docked at the
+  docked search box, "Done" and "Next Item →". Season has no bottom bar (2026-11-08): its +
+  sits at its title's right. The page keeps room for everything docked at the
   bottom (the action, any Undo bars, the tab bar): a field moved to behind them scrolls up above
   them.
 - **Pushed screens' top bar** (decided 2026-11-01). The top centre belongs to the Dynamic Island,
@@ -310,33 +311,45 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
 
 **Screen layouts** (top to bottom; the full rules are DD2–DD5 in plan.md):
 
-- **Season (home, DD2):** Now → Next (upcoming Planned Events by day) → Season so far
-  (Attended Events, newest first, with Item counts, and one line to the Wrapped). A fixed
-  full-width 56px bar at the bottom always holds "+ Log a Concert", whether or not a Concert is
-  open, the same bar and place as the Event screen's Add Item (walkthrough S1, decided
-  2026-11-04): one main action per page, always at the bottom, and another Concert, a past one
-  included, can be started while one is in progress.
+- **Season (home, DD2):** one timeline of the whole Season, in date order (the Maintainer,
+  2026-11-08, replacing Next, Season so far and the Schedule screen): "we need to make it easy for
+  people to scroll schedules without goading them to add it". The days gone come first; then the header (the
+  title, the install row, "Getting ready for offline…", the new-catalog row) and Now's card;
+  then today and every day to come, to the end of the Season. The page opens with the header at its top, the past above it and not yet scrolled to (the layout the Maintainer chose, 2026-11-08), set before the first paint and held there while the days around draw at their real heights, until the rasika scrolls, so nothing slides even where the browser has no scroll anchoring; with no days gone it simply starts at the header; from the header on it is at least a
+  screen tall, so it can, however little is to come. Coming back from an Event, a sheet or
+  another tab finds Season where it was left, kept by the day at the top of the screen. Pushed
+  screens and the other tabs open at their top.
+  - **Each day:** its label (as Next's were), then the rasika's own Events by start time
+    (Planned, Attended, being logged, cancelled and kept, and those made by hand), then the Schedule's other entries for that day, quieter: muted and not bold, with no button of
+    their own. An entry the rasika planned shows once, as theirs. A day with nothing in it is
+    not shown. Days far from the screen aren't drawn until scrolled near, each held at its
+    likely height (a 64px row each) so nothing jumps; with 391 entries, scrolling at 4x CPU
+    slowdown holds p95 under 28ms a frame.
+  - **The +** (the Maintainer, 2026-11-08, replacing walkthrough S1's "+ Log a Concert" bar):
+    a Concert not on the Schedule is the rarer way in, so it is a 48px + icon button at the
+    right of the Season title, spoken "Log a Concert", its mark on the gutter. The header is the
+    one block in every state, the empty Season included, and the page opens on it, so the +
+    is always in view on open. It still starts another Concert, a past one included, while one
+    is in progress, one per tap. There is no bottom bar.
   - **Now** (walkthrough S1, replacing the block with "Start logging" or "Continue: N Items"):
     the Event that holds Now is a card, tapped to open it, with a chevron at its right. Its
     title is the Artists the Event is known by, and its line the Sabha, start time and, once
     started, the Item count ("Music Academy · 6:30 pm · 3 Items"). A Planned one opens on its
     Event screen, whose bar holds "Start logging", so the Season page keeps one filled button.
-  - **Every Event row** (Now, Next, Season so far) leads with the Artists the Event is known by
+  - **Every Event row** (Now and the timeline's own rows) leads with the Artists the Event is known by
     (walkthrough S2; see Event below), the Sabha first on the line under it. Before any Artist,
     the row leads with the Sabha, or "No Sabha yet".
-  - **Empty home** (decided 2026-11-01): a section with nothing in it is not shown, so on day
-    one home is the title and the "Log a Concert" bar alone. Next and Season so far appear as
-    soon as they have content, and Next also once a Schedule is stored, for its calendar
-    button. ("Lecdem" joins with the Lecdem variant, T063; Dance and
+  - **Empty home** (decided 2026-11-01): with nothing logged, planned or listed, home is the
+    title with its + alone (2026-11-08). Without a Schedule (no feed delivered yet) the
+    timeline is the rasika's own Events alone, in the same order, opening the same way. ("Lecdem" joins with the Lecdem variant, T063; Dance and
     Harikatha with T122.)
   - **New catalog prompt** (decided 2026-11-01; FR-038): one row at the top of home, under
     the status line: "An updated song catalog is ready." with "Update" and "Later". It never
     shows while a Concert holds Now through logging activity. "Later" hides it until the next
     launch.
-  - **Next and the Schedule** (the Maintainer, 2026-11-07; T061): a calendar icon button sits
-    at the right of Next's heading, its 48px reaching past the line, once a Schedule is stored;
-    it pushes the Schedule. A Planned Event whose Schedule entry is cancelled stays in its place
-    in Next until the rasika removes it (Delete Event), even once its start time has passed,
+  - **The rasika's rows and the Schedule** (the Maintainer, 2026-11-07; T061): a Planned Event
+    whose Schedule entry is cancelled stays in its day until the rasika removes it (Delete
+    Event), even once its start time has passed,
     its title muted and a cancelled mark (a calendar with a cross) at the row's right, spoken
     "Cancelled". One the Schedule changed after the rasika edited it carries a calendar with "!"
     there, spoken "Schedule changed": a 48px button of its own beside the row, which opens what
@@ -373,23 +386,26 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     (walkthrough S12). The Items come last, so the list ends right above the bar.
   - **Note** is a fold (walkthrough P6, 2026-11-05): open when it has text, so a note written
     stays in view, and one 48px row when empty.
-  - The top bar's "⋯" holds Delete Event (its Export moved to Settings on 2026-11-03). "Log a
-    Concert" opens this screen at once, started, with the date and time set to now and the Add
-    Item bar ready (decided 2026-11-01).
+  - The top bar's "⋯" holds Delete Event (its Export moved to Settings on 2026-11-03). Season's
+    + opens this screen at once, started, with the date and time set to now and the Add Item
+    bar ready (decided 2026-11-01). Left with nothing entered (only the kind, date and time it
+    was made with), by the back gesture, the top bar or a tab, even after a reload, it leaves no
+    trace: no row, no Undo bar, no "Not saved" (the Maintainer, 2026-11-08). Anything entered
+    keeps it, an edit that failed to save included.
   - A fixed full-width 56px bar at the bottom holds the one action for the Event's state
     (decided 2026-11-01): "Start logging" on a Planned Event that is only being viewed (DD7),
     "Add Item" once it is started. Nothing follows the last Item: a Concert ends on its own
     (walkthrough S13; see "Finishing a Concert").
-- **Schedule (T061; the Maintainer, 2026-11-07):** a pushed screen, the D5 top bar
-  "‹ Season", then "Schedule" in `title`, then the logger's entries from today on, by day under
-  the same day labels as Next. Each entry is a card (surface, 16px corners, 8px apart): at its
-  leading edge a bounded 48px tile, the main billed Artist's avatar (see "The motif"); then the
-  Artists it is billed by (a Group by its name) with its kind's mark, or its Sabha when nobody is
-  billed; a printed title under it; then "Sabha · time", muted; at its right a 48px "+" that puts
-  it in Next as Planned, spoken "Add to Next: …", which becomes a muted check opening the Event
-  once it is there. A cancelled entry stays on its day, dimmed (no fill, only its outline, its
-  words muted) with the cancelled mark and no add button. Days off screen aren't drawn until
-  scrolled near. With nothing from today on, one muted calendar mark.
+- **A Schedule entry on Season** (the Maintainer, 2026-11-08, replacing the Schedule screen of T061; its
+  route goes to Season): a row of Season's timeline, quieter than the rasika's own: the Artists
+  it is billed by (a Group by its name) with its kind's mark, or its Sabha when nobody is billed;
+  a printed title under it; then "Sabha · time". No button on the row: a tap opens its sheet,
+  titled by the same name, with every fact led by its mark (a "T" for the title, calendar, clock,
+  building, people): the date, time, Sabha and each billed Artist with their Role and group
+  under the name. One filled "+ Add" at the bottom plans it as the Schedule add did (one id per
+  attempt, ADR 0007); once added the row becomes the rasika's in its day, and the sheet's
+  button becomes an outlined "Planned" with a calendar check, opening the Event. A cancelled entry stays on its day, dimmed, with the cancelled mark; its sheet shows the mark and has
+  no add.
 - **Item editor (DD4):** top bar "‹ Music Academy" (the Event's Sabha). The bottom bar holds
   "Next Item →", outlined, at the left and "Done", the filled main action, at the right
   (walkthrough S9, decided 2026-11-04). Once picked, the title is the first content line, with
@@ -465,7 +481,7 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
 ## Shapes
 
 - Radius base 10px (preset `--radius: 0.625rem`), scaled: 6 / 8 / 10 / 14 / 18px.
-- **Lists are rows, not cards** (decided 2026-11-01): Next, Season so far, the running order
+- **Lists are rows, not cards** (decided 2026-11-01): Season's timeline, the running order
   and Stage are rows on the background, divided by the `border` hairline, with no fill and no
   rounding. A fill means "this one is different": the Now card, the best search match, sheets.
 - Buttons and the Now card: 14–18px, so tap areas read as soft blocks in the dark.
@@ -884,3 +900,4 @@ in the phase that builds it):
 | 2026-11-07 | The motif, settled with the Maintainer after three boards: Paper Shaders' static mesh gradient (its shader copied in under Apache-2.0, no package) in Ink and rose, seeded from the rasika's data, one shared WebGL2 context drawing still canvases. Placed as a curtain on Season and the Concert summary's top edge, a horizon on first launch, and the main billed Artist's avatar on the Schedule card's tile; not on Artist rows or any logging surface. One council round (Codex and two Claude reviewers; 6.2, 6 and 5) agreed on a shorter curtain, a quieter day one, no glare or black stops, neutral greys, one soft rendering for avatars, a longer fade on first launch, no top strip, less grain and a grey backdrop behind the summary; all built and checked. The builder's calls: the title on the curtain is `heading`; in a phone's browser tab, where the install row shows, Season keeps its plain title until installed (FB-46 keeps that row at one place on every tab); a card with nobody billed keeps a plain tile; the season's field waits for the catalog and fades in over 300ms. |
 | 2026-11-07 | First launch's mark: Silk, picked from four bolder fields (Bloom horizon, Ribbon block, Full bleed, Silk), kept sharp, and moving: its folds drift back and forth on 11, 14 and 19 second periods, the one moving mark and the one exception to "motion explains a change". About 0.4 KB; reduced motion holds it still. Season's colours follow the Ragas logged (the three most heard, a second rose at three), not the day or the number of Concerts. |
 | 2026-11-08 | First launch's fades made invisible where they stop (the Maintainer: the line where the black fade ends showed). The silk's dissolve and the scrim behind the words were straight ramps with corners, and the scrim began where the dissolve was steepest, so a shelf showed. Both are now eased (smoothstep, a dozen stops: no slope at either end); the silk's box is 80% of the screen (was 74%), still whole to 45% of its height, so its tail reaches the words; the scrim rises over 192px (was 64px). Measured at 390px: the sharpest bend in the fade falls from 0.163 to 0.136 L* per px² in dark at 100% text, and from 0.449 to 0.103 at 200%; contrast at 200% text holds at 13.75:1 dark, 18.08:1 light (320px). Three council rounds (Codex and two Claude reviewers): lowest scores 6.5, 6, 6.5, every reviewer agreeing no edge shows. Parked for the Maintainer: a curved foot (a second, elliptical mask so the sides lift). |
+| 2026-11-08 | The Maintainer: adding a Concert that isn't on the Schedule is now secondary, and the Schedule should be easy to scroll without goading anyone to add. Season becomes one timeline of the whole Season in date order (the days gone above, opening at the header and Now), each day the rasika's own Events then the Schedule's other entries, quieter, with no button on a row; an entry's sheet holds its billing and one add. Next, Season so far, the Schedule screen and its calendar button go; `/schedule` goes to Season. The "+ Log a Concert" bottom bar goes, in every state, for a 48px + at the Season title's right. A Concert made by the + and left with nothing entered leaves no trace. The builder's calls: the header sits between the days gone and today, so the page opens on it with the + in view; the Now card stays under the header; the "Your Wrapped" row went with Season so far (the Wrapped tab remains); entries carry no avatar tile; an untouched new Concert is still made at once and taken back on leaving if the journal and the store show nothing entered (`app/src/screens/new-concert.ts`). |

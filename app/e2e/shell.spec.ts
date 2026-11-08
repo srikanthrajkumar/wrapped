@@ -20,9 +20,10 @@ test('first launch leads to the empty home at phone width', async ({ page }) => 
   const tabs = page.getByRole('navigation', { name: 'Main' }).getByRole('link');
   await expect(tabs).toHaveText(['Season', 'Wrapped', 'Settings']);
   await expect(tabs.first()).toHaveAttribute('aria-current', 'page');
-  // Day one: only the bar with "Log a Concert" (design D11, walkthrough S1).
+  // Day one: the title with its + alone, no day yet, and no bottom bar (2026-11-08).
   await expect(page.getByRole('button', { name: 'Log a Concert' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Next' })).toHaveCount(0);
+  await expect(page.getByRole('main').getByRole('listitem')).toHaveCount(0);
+  await expect(page.locator('footer [data-slot="button"]')).toHaveCount(0);
   expect(await page.evaluate(() => window.innerWidth)).toBe(390);
 
   // Once done, first launch never shows again.

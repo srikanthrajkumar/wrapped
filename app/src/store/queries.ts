@@ -392,7 +392,7 @@ export function useEventSummaries() {
   return useLiveQuery(() => listEventSummaries());
 }
 
-/** A Schedule entry as its card shows it, with the live Event planned from it, if any. */
+/** A Schedule entry as Season's timeline lists it, with the live Event planned from it, if any. */
 export interface ScheduleListing {
   entry: ScheduleEntry;
   /** The Event in the Plan made from this entry; null until it is added, or once deleted. */
@@ -422,11 +422,6 @@ export async function listSchedule(
 
 export function useSchedule(from: string) {
   return useLiveQuery(() => listSchedule(from), [from]);
-}
-
-/** Whether a Schedule is stored, so Season offers it (T061). */
-export function useHasSchedule() {
-  return useLiveQuery(async () => (await defaultDb.schedule.count()) > 0);
 }
 
 /** The per-phone logging notes, for the Now selector. */
