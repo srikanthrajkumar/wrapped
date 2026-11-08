@@ -229,16 +229,18 @@ the fields so they hold no glare.
 - **The Concert summary's top edge, as a curtain:** 96px, the summary drawn up over it with
   18px corners. The page behind it goes grey under the scrim, so only this Concert's field
   carries rose.
-- **First launch, as a horizon:** Silk, full-bleed from the top over 74% of the screen,
-  dissolving into the page above the words; the words and the button sit low, under it. It is
+- **First launch, as a horizon:** Silk, full-bleed from the top over 80% of the screen,
+  dissolving into the page above the words; the words and the button sit low, under it. The
+  dissolve runs from 45% of its height to its foot, eased (smoothstep) so it leaves and reaches
+  the page with no slope and no line shows where it stops. It is
   the only mark that moves: its folds drift back and forth on slow periods (11, 14 and 19
   seconds, so it never visibly loops), drawn in its own WebGL2 context at the screen's CSS
   pixels, at most 30 frames a second, and not at all while the app is hidden, nor where WebGL
   is drawn by the CPU (no GPU, or a headless test browser), which would take the CPU from typing.
   With reduced motion it holds still, also when that is turned on while it moves; a lost GL context stops it
   until the browser restores one. The movement is about 0.4 KB of code; no video. With large
-  text the words rise into the silk, so a full-bleed scrim fades in behind them from 64px above
-  (measured 13.7:1 at 200% text on a 320px phone).
+  text the words rise into the silk, so a full-bleed scrim rises behind them from 192px above,
+  eased the same way (measured 13.7:1 at 200% text on a 320px phone).
 - **The Schedule card's tile:** 48px with 14px corners, the main billed Artist's avatar (the first
   in Stage order); plain surface-raised when nobody is billed, and dimmed with a cancelled card.
 
@@ -881,3 +883,4 @@ in the phase that builds it):
 | 2026-11-06 | T119 to T122, the builder's calls: an Event's kind is a mark before its name on the Season rows and the Event heading, none for a Concert (Presentation for a Lecdem, a figure in movement for a Dance, a book for a Harikatha); the kind is four chips at the top of the Event's facts sheet, which takes the kind's name as its title, with a Title field under them for any kind but a Concert; a title reads first on the facts line, above the Sabha; a change to Concert that takes a title offers "Title removed · Undo" as a delete does; "More" opens in place and stays open; a Group shows by its name only where two or more of the known-by Artists share it. |
 | 2026-11-07 | The motif, settled with the Maintainer after three boards: Paper Shaders' static mesh gradient (its shader copied in under Apache-2.0, no package) in Ink and rose, seeded from the rasika's data, one shared WebGL2 context drawing still canvases. Placed as a curtain on Season and the Concert summary's top edge, a horizon on first launch, and the main billed Artist's avatar on the Schedule card's tile; not on Artist rows or any logging surface. One council round (Codex and two Claude reviewers; 6.2, 6 and 5) agreed on a shorter curtain, a quieter day one, no glare or black stops, neutral greys, one soft rendering for avatars, a longer fade on first launch, no top strip, less grain and a grey backdrop behind the summary; all built and checked. The builder's calls: the title on the curtain is `heading`; in a phone's browser tab, where the install row shows, Season keeps its plain title until installed (FB-46 keeps that row at one place on every tab); a card with nobody billed keeps a plain tile; the season's field waits for the catalog and fades in over 300ms. |
 | 2026-11-07 | First launch's mark: Silk, picked from four bolder fields (Bloom horizon, Ribbon block, Full bleed, Silk), kept sharp, and moving: its folds drift back and forth on 11, 14 and 19 second periods, the one moving mark and the one exception to "motion explains a change". About 0.4 KB; reduced motion holds it still. Season's colours follow the Ragas logged (the three most heard, a second rose at three), not the day or the number of Concerts. |
+| 2026-11-08 | First launch's fades made invisible where they stop (the Maintainer: the line where the black fade ends showed). The silk's dissolve and the scrim behind the words were straight ramps with corners, and the scrim began where the dissolve was steepest, so a shelf showed. Both are now eased (smoothstep, a dozen stops: no slope at either end); the silk's box is 80% of the screen (was 74%), still whole to 45% of its height, so its tail reaches the words; the scrim rises over 192px (was 64px). Measured at 390px: the sharpest bend in the fade falls from 0.163 to 0.136 L* per px² in dark at 100% text, and from 0.449 to 0.103 at 200%; contrast at 200% text holds at 13.75:1 dark, 18.08:1 light (320px). Three council rounds (Codex and two Claude reviewers): lowest scores 6.5, 6, 6.5, every reviewer agreeing no edge shows. Parked for the Maintainer: a curved foot (a second, elliptical mask so the sides lift). |
