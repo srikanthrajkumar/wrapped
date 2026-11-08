@@ -195,6 +195,17 @@ export function paintMotif(
   return true;
 }
 
+/**
+ * Whether the GL is drawn by the CPU (SwiftShader, llvmpipe, Microsoft's Basic Render driver):
+ * a phone or browser with no GPU for WebGL, or a headless test browser. A moving mark there
+ * would take the CPU from everything else, typing included, so it holds still.
+ */
+function drawnBySoftware(gl: WebGL2RenderingContext): boolean {
+  const info = gl.getExtension('WEBGL_debug_renderer_info');
+  const renderer = String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER) ?? '');
+  return /swiftshader|llvmpipe|softpipe|software|basic render/i.test(renderer);
+}
+
 /** The moving marks' painters, one per canvas, so a resize or a theme change reuses it. */
 const moving = new WeakMap<HTMLCanvasElement, Painter>();
 
@@ -202,9 +213,9 @@ const moving = new WeakMap<HTMLCanvasElement, Painter>();
  * Draws the mark into `target` itself (a canvas used for nothing else), and keeps it moving:
  * its folds drift back and forth on slow, unrelated periods, so it never visibly loops. At the
  * screen's own CSS pixels (a soft field needs no more), at most 30 frames a second, and not at
- * all while the page is hidden. Reduced motion, asked for while it moves, holds it on its frame;
- * a lost GL context stops it until the browser restores one. Returns a stop; false when it
- * couldn't draw.
+ * all while the page is hidden, nor where the GL is drawn by the CPU. Reduced motion, asked for
+ * while it moves, holds it on its frame; a lost GL context stops it until the browser restores
+ * one. Returns a stop; false when it couldn't draw.
  */
 export function animateMotif(
   target: HTMLCanvasElement,
@@ -275,6 +286,8 @@ export function animateMotif(
     start();
   };
   frameAt(performance.now());
+  // Without a GPU, one still frame: the same mark, no CPU taken while the rasika types.
+  if (drawnBySoftware(painterFor()!.gl)) return () => undefined;
   start();
   still?.addEventListener?.('change', onMotion);
   target.addEventListener('webglcontextlost', onLost);
