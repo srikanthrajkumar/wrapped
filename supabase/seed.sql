@@ -4,17 +4,20 @@
 insert into private.shared_sabha (id, name, aliases, list_version)
 select id, name, aliases, "listVersion"
 from jsonb_to_recordset($seed$[
-  {"id":"14b942eb-d24e-5894-96df-3d1d000babd1","name":"Music Academy","aliases":[],"listVersion":1},
+  {"id":"14b942eb-d24e-5894-96df-3d1d000babd1","name":"Music Academy","aliases":["MA","Madras Music Academy"],"listVersion":1},
   {"id":"522641aa-6acc-5464-926a-019bb11f02d0","name":"Sunaadalahari","aliases":[],"listVersion":1},
   {"id":"4b6d24c9-ecb9-51e7-ab9c-a9746dbe9f2c","name":"Charsur","aliases":[],"listVersion":1},
-  {"id":"1db93f61-0c04-5615-ad24-3916b74666db","name":"Narada Gana Sabha","aliases":[],"listVersion":1},
-  {"id":"2c5ff438-1df1-5cc6-b1a6-7b2437634752","name":"Rasika Ranjani Sabha","aliases":[],"listVersion":1},
-  {"id":"8046e82b-aa02-5f5a-b2cd-6999a04056d9","name":"Parthasarathy Swami Sabha","aliases":[],"listVersion":1},
+  {"id":"1db93f61-0c04-5615-ad24-3916b74666db","name":"Narada Gana Sabha","aliases":["NGS"],"listVersion":1},
+  {"id":"2c5ff438-1df1-5cc6-b1a6-7b2437634752","name":"Rasika Ranjani Sabha","aliases":["RR Sabha","RRS"],"listVersion":1},
+  {"id":"8046e82b-aa02-5f5a-b2cd-6999a04056d9","name":"Parthasarathy Swami Sabha","aliases":["PSS"],"listVersion":1},
   {"id":"b0decd39-80fa-5927-ba99-0f1ebbdee212","name":"MadRasana","aliases":[],"listVersion":1},
-  {"id":"65eac475-ef5e-5705-a4e9-9089b153d18e","name":"Indian Fine Arts","aliases":[],"listVersion":1},
+  {"id":"65eac475-ef5e-5705-a4e9-9089b153d18e","name":"Indian Fine Arts","aliases":["IFAS","Indian Fine Arts Society"],"listVersion":1},
   {"id":"acdb9870-882c-5928-b5e0-5726605d448d","name":"Naada Inbam","aliases":[],"listVersion":1},
   {"id":"d9e7ed03-81a9-5748-be6f-856bd0b766e2","name":"Vikku Vinayakaram Sabha","aliases":[],"listVersion":1},
-  {"id":"7730a57e-ff83-5f51-8748-f3a1fd9897d8","name":"Sri Rama Lalitha Kala Mandir","aliases":[],"listVersion":1}
+  {"id":"7730a57e-ff83-5f51-8748-f3a1fd9897d8","name":"Sri Rama Lalitha Kala Mandir","aliases":["SRLKM"],"listVersion":1},
+  {"id":"e62b6df0-3957-522a-9b2d-4f728209defc","name":"Krishna Gana Sabha","aliases":["KGS"],"listVersion":1},
+  {"id":"4cdbdefa-a1f5-56cc-a15a-d6ca9a4329bc","name":"Vani Mahal","aliases":["TBGS","Sri Thyaga Brahma Gana Sabha"],"listVersion":1},
+  {"id":"c37d5a09-140d-5d9b-976d-1df6b7cdb739","name":"Bharat Kalachar","aliases":[],"listVersion":1}
 ]$seed$::jsonb)
   as entry (id uuid, name text, aliases text[], "listVersion" bigint);
 
