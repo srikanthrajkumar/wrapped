@@ -67,7 +67,6 @@ import { Chip } from './components/DockedSearch';
 import { KindMark } from './components/kind-mark';
 import { dayText, eventLine, itemLine, itemTitle, kindName, roleName, timeText } from './format';
 import { deleteConcert, deleteItem, removeArtist } from './deletes';
-import { leaveNewConcert } from './new-concert';
 import { offerUndo, undo, undoMessage } from './undo';
 import type { SaveFeedback } from './save-feedback';
 
@@ -94,17 +93,6 @@ const appearanceTarget = (id: string, field: string) => ({
 });
 
 export function EventScreen({ eventId }: { eventId: string }) {
-  // Left for anywhere outside this Event (back, the top bar, a tab): a Concert just made by
-  // Season's + with nothing entered is taken back (screens/new-concert.ts). The path has
-  // already changed when this runs.
-  useEffect(
-    () => () => {
-      const path = window.location.pathname;
-      const here = `/event/${eventId}`;
-      if (path !== here && !path.startsWith(`${here}/`)) void leaveNewConcert(eventId);
-    },
-    [eventId],
-  );
   return (
     <Screen>
       <EventView eventId={eventId} />

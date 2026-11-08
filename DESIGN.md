@@ -315,7 +315,7 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   2026-11-08, replacing Next, Season so far and the Schedule screen): "we need to make it easy for
   people to scroll schedules without goading them to add it". The days gone come first; then the header (the
   title, the install row, "Getting ready for offline…", the new-catalog row) and Now's card;
-  then today and every day to come, to the end of the Season. The page opens with the header at its top, the past above it and not yet scrolled to (the layout the Maintainer chose, 2026-11-08), set before the first paint and held there while the days around draw at their real heights, until the rasika scrolls, so nothing slides even where the browser has no scroll anchoring; with no days gone it simply starts at the header; from the header on it is at least a
+  then today and every day to come, to the end of the Season. The page opens with the header at its top, the past above it and not yet scrolled to (the layout the Maintainer chose, 2026-11-08), set before the first paint and held there while the days around draw at their real heights, until the rasika scrolls (its anchor found again at each correction, and let go once gone), so nothing slides even where the browser has no scroll anchoring; with no days gone it simply starts at the header; from the header on it is at least a
   screen tall, so it can, however little is to come. Coming back from an Event, a sheet or
   another tab finds Season where it was left, kept by the day at the top of the screen. Pushed
   screens and the other tabs open at their top.
@@ -323,7 +323,7 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     (Planned, Attended, being logged, cancelled and kept, and those made by hand), then the Schedule's other entries for that day, quieter: muted and not bold, with no button of
     their own. An entry the rasika planned shows once, as theirs. A day with nothing in it is
     not shown. Days far from the screen aren't drawn until scrolled near, each held at its
-    likely height (a 64px row each) so nothing jumps; with 391 entries, scrolling at 4x CPU
+    likely height (its label, a 64px row each, and 20px more for a printed title): at 390px, 56 of the 2026-27 feed's 60 days draw at exactly that height and the rest within 40px, where a name wraps, so a browser with no scroll anchoring moves the page at most that much, once, as such a day first draws; with 391 entries, scrolling at 4x CPU
     slowdown holds p95 under 28ms a frame.
   - **The +** (the Maintainer, 2026-11-08, replacing walkthrough S1's "+ Log a Concert" bar):
     a Concert not on the Schedule is the rarer way in, so it is a 48px + icon button at the
@@ -390,8 +390,7 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     + opens this screen at once, started, with the date and time set to now and the Add Item
     bar ready (decided 2026-11-01). Left with nothing entered (only the kind, date and time it
     was made with), by the back gesture, the top bar or a tab, even after a reload, it leaves no
-    trace: no row, no Undo bar, no "Not saved" (the Maintainer, 2026-11-08). Anything entered
-    keeps it, an edit that failed to save included.
+    trace: no row, no Undo bar, no "Not saved" (the Maintainer, 2026-11-08). Anything entered keeps it, an edit that failed to save included. It leaves no row only with proof it never left the phone (its birth still queued and never sent, and nothing heard from the server); otherwise it is deleted as a tombstone that syncs, so the server keeps no empty Concert. No page anywhere may have it open: from the + tap, before it is written, every open page of it in any tab holds a lock named for it, shared, and taking it back needs that lock alone and at once, so a tab with it open, or another tab's Season sweeping as it is born, never loses it; with no Web Locks it is kept. When unsure it is kept too: a new Sabha or Artist still typed, being written or failed, whose entry names no Concert, keeps it (PR #30 reviews).
   - A fixed full-width 56px bar at the bottom holds the one action for the Event's state
     (decided 2026-11-01): "Start logging" on a Planned Event that is only being viewed (DD7),
     "Add Item" once it is started. Nothing follows the last Item: a Concert ends on its own
@@ -403,7 +402,7 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   titled by the same name, with every fact led by its mark (a "T" for the title, calendar, clock,
   building, people): the date, time, Sabha and each billed Artist with their Role and group
   under the name. One filled "+ Add" at the bottom plans it as the Schedule add did (one id per
-  attempt, ADR 0007); once added the row becomes the rasika's in its day, and the sheet's
+  attempt, ADR 0007, and a new attempt once its Event was deleted); once added the row becomes the rasika's in its day, and the sheet's
   button becomes an outlined "Planned" with a calendar check, opening the Event. A cancelled entry stays on its day, dimmed, with the cancelled mark; its sheet shows the mark and has
   no add.
 - **Item editor (DD4):** top bar "‹ Music Academy" (the Event's Sabha). The bottom bar holds

@@ -244,6 +244,33 @@ test('a listing has no add on its row; its sheet adds it once, and it becomes th
   await expect(day.getByText('Malladi Brothers')).toHaveCount(1);
 });
 
+test('an entry whose planned Event was deleted is added again, once', async ({ page }) => {
+  await open(page);
+  await storeEntries(page, [brothers]);
+  await page.reload();
+  const row = page.getByRole('main').getByRole('button', { name: /^Malladi Brothers/ });
+  const sheet = page.getByRole('dialog', { name: 'Malladi Brothers' });
+  await row.click();
+  await sheet.getByRole('button', { name: 'Add' }).click();
+  await sheet.getByRole('link', { name: 'Planned' }).click();
+
+  // The rasika deletes the planned Event, and lets its Undo lapse.
+  await page.getByRole('button', { name: 'Concert actions' }).click();
+  await page.getByRole('menuitem', { name: 'Delete Event' }).click();
+  await expect(page.getByRole('heading', { name: 'Season', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Undo', exact: true })).toHaveCount(0, {
+    timeout: 10_000,
+  });
+
+  // The entry is listed again; adding it plans it again, once, with nothing "not saved".
+  await row.click();
+  await sheet.getByRole('button', { name: 'Add' }).click();
+  await expect(sheet.getByRole('link', { name: 'Planned' })).toBeVisible();
+  await expect(page.getByText(/not saved/i)).toHaveCount(0);
+  const events = await readTable<{ deletedAt: string | null }>(page, 'events');
+  expect(events.filter((event) => event.deletedAt === null)).toHaveLength(1);
+});
+
 test('a cancelled listing is dimmed and its sheet has no add', async ({ page }) => {
   await open(page);
   await storeEntries(page, [entry('off-1', 1, { cancelled: true })]);

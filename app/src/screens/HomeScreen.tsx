@@ -51,7 +51,15 @@ import { useLingering } from './components/sheet-frame';
 import { Screen, TabHeader, useNow } from './components/layout';
 import { dayText, itemCount, nowTime, timeText } from './format';
 import { MESSAGES } from './messages';
-import { noteNewConcert, sweepNewConcerts } from './new-concert';
+import {
+  claimNewConcert,
+  dropNewConcert,
+  leavingNow,
+  noteNewConcert,
+  subscribeLeaving,
+  sweepNewConcerts,
+} from './new-concert';
+import { pinScroll, watchBody } from './pin';
 import { asNowReads, listingLead, timeline, type TimelineDay } from './timeline';
 import { subscribeUndo, undoOffers } from './undo';
 import { offersUpdate } from './update-offer';
@@ -115,11 +123,23 @@ function placeNow(): { at: string; offset: number } | null {
   return null;
 }
 
-/** A day's height before it is drawn: its label and a 64px row each (DESIGN.md "Spacing"). */
-const dayHeight = (day: TimelineDay) => 30 + 64 * (day.own.length + day.listings.length);
+/**
+ * A day's height before it is drawn: its label, a 64px row each, and a 20px line more for an
+ * entry's printed title (DESIGN.md "Spacing"). Measured against the 2026-27 feed at 390px, 56 of
+ * its 60 days draw at exactly this height, the rest within 40px, where a name wraps (47 of 60
+ * at 320px, within 44px): only those can move the page in a browser with no scroll anchoring,
+ * once each, as they first draw.
+ */
+const dayHeight = (day: TimelineDay) =>
+  30 +
+  64 * (day.own.length + day.listings.length) +
+  20 * day.listings.filter((listing) => listing.entry.title).length;
 
 function HomeView() {
-  const summaries = useEventSummaries();
+  const stored = useEventSummaries();
+  // A new Concert being taken back as the rasika leaves it is never drawn on its way out.
+  const leaving = useSyncExternalStore(subscribeLeaving, leavingNow);
+  const summaries = stored?.filter((summary) => !leaving.has(summary.event.id));
   const notes = useLoggingNotes();
   // The whole stored Schedule, the days gone included.
   const listings = useSchedule('');
@@ -141,46 +161,23 @@ function HomeView() {
   // One Concert per tap: a double tap must not make two.
   const creating = useRef(false);
   // A new Concert left untouched, whose take-back hasn't happened yet, goes now.
-  useEffect(() => sweepNewConcerts(), []);
+  useEffect(() => {
+    void sweepNewConcerts();
+  }, []);
   const ready = summaries !== undefined && notes !== undefined && listings !== undefined;
 
-  // Before the first paint with the timeline: back where Season was left, else at the header.
-  // Then held there while the days around draw at their real heights rather than their likely
-  // ones (a browser with no scroll anchoring, as Safari, would otherwise let the page slide
-  // under the rasika), until the rasika scrolls the page themself.
+  // Before the first paint with the timeline: back where Season was left, else at the header,
+  // and held there while the days around draw (screens/pin.ts).
   useLayoutEffect(() => {
     if (!ready) return;
-    const target =
-      (place && document.querySelector<HTMLElement>(`[data-place="${place.at}"]`)) ??
-      document.querySelector<HTMLElement>('[data-place="header"]');
-    if (!target) return;
-    const offset = place && target.dataset.place === place.at ? place.offset : 0;
-    let set = 0;
-    const hold = () => {
-      set = Math.max(0, target.getBoundingClientRect().top + window.scrollY + offset);
-      if (Math.abs(window.scrollY - set) >= 1) window.scrollTo(0, set);
-    };
-    hold();
-    // Runs after layout and before paint, so a day drawn at its real height never shows the
-    // page out of place.
-    const sizes = new ResizeObserver(hold);
-    sizes.observe(document.body);
-    const release = () => {
-      sizes.disconnect();
-      window.removeEventListener('scroll', moved);
-      for (const name of ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const) {
-        window.removeEventListener(name, release);
-      }
-    };
-    // A scroll that isn't the hold's own is the rasika's: the page is theirs from then on.
-    const moved = () => {
-      if (Math.abs(window.scrollY - set) >= 1) release();
-    };
-    window.addEventListener('scroll', moved, { passive: true });
-    for (const name of ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const) {
-      window.addEventListener(name, release, { passive: true });
-    }
-    return release;
+    const left = place && document.querySelector(`[data-place="${place.at}"]`) ? place : null;
+    const at = left?.at ?? 'header';
+    return pinScroll(
+      () => document.querySelector(`[data-place="${at}"]`),
+      left?.offset ?? 0,
+      window,
+      watchBody,
+    );
   }, [ready]);
   // Noted as the rasika scrolls, once a frame at most.
   useEffect(() => {
@@ -210,10 +207,15 @@ function HomeView() {
       const tappedAt = new Date().toISOString();
       const id = newId();
       const concert = { kind: 'concert' as const, date: today(), startTime: nowTime() };
+      // Held for its page before it exists, so no tab's sweep can take it back on the way there.
+      await claimNewConcert(id);
       const event = await saveWith({ table: 'events', id, field: '*' }, concert, () =>
         createEvent(concert, { id }),
       );
-      if (!event) return;
+      if (!event) {
+        dropNewConcert(id);
+        return;
+      }
       noteNewConcert(event, tappedAt);
       navigate(`/event/${event.id}`);
     } finally {

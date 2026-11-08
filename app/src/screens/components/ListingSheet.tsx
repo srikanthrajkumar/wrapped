@@ -23,23 +23,31 @@ import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { newId, type ScheduleEntry } from '../../model';
 import type { ScheduleListing } from '../../store/queries';
+import { isDeletedEvent } from '../../store/events';
 import { addFromSchedule } from '../../store/schedule';
 import { byStage } from '../../store/stage';
 import { listingLead } from '../timeline';
 import { dayText, roleName, timeText } from '../format';
-import type { Target } from '../save-feedback';
+import { saveFeedback, type Target } from '../save-feedback';
 import { NotSavedLine, saveWith, useSaveFeedback } from './feedback';
 import { KindMark } from './kind-mark';
 import { SheetFrame } from './sheet-frame';
 
 // One id per entry's add, kept for the page's life: a retry, or a second tap after the sheet
-// was closed and opened again, makes the same Event (docs/adr/0007).
+// was closed and opened again, makes the same Event (docs/adr/0007). Kept only while its Event
+// is live or its save unsettled: once that Event is deleted, the next add is a new attempt with
+// a new id, since a deleted Event's id is never made again (PR #30 review).
 const attempts = new Map<string, string>();
 const attemptOf = (entryId: string) => attempts.get(entryId) ?? null;
 const addTarget = (id: string): Target => ({ table: 'events', id, field: '*' });
 
-function add(entry: ScheduleEntry) {
+async function add(entry: ScheduleEntry) {
   let id = attempts.get(entry.id);
+  if (id) {
+    const status = saveFeedback.get(addTarget(id))?.status;
+    const unsettled = status === 'saving' || status === 'failed' || status === 'typed';
+    if (!unsettled && (await isDeletedEvent(id))) id = undefined;
+  }
   if (!id) attempts.set(entry.id, (id = newId()));
   // The entry's id goes with it, so the journal settles even when the Event returned is one
   // planned before, under another id (store/journal-check.ts).
@@ -49,7 +57,8 @@ function add(entry: ScheduleEntry) {
     startTime: entry.startTime,
     scheduleEntryId: entry.id,
   };
-  void saveWith(addTarget(id), value, () => addFromSchedule(entry.id, { id }));
+  const made = id;
+  await saveWith(addTarget(made), value, () => addFromSchedule(entry.id, { id: made }));
 }
 
 function Fact({ mark: Mark, name, children }: { mark: Icon; name: string; children?: ReactNode }) {
@@ -148,7 +157,12 @@ export function ListingSheet({
         </Button>
       ) : (
         !entry.cancelled && (
-          <Button size="lg" className="mt-4 w-full" disabled={saving} onClick={() => add(entry)}>
+          <Button
+            size="lg"
+            className="mt-4 w-full"
+            disabled={saving}
+            onClick={() => void add(entry)}
+          >
             <IconPlus aria-hidden />
             Add
           </Button>
