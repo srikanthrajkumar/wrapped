@@ -123,58 +123,105 @@ test('Season opens at Now, the days gone above it and not yet scrolled to', asyn
   await expect(page.locator(`#day-${dayFromToday(-9)}`)).toBeInViewport();
 });
 
-test('Season opens at its header and holds still there while the days above draw', async ({
-  page,
-}) => {
-  // Safari has no scroll anchoring: a day above that draws taller than its likely height would
-  // push the page down under the rasika. Chromium's anchoring is turned off to stand in for it.
-  await page.addInitScript(() => {
-    document.addEventListener('DOMContentLoaded', () => {
-      const style = document.createElement('style');
-      style.textContent = 'html, body { overflow-anchor: none !important; }';
-      document.head.append(style);
-    });
-    // The header's place on screen, every frame from the first.
-    const w = window as unknown as { tops: number[] };
-    w.tops = [];
-    const tick = () => {
-      const header = document.querySelector('[data-place="header"]');
-      if (header) w.tops.push(Math.round(header.getBoundingClientRect().top));
-      requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  });
-  await open(page);
-  // Days gone whose rows wrap to three lines, so each draws taller than its likely height.
-  const long = (id: string, days: number, startTime: string) =>
-    entry(id, days, {
-      startTime,
-      sabha: 'Sri Parthasarathy Swami Sabha, Vidya Bharathi Kalyana Mandapam',
-      title: 'Thematic concert on the compositions of the Trinity',
-      billed: [
-        {
-          name: `Thiruvarur Bhaktavatsalam Nagarajan Subramaniam ${id}`,
-          role: 'vocal',
-          group: null,
-        },
-      ],
-    });
-  await storeEntries(
-    page,
-    [-3, -2, -1].flatMap((days) =>
-      ['10:00', '13:00', '16:00', '18:30'].map((time) => long(`p${days}${time}`, days, time)),
-    ),
-  );
-  await makeEvents(page, [{ days: 1, planned: true }]);
-  await page.reload();
-  await expect(page.locator(`#day-${dayFromToday(1)}`)).toBeInViewport();
-  await page.waitForTimeout(1000);
+test.describe('with the web font arriving late', () => {
+  // Fetched past the service worker, which would serve it from its cache, so its delay holds.
+  test.use({ serviceWorkers: 'block' });
 
-  const tops = await page.evaluate(() => (window as unknown as { tops: number[] }).tops);
-  expect(tops.length).toBeGreaterThan(20);
-  // From its first frame on screen the header sits at the top, and never slides.
-  expect([...new Set(tops)]).toEqual([0]);
-  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  test('Season opens at its header and holds still there while the days above draw', async ({
+    page,
+  }) => {
+    // Safari has no scroll anchoring: a day above that draws taller than its likely height would
+    // push the page down under the rasika. Chromium's anchoring is turned off to stand in for it.
+    await page.addInitScript(() => {
+      document.addEventListener('DOMContentLoaded', () => {
+        const style = document.createElement('style');
+        style.textContent = 'html, body { overflow-anchor: none !important; }';
+        document.head.append(style);
+      });
+      // The header's place on screen in every frame painted, from the first. It is read as each
+      // frame is about to paint, after the page's own ResizeObservers (the hold's among them) have
+      // run, not at requestAnimationFrame: that runs before the frame's layout, so a reflow that
+      // came in since the last frame (the web font arriving) would be read there before the hold
+      // has answered it, a place no frame ever paints (the deploy of 4b319f2 read -49 so). A
+      // ResizeObserver made after the page's runs after theirs; a 1px box resized each frame
+      // calls it every frame.
+      const w = window as unknown as {
+        tops: number[];
+        heldAt?: number;
+        fontAt?: number;
+        tick?: () => void;
+      };
+      w.tops = [];
+      const tick = () => {
+        requestAnimationFrame(tick);
+        const header = document.querySelector('[data-place="header"]');
+        if (!header) return;
+        if (w.heldAt === undefined) {
+          // The header is drawn, so the hold is set: it is made in the same commit.
+          w.heldAt = performance.now();
+          const box = document.createElement('div');
+          box.style.cssText = 'position:fixed;top:0;left:0;height:1px;pointer-events:none';
+          document.body.append(box);
+          new ResizeObserver(() => {
+            w.tops.push(Math.round(header.getBoundingClientRect().top));
+          }).observe(box);
+          w.tick = () => (box.style.width = box.style.width === '1px' ? '2px' : '1px');
+        }
+        w.tick?.();
+      };
+      requestAnimationFrame(tick);
+      document.fonts.addEventListener('loadingdone', () => (w.fontAt = performance.now()));
+    });
+    // The web font arrives late, once the header is held: its text reflows the days above,
+    // which the hold must follow too.
+    await page.context().route('**/assets/*.woff2', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      await route.continue();
+    });
+    await open(page);
+    // Days gone whose rows wrap to three lines, so each draws taller than its likely height.
+    const long = (id: string, days: number, startTime: string) =>
+      entry(id, days, {
+        startTime,
+        sabha: 'Sri Parthasarathy Swami Sabha, Vidya Bharathi Kalyana Mandapam',
+        title: 'Thematic concert on the compositions of the Trinity',
+        billed: [
+          {
+            name: `Thiruvarur Bhaktavatsalam Nagarajan Subramaniam ${id}`,
+            role: 'vocal',
+            group: null,
+          },
+        ],
+      });
+    await storeEntries(
+      page,
+      [-3, -2, -1].flatMap((days) =>
+        ['10:00', '13:00', '16:00', '18:30'].map((time) => long(`p${days}${time}`, days, time)),
+      ),
+    );
+    await makeEvents(page, [{ days: 1, planned: true }]);
+    await page.reload();
+    await expect(page.locator(`#day-${dayFromToday(1)}`)).toBeInViewport();
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { fontAt?: number }).fontAt))
+      .toBeDefined();
+    await page.waitForTimeout(500);
+
+    const { tops, heldAt, fontAt } = await page.evaluate(() => {
+      const { tops, heldAt, fontAt } = window as unknown as {
+        tops: number[];
+        heldAt: number;
+        fontAt?: number;
+      };
+      return { tops, heldAt, fontAt };
+    });
+    expect(tops.length).toBeGreaterThan(20);
+    // The font came once the header was held, so its reflow was the hold's to follow.
+    expect(fontAt).toBeGreaterThan(heldAt);
+    // From its first frame on screen the header sits at the top, and never slides.
+    expect([...new Set(tops)]).toEqual([0]);
+    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  });
 });
 
 test('without a Schedule, the timeline is the rasika’s own Events by date, opening at the next day', async ({
