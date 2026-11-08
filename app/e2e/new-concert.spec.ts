@@ -147,3 +147,46 @@ test('a new Concert whose Item search was kept when the phone locked is kept', a
   await page.waitForTimeout(500);
   expect(await readTable(page, 'events')).toHaveLength(1);
 });
+
+test('another tab’s Season never takes back a new Concert open here', async ({ page, context }) => {
+  // This tab holds the new Concert open, nothing entered yet.
+  await addConcert(page);
+  // Another tab opens Season, whose sweep sees the Concert noted in their shared storage.
+  const other = await context.newPage();
+  await other.goto('/');
+  await expect(other.getByRole('heading', { name: 'Season', exact: true })).toBeVisible();
+  await other.waitForTimeout(800);
+  expect(await readTable(other, 'events')).toHaveLength(1);
+
+  // What this tab enters next is still saved, to the Concert it has open.
+  await page.getByRole('button', { name: 'Note' }).click();
+  const note = page.getByRole('textbox', { name: 'Note' });
+  await note.fill('front row');
+  await note.blur();
+  await expect
+    .poll(async () => (await readTable<{ note: string | null }>(page, 'events'))[0]?.note)
+    .toBe('front row');
+  await expect(page.getByText(/not saved/i)).toHaveCount(0);
+});
+
+test('a new Concert open in two tabs is kept when one leaves, and goes when the last does', async ({
+  page,
+  context,
+}) => {
+  await addConcert(page);
+  const url = page.url();
+  // The same new Concert open in a second tab.
+  const other = await context.newPage();
+  await other.goto(url);
+  await expect(other.getByRole('link', { name: 'Add Item' })).toBeVisible();
+
+  // This tab leaves with nothing entered: the other still has it open, so it stays.
+  await page.goBack();
+  await expect(page.getByRole('heading', { name: 'Season', exact: true })).toBeVisible();
+  await page.waitForTimeout(800);
+  expect(await readTable(page, 'events')).toHaveLength(1);
+
+  // The last tab leaves with nothing entered: now it goes, without a trace.
+  await other.getByRole('main').getByRole('link', { name: 'Season' }).click();
+  await expectNoTrace(other);
+});

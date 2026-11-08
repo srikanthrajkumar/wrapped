@@ -329,9 +329,12 @@ export interface Birth {
  * Maintainer, 2026-11-08): it is still exactly as born, never saved again, with no Appearance
  * or Item ever made for it (a deleted one included), no Item search text kept and no logging.
  * Checked and removed in one transaction, so a save landing at the same moment either comes
- * first and keeps it, or finds it gone. A Concert the server never received leaves no row and
- * no outbox entry; one already sent is deleted as a tombstone, which syncs as any delete does
- * (ADR 0003). Anything else keeps it: `kept`.
+ * first and keeps it, or finds it gone. It leaves no row only with proof it never left the
+ * phone: its birth still queued and never sent, and the server never heard of it (no known seq,
+ * nothing refused). Anything else, an acked birth above all (its outbox entry gone), is deleted
+ * as a tombstone that syncs as any delete does (ADR 0003), so the server never keeps an empty
+ * Concert; a refused birth's "needs attention" entry goes with it, since it holds only what the
+ * Concert was born with. Anything entered keeps it: `kept`.
  */
 export async function discardUntouched(
   id: string,
@@ -340,7 +343,7 @@ export async function discardUntouched(
 ): Promise<'discarded' | 'kept' | 'gone'> {
   return db.transaction(
     'rw',
-    [db.events, db.appearances, db.items, db.outbox, db.meta],
+    [db.events, db.appearances, db.items, db.outbox, db.meta, db.serverSeqs, db.attention],
     async () => {
       const event = await db.events.get(id);
       if (!event || event.deletedAt !== null) return 'gone';
@@ -360,14 +363,31 @@ export async function discardUntouched(
       if (made > 0) return 'kept';
       if (await db.meta.get(draftKey(id))) return 'kept';
       if (await readLoggingNote(id, db)) return 'kept';
-      const queued = await db.outbox.where('recordId').equals(id).toArray();
-      if (queued.every((entry) => entry.firstSentAt === null)) {
+      const queued = (await db.outbox.where('recordId').equals(id).toArray()).filter(
+        (entry) => entry.table === 'events',
+      );
+      const refused = db.attention.where({ table: 'events', recordId: id });
+      const neverLeft =
+        queued.length > 0 &&
+        queued.every((entry) => entry.firstSentAt === null) &&
+        (await db.serverSeqs.get(['events', id])) === undefined &&
+        (await refused.count()) === 0;
+      if (neverLeft) {
         await db.outbox.bulkDelete(queued.map((entry) => entry.seq!));
         await db.events.delete(id);
       } else {
+        await refused.delete();
         await remove('events', id, { db });
       }
       return 'discarded';
     },
   );
+}
+
+/** Whether an Event with this id was made and since deleted: its id is never made again. */
+export async function isDeletedEvent(
+  id: string,
+  { db = defaultDb }: WriteOptions = {},
+): Promise<boolean> {
+  return (await db.events.get(id))?.deletedAt != null;
 }

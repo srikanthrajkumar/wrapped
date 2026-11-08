@@ -10,6 +10,7 @@ import { HomeScreen } from './screens/HomeScreen';
 import { ItemEditor } from './screens/ItemEditor';
 import { Placeholder } from './screens/Placeholder';
 import { preloadSettings, SettingsScreen } from './screens/SettingsScreen';
+import { holdNewConcert } from './screens/new-concert';
 import { leaveEvent } from './screens/undo';
 import { db } from './store/db';
 import { useFirstLaunchDone } from './store/first-launch';
@@ -69,6 +70,26 @@ function TabBar() {
  * Item and Appearance receipts are cleared once the location is no longer under it, except
  * those of a failed Undo, whose bar stays until it works or is dismissed.
  */
+/**
+ * While a Concert's pages are open (its Event screen, its Items), this tab holds the Concert's
+ * lock, so another tab's Season never takes back a new Concert open here; leaving them runs the
+ * untouched-Concert check inside that lock (screens/new-concert.ts).
+ */
+function useOpenConcertHeld() {
+  const [path] = useLocation();
+  const open = /^\/event\/([^/]+)/.exec(path)?.[1] ?? null;
+  useEffect(() => {
+    if (!open) return;
+    const release = holdNewConcert(open);
+    return () => {
+      // Left only if the path no longer opens this Concert (not a remount on the same page).
+      const now = window.location.pathname;
+      const here = `/event/${open}`;
+      void release(now !== here && !now.startsWith(`${here}/`));
+    };
+  }, [open]);
+}
+
 function useReceiptsClearedOnLeave() {
   const [path] = useLocation();
   const last = useRef<string | null>(null);
@@ -140,6 +161,7 @@ export function App() {
   const [footer, setFooter] = useState<HTMLElement | null>(null);
   useFooterRoom(footer, inset);
   useReceiptsClearedOnLeave();
+  useOpenConcertHeld();
   useEffect(() => {
     if (done) preloadSettings();
   }, [done]);
