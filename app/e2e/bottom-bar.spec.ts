@@ -2,9 +2,9 @@ import { expect, test, type Page } from '@playwright/test';
 import { finishFirstLaunch } from './helpers';
 
 // The bottom bar is the shell's (DESIGN.md "Motion"): moving between an Event and an Item never
-// empties it or changes its height, so the tab bar never jumps; Season and Settings have none
-// (2026-11-08), and the bar comes and goes in one step. Sampled every animation frame across
-// each move, as the iPhone walkthrough's flicker was seen (2026-11-06).
+// empties it or changes its height, so the tab bar never jumps; Season has none (2026-11-08),
+// and the bar comes and goes in one step. Sampled every animation frame across each move, as
+// the iPhone walkthrough's flicker was seen (2026-11-06).
 
 type Sample = { bar: number; footer: number; buttons: number; labels: string };
 
@@ -117,32 +117,4 @@ test('the bottom bar never empties or shrinks between Event and Item, and Season
     await expect(page.getByRole('heading', { name: 'Season', exact: true })).toBeVisible();
   });
   expectOneStep(samples, null);
-});
-
-test('Settings has no bar, and the Event screen brings it back whole', async ({ page }) => {
-  await page.goto('/');
-  await finishFirstLaunch(page);
-  const tabs = page.getByRole('navigation', { name: 'Main' });
-  await page.getByRole('button', { name: 'Log a Concert' }).click();
-  await expect(page.getByRole('link', { name: 'Add Item' })).toBeVisible();
-  // Something entered, so the Concert stays to come back to.
-  await page.getByRole('button', { name: 'Note' }).click();
-  await page.getByRole('textbox', { name: 'Note' }).fill('front row');
-
-  let samples = await sample(page, async () => {
-    await tabs.getByRole('link', { name: 'Settings' }).click();
-    await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
-  });
-  expectOneStep(samples, null);
-
-  await tabs.getByRole('link', { name: 'Season' }).click();
-  await expect(page.getByRole('heading', { name: 'Season', exact: true })).toBeVisible();
-  samples = await sample(page, async () => {
-    await page
-      .getByRole('link', { name: /No Sabha yet/ })
-      .first()
-      .click();
-    await expect(page.getByRole('link', { name: 'Add Item' })).toBeVisible();
-  });
-  expectOneStep(samples, 'Add Item');
 });

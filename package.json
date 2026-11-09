@@ -10,7 +10,7 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json && tsc -p app/tsconfig.json && tsc -p app/tsconfig.node.json",
-    "lint": "eslint . && prettier --check .",
+    "lint": "eslint --cache --cache-location node_modules/.cache/eslint/ . && prettier --check --cache .",
     "format": "prettier --write .",
     "test": "vitest run",
     "test:server": "vitest run --config supabase/vitest.config.ts && vitest run --config supabase-public/vitest.config.ts",
@@ -35,5 +35,9 @@
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.72.1",
     "vitest": "^5.0.5"
+  },
+  "prettier": {
+    "printWidth": 100,
+    "singleQuote": true
   }
 }

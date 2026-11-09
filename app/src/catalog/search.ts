@@ -13,7 +13,7 @@ export interface CatalogIndex {
   search(query: string, limit?: number): SearchResult[];
 }
 
-export const DEFAULT_LIMIT = 20;
+const DEFAULT_LIMIT = 20;
 // uFuzzy tries every order of the words (6 orders for 3 words, 120 for 5), so reordering is
 // kept to short queries of real words: four or five short words took seconds on the full
 // catalog. Longer queries are matched in the order typed.

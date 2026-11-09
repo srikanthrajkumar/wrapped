@@ -32,8 +32,8 @@ export async function readLoggingNote(
 /** A Concert is being logged while an Item changed within this long (D17). */
 export const LOGGING_HOLD_MS = 60 * 60 * 1000;
 /** An Event is Now from an hour before its start until four hours after it (DD2). */
-export const WINDOW_BEFORE_MS = 60 * 60 * 1000;
-export const WINDOW_AFTER_MS = 4 * 60 * 60 * 1000;
+const WINDOW_BEFORE_MS = 60 * 60 * 1000;
+const WINDOW_AFTER_MS = 4 * 60 * 60 * 1000;
 
 /** Record logging activity, inside the caller's transaction (which must include `db.meta`). */
 export async function noteLogging(db: WrappedDB, eventId: string, now = new Date()) {

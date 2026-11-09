@@ -20,7 +20,7 @@ function leave(deleted: string, to: string) {
 }
 
 /** What a failed delete names: "Concert, Mon 2 Nov, 7:30 pm". */
-export function concertLabel(event: { date: string; startTime: string | null }): string {
+function concertLabel(event: { date: string; startTime: string | null }): string {
   return [MESSAGES.short.concert, dayText(event.date), event.startTime && timeText(event.startTime)]
     .filter(Boolean)
     .join(', ');

@@ -31,7 +31,7 @@ const guessable = (value: DetailValue) =>
   value.state === 'catalog' || value.state === 'override' || value.state === 'unresolved';
 
 /** The three pinned chips: "?", "Not sure", "N/A". */
-export function StateChips({
+function StateChips({
   value,
   onChange,
 }: {

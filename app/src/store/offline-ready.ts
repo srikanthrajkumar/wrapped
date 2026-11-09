@@ -27,7 +27,7 @@ export async function recordOfflineReady(
   }
 }
 
-export const READY_TO_LOG_KEY = 'readyToLog';
+const READY_TO_LOG_KEY = 'readyToLog';
 
 /** The service worker's last answer about the first phase, with when it was given. */
 export async function recordReadyToLog(

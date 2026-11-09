@@ -124,10 +124,16 @@ test('an entry added from the Schedule is in Next, and stays there marked once c
   await expect(page.getByRole('dialog').getByRole('button', { name: 'Add' })).toHaveCount(0);
   await page.keyboard.press('Escape');
 
-  await add(page, 'Malladi Brothers');
+  // Two quick taps plan it once.
+  await listingRow(page, 'Malladi Brothers').click();
+  await page
+    .getByRole('dialog', { name: 'Malladi Brothers' })
+    .getByRole('button', { name: 'Add' })
+    .dblclick();
   await expect(page.getByRole('dialog').getByRole('link', { name: 'Planned' })).toBeVisible();
-  const [event] = await readTable<{ id: string; status: string; source: string }>(page, 'events');
-  expect(event).toMatchObject({ status: 'planned', source: 'schedule' });
+  const events = await readTable<{ id: string; status: string; source: string }>(page, 'events');
+  expect(events).toHaveLength(1);
+  expect(events[0]).toMatchObject({ status: 'planned', source: 'schedule' });
   expect(await readTable(page, 'appearances')).toHaveLength(3);
 
   await page.keyboard.press('Escape');

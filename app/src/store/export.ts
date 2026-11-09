@@ -69,7 +69,7 @@ export async function readLastExport(db: WrappedDB = defaultDb): Promise<LastExp
 }
 
 /** How long an Export waits for the store: a db.open blocked by another tab never answers. */
-export const EXPORT_TIMEOUT_MS = 10_000;
+const EXPORT_TIMEOUT_MS = 10_000;
 
 /**
  * The whole season as stored, tombstones included, in one read transaction so the file is one

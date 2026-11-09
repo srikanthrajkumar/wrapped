@@ -94,7 +94,7 @@ export function metaStorage(db: WrappedDB): SupportedStorage {
  * other 5xx, a captive portal's 511 among them, says nothing about the refresh token, so it is
  * made to look like no answer: auth-js retries it, and keeps the session.
  */
-export const keepSessionFetch: typeof fetch = async (input, init) => {
+const keepSessionFetch: typeof fetch = async (input, init) => {
   const response = await fetch(input, init);
   const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
   const status = response.status;

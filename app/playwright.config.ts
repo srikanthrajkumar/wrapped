@@ -6,6 +6,11 @@ const port = 4319;
 export default defineConfig({
   testDir: 'e2e',
   forbidOnly: !!process.env.CI,
+  // Every test has its own browser context and no test shares state with another, so the long
+  // files (nothing-lost.spec.ts) spread over the workers instead of holding one to the end.
+  // The workers stay at Playwright's default, half the cores: two on a 4-core box shared
+  // with other agents, and two on CI's runner.
+  fullyParallel: true,
   // No retries: a flaky test on a data-loss path must fail loudly (constitution IV).
   retries: 0,
   reporter: process.env.CI ? 'github' : 'list',

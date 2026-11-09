@@ -123,7 +123,7 @@ export function undoMessage(receipt: DeletionReceipt): string {
 }
 
 /** What a failed Undo's bar names. */
-export function undoSubject(receipt: DeletionReceipt): string {
+function undoSubject(receipt: DeletionReceipt): string {
   if (receipt.kind === 'item') return MESSAGES.undo.subject.item(receipt.position ?? 0);
   if (receipt.kind === 'appearance') return MESSAGES.undo.subject.artist;
   if (receipt.kind === 'title') return MESSAGES.undo.subject.title;

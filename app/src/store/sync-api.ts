@@ -85,7 +85,7 @@ export interface RpcClient {
  * about 20 s at 100 kbit/s, a congested hall's worst. Every call is safe to repeat: a push that
  * did land is answered as already processed (FR-015).
  */
-export const RPC_DEADLINE_MS = 30_000;
+const RPC_DEADLINE_MS = 30_000;
 
 /** Read one reply: its body on success, else the SyncError for its status. */
 export function readReply<T>(reply: RpcReply): T {

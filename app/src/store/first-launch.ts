@@ -4,7 +4,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db as defaultDb, type WrappedDB } from './db';
 
-export const FIRST_LAUNCH_KEY = 'firstLaunch';
+const FIRST_LAUNCH_KEY = 'firstLaunch';
 
 export async function finishFirstLaunch(db: WrappedDB = defaultDb): Promise<void> {
   await db.meta.put({ key: FIRST_LAUNCH_KEY, value: { doneAt: new Date().toISOString() } });

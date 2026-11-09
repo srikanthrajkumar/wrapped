@@ -2,7 +2,7 @@
 // or a moved folder gets past an ignore rule. One list, used by the check on the current index
 // (tracked-files.test.ts) and the check on every file a commit range adds (added-files.mjs).
 
-export const FORBIDDEN = [
+const FORBIDDEN = [
   // The private catalog snapshot, wherever it ends up, compressed or not (CONTRIBUTING.md).
   /^app\/public\/catalog\//,
   /(^|\/)catalog\.[0-9a-f]{8,}\.json(\.(br|gz))?$/i,
