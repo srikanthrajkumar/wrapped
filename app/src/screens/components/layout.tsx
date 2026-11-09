@@ -16,13 +16,17 @@ import { createPortal } from 'react-dom';
 import { Link, useLocation } from 'wouter';
 import { cn } from '@/lib/utils';
 import { useInstall } from '../../install';
+import { noteOpened } from '../event-back';
 import { SeasonFeedback } from './feedback';
 import { InstallRow } from './InstallRow';
 import { UndoBar } from './UndoBar';
 
-/** How deep a screen sits: a tab's root, an Event, or an Item in an Event. */
+/**
+ * How deep a screen sits: a tab's root, the days gone (from Season, and opening Events), an
+ * Event, or an Item in an Event.
+ */
 const depth = (path: string) =>
-  path.startsWith('/event/') ? (path.includes('/item/') ? 2 : 1) : 0;
+  path === '/earlier' ? 0.5 : path.startsWith('/event/') ? (path.includes('/item/') ? 2 : 1) : 0;
 // The path of the screen shown last, so the next one knows which way the rasika went.
 let shownPath: string | null = null;
 
@@ -34,6 +38,7 @@ let shownPath: string | null = null;
 export function Screen({ children }: { children: ReactNode }) {
   const [path] = useLocation();
   const [enter] = useState<'forward' | 'back' | undefined>(() => {
+    noteOpened(path, shownPath);
     if (shownPath === null) return undefined;
     const by = depth(path) - depth(shownPath);
     return by > 0 ? 'forward' : by < 0 ? 'back' : undefined;
@@ -214,15 +219,12 @@ export function TabHeader({
   title,
   art,
   action,
-  top = true,
   children,
 }: {
   title: string;
   /** The motif to draw the title on, as a curtain (DESIGN.md "The motif"). */
   art?: ReactNode;
   action?: ReactNode;
-  /** At the top of the page; Season's header sits under the days gone once there are any. */
-  top?: boolean;
   children?: ReactNode;
 }) {
   // In a phone's browser tab the install row shows on every tab, at one place (FB-46), so the
@@ -240,9 +242,7 @@ export function TabHeader({
   return (
     <>
       {art && way === null ? (
-        <Curtain art={art} top={top}>
-          {heading('text-heading font-bold')}
-        </Curtain>
+        <Curtain art={art}>{heading('text-heading font-bold')}</Curtain>
       ) : (
         <div className="pt-4 pb-2">{heading('text-title font-semibold')}</div>
       )}
@@ -262,21 +262,11 @@ const TOP = 'var(--app-top-inset,env(safe-area-inset-top))';
  * motif's ground is the page's own colour, so the status bar above it (which an Android web app
  * can't draw under) never shows a seam.
  */
-export function Curtain({
-  art,
-  top = true,
-  children,
-}: {
-  art: ReactNode;
-  /** At the top of the page, drawn up under the status bar; else it starts where it sits. */
-  top?: boolean;
-  children: ReactNode;
-}) {
-  const inset = top ? TOP : '0px';
+export function Curtain({ art, children }: { art: ReactNode; children: ReactNode }) {
   return (
     <div
       className="relative mr-[calc(-16px-env(safe-area-inset-right))] ml-[calc(-16px-env(safe-area-inset-left))]"
-      style={{ marginTop: `calc(-1 * ${inset})` }}
+      style={{ marginTop: `calc(-1 * ${TOP})` }}
     >
       <div className="absolute inset-0 overflow-hidden">{art}</div>
       {/* The title holds its contrast: the field fades halfway to the page behind it. */}
@@ -286,7 +276,7 @@ export function Curtain({
       />
       <div
         className="relative flex flex-col justify-end pr-[calc(16px+env(safe-area-inset-right))] pb-4 pl-[calc(16px+env(safe-area-inset-left))]"
-        style={{ minHeight: `calc(${inset} + 112px)`, paddingTop: `calc(${inset} + 40px)` }}
+        style={{ minHeight: `calc(${TOP} + 112px)`, paddingTop: `calc(${TOP} + 40px)` }}
       >
         {children}
       </div>

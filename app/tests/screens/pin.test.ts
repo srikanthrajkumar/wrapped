@@ -1,16 +1,26 @@
-// Season's opening hold (screens/pin.ts; PR #30 review): it keeps the anchor in place while the
-// days around draw, follows an anchor redrawn under the same name, lets go once no anchor is
-// left instead of creeping by its offset, and lets go at the rasika's own scroll.
+// Season's hold on coming back (screens/pin.ts; PR #30 review): it keeps the anchor in place
+// while the days around draw, follows an anchor redrawn under the same name, lets go once no
+// anchor is left instead of creeping by its offset, holds on through a page too short to reach
+// its place yet, and lets go at the rasika's own scroll.
 
 import { describe, expect, it } from 'vitest';
 import { pinScroll, type PinPage } from '../../src/screens/pin';
 
 function fakePage() {
   const listeners = new Map<string, Set<() => void>>();
+  let scrolled = false;
   const page = {
     scrollY: 0,
+    maxScrollY: Infinity,
     scrollTo(_x: number, y: number) {
-      page.scrollY = y;
+      // A page too short for `y` stops the scroll at its end, as a browser does.
+      page.scrollY = Math.max(0, Math.min(y, page.maxScrollY));
+      scrolled = true;
+    },
+    /** The next frame: a browser tells of a scroll then, not as it happens. */
+    frame() {
+      if (!scrolled) return;
+      scrolled = false;
       for (const listener of listeners.get('scroll') ?? []) listener();
     },
     addEventListener(type: string, listener: () => void) {
@@ -26,7 +36,7 @@ function fakePage() {
       for (const listener of listeners.get('scroll') ?? []) listener();
     },
   };
-  return page satisfies PinPage & { userScroll(y: number): void };
+  return page satisfies PinPage & { userScroll(y: number): void; frame(): void };
 }
 
 /** An element at `top` px down the page; a detached one measures at 0, as in a browser. */
@@ -55,7 +65,7 @@ function sizes() {
   };
 }
 
-describe('the opening hold', () => {
+describe('the hold', () => {
   it('puts the anchor at its offset and keeps it there as the days above draw', () => {
     const page = fakePage();
     const anchor = anchorAt(page, 1000);
@@ -91,6 +101,23 @@ describe('the opening hold', () => {
     watched.change();
     expect(page.scrollY).toBe(1120);
     expect(watched.watching).toBe(false);
+  });
+
+  it('holds on through a page too short to reach its place, and reaches it as the days draw', () => {
+    const page = fakePage();
+    // The days above at their likely heights: the page ends before the anchor's place.
+    page.maxScrollY = 800;
+    const anchor = anchorAt(page, 1000);
+    const watched = sizes();
+    pinScroll(() => anchor as unknown as Element, 0, page, watched.watch);
+    page.frame();
+    expect(page.scrollY).toBe(800);
+    expect(watched.watching).toBe(true);
+    // They draw at their real heights: the page grows and the anchor moves down.
+    page.maxScrollY = 2000;
+    anchor.top = 1300;
+    watched.change();
+    expect(page.scrollY).toBe(1300);
   });
 
   it('lets go at the rasika’s own scroll', () => {

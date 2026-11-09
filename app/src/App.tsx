@@ -6,7 +6,7 @@ import { ConcertSummary } from './screens/components/ConcertSummary';
 import { ActionBar, BarProvider, type Bar } from './screens/components/layout';
 import { EventScreen } from './screens/EventScreen';
 import { FirstLaunch } from './screens/FirstLaunch';
-import { HomeScreen } from './screens/HomeScreen';
+import { EarlierScreen, HomeScreen } from './screens/HomeScreen';
 import { ItemEditor } from './screens/ItemEditor';
 import { Placeholder } from './screens/Placeholder';
 import { preloadSettings, SettingsScreen } from './screens/SettingsScreen';
@@ -18,7 +18,8 @@ import { clearReceipts } from './store/receipts';
 
 // Navigation per plan.md DD1: three bottom tabs (Season, Wrapped, Settings). Event and Item
 // open as pushed screens; the tab bar hides while the Item editor is open. The Schedule and Tidy
-// are reached from Season, and the Maintainer's /admin from Settings.
+// are reached from Season, as are the days gone (/earlier), and the Maintainer's /admin from
+// Settings.
 
 const ITEM_ROUTE = '/event/:eventId/item/:itemId';
 
@@ -179,6 +180,9 @@ export function App() {
             <Switch>
               <Route path="/">
                 <HomeScreen />
+              </Route>
+              <Route path="/earlier">
+                <EarlierScreen />
               </Route>
               <Route path={ITEM_ROUTE}>
                 {({ eventId, itemId }) => <ItemEditor eventId={eventId} itemId={itemId} />}

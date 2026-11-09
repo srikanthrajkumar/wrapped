@@ -38,6 +38,8 @@ export const MESSAGES = {
       `Saved on this phone · ${count} ${count === 1 ? 'change' : 'changes'} not yet backed up`,
     allSynced: 'All backed up',
   },
+  /** The days gone: Season's history mark, named for the page it opens, and that page. */
+  earlier: 'Earlier',
   /** Home, while the app isn't ready for offline; Settings shows it always. */
   offline: {
     ready: 'Ready offline',

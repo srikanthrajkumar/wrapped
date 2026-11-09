@@ -59,6 +59,14 @@ const go = async (page: Page, path: string) => {
   await page.evaluate(() => scrollTo(0, 0));
 };
 
+/** The days gone, opened from Season's history mark. */
+const openEarlier = async (page: Page) => {
+  await go(page, '/');
+  await page.getByRole('main').getByRole('link', { name: 'Earlier', exact: true }).click();
+  await page.waitForURL(BASE + '/earlier');
+  await page.getByRole('heading', { name: 'Earlier', level: 1 }).waitFor();
+};
+
 let dragFrom = { x: 0, y: 0 };
 const concert = (page: Page, ids: SeedIds) => go(page, `/event/${ids.full}`);
 const stageRow = (page: Page, name: RegExp) =>
@@ -66,17 +74,8 @@ const stageRow = (page: Page, name: RegExp) =>
 
 const VIEWS: View[] = [
   { name: 'season', open: (page) => go(page, '/') },
-  {
-    // A screen up from the opening: the days gone above the header.
-    name: 'season-up',
-    open: async (page) => {
-      await go(page, '/');
-      // Once Season has opened at its header, which it does as its days arrive.
-      await page.locator('[data-place="header"]').waitFor();
-      await page.waitForFunction(() => window.scrollY > 0);
-      await page.evaluate(() => window.scrollBy(0, -window.innerHeight * 0.6));
-    },
-  },
+  // The days gone, their own page.
+  { name: 'season-earlier', open: openEarlier },
   {
     // A Schedule entry's sheet, from its row on the timeline.
     name: 'entry-sheet',
@@ -361,6 +360,7 @@ async function shots(out: string) {
   // Season with the rasika's own Events and no Schedule yet, as before a feed is delivered.
   if (!only || only.includes('season')) {
     await take({ name: 'season-own', open: (page) => go(page, '/') }, ids);
+    await take({ name: 'season-own-earlier', open: openEarlier }, ids);
   }
   await seedSchedule(page);
   writeFileSync(join(out, 'seed-ids.json'), JSON.stringify(ids, null, 2));
@@ -539,9 +539,13 @@ async function council(out: string, baseline?: string) {
   mkdirSync(dir, { recursive: true });
   const browser = await chromium.launch(LAUNCH);
   // Only the views this round shot (HC_VIEWS may have narrowed it).
-  const views = ['welcome', 'season-empty', 'season-own', ...VIEWS.map((v) => v.name)].filter(
-    (view) => existsSync(join(out, 'shots', `${view}.393.dark.png`)),
-  );
+  const views = [
+    'welcome',
+    'season-empty',
+    'season-own',
+    'season-own-earlier',
+    ...VIEWS.map((v) => v.name),
+  ].filter((view) => existsSync(join(out, 'shots', `${view}.393.dark.png`)));
   const png = (root: string, view: string, theme: Theme) =>
     dataUrl(readFileSync(join(root, 'shots', `${view}.393.${theme}.png`)));
   for (const view of views) {
