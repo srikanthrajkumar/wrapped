@@ -24,10 +24,10 @@ import { writeReceipt, type DeletionReceipt } from './receipts';
 import { appearanceProblems, check, eventProblems, RuleError } from './rules';
 
 /** The feed's format this reader knows (contracts/schedule-feed.md, "Format number"). */
-export const SCHEDULE_FORMAT = 1;
+const SCHEDULE_FORMAT = 1;
 
 /** The `meta` row that says which file the stored entries came from. */
-export const SCHEDULE_META = 'schedule';
+const SCHEDULE_META = 'schedule';
 
 /** A feed file as read: only entries this reader can use. */
 export interface ScheduleFile {
@@ -49,7 +49,7 @@ export interface ScheduleMeta {
 }
 
 /** Why an entry can't be added. */
-export const ENTRY_GONE = 'this Schedule entry is no longer on the phone';
+const ENTRY_GONE = 'this Schedule entry is no longer on the phone';
 export const ENTRY_CANCELLED = 'this Schedule entry is cancelled';
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -77,7 +77,7 @@ function realDate(date: unknown): date is string {
 }
 
 /** The instant a `publishedAt` names, in ms; NaN for one that names none, or no real day. */
-export function publishedInstant(publishedAt: string): number {
+function publishedInstant(publishedAt: string): number {
   const match = INSTANT.exec(publishedAt);
   return match && realDate(match[1]) ? Date.parse(publishedAt) : Number.NaN;
 }
@@ -456,7 +456,7 @@ export type Applied = 'updated' | 'flagged' | 'refused' | 'unchanged';
  * would break a rule (a Lecdem billed with 4 presenters) is refused whole, the Event left as it
  * was and its version not recorded, so a corrected version still applies.
  */
-export async function applyEntry(eventId: string, db: WrappedDB = defaultDb): Promise<Applied> {
+async function applyEntry(eventId: string, db: WrappedDB = defaultDb): Promise<Applied> {
   try {
     return await db.transaction('rw', tablesOf(db), async () => {
       const event = await db.events.get(eventId);

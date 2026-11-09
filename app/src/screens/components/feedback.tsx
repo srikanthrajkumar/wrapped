@@ -58,7 +58,7 @@ const keyOf = (targets: Target[]) =>
  * Tell save feedback that this screen shows `targets` with its own "Not saved" line, so the
  * season-wide line leaves them out while it is mounted.
  */
-export function useShowsFailures(targets: Target[]): void {
+function useShowsFailures(targets: Target[]): void {
   const key = keyOf(targets);
   const latest = useRef(targets);
   useLayoutEffect(() => {

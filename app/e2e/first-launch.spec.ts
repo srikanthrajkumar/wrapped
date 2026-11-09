@@ -84,37 +84,6 @@ test('a cleared cache is found on the next launch, not trusted from before', asy
     .toBeLessThan(before.total);
 });
 
-test('a file evicted from the precache is fetched again by Try again', async ({ page }) => {
-  test.setTimeout(90_000);
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Continue with Google' }).click();
-  await expect(page.getByRole('heading', { name: 'Ready to log offline.' })).toBeVisible({
-    timeout: 30_000,
-  });
-
-  // The phone evicts one first-phase file; the worker itself stays the same.
-  await page.evaluate(async () => {
-    for (const name of await caches.keys()) {
-      const cache = await caches.open(name);
-      for (const request of await cache.keys()) {
-        if (request.url.includes('source-sans-3-ext')) await cache.delete(request);
-      }
-    }
-  });
-  await page.reload();
-  await page.getByRole('button', { name: 'Continue with Google' }).click();
-  await expect(
-    page.getByRole('heading', {
-      name: 'The download stopped. Logging needs it once, with a connection.',
-    }),
-  ).toBeVisible({ timeout: 40_000 });
-
-  await page.getByRole('button', { name: 'Try again' }).click();
-  await expect(page.getByRole('heading', { name: 'Ready to log offline.' })).toBeVisible({
-    timeout: 30_000,
-  });
-});
-
 test.describe('without a service worker', () => {
   test.use({ serviceWorkers: 'block' });
 

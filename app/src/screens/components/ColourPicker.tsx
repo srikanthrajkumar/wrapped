@@ -13,7 +13,7 @@ import type { Colour } from '../../model';
 import { SheetFrame } from './sheet-frame';
 
 /** The swatch values (DESIGN.md, "Outfit colours"): data a rasika picks, not theme colours. */
-export const SWATCHES: Record<Colour, string> = {
+const SWATCHES: Record<Colour, string> = {
   white: '#F5F3EE',
   red: '#C62828',
   blue: '#1E5AA8',

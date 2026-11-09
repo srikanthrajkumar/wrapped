@@ -18,7 +18,7 @@ const shownKey = (eventId: string) => `${SHOWN_PREFIX}${eventId}`;
  * Set the first time this runs on a phone. Concerts that ended before it were finished with the
  * old "Done with this Concert" and its card, so they are marked shown then, not shown at once.
  */
-export const SUMMARIES_SINCE_KEY = 'summariesSince';
+const SUMMARIES_SINCE_KEY = 'summariesSince';
 
 type Timed = Pick<Event, 'date' | 'startTime'>;
 
@@ -30,7 +30,7 @@ function loggedLately(note: LoggingNote | undefined, now: Date): boolean {
 }
 
 /** A Concert's summary is due: logged on this phone, its last Item over an hour ago, its window past. */
-export function summaryDue(event: Timed, note: LoggingNote | undefined, now: Date): boolean {
+function summaryDue(event: Timed, note: LoggingNote | undefined, now: Date): boolean {
   return !!note?.lastLoggedAt && !loggedLately(note, now) && !inWindow(event, now);
 }
 

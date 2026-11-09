@@ -10,7 +10,7 @@ const KEY = 'wrapped.theme';
 const BACKGROUND: Record<Theme, string> = { dark: '#090b0c', light: '#ffffff' };
 const listeners = new Set<() => void>();
 
-export function getTheme(): Theme {
+function getTheme(): Theme {
   try {
     return localStorage.getItem(KEY) === 'light' ? 'light' : 'dark';
   } catch {

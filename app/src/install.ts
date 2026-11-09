@@ -15,7 +15,7 @@ interface InstallPromptEvent extends Event {
 }
 
 /** An iPhone, iPad (whose Safari says Macintosh, with touch) or Android phone; null elsewhere. */
-export function installWay(userAgent: string, touchPoints: number): InstallWay | null {
+function installWay(userAgent: string, touchPoints: number): InstallWay | null {
   if (/iPhone|iPad|iPod/.test(userAgent)) return 'ios';
   if (/Macintosh/.test(userAgent) && touchPoints > 1) return 'ios';
   if (/Android/.test(userAgent)) return 'android';

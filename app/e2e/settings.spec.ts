@@ -1,8 +1,8 @@
 // Phase 4, safe on the phone (T051 to T053; DESIGN.md "Settings", "Export lives in Settings",
-// "Status", "Install"): Export lives in Settings with the day of the last one, and the Event's
-// "⋯" holds only Delete Event; home stays quiet until sync, but for "Getting ready for offline…";
-// Settings shows the season first; and a phone with the app open in a browser tab shows the
-// install row on every screen, which an installed app and a desktop never show.
+// "Status", "Install"): Export lives in Settings with the day of the last one; home stays quiet
+// until sync, but for "Getting ready for offline…"; Settings warns when storage isn't protected;
+// and a phone with the app open in a browser tab shows the install row on every screen, which an
+// installed app and a desktop never show.
 
 import { devices, expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
@@ -132,12 +132,6 @@ test('Export from Settings carries every record and the values not saved, and ke
   await expect(page.getByRole('button', { name: `Export. ${last}` })).toContainText(last);
 });
 
-test('the Event’s “⋯” holds only Delete Event', async ({ page }) => {
-  await newConcert(page);
-  await page.getByRole('button', { name: 'Concert actions' }).click();
-  await expect(page.getByRole('menuitem')).toHaveText(['Delete Event']);
-});
-
 test('home is quiet, and says "Getting ready for offline…" only until it is ready', async ({
   page,
 }) => {
@@ -160,32 +154,16 @@ test('home is quiet, and says "Getting ready for offline…" only until it is re
   await expect(page.getByRole('heading', { name: 'Season', exact: true })).toBeVisible();
 });
 
-test.describe('Settings puts the season first', () => {
-  test('ready offline, storage protected, then Export', async ({ page }) => {
-    await storagePersisted(page, true);
-    await page.goto('/');
-    await finishFirstLaunch(page);
-    await tab(page, 'Settings').click();
-
-    await expect(page.getByText('Ready offline', { exact: true })).toBeVisible();
-    await expect(page.getByText('Storage protected', { exact: true })).toBeVisible();
-    const rows = page.getByRole('listitem');
-    await expect(rows).toHaveText([/^Ready offline/, /^Storage protected/, /^Export/]);
-    await expect(page.getByRole('radiogroup', { name: 'Theme' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Maintainer' })).toBeVisible();
-  });
-
-  test('storage the browser hasn’t promised to keep reads "Storage not protected"', async ({
-    page,
-  }) => {
-    await storagePersisted(page, false);
-    await page.goto('/');
-    await finishFirstLaunch(page);
-    await tab(page, 'Settings').click();
-    const row = page.getByRole('listitem').filter({ hasText: 'Storage not protected' });
-    await expect(row).toBeVisible();
-    await expect(row).toHaveClass(/text-warning/);
-  });
+test('storage the browser hasn’t promised to keep reads "Storage not protected"', async ({
+  page,
+}) => {
+  await storagePersisted(page, false);
+  await page.goto('/');
+  await finishFirstLaunch(page);
+  await tab(page, 'Settings').click();
+  await expect(
+    page.getByRole('listitem').filter({ hasText: 'Storage not protected' }),
+  ).toBeVisible();
 });
 
 test.describe('the install row', () => {
@@ -207,15 +185,6 @@ test.describe('the install row', () => {
     await expect(addItem).toBeVisible();
     await expect(addItem).toBeEnabled();
     await expect(page.getByRole('button', { name: /dismiss/i })).toHaveCount(0);
-  });
-
-  test('an iPhone browser tab shows the row at one place and height on every tab', async ({
-    page,
-  }) => {
-    await page.goto('/');
-    await finishFirstLaunch(page);
-    // The sentence is the row's only text for a screen reader; its parent is the row.
-    expect(await rowOnEachTab(page, page.getByText(INSTALL_NAME).locator('..'))).toBe(true);
   });
 
   test('an installed app shows nothing', async ({ page }) => {

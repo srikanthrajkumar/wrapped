@@ -262,7 +262,7 @@ const TOP = 'var(--app-top-inset,env(safe-area-inset-top))';
  * motif's ground is the page's own colour, so the status bar above it (which an Android web app
  * can't draw under) never shows a seam.
  */
-export function Curtain({ art, children }: { art: ReactNode; children: ReactNode }) {
+function Curtain({ art, children }: { art: ReactNode; children: ReactNode }) {
   return (
     <div
       className="relative mr-[calc(-16px-env(safe-area-inset-right))] ml-[calc(-16px-env(safe-area-inset-left))]"

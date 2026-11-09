@@ -57,7 +57,7 @@ export const text = (cell: Cell | undefined): string =>
 const NOT_APPLICABLE = new Set(['', '-', 'none']);
 
 /** A Detail as typed in the sheet, through the app's matcher. */
-export function sheetDetail(matcher: Matcher, field: MatchField, cell: Cell | undefined) {
+function sheetDetail(matcher: Matcher, field: MatchField, cell: Cell | undefined) {
   const typed = text(cell);
   if (NOT_APPLICABLE.has(typed.toLowerCase())) return notApplicableValue();
   return matcher.detail(field, typed);
@@ -85,7 +85,7 @@ export function splitTala(typed: string): { tala: string; nadai: DetailValue } {
 }
 
 /** "Malayamarutham + Varali" → two Ragas, in order. */
-export function sheetRagas(matcher: Matcher, cell: Cell | undefined): DetailValue[] {
+function sheetRagas(matcher: Matcher, cell: Cell | undefined): DetailValue[] {
   const typed = text(cell);
   if (NOT_APPLICABLE.has(typed.toLowerCase())) return [notApplicableValue()];
   return typed
@@ -102,7 +102,7 @@ const songRagaKeys = (song: Song) =>
  * The one song a title names, using the logged Raga and then Composer only to choose among
  * songs that share the title. Null, with the reason, when it is not exactly one.
  */
-export function pickSong(
+function pickSong(
   candidates: Song[],
   ragas: DetailValue[],
   composer: DetailValue,

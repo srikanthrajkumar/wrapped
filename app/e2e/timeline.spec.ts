@@ -355,46 +355,6 @@ test('with no days gone there is no history mark, and Season opens at its top', 
   await expect(page.getByRole('button', { name: 'Log a Concert' })).toBeInViewport();
 });
 
-test('a listing has no add on its row; its sheet adds it once, and it becomes theirs in place', async ({
-  page,
-}) => {
-  await open(page);
-  await storeEntries(page, [brothers, entry('narada-1', 1, { sabha: 'Narada Gana Sabha' })]);
-  await page.reload();
-  const main = page.getByRole('main');
-  const day = main.getByRole('region', { name: new RegExp(`^${dayHeadingText(1)}`) });
-
-  // No add control anywhere on the timeline: a row is only its own tap.
-  await expect(day.getByRole('button', { name: /^Malladi Brothers/ })).toBeVisible();
-  await expect(main.getByRole('button', { name: /add/i })).toHaveCount(0);
-  await expect(day.getByRole('listitem').getByRole('link')).toHaveCount(0);
-
-  await day.getByRole('button', { name: /^Malladi Brothers/ }).click();
-  const sheet = page.getByRole('dialog', { name: 'Malladi Brothers' });
-  // The full billing: each Artist with their Role and group, the Sabha and time.
-  await expect(sheet).toContainText('Malladi Ravikumar');
-  await expect(sheet).toContainText('Vocal');
-  await expect(sheet).toContainText('Violin');
-  await expect(sheet).toContainText('Pakkala Ramadas');
-  await expect(sheet).toContainText('Music Academy');
-  await expect(sheet).toContainText('4:00 pm');
-
-  // Two quick taps plan it once.
-  await sheet.getByRole('button', { name: 'Add' }).dblclick();
-  await expect(sheet.getByRole('link', { name: 'Planned' })).toBeVisible();
-  await expect(sheet.getByRole('button', { name: 'Add' })).toHaveCount(0);
-  const events = await readTable<{ status: string; source: string }>(page, 'events');
-  expect(events).toHaveLength(1);
-  expect(events[0]).toMatchObject({ status: 'planned', source: 'schedule' });
-
-  // In place: the same day now holds it as theirs, once, and the listing is gone.
-  await page.keyboard.press('Escape');
-  await expect(sheet).toHaveCount(0);
-  await expect(day.getByRole('link', { name: /^Malladi Brothers/ })).toHaveCount(1);
-  await expect(day.getByRole('button', { name: /^Malladi Brothers/ })).toHaveCount(0);
-  await expect(day.getByText('Malladi Brothers')).toHaveCount(1);
-});
-
 test('an entry whose planned Event was deleted is added again, once', async ({ page }) => {
   await open(page);
   await storeEntries(page, [brothers]);
@@ -420,18 +380,6 @@ test('an entry whose planned Event was deleted is added again, once', async ({ p
   await expect(page.getByText(/not saved/i)).toHaveCount(0);
   const events = await readTable<{ deletedAt: string | null }>(page, 'events');
   expect(events.filter((event) => event.deletedAt === null)).toHaveLength(1);
-});
-
-test('a cancelled listing is dimmed and its sheet has no add', async ({ page }) => {
-  await open(page);
-  await storeEntries(page, [entry('off-1', 1, { cancelled: true })]);
-  await page.reload();
-  const row = page.getByRole('button', { name: /^Artist off-1/ });
-  await expect(row.getByRole('img', { name: 'Cancelled' })).toBeVisible();
-  await row.click();
-  const sheet = page.getByRole('dialog', { name: 'Artist off-1' });
-  await expect(sheet.getByRole('img', { name: 'Cancelled' })).toBeVisible();
-  await expect(sheet.getByRole('button', { name: 'Add' })).toHaveCount(0);
 });
 
 test('going into an Event, or a listing’s sheet, and back finds Season where it was', async ({

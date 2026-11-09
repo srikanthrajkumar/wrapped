@@ -3,19 +3,13 @@
 // the logging path (constitution I).
 
 import { liveQuery } from 'dexie';
-import { useSyncExternalStore } from 'react';
 import type { Remap } from '../catalog/load';
 import { getSyncApi } from './auth';
 import { buildAuthConfig } from './auth-config';
 import { db as defaultDb, type WrappedDB } from './db';
-import { createSyncLoop, type SyncLoop, type SyncLoopOptions, type SyncStatus } from './sync';
+import { createSyncLoop, type SyncLoop, type SyncLoopOptions } from './sync';
 
 let loop: SyncLoop | null = null;
-/** Screens listening for status, kept apart from the loop so they may subscribe before it starts. */
-const listeners = new Set<() => void>();
-const notify = () => {
-  for (const listener of listeners) listener();
-};
 
 export interface StartSyncOptions {
   db?: WrappedDB;
@@ -47,8 +41,6 @@ export function startSync({
     ...extra,
   });
   loop = started;
-  const unsubscribe = started.subscribe(notify);
-  notify();
 
   const online = () => void started.request('online');
   const visible = () => {
@@ -72,26 +64,6 @@ export function startSync({
     page.removeEventListener('visibilitychange', visible);
     saves.unsubscribe();
     started.dispose();
-    unsubscribe();
     loop = null;
-    notify();
   };
-}
-
-/** The running loop, for the screens that resume or read it; null before `startSync`. */
-export function syncLoop(): SyncLoop | null {
-  return loop;
-}
-
-const IDLE: SyncStatus = { state: 'idle' };
-
-/** The loop's status, kept current; idle before the loop starts. */
-export function useSyncStatus(): SyncStatus {
-  return useSyncExternalStore(
-    (listener) => {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-    () => loop?.status() ?? IDLE,
-  );
 }

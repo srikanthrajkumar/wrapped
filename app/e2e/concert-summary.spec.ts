@@ -29,15 +29,8 @@ test('the summary shows once, after the Concert ends, and the Concert stays edit
   await expect(page.getByRole('button', { name: /Done with this Concert/ })).toHaveCount(0);
   const [event] = await readTable<{ id: string }>(page, 'events');
 
-  // Within the hour, or before its window closes (four hours after its start), no summary.
-  await openAt(page, START.getTime() + 30 * MINUTE);
-  await page.waitForTimeout(1500);
-  await expect(page.getByRole('dialog')).toHaveCount(0);
-  await openAt(page, START.getTime() + 2 * 60 * MINUTE);
-  await page.waitForTimeout(1500);
-  await expect(page.getByRole('dialog')).toHaveCount(0);
-
-  // Over by both clocks: the summary shows on the next open.
+  // Over by both clocks: the summary shows on the next open. When it is due, case by case, is
+  // tests/store/concert-summary.test.ts's.
   await openAt(page, START.getTime() + 4 * 60 * MINUTE + MINUTE);
   const summary = page.getByRole('dialog');
   await expect(summary).toBeVisible();
@@ -58,7 +51,4 @@ test('the summary shows once, after the Concert ends, and the Concert stays edit
   await page.getByRole('link', { name: 'Done' }).click();
   await expect(page.getByRole('region', { name: 'Items' }).getByRole('listitem')).toHaveCount(2);
   expect(await readTable(page, 'items')).toHaveLength(2);
-  await openAt(page, START.getTime() + 8 * 60 * MINUTE);
-  await page.waitForTimeout(1500);
-  await expect(page.getByRole('dialog')).toHaveCount(0);
 });

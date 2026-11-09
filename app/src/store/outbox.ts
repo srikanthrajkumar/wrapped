@@ -41,7 +41,7 @@ export async function claimBatch(
 }
 
 /** The last server `seq` this phone knows for a record; 0 for one the server has not answered. */
-export async function knownSeq(db: WrappedDB, table: RasikaTable, id: string): Promise<number> {
+async function knownSeq(db: WrappedDB, table: RasikaTable, id: string): Promise<number> {
   return (await db.serverSeqs.get([table, id]))?.seq ?? 0;
 }
 

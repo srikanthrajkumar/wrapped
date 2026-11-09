@@ -3,7 +3,7 @@
 
 import { db as defaultDb, type WrappedDB } from './db';
 
-export const PERSIST_KEY = 'storagePersist';
+const PERSIST_KEY = 'storagePersist';
 
 export interface PersistState {
   /** What the browser answered; null where it has no storage API. */

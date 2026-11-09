@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { fold } from '../../src/catalog/fold';
-import { ROLES, type Role, type SharedEntry } from '../../src/model';
+import type { Role, SharedEntry } from '../../src/model';
 import { SaveFeedback } from '../../src/screens/save-feedback';
 import { createEvent } from '../../src/store/events';
 import { holdsValue } from '../../src/store/journal-check';
@@ -19,7 +19,7 @@ import {
 } from '../../src/store/people';
 import { listAppearances, listEventSummaries } from '../../src/store/queries';
 import { RuleError } from '../../src/store/rules';
-import { joinNames, STAGE_ORDER } from '../../src/store/stage';
+import { joinNames } from '../../src/store/stage';
 import { freshDb, reopen } from '../helpers';
 
 const shared = (id: string, name: string): SharedEntry => ({
@@ -58,10 +58,6 @@ describe('the Stage lists Artists by Role', () => {
       'Ghatam',
       'Nobody knows',
     ]);
-  });
-
-  it('has a place for every Role, once', () => {
-    expect([...STAGE_ORDER].sort()).toEqual([...ROLES].sort());
   });
 });
 

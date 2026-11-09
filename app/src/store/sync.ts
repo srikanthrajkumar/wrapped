@@ -224,11 +224,7 @@ async function applyOwn(
 }
 
 /** True while the record has an op in the outbox or a rejected op in "needs attention". */
-export async function hasLocalChanges(
-  db: WrappedDB,
-  table: RasikaTable,
-  id: string,
-): Promise<boolean> {
+async function hasLocalChanges(db: WrappedDB, table: RasikaTable, id: string): Promise<boolean> {
   const queued = await db.outbox
     .where('recordId')
     .equals(id)
