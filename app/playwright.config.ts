@@ -47,6 +47,9 @@ export default defineConfig({
   webServer: {
     // Tests run against the production build (the service worker joins it in T028).
     command: `npm run build && npm run preview -- --port ${port} --strictPort`,
+    // Built with no public-data URL, whatever app/.env holds: the e2e never reaches the real
+    // project (ADR 0009). Vite takes a VITE_ value already in the environment over .env files.
+    env: { VITE_PUBLIC_DATA_URL: '' },
     url: `http://localhost:${port}`,
     // Never reuse whatever is already on the port: it may be a stale or unrelated build.
     reuseExistingServer: false,

@@ -13,7 +13,7 @@
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "test": "vitest run",
-    "test:server": "vitest run --config supabase/vitest.config.ts",
+    "test:server": "vitest run --config supabase/vitest.config.ts && vitest run --config supabase-public/vitest.config.ts",
     "e2e": "npm run e2e -w app",
     "size": "node tools/size-budget/check.mjs",
     "check": "npm run typecheck && npm run lint && npm run test && npm run e2e && npm run size"

@@ -3,21 +3,77 @@
 **Status: agreed with the logger project on 2026-11-06** (T057). The logger project owns the
 Schedule (constitution, Boundaries) and publishes it as this feed; this project only reads it.
 The Maintainer decided publishing, the Roles, group names and the Event kinds the same day. P3
-still works from hand-entered Plan entries alone when no feed is reachable (FR-025).
+still works from hand-entered Plan entries alone when no feed is reachable (FR-025). Delivery
+was settled with the logger project on 2026-11-09 (T124): a pointer per Season, served by this
+app's server, with no sign-in. The Maintainer put it in the logger's own Supabase project, beside
+the catalog, the same day (ADR 0009).
 
 ## Delivery
 
 - The logger writes one content-hashed file per Season and change,
-  `schedule.{season}.{sha256}.json`, and uploads it to a private Supabase Storage bucket on this
-  project's Supabase project. It uploads after each collection run that changed something,
-  separately from app deploys: a new Schedule never waits for a release, and a release never
-  carries one. The upload credential is the Maintainer's setup, never in either repository.
-- This app's server serves the newest file for a Season at `GET /v1/schedule/{season}`, with the
-  file's sha256 (lower-case hex, quoted) as its `ETag`. A request whose `If-None-Match` matches
-  gets `304` and no body, so a phone downloads the file only when it changed. The bucket itself
-  is never public.
-- The phone fetches the feed when online and stores the entries locally. The logging path never
-  waits for it, and a failed fetch keeps the last copy.
+  `{season}/schedule.{season}.{sha256}.json`, and uploads it to the private `schedule` bucket in
+  the public-data project's Storage: the logger's own Supabase project, which holds the catalog
+  tables, never the project that holds rasikas' seasons (ADR 0009). A file is written once and never changed. It uploads after
+  each collection run that changed something, separately from app deploys: a new Schedule never
+  waits for a release, and a release never carries one.
+- After the file, the logger writes the Season's pointer, `{season}/current.json`, naming the
+  current file. It writes the pointer only once the file is uploaded, so a pointer never names a
+  file that isn't there, and only the pointer ever moves:
+
+  ```json
+  {
+    "format": 1,
+    "season": "2026-27",
+    "file": "2026-27/schedule.2026-27.<sha256>.json",
+    "sha256": "<sha256>",
+    "publishedAt": "2026-11-20T10:00:00Z"
+  }
+  ```
+
+  `file` is the file's path in the bucket. `sha256` is the lower-case hex sha256 of the file's
+  exact bytes, the same hash as in its name. `publishedAt` is the file's.
+- Only the logger writes to the bucket (`pipeline/schedule/upload-feed.ts`, logger PR #70), with
+  a secret key of that project (`sb_secret_…`), which the Maintainer sets on the logger's VM and
+  is never in either repository. It uploads the file with `x-upsert: false`, reads the pointer back through
+  `/storage/v1/object/authenticated/schedule/{season}/current.json` so it never moves it to an
+  earlier `publishedAt`, then writes the pointer with `x-upsert: true` and
+  `cache-control: no-cache`. The bucket is `schedule`, created by this app's migration for that
+  project (`supabase-public/`); the uploader never creates one. The bucket is never public, and neither `anon` nor
+  `authenticated` has any Storage policy on it: no phone reads it directly. A restrictive policy
+  keeps it that way if a later one grants reads on other buckets
+  (`supabase-public/supabase/migrations/0001_schedule_bucket.sql`).
+- This app's server serves a Season at `GET /v1/schedule/{season}`, which is the `schedule` Edge
+  Function in the public-data project, `{VITE_PUBLIC_DATA_URL}/functions/v1/schedule/{season}`
+  (ADR 0001, "The Schedule as an Edge Function"). It needs no sign-in: the listings are public (Maintainer, 2026-11-09). It reads
+  `{season}/current.json`, then the file the pointer names, and checks the file's sha256 against
+  the pointer's, and the file's own `season` against the one asked for, before answering:
+
+  | Answer | When |
+  |---|---|
+  | `200`, the file's exact bytes, `ETag: "<sha256>"` | The pointer is usable and the file matches it |
+  | `304`, no body, the same `ETag` | `If-None-Match` names the pointer's sha256 (the file isn't read) |
+  | `404 {"code":"no_season"}` | The Season has no pointer, or the path names no Season |
+  | `502 {"code":"pointer_unreadable"}` | The pointer isn't JSON, isn't format 1, is for another Season, or names any file but `{season}/schedule.{season}.{sha256}.json` with its own lower-case `sha256` |
+  | `502 {"code":"file_missing"}` | The file the pointer names isn't in the bucket |
+  | `502 {"code":"sha256_mismatch"}` | The file's bytes don't hash to the pointer's `sha256` |
+  | `502 {"code":"season_mismatch"}` | The file's own `season` isn't the Season asked for: another Season's file uploaded under this one's path (Codex, T124 review) |
+
+  The `ETag` is the sha256, quoted. When the body is compressed on the way (the Edge runtime
+  gzips it for a client that accepts that), the tag comes marked weak, `W/"<sha256>"`; it still
+  matches, since `If-None-Match` compares weakly. Answers carry `Access-Control-Allow-Origin: *`
+  and expose `ETag`, and a preflight allows `If-None-Match`, so the installed app can ask from
+  its own origin.
+- The phone asks the public-data project (`VITE_PUBLIC_DATA_URL`, set by
+  `tools/deploy/deploy.sh`; never the sync project's `VITE_SUPABASE_URL`) for the Season of the
+  day:
+  from 1 July, the one that starts that year (2026-27 from 1 July 2026); before July, the one
+  that started the year before. It asks when online, at launch and on each return online,
+  sending the stored copy's tag as `If-None-Match`, and stores a new file with its `ETag`, as it
+  came, as the tag (`store/schedule-fetch.ts`). A build with no public-data URL fetches nothing, as every test build does,
+  and P3 works from the Plan alone. The logging path never waits for the fetch. Any answer but
+  `200` with a file the reader accepts, or no answer, keeps the stored copy and its tag. So does
+  a file whose `season` isn't the Season the phone asked for: taken, it would replace the stored
+  Schedule, and every corrected file after it would be refused as an earlier Season.
 
 ## Shape (format 1)
 
@@ -156,8 +212,7 @@ When the rasika answers the hint (2026-11-07):
 - **Who plays at a Dance.** Listings often name only the dancer. The Maintainer is consulting the
   logger project on collecting the musicians on stage, so early Dance entries may bill the dancer
   alone.
-- **The upload credential.** The Maintainer sets up the credential the logger uploads with, and
-  where it is kept, before the first upload to the hosted project (T111).
-- **Which file is newest.** How the server finds the current file for a Season among the uploaded
-  ones (a pointer the logger writes after the file, or the newest `publishedAt`) is settled with
-  the logger project when the endpoint is built (T124).
+- **The upload credential, on the public-data project.** The logger uploads with that project's
+  secret key, set by the Maintainer on its VM as `SCHEDULE_UPLOAD_KEY`, with
+  `SCHEDULE_UPLOAD_SUPABASE_URL` and `SCHEDULE_UPLOAD_BUCKET`, before the first upload
+  (`docs/setup/schedule-hosting.md`).

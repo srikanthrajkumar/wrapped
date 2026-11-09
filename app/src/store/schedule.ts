@@ -41,8 +41,9 @@ export interface ScheduleMeta {
   season: string;
   publishedAt: string;
   /**
-   * What the fetch knows this file by (store/schedule-fetch.ts: today the server's `ETag`), so it
-   * can ask for a changed one only; null when it gave none. Opaque to everything else.
+   * What the fetch knows this file by (store/schedule-fetch.ts: the server's `ETag`, which is the
+   * file's sha256), so it can ask for a changed one only; null when it gave none. Opaque to
+   * everything else.
    */
   tag: string | null;
 }

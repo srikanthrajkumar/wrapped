@@ -7,7 +7,8 @@ the tasks. Record shapes are in [data-model.md](data-model.md) and the
 ## Prerequisites
 
 - Node 22 and npm.
-- Docker and the Supabase CLI, for the local Supabase (`supabase start`). The server is built
+- Docker and the Supabase CLI, for the local Supabase (`supabase start`, and
+  `supabase start --workdir supabase-public` for the Schedule's public-data stack, ADR 0009). The server is built
   last, so scenarios 2 to 4 and 12 to 15 run once it exists. Before then, the outbox only
   queues.
 - A catalog snapshot exported by the logger project, copied to `app/public/catalog/`.

@@ -41,7 +41,15 @@ behind each choice.
 **Primary Dependencies** (server): Supabase (ADR 0001). Google sign-in through Supabase Auth,
 with `@supabase/supabase-js` on the phone, used only when syncing. Push and pull follow the
 [sync contract](contracts/sync-api.md), as Postgres functions called through Supabase's API
-(decided 2026-11-06, T066).
+(decided 2026-11-06, T066). Data is split by kind (ADR 0009): personal data (sign-in, sync) in
+Wrapped's own project, public data (the catalog and the Schedule) in the logger's existing
+project. The Schedule is served there by one Edge Function, `schedule`, which reads the private
+Storage bucket the logger uploads to and needs no sign-in (decided 2026-11-09, T124; ADR 0001,
+"The Schedule as an Edge Function"). It reads the Season's pointer,
+`{season}/current.json`, then the file it names, checks the file's sha256 against the pointer,
+and answers with the sha256 as the `ETag` ([schedule-feed contract](contracts/schedule-feed.md),
+"Delivery"). The phone asks for it at `VITE_PUBLIC_DATA_URL`, with a plain `fetch`, not
+supabase-js.
 
 **Storage**: IndexedDB through Dexie on the phone ([data-model.md](data-model.md)); Supabase
 Postgres on the server. Development uses a local Supabase (CLI on Docker), free and never
@@ -130,10 +138,16 @@ app/                         # the PWA (Vite + React)
 ├── tests/                   # Vitest
 └── e2e/                     # Playwright, offline scenarios
 
-supabase/                    # Supabase CLI project, built last (ADR 0001)
+supabase/                    # personal-data project, built last (ADR 0001)
 ├── config.toml              # local stack; Google sign-in
 ├── migrations/              # tables, row-level security, sync functions
 └── tests/                   # sync, privacy and promotion tests against the local stack
+
+supabase-public/             # public-data pieces, for the logger's project (ADR 0009)
+├── supabase/config.toml     # second local stack: Storage, the Edge runtime
+├── supabase/migrations/     # only the Schedule's bucket and its policy
+├── supabase/functions/schedule/  # the one Edge Function: serves a Season's Schedule (T124)
+└── tests/                   # the Schedule's serving and privacy tests
 
 tools/
 ├── import-2024-25/          # reference import through the app's matching (FR-039, FR-040)
@@ -155,7 +169,8 @@ local Supabase once it exists.
 ## Remaining open items
 
 1. Card renderer decision (can wait until the Cards tasks, before 20 December work starts).
-2. Schedule feed shape: agreed with the logger project on 2026-11-06 (T057).
+2. Schedule feed shape: agreed with the logger project on 2026-11-06 (T057); its delivery, a
+   pointer per Season served by the `schedule` Edge Function, on 2026-11-09 (T124).
 3. Install the contingent skill `supabase/agent-skills@supabase` when the server work starts
    (T065). `vitest` was installed with the scaffold (T009).
 

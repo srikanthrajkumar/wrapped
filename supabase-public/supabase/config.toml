@@ -1,0 +1,80 @@
+# The public-data stack (ADR 0009): the Schedule's bucket and its `schedule` function, which go
+# to the logger's existing Supabase project, the one holding the catalog tables. It is kept
+# apart from `supabase/`, the personal-data project (sign-in, sync), so no `db push` can ever
+# carry one project's schema to the other.
+#
+# Locally it runs as a second stack beside the personal-data one, on ports of its own:
+#   npx supabase start --workdir supabase-public
+# Its tests run in `npm run test:server` (supabase-public/vitest.config.ts).
+
+project_id = "carnatic-public"
+
+[api]
+enabled = true
+port = 54421
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+auto_expose_new_tables = false
+
+[db]
+port = 54422
+shadow_port = 54420
+# The catalog project's Postgres version.
+major_version = 17
+
+[db.pooler]
+enabled = false
+port = 54429
+
+[db.migrations]
+enabled = true
+
+[db.seed]
+enabled = false
+
+[realtime]
+enabled = false
+
+[studio]
+enabled = false
+port = 54423
+
+[local_smtp]
+enabled = false
+port = 54424
+
+[storage]
+# The Schedule's private bucket (migrations/0001_schedule_bucket.sql).
+enabled = true
+file_size_limit = "50MiB"
+
+[storage.image_transformation]
+enabled = false
+
+[auth]
+# Only so the tests can sign a rasika in and show the bucket is closed to `authenticated` too.
+enabled = true
+site_url = "http://127.0.0.1:3000"
+enable_signup = true
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+
+[edge_runtime]
+# The one Edge Function, `schedule` (ADR 0001, "The Schedule as an Edge Function").
+enabled = true
+policy = "per_worker"
+inspector_port = 8183
+deno_version = 2
+
+# The Schedule is public listings, read with no sign-in (Maintainer, 2026-11-09), so the function
+# takes no token. It reads the private bucket with the service key the runtime injects.
+[functions.schedule]
+verify_jwt = false
+
+[analytics]
+enabled = false
+port = 54427

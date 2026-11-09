@@ -44,6 +44,11 @@ jobs:
       - name: Start the local Supabase stack
         run: npx supabase start -x studio,mailpit,postgres-meta,imgproxy,logflare,vector,supavisor,realtime,storage-api,edge-runtime
 
+      # The public-data stack beside it (ADR 0009), on ports of its own, for the Schedule's
+      # bucket and function: the database, Auth, Storage, the Edge runtime and the gateway.
+      - name: Start the local public-data stack
+        run: npx supabase start --workdir supabase-public -x studio,mailpit,postgres-meta,imgproxy,logflare,vector,supavisor,realtime
+
       # The browser matching the locked @playwright/test, with its system libraries.
       - run: npx playwright install --with-deps chromium
 

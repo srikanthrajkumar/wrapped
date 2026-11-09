@@ -39,7 +39,7 @@ createRoot(root).render(
 startServiceWorker();
 void ensurePersistentStorage().catch(() => undefined);
 void openCatalog().catch(() => undefined);
-// The Schedule, when this build has a feed: applied as stored, then fetched when online (T060).
+// The Schedule: applied as stored, then fetched from the public-data project when online (T124).
 startScheduleFetch();
 // Sync (FR-014): on start, `online`, the app shown again and each save. Each sync waits for the
 // catalog, so pulled Items are remapped to it; without a signed-in session it does nothing.
