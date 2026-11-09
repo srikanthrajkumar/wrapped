@@ -526,7 +526,7 @@ test('the search bar and its sheet: one sort widens, two narrow, Aliases find a 
   // Nothing matches here: said so, with one tap to clear every filter.
   await expect(page.getByText('Nothing here matches.')).toBeVisible();
   await clearInList(page).click();
-  expect(await rows(page)).toHaveLength(5);
+  await expect.poll(() => rows(page)).toHaveLength(5);
   await expect(searchBar(page)).toHaveText('Artist or Sabha…');
   expect(await stops(page)).toEqual(['Past', 'Today', ...days(1, 2, 3)]);
 
@@ -537,7 +537,8 @@ test('the search bar and its sheet: one sort widens, two narrow, Aliases find a 
   expect(await marked(page)).toBe('Past');
   // The Dance from today on: the Dance alone; a fresh launch starts with no filter.
   await stop(page, 'Today').click();
-  expect(await rows(page)).toEqual(['Alarmel Valli']);
+  // The jump scrolls Today in; a day still off screen reads as empty (content-visibility).
+  await expect.poll(() => rows(page)).toEqual(['Alarmel Valli']);
   await page.reload();
   await expect.poll(() => rows(page)).toHaveLength(5);
   await expect(searchBar(page)).toHaveText('Artist or Sabha…');
