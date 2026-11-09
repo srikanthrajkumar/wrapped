@@ -86,6 +86,23 @@ async function add(page: Page, name: string) {
 const ownRow = (page: Page, name: string) =>
   page.getByRole('main').getByRole('link', { name: new RegExp(`^${name}`) });
 
+test('the e2e build never asks the real public-data project for the Schedule (ADR 0009)', async ({
+  page,
+}) => {
+  // playwright.config.ts builds with VITE_PUBLIC_DATA_URL empty, whatever app/.env holds. A
+  // build with one would fetch at launch, and again on the reload.
+  const asked: string[] = [];
+  page.on('request', (request) => {
+    if (/\/functions\/v1\/schedule\//.test(request.url())) asked.push(request.url());
+  });
+  await page.goto('/');
+  await finishFirstLaunch(page);
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Season', exact: true })).toBeVisible();
+  await page.waitForLoadState('networkidle');
+  expect(asked).toEqual([]);
+});
+
 test('an entry added from the Schedule is in Next, and stays there marked once cancelled', async ({
   page,
 }) => {

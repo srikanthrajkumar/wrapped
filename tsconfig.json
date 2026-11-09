@@ -6,5 +6,5 @@
     "allowJs": true,
     "checkJs": true
   },
-  "include": ["tools", "supabase", "*.config.ts", "*.config.js"]
+  "include": ["tools", "supabase", "supabase-public", "*.config.ts", "*.config.js"]
 }

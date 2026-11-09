@@ -242,6 +242,9 @@ async function freshPhone(browser: Browser): Promise<{ context: BrowserContext; 
     timezoneId: 'Asia/Kolkata',
     locale: 'en-IN',
   });
+  // Never the real public-data project, whatever build HC_BASE serves (ADR 0009): the rig's
+  // Schedule is the seed's (SEED.md).
+  await context.route('**/functions/v1/schedule/**', (route) => route.abort());
   // Installed to the home screen, as the Maintainer uses it: no install row.
   await context.addInitScript(() => {
     Object.defineProperty(navigator, 'standalone', { value: true });

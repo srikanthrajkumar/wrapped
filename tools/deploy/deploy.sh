@@ -13,6 +13,12 @@ set -euo pipefail
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$root"
 
+# The public-data project (ADR 0009): the logger's Supabase project, which holds the catalog and
+# serves the Schedule from its `schedule` function. Not a secret: the deployed bundle shows it.
+# Only the deployed build gets it; the checks below, the e2e and the hill-climb rig build
+# without it, so they never reach the real project.
+public_data_url="https://zddeaewyohognvbbazdl.supabase.co"
+
 stop() {
   echo >&2
   echo "deploy: stopped. $1" >&2
@@ -20,6 +26,9 @@ stop() {
   exit 1
 }
 step() { printf '\n== %s\n' "$1"; }
+
+[[ "$public_data_url" =~ ^https://[a-z0-9]+\.supabase\.co$ ]] ||
+  stop "public_data_url in tools/deploy/deploy.sh is not a Supabase project's https address (ADR 0009). Without it the phone never fetches the Schedule."
 
 snapshot=""
 dry_run=false
@@ -49,6 +58,7 @@ commit="$(git rev-parse --short HEAD)"
 echo "Snapshot: $file"
 echo "Version:  $version"
 echo "Commit:   $commit"
+echo "Schedule: $public_data_url/functions/v1/schedule/"
 [[ -z "$(git status --porcelain)" ]] || echo "Note: the working tree has uncommitted changes; they deploy too."
 
 step "Copying the snapshot into app/public/catalog/"
@@ -85,7 +95,14 @@ else
   { npm run typecheck && npm run lint && npx vitest run --exclude 'tools/golden-set/**' &&
     npm run e2e && npm run size; } || stop "npm run check failed."
 fi
+
+# The checks' end-to-end tests build app/dist again, with no public-data URL. So the build to
+# upload is made last, with it, and checked for it.
+step "Building for deploy, with the Schedule's public-data project"
+VITE_PUBLIC_DATA_URL="$public_data_url" npm run build -w app || stop "the build or the size budget failed."
 [[ -f "app/dist/catalog/$file" ]] || stop "the build in app/dist does not hold $file."
+grep -rqF "$public_data_url" app/dist/assets ||
+  stop "the build in app/dist does not hold $public_data_url, so no phone would fetch the Schedule."
 
 step "Files to upload (app/dist)"
 (cd app/dist && find . -type f ! -name _headers ! -name .assetsignore ! -name precache-phases.json |

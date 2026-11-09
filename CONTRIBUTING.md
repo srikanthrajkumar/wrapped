@@ -72,6 +72,9 @@ Deploys run from the Maintainer's machine, because it holds the snapshot.
   - It prints the snapshot's version, copies it into `app/public/catalog/`, builds, runs the
     golden set and `npm run check` with it, and deploys only if all of them pass.
   - `--dry-run` does everything but the upload.
+  - The uploaded build is made last, after the checks, with the Schedule's public-data project
+    (`public_data_url` in the script, ADR 0009); the checks themselves build without it, so no
+    test reaches that project. The script stops if the setting is missing or the build lacks it.
   - The search timing test (`app/e2e/search-perf.spec.ts`, SC-007: p95 under 50 ms at 4×
     CPU slowdown) runs last and alone, in its own Playwright project (`search-perf`), once
     every other end-to-end test has finished. Its throttle multiplies any load, so run deploys

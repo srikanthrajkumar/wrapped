@@ -169,7 +169,7 @@ Copied from the logger's Schedule feed ([contracts/schedule-feed.md](contracts/s
 `id`, `version`, `date`, `startTime`, `sabha` (shared id or name), `kind`, `billed` (name or
 shared Artist id, role, group), `title`, `cancelled`. Not rasika-owned. Each file fetched
 replaces the stored entries whole (T060); an Event made from an entry the newer file lacks is
-never changed. The file's Season, `publishedAt` and the fetch's tag for it (today its `ETag`; after T124 its sha256) are kept in `meta` as `schedule`. A file is refused whole, the stored copy and its tag kept, when any entry is malformed (a field the feed never leaves null, such as `cancelled`, given as null included), its `publishedAt` is not a real day and time with its offset, or it is for an earlier Season, or published earlier in the same one (compared as instants).
+never changed. The file's Season, `publishedAt` and the fetch's tag for it (the server's `ETag`, the file's sha256, as it came) are kept in `meta` as `schedule`. A file is refused whole, the stored copy and its tag kept, when any entry is malformed (a field the feed never leaves null, such as `cancelled`, given as null included), its `publishedAt` is not a real day and time with its offset, or it is for an earlier Season, or published earlier in the same one (compared as instants).
 
 ## Phone-only records
 
