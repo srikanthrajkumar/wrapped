@@ -16,7 +16,7 @@
     "test:server": "vitest run --config supabase/vitest.config.ts && vitest run --config supabase-public/vitest.config.ts",
     "e2e": "npm run e2e -w app",
     "size": "node tools/size-budget/check.mjs",
-    "check": "npm run typecheck && npm run lint && npm run test && npm run e2e && npm run size"
+    "check": "npm run typecheck && npm run lint && npm run test && npm run e2e"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

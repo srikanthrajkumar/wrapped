@@ -38,21 +38,52 @@ jobs:
 
       - run: npm ci
 
-      # The local Supabase stack for the server tests (T067, T068), from the CLI pinned in
-      # package-lock.json: only the database, Auth, the API and its gateway. Google sign-in
-      # has no credentials here and is not used by the tests.
-      - name: Start the local Supabase stack
-        run: npx supabase start -x studio,mailpit,postgres-meta,imgproxy,logflare,vector,supavisor,realtime,storage-api,edge-runtime
-
-      # The public-data stack beside it (ADR 0009), on ports of its own, for the Schedule's
-      # bucket and function: the database, Auth, Storage, the Edge runtime and the gateway.
-      - name: Start the local public-data stack
-        run: npx supabase start --workdir supabase-public -x studio,mailpit,postgres-meta,imgproxy,logflare,vector,supavisor,realtime
+      # The two Supabase stacks for the server tests start in the background, one after the
+      # other, while the browser installs and `npm run check` runs: nothing before
+      # test:server uses them, and starting them took about 100 s of the job. A process left
+      # running in a step lives on until the job ends. Each start writes its exit code to a
+      # file that the wait step below reads.
+      #
+      # The local Supabase stack (T067, T068), from the CLI pinned in package-lock.json: only
+      # the database, Auth, the API and its gateway. Google sign-in has no credentials here
+      # and is not used by the tests. Then the public-data stack beside it (ADR 0009), on ports
+      # of its own, for the Schedule's bucket and function: the database, Auth, Storage, the
+      # Edge runtime and the gateway.
+      - name: Start the Supabase stacks in the background
+        run: |
+          nohup bash -c '
+            npx supabase start -x studio,mailpit,postgres-meta,imgproxy,logflare,vector,supavisor,realtime,storage-api,edge-runtime \
+              > "$RUNNER_TEMP/stack-personal.log" 2>&1
+            echo $? > "$RUNNER_TEMP/stack-personal.rc"
+            npx supabase start --workdir supabase-public -x studio,mailpit,postgres-meta,imgproxy,logflare,vector,supavisor,realtime \
+              > "$RUNNER_TEMP/stack-public.log" 2>&1
+            echo $? > "$RUNNER_TEMP/stack-public.rc"
+          ' > /dev/null 2>&1 &
 
       # The browser matching the locked @playwright/test, with its system libraries.
       - run: npx playwright install --with-deps chromium
 
       - run: npm run check
+
+      # Both stacks up, or their logs and a failure. Ten minutes covers a slow image pull.
+      - name: Wait for the Supabase stacks
+        run: |
+          for _ in $(seq 600); do
+            [ -f "$RUNNER_TEMP/stack-public.rc" ] && break
+            sleep 1
+          done
+          status=0
+          for stack in personal public; do
+            echo "::group::$stack stack"
+            cat "$RUNNER_TEMP/stack-$stack.log" 2>/dev/null || echo "no log"
+            echo "::endgroup::"
+            rc=$(cat "$RUNNER_TEMP/stack-$stack.rc" 2>/dev/null || echo "not finished")
+            if [ "$rc" != 0 ]; then
+              echo "::error::The $stack Supabase stack did not start ($rc)."
+              status=1
+            fi
+          done
+          exit $status
 
       # The required sync and privacy tests gate every merge (constitution IV).
       - run: npm run test:server
