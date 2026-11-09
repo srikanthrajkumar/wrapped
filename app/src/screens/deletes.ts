@@ -9,7 +9,6 @@ import { removeItem } from '../store/items';
 import { removeAppearance } from '../store/people';
 import { saveWith } from './components/feedback';
 import { dayText, timeText } from './format';
-import { eventBack } from './event-back';
 import { MESSAGES } from './messages';
 import { offerUndo } from './undo';
 
@@ -34,7 +33,7 @@ export function deleteConcert(event: { id: string; date: string; startTime: stri
       const deleted = await deleteEvent(event.id);
       if (deleted) {
         offerUndo(deleted.receipt);
-        leave(`/event/${event.id}`, eventBack().href);
+        leave(`/event/${event.id}`, '/');
       }
       return deleted;
     },

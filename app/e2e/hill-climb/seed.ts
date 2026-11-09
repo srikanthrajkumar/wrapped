@@ -146,7 +146,7 @@ export function seed(page: Page, catalogFile: string): Promise<SeedIds> {
 }
 
 /**
- * The Schedule (SEED.md "Schedule"): two days gone, on the Earlier page, then entries from the day
+ * The Schedule (SEED.md "Schedule"): two days gone, on Season's Past tab, then entries from the day
  * after SEASON_NOW, one Artist of each kind of instrument billed first, a group, a Dance, one
  * with nobody billed and one cancelled.
  * Written into the store as a fetched file leaves them, as e2e/schedule.spec.ts does: the feed

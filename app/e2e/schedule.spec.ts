@@ -82,9 +82,9 @@ async function add(page: Page, name: string) {
   await page.getByRole('dialog', { name }).getByRole('button', { name: 'Add' }).click();
 }
 
-/** The rasika's own row for an Event, in its day. */
+/** The rasika's own row for an Event, in its day (the hero may hold the same Event). */
 const ownRow = (page: Page, name: string) =>
-  page.getByRole('main').getByRole('link', { name: new RegExp(`^${name}`) });
+  page.locator('[data-list]').getByRole('link', { name: new RegExp(`^${name}`) });
 
 test('the e2e build never asks the real public-data project for the Schedule (ADR 0009)', async ({
   page,
@@ -195,7 +195,8 @@ test('the "schedule changed" hint opens what changed: keep mine, then take a new
   await page.goto('/');
   await storeEntries(page, [brothers({ version: 2, startTime: '18:00' })]);
 
-  const next = page.getByRole('main');
+  // The day's own row, not the hero, which holds the same Event as the rasika's next.
+  const next = page.locator('[data-list]');
   await next.getByRole('button', { name: 'Schedule changed' }).click();
   const sheet = page.getByRole('dialog', { name: 'Schedule changed' });
   // Only what differs: the time, old beside new.

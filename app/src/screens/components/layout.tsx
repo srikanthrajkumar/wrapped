@@ -16,17 +16,13 @@ import { createPortal } from 'react-dom';
 import { Link, useLocation } from 'wouter';
 import { cn } from '@/lib/utils';
 import { useInstall } from '../../install';
-import { noteOpened } from '../event-back';
 import { SeasonFeedback } from './feedback';
 import { InstallRow } from './InstallRow';
 import { UndoBar } from './UndoBar';
 
-/**
- * How deep a screen sits: a tab's root, the days gone (from Season, and opening Events), an
- * Event, or an Item in an Event.
- */
+/** How deep a screen sits: a tab's root, an Event, or an Item in an Event. */
 const depth = (path: string) =>
-  path === '/earlier' ? 0.5 : path.startsWith('/event/') ? (path.includes('/item/') ? 2 : 1) : 0;
+  path.startsWith('/event/') ? (path.includes('/item/') ? 2 : 1) : 0;
 // The path of the screen shown last, so the next one knows which way the rasika went.
 let shownPath: string | null = null;
 
@@ -38,7 +34,6 @@ let shownPath: string | null = null;
 export function Screen({ children }: { children: ReactNode }) {
   const [path] = useLocation();
   const [enter] = useState<'forward' | 'back' | undefined>(() => {
-    noteOpened(path, shownPath);
     if (shownPath === null) return undefined;
     const by = depth(path) - depth(shownPath);
     return by > 0 ? 'forward' : by < 0 ? 'back' : undefined;
@@ -81,7 +76,7 @@ const labels = (slot: HTMLElement) =>
  * A screen supplies only its contents ({@link BottomDock}). While the next screen is still
  * loading ({@link BarHold}) the frame keeps an inert copy of what it last held; when the action
  * changes, only the labels fade in (150ms) inside the same button. With no action the frame
- * hides, as on Season and Settings, and any Undo bars sit right on the tab bar; otherwise they
+ * hides, as on Settings and an empty Season (Season's otherwise holds its search bar), and any Undo bars sit right on the tab bar; otherwise they
  * stack above the action.
  */
 export function ActionBar({ onBar }: { onBar(bar: Bar | null): void }) {
@@ -149,7 +144,12 @@ export function ActionBar({ onBar }: { onBar(bar: Bar | null): void }) {
   return (
     <div>
       <UndoBar />
-      <div ref={frame} className="border-t border-border bg-background px-4 py-2">
+      <div
+        ref={frame}
+        data-slot="bar-frame"
+        // Season's search bar fades the list out above it instead (DESIGN.md "Season").
+        className="relative border-t border-border bg-background px-4 py-2 has-[[data-season-bar]]:border-t-transparent"
+      >
         <div ref={live} className="bar-slot" />
         <div ref={kept} inert aria-hidden />
       </div>
@@ -219,19 +219,30 @@ export function TabHeader({
   title,
   art,
   action,
+  hero,
   children,
 }: {
   title: string;
   /** The motif to draw the title on, as a curtain (DESIGN.md "The motif"). */
   art?: ReactNode;
   action?: ReactNode;
+  /**
+   * Shown in the title's place (Season's hero, the rasika's concert), holding the action itself;
+   * the title is then the page's heading for screen readers alone.
+   */
+  hero?: ReactNode;
   children?: ReactNode;
 }) {
   // In a phone's browser tab the install row shows on every tab, at one place (FB-46), so the
   // curtain waits until the app is installed.
   const { way } = useInstall();
   const heading = (className: string) =>
-    action ? (
+    hero ? (
+      <>
+        <h1 className="sr-only">{title}</h1>
+        {hero}
+      </>
+    ) : action ? (
       <div className="flex items-center justify-between gap-2">
         <h1 className={className}>{title}</h1>
         <div className="-my-3 -mr-3.5">{action}</div>
