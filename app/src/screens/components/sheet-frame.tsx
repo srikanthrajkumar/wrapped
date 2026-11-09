@@ -2,7 +2,7 @@
 // 50% black scrim, keeps focus inside until closed, then returns it to the control that opened
 // it (Radix Dialog; design D24), and its search box sits just above the keyboard.
 
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode, type RefObject } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -20,8 +20,17 @@ export function SheetFrame({
   description,
   tall = false,
   header,
+  focus,
+  className,
   children,
 }: {
+  /** For the sheet itself (a height the content doesn't set). */
+  className?: string;
+  /**
+   * Focused as the sheet opens, its keyboard rising at once: only for a sheet opened to type in
+   * (Season's search, as the Item editor's; DESIGN.md "Search box").
+   */
+  focus?: RefObject<HTMLElement | null>;
   open: boolean;
   onOpenChange(open: boolean): void;
   /** The sheet's name; shown as its title unless `header` takes its place. */
@@ -34,6 +43,9 @@ export function SheetFrame({
   children: ReactNode;
 }) {
   const inset = useKeyboardInset();
+  // What opened the sheet, given focus back as it closes without scrolling the page to it: a
+  // control in the sticky bottom bar sits, to the browser, at the page's end.
+  const opener = useRef<HTMLElement | null>(null);
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -41,17 +53,28 @@ export function SheetFrame({
         style={
           inset > 0 ? { bottom: inset, maxHeight: `calc(100dvh - ${inset}px - 24px)` } : undefined
         }
-        className={cn(tall && 'h-[92dvh]')}
+        className={cn(tall && 'h-[92dvh]', className)}
         // Focus goes to the sheet itself, not its search box: only the Item editor's search
         // autofocuses, so no keyboard rises unasked (DESIGN.md "Search box"; design D24).
         onOpenAutoFocus={(event) => {
           event.preventDefault();
-          (event.currentTarget as HTMLElement).focus();
+          if (
+            document.activeElement instanceof HTMLElement &&
+            document.activeElement !== document.body
+          )
+            opener.current = document.activeElement;
+          // Without scrolling: the sheet is still sliding up from below the screen.
+          if (focus?.current) focus.current.focus({ preventScroll: true });
+          else (event.currentTarget as HTMLElement).focus();
         }}
         // One sheet closing as another opens (an Artist's sheet to their Colours) leaves focus in
         // the one opening, rather than returning it to the row under both.
         onCloseAutoFocus={(event) => {
-          if (document.querySelector('[role="dialog"][data-state="open"]')) event.preventDefault();
+          event.preventDefault();
+          if (document.querySelector('[role="dialog"][data-state="open"]')) return;
+          const back = opener.current;
+          opener.current = null;
+          if (back?.isConnected) back.focus({ preventScroll: true });
         }}
       >
         <SheetHeader>

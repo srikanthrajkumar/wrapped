@@ -319,6 +319,11 @@ export interface EventSummary {
    * ("Malladi Brothers"); null before any.
    */
   knownBy: string | null;
+  /**
+   * Every Artist on its Stage, each with the names they are found by: their name, their Aliases
+   * and a group they were billed under. Season's filter matches on these (screens/season-filter.ts).
+   */
+  stage: { name: string; aliases: string[]; group: string | null }[];
   itemCount: number;
   /**
    * Marked cancelled (T061): the Event was, or its Schedule entry is now. An Event the rasika
@@ -365,7 +370,7 @@ export async function listEventSummaries(db: WrappedDB = defaultDb): Promise<Eve
   const [artists, sabhas] = await Promise.all([
     resolverFor(
       'artist',
-      [...known.values()].flat().map((appearance) => appearance.artistId),
+      [...stages.values()].flat().map((appearance) => appearance.artistId),
       db,
     ),
     resolverFor(
@@ -380,6 +385,14 @@ export async function listEventSummaries(db: WrappedDB = defaultDb): Promise<Eve
       event,
       sabha: event.sabhaId ? (sabhas(event.sabhaId) ?? null) : null,
       knownBy: names.length > 0 ? joinNames(names) : null,
+      stage: (stages.get(event.id) ?? []).map((appearance) => {
+        const artist = artists(appearance.artistId);
+        return {
+          name: artist?.name ?? '?',
+          aliases: artist?.aliases ?? [],
+          group: appearance.group ?? null,
+        };
+      }),
       itemCount: counts.get(event.id) ?? 0,
       cancelled:
         event.cancelled ||

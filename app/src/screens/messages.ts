@@ -38,8 +38,37 @@ export const MESSAGES = {
       `Saved on this phone · ${count} ${count === 1 ? 'change' : 'changes'} not yet backed up`,
     allSynced: 'All backed up',
   },
-  /** The days gone: Season's history mark, named for the page it opens, and that page. */
-  earlier: 'Earlier',
+  /** Season's hero, strip of days and filter (the Maintainer, 2026-11-09; DESIGN.md "Season"). */
+  season: {
+    /** The hero's word for the rasika's concert: on now, or their next Planned one. */
+    now: 'Now',
+    next: 'Next',
+    /** The strip of days, and its first two stops. */
+    days: 'Days',
+    pastLabel: 'Past',
+    today: 'Today',
+    /** The days gone, as a region, when the strip's Past shows them. */
+    past: 'Past',
+    /** The list with nothing in it, spoken by its quiet calendar mark. */
+    empty: { ahead: 'Nothing ahead', past: 'Nothing yet' },
+    /** The strip's calendar, and its month sheet's arrows. */
+    calendar: 'Pick a day',
+    previousMonth: 'Previous month',
+    nextMonth: 'Next month',
+    filterLabel: 'Find an Artist or Sabha',
+    /** The search bar with a filter on, spoken with what is on. */
+    filterOn: (what: string) => `Filter: ${what}`,
+    filterPlaceholder: 'Artist or Sabha…',
+    suggestions: 'Suggestions',
+    mine: 'Mine',
+    remove: (name: string) => `Remove ${name}`,
+    /** What a suggestion is, under its name. */
+    nameKind: { artist: 'Artist', group: 'Group', sabha: 'Sabha' },
+    /** Typed, with no Artist or Sabha in the Season by that name. */
+    noName: 'No Artist or Sabha by that name.',
+    noMatch: 'Nothing here matches.',
+    clear: 'Clear filters',
+  },
   /** Home, while the app isn't ready for offline; Settings shows it always. */
   offline: {
     ready: 'Ready offline',

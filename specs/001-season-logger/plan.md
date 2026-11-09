@@ -188,12 +188,22 @@ and bind the screen tasks.
 - **DD1 Navigation (D1, approved):** three bottom tabs: Season (home), Wrapped, Settings. Event and
   Item open as pushed screens with a back gesture. The tab bar hides while the Item editor is
   open. Tidy is reached from home; the Maintainer's `/admin` from Settings.
-- **DD2 Home (D2, approved; one timeline since the Maintainer's 2026-11-08 answer, DESIGN.md "Season"):**
-  every day of the Season from today on, in date order. Nothing sits above the curtain (2026-11-08): the
-  page opens at its top. The days gone are their own page, `/earlier`, newest first, opened from a history
-  mark left of the title's + (2026-11-09, replacing an "Earlier" row under the header).
-  - **Now:** an Event counts as Now from 60 minutes before its start until 4 hours after it. It shows as one
-    card under the header, tapped to open it: the Artists it is known by, then Sabha, start time and Item
+- **DD2 Home (D2, approved; option C since the Maintainer's 2026-11-09 answer and review, DESIGN.md "Season"):**
+  the curtain is the hero, the rasika's own Event on now, else their next Planned one (else the "Season"
+  title), on a two-column grid with the + and a chevron in its 24px right column, all but the + opening the
+  Event. Under it, at the top of the sheet, a slim strip of days, Past · Today · each date ahead with
+  anything on, pinned as the page scrolls with the list fading out under it: a tapped date jumps the list
+  to its day, and the day in view is marked by a heavier number over a dot, its label sticking under the
+  strip. A calendar at the strip's right end opens a month sheet, a dot on each day on, a tap jumping there
+  or opening Past. The list runs from today on; Past shows the days gone, newest first, in its place. One
+  rounded search bar above the tab bar, "Artist or Sabha…", opens a sheet suggesting the Season's billed
+  Artists, groups and Sabhas with their Aliases, with Mine and the kinds as text toggles; one sort widens,
+  sorts mixed narrow, on own Events and listings alike, pruning the strip and the calendar. With a filter on,
+  the bar reads it, with one x to clear it. Back from an Event returns to the same place; `/earlier` opens
+  Past. This replaces the one timeline (2026-11-08), the `/earlier` page and the Today · Coming · Past tabs
+  (2026-11-09).
+  - **Now:** an Event counts as Now from 60 minutes before its start until 4 hours after it. It shows in
+    the hero, tapped to open it: the Artists it is known by, then Sabha, start time and Item
     count (walkthrough S1, S2, 2026-11-04).
   - **Each day:** the rasika's own Events by start time (Planned, Attended, cancelled and kept, made by
     hand), then the Schedule's other entries, quieter, with no button; a tap opens the entry's sheet, whose

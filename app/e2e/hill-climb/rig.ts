@@ -59,12 +59,63 @@ const go = async (page: Page, path: string) => {
   await page.evaluate(() => scrollTo(0, 0));
 };
 
-/** The days gone, opened from Season's history mark. */
-const openEarlier = async (page: Page) => {
-  await go(page, '/');
-  await page.getByRole('main').getByRole('link', { name: 'Earlier', exact: true }).click();
-  await page.waitForURL(BASE + '/earlier');
-  await page.getByRole('heading', { name: 'Earlier', level: 1 }).waitFor();
+/** Season with one of the strip's stops tapped: Past, Today or a day ("Wed 16 Dec"). */
+const onStrip =
+  (stop: string, top = true) =>
+  async (page: Page) => {
+    await go(page, '/');
+    await page
+      .getByRole('navigation', { name: 'Days' })
+      .getByRole('button', { name: stop })
+      .click();
+    if (top) await page.evaluate(() => scrollTo(0, 0));
+  };
+
+/** Every Concert's summary marked shown, so moving the clock past one opens none. */
+const summariesShown = (page: Page, ids: SeedIds) =>
+  page.evaluate(
+    (ids) =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open('carnatic-wrapped');
+        open.onsuccess = () => {
+          const tx = open.result.transaction('meta', 'readwrite');
+          for (const id of ids)
+            tx.objectStore('meta').put({ key: `summaryShown:${id}`, value: { eventId: id } });
+          tx.oncomplete = () => {
+            open.result.close();
+            resolve();
+          };
+          tx.onerror = () => reject(tx.error);
+        };
+      }),
+    [ids.full, ids.long, ids.bare],
+  );
+
+/** Season's filter with `query` typed into it. */
+const typed = async (page: Page, query: string) => {
+  await page.getByRole('searchbox', { name: 'Find an Artist or Sabha' }).fill(query);
+  await page.getByRole('list', { name: 'Suggestions' }).waitFor();
+};
+
+/**
+ * The search bar above the tab bar, tapped open: its sheet, the field focused. Tapped as a finger
+ * does, in place: Playwright's own click would first scroll the page to the sticky bar's place in
+ * the flow, its end, which no tap does.
+ */
+const searchSheet = async (page: Page) => {
+  await page
+    .getByRole('button', { name: /^(Find an Artist or Sabha|Filter: )/ })
+    .evaluate((bar) => (bar as HTMLElement).click());
+  await page.getByRole('dialog', { name: 'Find an Artist or Sabha' }).waitFor();
+  await page.waitForTimeout(400);
+};
+
+/** A name picked through the search sheet, which closes onto its days. */
+const pickName = async (page: Page, query: string) => {
+  await searchSheet(page);
+  await typed(page, query);
+  await page.getByRole('list', { name: 'Suggestions' }).getByRole('button').first().click();
+  await page.getByRole('dialog').waitFor({ state: 'detached' });
 };
 
 let dragFrom = { x: 0, y: 0 };
@@ -73,15 +124,78 @@ const stageRow = (page: Page, name: RegExp) =>
   page.getByRole('region', { name: 'Stage' }).getByRole('button', { name }).first();
 
 const VIEWS: View[] = [
+  // As it opens: the hero holds the Concert in progress, the strip on Today.
   { name: 'season', open: (page) => go(page, '/') },
-  // The days gone, their own page.
-  { name: 'season-earlier', open: openEarlier },
+  {
+    // The next morning, nothing on: the hero holds the rasika's next Planned concert.
+    name: 'season-next',
+    open: async (page, ids) => {
+      await summariesShown(page, ids);
+      await page.clock.setFixedTime(new Date('2026-12-15T09:00:00+05:30'));
+      await go(page, '/');
+    },
+    release: (page) => page.clock.setFixedTime(SEASON_NOW),
+  },
+  {
+    // Scrolled into the days: the strip pinned at the top, the list fading out under it, the day
+    // in view marked.
+    name: 'season-pinned',
+    open: async (page) => {
+      await go(page, '/');
+      await page.locator('[data-list] [data-place="2026-12-16"]').evaluate((day) => {
+        const strip = document.querySelector('[data-strip]')!;
+        scrollBy(0, day.getBoundingClientRect().top - strip.getBoundingClientRect().bottom + 90);
+      });
+    },
+  },
+  { name: 'season-past', open: onStrip('Past') },
+  {
+    // The strip's calendar: the month, a dot under each day with anything on.
+    name: 'season-calendar',
+    open: async (page) => {
+      await go(page, '/');
+      await page.getByRole('button', { name: 'Pick a day' }).click();
+      await page.getByRole('dialog', { name: 'Pick a day' }).waitFor();
+    },
+    release: (page) => page.keyboard.press('Escape'),
+  },
+  {
+    // The search sheet after a pick: the name ticked, Dance on, the field ready for another.
+    name: 'season-search',
+    open: async (page) => {
+      await go(page, '/');
+      await pickName(page, 'music academy');
+      await searchSheet(page);
+      await page.getByRole('button', { name: 'Dance', exact: true }).click();
+    },
+    release: (page) => page.keyboard.press('Escape'),
+  },
+  {
+    // Two Sabhas picked, which widen: the bar reads them, with its x; the strip left with their
+    // days. Each view loads the page afresh, so no filter outlives its shot.
+    name: 'season-filtered',
+    open: async (page) => {
+      await go(page, '/');
+      for (const sabha of ['music academy', 'narada']) await pickName(page, sabha);
+    },
+  },
+  {
+    // A filter that matches nothing in the days gone: the one-tap clear.
+    name: 'season-nomatch',
+    open: async (page) => {
+      await onStrip('Past')(page);
+      await searchSheet(page);
+      await page.getByRole('button', { name: 'Dance', exact: true }).click();
+      await page.keyboard.press('Escape');
+      await page.getByRole('dialog').waitFor({ state: 'detached' });
+    },
+  },
   {
     // A Schedule entry's sheet, from its row on the timeline.
     name: 'entry-sheet',
     open: async (page) => {
       await go(page, '/');
-      await page.locator('main li > button').first().click();
+      await page.locator('main section li > button').first().click();
       await page.getByRole('dialog').waitFor();
     },
     release: (page) => page.keyboard.press('Escape'),
@@ -363,7 +477,7 @@ async function shots(out: string) {
   // Season with the rasika's own Events and no Schedule yet, as before a feed is delivered.
   if (!only || only.includes('season')) {
     await take({ name: 'season-own', open: (page) => go(page, '/') }, ids);
-    await take({ name: 'season-own-earlier', open: openEarlier }, ids);
+    await take({ name: 'season-own-past', open: onStrip('Past') }, ids);
   }
   await seedSchedule(page);
   writeFileSync(join(out, 'seed-ids.json'), JSON.stringify(ids, null, 2));
@@ -546,7 +660,7 @@ async function council(out: string, baseline?: string) {
     'welcome',
     'season-empty',
     'season-own',
-    'season-own-earlier',
+    'season-own-past',
     ...VIEWS.map((v) => v.name),
   ].filter((view) => existsSync(join(out, 'shots', `${view}.393.dark.png`)));
   const png = (root: string, view: string, theme: Theme) =>

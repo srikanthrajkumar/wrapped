@@ -67,7 +67,6 @@ import { Chip } from './components/DockedSearch';
 import { KindMark } from './components/kind-mark';
 import { dayText, eventLine, itemLine, itemTitle, kindName, roleName, timeText } from './format';
 import { deleteConcert, deleteItem, removeArtist } from './deletes';
-import { eventBack } from './event-back';
 import { offerUndo, undo, undoMessage } from './undo';
 import type { SaveFeedback } from './save-feedback';
 
@@ -157,7 +156,7 @@ function EventView({ eventId }: { eventId: string }) {
   if (event === null) {
     return (
       <>
-        <TopBar back={eventBack()} />
+        <TopBar back={{ href: '/', label: 'Season' }} />
         <p className="py-6 text-body text-muted-foreground">This Concert is not on this phone.</p>
       </>
     );
@@ -213,7 +212,7 @@ function EventView({ eventId }: { eventId: string }) {
   return (
     <>
       <TopBar
-        back={eventBack()}
+        back={{ href: '/', label: 'Season' }}
         right={
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from 'vitest';
 import type { Event, ScheduleEntry } from '../../src/model';
-import { asNowReads, timeline } from '../../src/screens/timeline';
+import { asNowReads, heroEvent, timeline } from '../../src/screens/timeline';
 import { nowEvent } from '../../src/store/logging-note';
 import type { EventSummary, ScheduleListing } from '../../src/store/queries';
 
@@ -34,6 +34,7 @@ const summary = (fields: Partial<Event>, cancelled: boolean): EventSummary => ({
   event: event(fields),
   sabha: null,
   knownBy: null,
+  stage: [],
   itemCount: 0,
   cancelled,
 });
@@ -90,12 +91,8 @@ describe('the timeline', () => {
     expect(shape(days)).toEqual([['2026-12-16', ['mine'], []]]);
   });
 
-  it('keeps a cancelled Event in its day after its start, and leaves out one shown apart', () => {
-    const days = timeline(
-      [summary({ id: 'off', date: '2026-12-01' }, true), summary({ id: 'now' }, false)],
-      [],
-      new Set(['now']),
-    );
+  it('keeps a cancelled Event in its day after its start', () => {
+    const days = timeline([summary({ id: 'off', date: '2026-12-01' }, true)], []);
     expect(shape(days)).toEqual([['2026-12-01', ['off'], []]]);
   });
 });
@@ -106,5 +103,48 @@ describe('Now', () => {
     const off = summary({ id: 'off' }, true);
     expect(nowEvent(asNowReads([off]), new Map(), at).now).toBeNull();
     expect(nowEvent(asNowReads([summary({ id: 'on' }, false)]), new Map(), at).now?.id).toBe('on');
+  });
+});
+
+// Season's hero (the Maintainer, 2026-11-09, option C): the rasika's own Event on now, else their
+// next Planned one, else none (the title).
+describe('the hero', () => {
+  const at = new Date('2026-12-15T12:00:00');
+  const mine = (id: string, fields: Partial<Event>, cancelled = false) =>
+    summary({ id, source: 'plan', scheduleEntryId: null, ...fields }, cancelled);
+  const pick = (all: EventSummary[], holder: EventSummary | null = null) => {
+    const hero = heroEvent(all, holder, at);
+    return hero && [hero.summary.event.id, hero.now];
+  };
+
+  it('holds the Event on now, over any Planned one', () => {
+    const now = mine('now', { status: 'attended', date: '2026-12-15', startTime: '11:30' });
+    const next = mine('next', { date: '2026-12-15', startTime: '18:00' });
+    expect(pick([now, next], now)).toEqual(['now', true]);
+  });
+
+  it('else the next Planned one still to start, soonest first', () => {
+    expect(
+      pick([
+        mine('later', { date: '2026-12-17', startTime: '10:00' }),
+        mine('tonight', { date: '2026-12-15', startTime: '18:00' }),
+        // Started this morning and not Now: gone by.
+        mine('morning', { date: '2026-12-15', startTime: '09:00' }),
+        // Attended, cancelled, or deleted: never the next.
+        mine('heard', { status: 'attended', date: '2026-12-16', startTime: '10:00' }),
+        mine('off', { date: '2026-12-15', startTime: '13:00' }, true),
+        mine('gone', { date: '2026-12-15', startTime: '14:00', deletedAt: 'x' }),
+      ]),
+    ).toEqual(['tonight', false]);
+    // One with no time counts all its day, today's included.
+    expect(pick([mine('sometime', { date: '2026-12-15', startTime: null })])).toEqual([
+      'sometime',
+      false,
+    ]);
+  });
+
+  it('is none with nothing on now or ahead', () => {
+    expect(pick([mine('past', { date: '2026-12-14', startTime: '18:00' })])).toBeNull();
+    expect(pick([])).toBeNull();
   });
 });

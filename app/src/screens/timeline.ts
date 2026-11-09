@@ -23,13 +23,12 @@ const byStart = (a: EventSummary, b: EventSummary) =>
   (a.event.startTime ?? '99').localeCompare(b.event.startTime ?? '99');
 
 /**
- * The days that have something in them, in date order. `apart` are Events shown elsewhere (the
- * one holding Now, as its card), left out of their day. `listings` come sorted (listSchedule).
+ * The days that have something in them, in date order, every Event in its day (the hero's too:
+ * the list is the whole Schedule, the hero a way in). `listings` come sorted (listSchedule).
  */
 export function timeline(
   summaries: readonly EventSummary[],
   listings: readonly ScheduleListing[],
-  apart: ReadonlySet<string> = new Set(),
 ): TimelineDay[] {
   const days = new Map<string, TimelineDay>();
   const day = (date: string) => {
@@ -37,9 +36,7 @@ export function timeline(
     if (!found) days.set(date, (found = { date, own: [], listings: [] }));
     return found;
   };
-  for (const summary of summaries) {
-    if (!apart.has(summary.event.id)) day(summary.event.date).own.push(summary);
-  }
+  for (const summary of summaries) day(summary.event.date).own.push(summary);
   for (const listing of listings) {
     if (listing.plannedId === null) day(listing.entry.date).listings.push(listing);
   }
@@ -61,4 +58,38 @@ export function listingLead(entry: ScheduleEntry): string {
   const stage = entry.billed.map((person, i) => ({ ...person, position: i + 1 })).sort(byStage);
   const names = knownNames(knownBy(entry.kind, stage), (person) => person.name);
   return names.length > 0 ? joinNames(names) : entry.sabha;
+}
+
+const pad = (n: number) => String(n).padStart(2, '0');
+const isoDay = (at: Date) => `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}`;
+
+/** When an Event starts, for ordering: its start time, else the start of its day. */
+const startOf = ({ date, startTime }: { date: string; startTime: string | null }) => {
+  const [y, m, d] = date.split('-').map(Number) as [number, number, number];
+  const [hh, mm] = (startTime ?? '00:00').split(':').map(Number) as [number, number];
+  return new Date(y, m - 1, d, hh, mm).getTime();
+};
+
+/**
+ * The rasika's concert for Season's hero (the Maintainer, 2026-11-09, option C): the Event that
+ * holds Now, else their next Planned one still to start (one with no time counts all its day),
+ * soonest first; a cancelled one never. Null with neither: the hero falls back to the title.
+ */
+export function heroEvent(
+  summaries: readonly EventSummary[],
+  holder: EventSummary | null,
+  now: Date,
+): { summary: EventSummary; now: boolean } | null {
+  if (holder) return { summary: holder, now: true };
+  const day = isoDay(now);
+  const next = summaries
+    .filter(
+      ({ event, cancelled }) =>
+        event.status === 'planned' &&
+        !cancelled &&
+        event.deletedAt === null &&
+        (event.startTime === null ? event.date >= day : startOf(event) > now.getTime()),
+    )
+    .sort((a, b) => startOf(a.event) - startOf(b.event))[0];
+  return next ? { summary: next, now: false } : null;
 }

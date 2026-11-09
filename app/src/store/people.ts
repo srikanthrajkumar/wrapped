@@ -40,8 +40,9 @@ export interface NameMatch {
 export const DEFAULT_NAME_LIMIT = 10;
 
 // Closer matches first: the whole name, then its start, then the start of a later word, then
-// anywhere in it. A name ranks by its best spelling, the name itself or an Alias.
-function rank(folded: string, needle: string): number | null {
+// anywhere in it. A name ranks by its best spelling, the name itself or an Alias. Season's filter
+// ranks its suggestions the same way (screens/season-filter.ts).
+export function rank(folded: string, needle: string): number | null {
   if (folded === needle) return 0;
   if (folded.startsWith(needle)) return 1;
   if (folded.includes(` ${needle}`)) return 2;
