@@ -146,13 +146,32 @@ export function seed(page: Page, catalogFile: string): Promise<SeedIds> {
 }
 
 /**
- * The Schedule (SEED.md "Schedule"): entries from the day after SEASON_NOW, one Artist of each
- * kind of instrument billed first, a group, a Dance, one with nobody billed and one cancelled.
+ * The Schedule (SEED.md "Schedule"): two days gone, on the Earlier page, then entries from the day
+ * after SEASON_NOW, one Artist of each kind of instrument billed first, a group, a Dance, one
+ * with nobody billed and one cancelled.
  * Written into the store as a fetched file leaves them, as e2e/schedule.spec.ts does: the feed
  * isn't rasika data, so no store action writes it.
  */
 export const SCHEDULE: ScheduleEntry[] = (
   [
+    [
+      'kgs-1',
+      '2026-12-12',
+      '18:30',
+      'Krishna Gana Sabha',
+      'concert',
+      null,
+      [['Sanjay Subrahmanyan', 'vocal', null]],
+    ],
+    [
+      'mylapore-0',
+      '2026-12-13',
+      '10:00',
+      'Mylapore Fine Arts',
+      'concert',
+      null,
+      [['Sikkil Gurucharan', 'vocal', null]],
+    ],
     [
       'academy-1',
       '2026-12-15',

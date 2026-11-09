@@ -313,12 +313,24 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
 
 - **Season (home, DD2):** one timeline of the whole Season, in date order (the Maintainer,
   2026-11-08, replacing Next, Season so far and the Schedule screen): "we need to make it easy for
-  people to scroll schedules without goading them to add it". The days gone come first; then the header (the
-  title, the install row, "Getting ready for offline…", the new-catalog row) and Now's card;
-  then today and every day to come, to the end of the Season. The page opens with the header at its top, the past above it and not yet scrolled to (the layout the Maintainer chose, 2026-11-08), set before the first paint and held there while the days around draw at their real heights, until the rasika scrolls (its anchor found again at each correction, and let go once gone), so nothing slides even where the browser has no scroll anchoring; with no days gone it simply starts at the header; from the header on it is at least a
-  screen tall, so it can, however little is to come. Coming back from an Event, a sheet or
-  another tab finds Season where it was left, kept by the day at the top of the screen. Pushed
-  screens and the other tabs open at their top.
+  people to scroll schedules without goading them to add it". **Nothing sits above the curtain**
+  (the Maintainer, 2026-11-08: "Nothing above the curtain"): the page starts with the header (the
+  title on its motif with the history mark and the + at its right, the install row, "Getting
+  ready for offline…", the new-catalog row), then Now's card, then today and every day to come,
+  to the end of the Season. The days gone are not on Season: they are a page of their own,
+  Earlier, below. Each launch opens at the very top. Coming back from an Event, the Earlier page,
+  a sheet or another tab finds Season where it was left, kept by the day at the top of the
+  screen as the page goes and held there before the first paint while the days above draw at
+  their real heights, until the rasika scrolls (its anchor found again at each correction, let
+  go once gone, and held on through a page still too short to reach its place), so nothing
+  slides even where the browser has no scroll anchoring. Pushed screens and the other tabs open
+  at their top.
+  - **The history mark** (the Maintainer, 2026-11-09, replacing the Earlier row): the top of the
+    sheet is kept for the add and what matters now, so the days gone are one Tabler history mark
+    in the title's row, just left of the +, its twin: the same 48px ghost icon button and 24px
+    mark, the two side by side with the +'s mark on the gutter. Spoken "Earlier", for the page
+    it opens, as a back is named for where it goes. No count or badge on it: a number by the
+    title would ask to be cleared. With no days gone it isn't there, and the + keeps its place.
   - **Each day:** its label (as Next's were), then the rasika's own Events by start time
     (Planned, Attended, being logged, cancelled and kept, and those made by hand), then the Schedule's other entries for that day, quieter: muted and not bold, with no button of
     their own. An entry the rasika planned shows once, as theirs. A day with nothing in it is
@@ -328,7 +340,7 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   - **The +** (the Maintainer, 2026-11-08, replacing walkthrough S1's "+ Log a Concert" bar):
     a Concert not on the Schedule is the rarer way in, so it is a 48px + icon button at the
     right of the Season title, spoken "Log a Concert", its mark on the gutter. The header is the
-    one block in every state, the empty Season included, and the page opens on it, so the +
+    one block in every state, the empty Season included, and the page opens at its top, so the +
     is always in view on open. It still starts another Concert, a past one included, while one
     is in progress, one per tap. There is no bottom bar.
   - **Now** (walkthrough S1, replacing the block with "Start logging" or "Continue: N Items"):
@@ -340,7 +352,9 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     (walkthrough S2; see Event below), the Sabha first on the line under it. Before any Artist,
     the row leads with the Sabha, or "No Sabha yet".
   - **Empty home** (decided 2026-11-01): with nothing logged, planned or listed, home is the
-    title with its + alone (2026-11-08). Without a Schedule (no feed delivered yet) the
+    title with its + alone (2026-11-08), and one quiet calendar mark, no words, at about a third
+    of the sheet's height. With days gone but nothing from today on, the sheet shows the same
+    mark (spoken "Nothing ahead"), the history mark beside the + leading to them. Without a Schedule (no feed delivered yet) the
     timeline is the rasika's own Events alone, in the same order, opening the same way. ("Lecdem" joins with the Lecdem variant, T063; Dance and
     Harikatha with T122.)
   - **New catalog prompt** (decided 2026-11-01; FR-038): one row at the top of home, under
@@ -369,6 +383,17 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     one smaller line under the block, tapped to open. A Concert lets go of Now by itself after
     an hour without logging or at the end of its window; nothing ends it by hand (walkthrough
     S13, 2026-11-05).
+- **Earlier (the days gone; the Maintainer, 2026-11-09):** a pushed page, opened from Season's
+  history mark at `/earlier`. Its top bar is an Event's: a back chevron "Season" at the left,
+  nothing at the right; then its title, "Earlier", in a pushed screen's title style 16px under
+  it. Then the days gone, newest first (the nearest is the one most likely wanted), each day as
+  on Season: its label, the rasika's own Events, then the Schedule's past entries, quieter, a
+  tap on one opening its sheet as on Season; the page ends 32px under the last day. It enters
+  from the right, as an Event does, and starts at its top each time Season opens it. An Event
+  opened from it enters from the right too, and its back reads "Earlier" and returns to the
+  page where it was left (held as Season is); deleting that Event returns there too. An Event
+  opened from Season, or after a reload, goes back to Season. Reached with no days gone (an old
+  link), the page shows Season's quiet calendar mark under its title.
 - **Event (DD3):** top to bottom, heading → Stage → Note → Items (walkthrough S2, S3, decided
   2026-11-04, replacing the Sabha-led block and the running order before Stage).
   - **Heading:** the Artists the Event is known by, in `title`, wrapping rather than truncating:
@@ -900,3 +925,5 @@ in the phase that builds it):
 | 2026-11-07 | First launch's mark: Silk, picked from four bolder fields (Bloom horizon, Ribbon block, Full bleed, Silk), kept sharp, and moving: its folds drift back and forth on 11, 14 and 19 second periods, the one moving mark and the one exception to "motion explains a change". About 0.4 KB; reduced motion holds it still. Season's colours follow the Ragas logged (the three most heard, a second rose at three), not the day or the number of Concerts. |
 | 2026-11-08 | First launch's fades made invisible where they stop (the Maintainer: the line where the black fade ends showed). The silk's dissolve and the scrim behind the words were straight ramps with corners, and the scrim began where the dissolve was steepest, so a shelf showed. Both are now eased (smoothstep, a dozen stops: no slope at either end); the silk's box is 80% of the screen (was 74%), still whole to 45% of its height, so its tail reaches the words; the scrim rises over 192px (was 64px). Measured at 390px: the sharpest bend in the fade falls from 0.163 to 0.136 L* per px² in dark at 100% text, and from 0.449 to 0.103 at 200%; contrast at 200% text holds at 13.75:1 dark, 18.08:1 light (320px). Three council rounds (Codex and two Claude reviewers): lowest scores 6.5, 6, 6.5, every reviewer agreeing no edge shows. Parked for the Maintainer: a curved foot (a second, elliptical mask so the sides lift). |
 | 2026-11-08 | The Maintainer: adding a Concert that isn't on the Schedule is now secondary, and the Schedule should be easy to scroll without goading anyone to add. Season becomes one timeline of the whole Season in date order (the days gone above, opening at the header and Now), each day the rasika's own Events then the Schedule's other entries, quieter, with no button on a row; an entry's sheet holds its billing and one add. Next, Season so far, the Schedule screen and its calendar button go; `/schedule` goes to Season. The "+ Log a Concert" bottom bar goes, in every state, for a 48px + at the Season title's right. A Concert made by the + and left with nothing entered leaves no trace. The builder's calls: the header sits between the days gone and today, so the page opens on it with the + in view; the Now card stays under the header; the "Your Wrapped" row went with Season so far (the Wrapped tab remains); entries carry no avatar tile; an untouched new Concert is still made at once and taken back on leaving if the journal and the store show nothing entered (`app/src/screens/new-concert.ts`). |
+| 2026-11-08 | The Maintainer, on the live build: "Nothing above the curtain." Season always opens at its very top, the curtain and its title first; the days gone no longer sit above the header and the page never opens scrolled down. They go behind one quiet "Earlier · N" row under the curtain and status rows, above Now, that opens them in place, newest first, and closes them again; it stays as it was coming back from an Event, starts closed at each launch, and isn't there with no days gone. The + stays at the title's right for now. The builder's calls: a history mark and a turning chevron; N counts the days gone with anything in them; the hold that opened the page at the header goes, and the one that brings the rasika back to their place stays, now holding on through a page too short to reach that place while the days above still sit at their likely heights (it had let go there, mistaking the page's stop for the rasika's scroll).                                                                                                                                                                                                                                                                                                                                             |
+| 2026-11-09 | The Maintainer, reversing the Earlier row of 2026-11-08: the top of the sheet is prime space, kept for the add or something important. The row and its open/closed state go; the sheet starts at the status rows, then Now, then today and the days ahead, and still opens at its top. The days gone are a page of their own (`/earlier`), opened from a history mark in the curtain's title row just left of the +, at its size and tap, hidden with no days gone; newest first, the rasika's own Events then the past listings, quieter, as on Season, each listing's sheet as on Season. Back returns to Season where it was left; an Event opened from the page goes back to it, where it was left, held while its days draw. The builder's calls: the mark is spoken "Earlier", for the page, with no count; the page's bar and title follow a pushed screen's; it sits between Season and an Event in the motion's depth; where a page was left is noted as it goes, not as it scrolls, so a tap made in the frame a scroll ends in still finds it; with days gone and nothing ahead, Season shows its empty mark, spoken "Nothing ahead".                                                                                                                                                              |

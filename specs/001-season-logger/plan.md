@@ -189,7 +189,9 @@ and bind the screen tasks.
   Item open as pushed screens with a back gesture. The tab bar hides while the Item editor is
   open. Tidy is reached from home; the Maintainer's `/admin` from Settings.
 - **DD2 Home (D2, approved; one timeline since the Maintainer's 2026-11-08 answer, DESIGN.md "Season"):**
-  every day of the Season in date order, the days gone above the header, which the page opens on.
+  every day of the Season from today on, in date order. Nothing sits above the curtain (2026-11-08): the
+  page opens at its top. The days gone are their own page, `/earlier`, newest first, opened from a history
+  mark left of the title's + (2026-11-09, replacing an "Earlier" row under the header).
   - **Now:** an Event counts as Now from 60 minutes before its start until 4 hours after it. It shows as one
     card under the header, tapped to open it: the Artists it is known by, then Sabha, start time and Item
     count (walkthrough S1, S2, 2026-11-04).
