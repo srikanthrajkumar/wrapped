@@ -7,8 +7,10 @@ import { md5 } from './md5';
 /**
  * Second-phase files: the card renderer, fonts and the xlsx writer, fetched right after
  * install. Their chunks are named so they match here (empty until the Cards and export work).
+ * The app icons go second too: the phone reads them when it installs the app, and logging
+ * never needs them (about 280 KB, PNG barely compresses).
  */
-const PHASE_2 = [/^assets\/phase2-[^/]+$/, /^fonts\//];
+const PHASE_2 = [/^assets\/phase2-[^/]+$/, /^fonts\//, /^(apple-touch-icon|icon-[^/]+)\.png$/];
 
 /** True for a file of the second download. Takes a build-relative path or a site URL. */
 export function isPhase2(path: string): boolean {

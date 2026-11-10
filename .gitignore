@@ -29,3 +29,7 @@ coverage/
 
 # Wrangler's local state (ADR 0008)
 .wrangler/
+
+# The mark's generator and its source SVGs stay on this machine; only the icons in app/public/
+# are committed (DESIGN.md "The mark")
+brand/
