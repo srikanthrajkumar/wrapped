@@ -211,7 +211,7 @@ the fields so they hold no glare.
   soft rendering. Bowed (violin, dance): one long fold. Plucked (veena, chitravina, mandolin):
   ripples. Struck (mridangam, ghatam, khanjira, morsing, thavil, nattuvangam): several small
   glows, like beats. Breath (voice, flute, nagaswaram, saxophone, presenter): one soft swell.
-- **The app's own mark** (first launch; the logo once the name is settled): Silk, one fixed
+- **First launch's field** (the logo is the kolam, "The mark" below): Silk, one fixed
   field of long rose-and-ink folds, kept sharp (blur 1.2%, not 7%). Chosen by the Maintainer
   from four bolder fields on 2026-11-07: the one place the motif may be as wavy and vivid as it
   likes.
@@ -249,6 +249,31 @@ It is never on the running order, search, Details, Stage, the sheets or any othe
 surface, and never on Artist rows: an avatar on every Artist read as too much (2026-11-07). It
 fades in over 300ms when first drawn on Season and first launch, and simply appears with reduced
 motion. Only first launch moves. It is decoration: hidden from screen readers.
+
+## The mark
+
+Settled with the Maintainer on 2026-11-10. The logo, favicon and app icons are one **sikku
+kolam**: a single closed line drawn round 13 dots in rows of 1-3-5-3-1, never touching one.
+
+**Construction.** On a square grid of pitch `s`, the line runs only on the diagonals through
+the midpoints between neighbouring dots, so it passes every dot at `d = s√2/4` (0.354 s). At
+each midpoint it crosses at 90° or turns back round its dot in a quarter arc of radius `d`.
+Four inner turns, a quarter-turn apart, close it as one line, so the mark has four-fold
+rotational symmetry. Stroke 0.12 s, dots 0.10 s.
+
+**Forms** (in `app/public/`):
+
+- **App icon** (`apple-touch-icon.png`, `icon-192.png`, `icon-512.png`, and
+  `icon-maskable-512.png` with the kolam inside Android's safe circle): the kolam in solid
+  white glass on a plain ink tile, blushing to rose toward the lower right, its dots pearls.
+  Light from the upper left: the rim is strongest on the left and fades out to the right, and
+  soft shadows lift the kolam off the tile. No glow on the tile.
+- **Browser tab** (`favicon.svg`, `favicon.ico`): the same rules on five dots (rows 1-3-1),
+  heavier for 16px; rose line with maroon dots on a light tab, blush dots on a dark one.
+- **One colour** (`mask-icon.svg`): the five-dot cut in black, for Safari's pinned tab.
+
+The PNG icons are the second download (`app/src/precache-phases.ts`): the phone reads them when
+it installs the app, and logging never needs them.
 
 ## Typography
 
@@ -995,8 +1020,8 @@ in the phase that builds it):
   the screens deferred here.
 - The product's name and where its logo appears (deferred 2026-11-01: the Maintainer is
   considering other names; a logo will appear somewhere). "Carnatic Wrapped" stays the working
-  name until then. The logo is drawn from the motif.
-- The motif's remaining uses (T088a): the ground of the Wrapped cards, the logo, and what the
+  name until then. The mark itself is settled ("The mark", 2026-11-10).
+- The motif's remaining uses (T088a): the ground of the Wrapped cards and what the
   Season shelf holds beyond its title. The motif itself was settled on 2026-11-07.
 
 ## Decisions Log
@@ -1038,3 +1063,4 @@ in the phase that builds it):
 | 2026-11-09 | The Maintainer, from mockups, for the strip: no dot and no pill under the chosen day, but style B, "time fades": each stop's ink follows time (Past faint, Today full, each day ahead fainter by about 0.13 a day), the chosen day in full ink and 500, over a brief 250ms change, none with reduced motion. The builder's call, from the contrast check asked for: Past at 0.6 and the floor ahead at 0.65, not 0.3 and 0.35, since 0.6 is the least that keeps the number at 4.5:1 in both themes (4.7:1 light, 5.4:1 dark); the weekday in the text colour, so the stop's one ink governs both lines. |
 | 2026-11-09 | Five bugs from the Maintainer's iPhone, fixed at the root. The hero takes the rasika's soonest Event still to start whatever its state, not only a Planned one, so it and the list's first own row never name two different concerts. A date tapped on the strip or the calendar starts the list at that day and takes the page back to its top, so the hero stays where it is and the same tap lands the same way from anywhere; the room kept under the last day for jumps goes. A stuck day label fades the rows under it by how far they have passed, none for a day resting just under the strip. The search sheet's toggles hold the check's room and the 600 width either way, the check after the word, 8px apart, so one turned on moves nothing and all four fit at 390px. The Artist and Sabha pickers offer the names the Season's Schedule prints that no list holds yet. |
 | 2026-11-09 | Withdrawn, the same day: one day at a time (the structure mockups' option C, Morning · Afternoon · Evening bands, the rasika's own Events as cards in their slot, a line at now, a swipe between days, Past off the strip) was built and the Maintainer took it back on seeing it: the problem was never a sense of time, which Now and Next already give, and the time line and the highlighted card were not wanted. Season returns to the timeline above, with the five iPhone fixes kept. What the schedule is for goes back to product discovery first. |
+| 2026-11-10 | The mark, from four directions riffing on a floral rosette (tala, kolam, padma, swara; the kolam chosen) and then three single-line kolams (13, 17 and 21 dots; the 13 chosen): a sikku kolam on rows 1-3-5-3-1, built as a mirror curve, the line always √2⁄4 s from the dots. The app icon is that kolam in white glass on a plain ink tile, blushing to rose toward the lower right, lifted by soft shadows, its rim strongest on the left and fading out to the right (the Maintainer, after rose glass: no red glow, more white, more lift). The favicon stays the red five-dot cut. |
