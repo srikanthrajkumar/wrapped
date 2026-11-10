@@ -78,6 +78,11 @@ export function appearanceProblems(appearance: Appearance): string[] {
   if (group !== null && (typeof group !== 'string' || group.trim() === '')) {
     problems.push('a group is null or a name');
   }
+  // A row stored before `support` existed has none, which reads as false (2026-11-10).
+  const support: unknown = appearance.support;
+  if (support !== undefined && typeof support !== 'boolean') {
+    problems.push('support is true or false');
+  }
   const { colourPrimary: primary, colourSecondary: secondary } = appearance;
   if (primary !== null && primary !== 'unknown' && !COLOURS.includes(primary)) {
     problems.push('unknown primary colour');

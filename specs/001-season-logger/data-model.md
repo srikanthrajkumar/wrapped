@@ -78,6 +78,7 @@ leaves it Planned), `planned → missed` (rasika says so),
 | `colourSecondary` | Colour \| null | Two-tone outfit |
 | `billed` | boolean | Billed by the current Schedule version (or the Plan). A Schedule row the newer version drops but the rasika gave a Colour stays, with `billed` false; one the rasika added is never billed |
 | `group` | string \| null | The name the Artist was billed under with others, such as "Malladi Brothers", copied from the Schedule (T057); null otherwise. Display only: never an Artist, never counted |
+| `support` | boolean, optional | True when the Schedule billed them as support to a lead on the same instrument ("Violin with support"), copied from the feed's `support` (2026-11-10); a support singer is the `support` Role instead, unchanged; a later version sets or clears it. Absent on a row stored before it existed and on one the rasika added, which reads as false. `role` stays the instrument, so a support violinist is `violin` and counts as violin in the Wrapped. A support Appearance never names the Event, but stays on Stage |
 | `position` | integer | The order added; Stage lists by Role, then by this (walkthrough S4, 2026-11-04). Kept as a field so Undo restores a removed Artist to its place and the row shape stays as synced |
 | timestamps | | as Event |
 
@@ -93,6 +94,13 @@ mridangist), so only the members' rows say whom it names; and it needs no new re
 sync change, since the server keeps the row as sent. It is display only: the Concert line shows
 it in place of the members' names, and the Wrapped counts each member on their own (Maintainer,
 2026-11-06).
+
+Whom an Event is known by (`app/src/store/stage.ts`, Maintainer, 2026-11-10): its Appearances in
+its kind's Roles that are not support; for a Concert with none, every violinist who is not support,
+as equals ("they shouldn't be fallbacks though right. Some of them are equal"); else the first
+Artist on Stage who is not support. With only support on Stage, the first of them names it, as
+before. A `support` Role (vocal
+support) counts as support too. Derived each time, never stored.
 
 ### Item
 
@@ -167,7 +175,7 @@ FR-027 still protects a `touched` Event.
 
 Copied from the logger's Schedule feed ([contracts/schedule-feed.md](contracts/schedule-feed.md)):
 `id`, `version`, `date`, `startTime`, `sabha` (shared id or name), `kind`, `billed` (name or
-shared Artist id, role, group), `title`, `cancelled`. Not rasika-owned. Each file fetched
+shared Artist id, role, group, support: false when the feed leaves it out), `title`, `cancelled`. Not rasika-owned. Each file fetched
 replaces the stored entries whole (T060); an Event made from an entry the newer file lacks is
 never changed. The file's Season, `publishedAt` and the fetch's tag for it (the server's `ETag`, the file's sha256, as it came) are kept in `meta` as `schedule`. A file is refused whole, the stored copy and its tag kept, when any entry is malformed (a field the feed never leaves null, such as `cancelled`, given as null included), its `publishedAt` is not a real day and time with its offset, or it is for an earlier Season, or published earlier in the same one (compared as instants).
 
@@ -198,8 +206,8 @@ serverSeqs:    [table+id]
 attention:     opId, [table+recordId]
 ```
 
-The schema version is 3: 1 the first tables, 2 sync (`serverSeqs`, `attention`), 3 Dance, Harikatha
-and an Appearance's `group` (no index change). Any release that changes a record's shape bumps it,
+The schema version is 4: 1 the first tables, 2 sync (`serverSeqs`, `attention`), 3 Dance, Harikatha
+and an Appearance's `group`, 4 an Appearance's `support` (no index change in either). Any release that changes a record's shape bumps it,
 so a tab still running an older build closes its store instead of writing
 ([contracts/sync-api.md](contracts/sync-api.md), "Errors").
 
@@ -284,7 +292,8 @@ several rows, such as unique positions, are the phone's (eng review R6).
 - `position` is unique among an Event's live Items after each transaction.
 - A Lecdem needs a `title`. A Concert's `title` is null. A Dance's or Harikatha's `title` may be
   either.
-- `kind` and `role` are one of the values above; `group` is null or a non-empty name.
+- `kind` and `role` are one of the values above; `group` is null or a non-empty name; `support`
+  is absent or a boolean.
 - `DetailValue.key` is required for `catalog` and `override` and must be null otherwise.
 - A pushed record whose `id` already belongs to another rasika is rejected (`foreign_rasika`;
   constitution, Privacy).

@@ -31,10 +31,15 @@ describe('reading the feed (contracts/schedule-feed.md)', () => {
         {
           ...raw(),
           billed: [
-            { name: 'Malladi Sreeramprasad', role: 'vocal', group: 'Malladi Brothers' },
-            { name: 'Malladi Ravikumar', role: 'vocal', group: 'Malladi Brothers' },
-            { name: 'Pakkala Ramadas', role: 'violin', group: null },
-            { name: 'Someone', role: null, group: null },
+            {
+              name: 'Malladi Sreeramprasad',
+              role: 'vocal',
+              group: 'Malladi Brothers',
+              support: false,
+            },
+            { name: 'Malladi Ravikumar', role: 'vocal', group: 'Malladi Brothers', support: false },
+            { name: 'Pakkala Ramadas', role: 'violin', group: null, support: false },
+            { name: 'Someone', role: null, group: null, support: false },
           ],
         },
       ],
@@ -53,6 +58,34 @@ describe('reading the feed (contracts/schedule-feed.md)', () => {
     });
     expect(entry).not.toHaveProperty('extra');
     expect(readScheduleFile(fileOf([raw({ billed: [] })]))!.entries[0]!.billed).toEqual([]);
+  });
+
+  it('reads `support` when the feed gives it, and as false when it leaves it out (2026-11-10)', () => {
+    const file = readScheduleFile(
+      fileOf([
+        raw({
+          id: 'madhuradhwani-2026-11-11',
+          billed: [
+            { name: 'Nagai R. Muralidharan', role: 'violin' },
+            { name: 'Badrinarayanan D', role: 'violin', support: true },
+            { name: 'Someone', role: 'mridangam', support: false },
+            { name: 'Nobody', role: 'ghatam', support: null },
+            // Redundant, never written by the logger: read as support, never refused.
+            { name: 'Disciple', role: 'support', support: true },
+          ],
+        }),
+        raw(),
+      ]),
+    )!;
+    expect(file.entries[0]!.billed.map((person) => person.support)).toEqual([
+      false,
+      true,
+      false,
+      false,
+      true,
+    ]);
+    // The live feed, with no `support` anywhere, reads as before.
+    expect(file.entries[1]!.billed.every((person) => person.support === false)).toBe(true);
   });
 
   it('skips an entry of a kind it does not know, and keeps the rest', () => {
@@ -80,6 +113,8 @@ describe('reading the feed (contracts/schedule-feed.md)', () => {
     ['a Sabha null', { sabha: null }],
     ['a version null', { version: null }],
     ['a billed Role as a number', { billed: [{ name: 'A', role: 3 }] }],
+    ['a billed support as text', { billed: [{ name: 'A', role: 'violin', support: 'yes' }] }],
+    ['a billed support as a number', { billed: [{ name: 'A', role: 'violin', support: 1 }] }],
   ])('refuses the whole file for one entry with %s (Codex, PR #25)', (_, fields) => {
     expect(readScheduleFile(fileOf([raw({ id: 'good' }), raw(fields)]))).toBeNull();
   });

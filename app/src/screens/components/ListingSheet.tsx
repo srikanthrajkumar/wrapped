@@ -27,7 +27,7 @@ import { isDeletedEvent } from '../../store/events';
 import { addFromSchedule } from '../../store/schedule';
 import { byStage } from '../../store/stage';
 import { listingLead } from '../timeline';
-import { dayText, roleName, timeText } from '../format';
+import { creditName, dayText, timeText } from '../format';
 import { saveFeedback, type Target } from '../save-feedback';
 import { NotSavedLine, saveWith, useSaveFeedback } from './feedback';
 import { KindMark } from './kind-mark';
@@ -128,10 +128,13 @@ export function ListingSheet({
               {billed.map((person) => (
                 <li key={person.position} className="flex flex-col">
                   {person.name}
-                  {(person.role || person.group) && (
+                  {(person.role || person.support || person.group) && (
                     <span className="text-sub text-muted-foreground">
                       {/* A group the title already names isn't said again. */}
-                      {[person.role && roleName(person.role), person.group !== lead && person.group]
+                      {[
+                        creditName(person.role, person.support),
+                        person.group !== lead && person.group,
+                      ]
                         .filter(Boolean)
                         .join(' · ')}
                     </span>

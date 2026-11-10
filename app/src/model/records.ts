@@ -115,6 +115,13 @@ export interface Appearance extends Timestamps {
    */
   group: string | null;
   /**
+   * True when the Schedule billed them as support ("Violin with support"), copied from the feed
+   * (2026-11-10). A support Appearance never names the Event (store/stage.ts) but stays on Stage,
+   * its Role still the instrument. Absent on a row stored before it existed and on one the rasika
+   * added; absent reads as false.
+   */
+  support?: boolean;
+  /**
    * The order added. Stage lists by Role, then by this (store/stage.ts); kept so Undo puts a
    * removed Artist back in place.
    */
@@ -201,6 +208,11 @@ export interface BilledArtist {
   role: Role | null;
   /** The name a group is billed under, on each of its members; null for anyone else. */
   group: string | null;
+  /**
+   * Credited as support by the source (2026-11-10). The reader always sets it, false when the
+   * feed leaves it out; an entry stored by a build before it has none, which reads as false.
+   */
+  support?: boolean;
 }
 
 /** One entry of the logger's Schedule feed (contracts/schedule-feed.md). Not rasika-owned. */
@@ -278,6 +290,7 @@ export const RECORD_FIELDS: { [T in RasikaTable]: Record<keyof RasikaRows[T], tr
     colourSecondary: true,
     billed: true,
     group: true,
+    support: true,
     position: true,
     ...timestamps,
   },

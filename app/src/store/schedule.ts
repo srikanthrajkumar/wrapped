@@ -91,9 +91,12 @@ function readBilled(value: unknown): BilledArtist | typeof MALFORMED {
   if (name === null) return MALFORMED;
   if (value.group != null && typeof value.group !== 'string') return MALFORMED;
   if (value.role != null && typeof value.role !== 'string') return MALFORMED;
+  // `support` is optional (2026-11-10): absent or null reads as false, anything but a boolean
+  // refuses the file, as a Role of the wrong type does.
+  if (value.support != null && typeof value.support !== 'boolean') return MALFORMED;
   // A Role is a hint: one this reader doesn't know reads as none.
   const role = ROLES.includes(value.role as Role) ? (value.role as Role) : null;
-  return { name, role, group: text(value.group) };
+  return { name, role, group: text(value.group), support: value.support === true };
 }
 
 /** An entry as read; null for one of a kind this reader doesn't know (skipped). */
@@ -108,7 +111,7 @@ function readEntry(value: unknown): ScheduleEntry | null | typeof MALFORMED {
   if (startTime != null && (typeof startTime !== 'string' || !TIME.test(startTime))) {
     return MALFORMED;
   }
-  // Only `startTime`, `title`, a billed `role` and `group` may be null (contracts/schedule-feed.md):
+  // Only `startTime`, `title`, a billed `role`, `group` and `support` may be null (contracts/schedule-feed.md):
   // a `cancelled` of null would read as false and reinstate a cancelled Event (Codex, PR #25).
   if (title != null && typeof title !== 'string') return MALFORMED;
   if (typeof cancelled !== 'boolean') return MALFORMED;
@@ -262,8 +265,9 @@ export const ID_TAKEN = "this Artist's Schedule record is used by another Artist
  * never changed, and "take it"):
  * - an Artist the rasika added by hand stands for their billing as it is: never billed, its Role
  *   and group never changed, never removed, and never doubled by a Schedule row;
- * - an Artist the Schedule billed before keeps their Appearance, taking the entry's group, and its
- *   Role unless the entry gives none (a null Role names nothing);
+ * - an Artist the Schedule billed before keeps their Appearance, taking the entry's group and
+ *   support mark (set or cleared), and its Role unless the entry gives none (a null Role names
+ *   nothing);
  * - a new one gets the Artist's Schedule id; when the Event holds a Schedule tombstone of this
  *   Artist, or of one now resolved to them (promoted or merged), it is that row brought back,
  *   Colours and Role and all;
@@ -298,7 +302,13 @@ async function syncStage(event: Event, entry: ScheduleEntry, names: Names, db: W
     if (current) {
       used.add(current.id);
       billed.push({
-        row: { ...current, role: person.role ?? current.role, group: person.group, billed: true },
+        row: {
+          ...current,
+          role: person.role ?? current.role,
+          group: person.group,
+          support: person.support === true,
+          billed: true,
+        },
         existing: true,
       });
       continue;
@@ -317,7 +327,13 @@ async function syncStage(event: Event, entry: ScheduleEntry, names: Names, db: W
       throw new RuleError([ID_TAKEN]);
     }
     const row: Appearance = earlier
-      ? { ...earlier, role: person.role ?? earlier.role, group: person.group, billed: true }
+      ? {
+          ...earlier,
+          role: person.role ?? earlier.role,
+          group: person.group,
+          support: person.support === true,
+          billed: true,
+        }
       : {
           id,
           eventId: event.id,
@@ -327,6 +343,7 @@ async function syncStage(event: Event, entry: ScheduleEntry, names: Names, db: W
           colourSecondary: null,
           billed: true,
           group: person.group,
+          support: person.support === true,
           position: 0,
           ...newTimestamps(),
         };
@@ -354,6 +371,7 @@ async function syncStage(event: Event, entry: ScheduleEntry, names: Names, db: W
       current.position === next.position &&
       current.role === next.role &&
       (current.group ?? null) === next.group &&
+      (current.support ?? false) === (next.support ?? false) &&
       current.billed === next.billed
     ) {
       continue;
@@ -522,6 +540,8 @@ export const TAKE_PLANNED_ONLY = 'only a Planned Event takes the Schedule';
 export interface BilledName {
   name: string;
   role: Role | null;
+  /** Billed as support (2026-11-10). */
+  support: boolean;
 }
 
 /** One field the newer version names differently, the Event's value beside the entry's. */
@@ -555,8 +575,9 @@ function takenTitle(event: Event, entry: ScheduleEntry): string | null {
  * Sabha, kind, title, cancelled, billed Artists): what "take it" would change, and what the hint
  * is set for. A name the Schedule prints is matched as an apply matches it, without making
  * anything. Billed Artists differ when one billed has no Appearance, a Schedule-made one has
- * another Role (when the entry gives one) or group, or is in another order, or one the entry no
- * longer bills is still billed; an Artist the rasika added stands for their billing as it is.
+ * another Role (when the entry gives one), group or support mark, or is in another order, or one
+ * the entry no longer bills is still billed; an Artist the rasika added stands for their billing
+ * as it is.
  */
 async function compare(event: Event, entry: ScheduleEntry, names: Names, db: WrappedDB) {
   const [artists, sabhas] = await Promise.all([
@@ -602,6 +623,7 @@ async function compare(event: Event, entry: ScheduleEntry, names: Names, db: Wra
         !row.billed ||
         (person.role !== null && row.role !== person.role) ||
         (row.group ?? null) !== person.group ||
+        (row.support ?? false) !== (person.support ?? false) ||
         row.position < place
       ) {
         same = false;
@@ -614,8 +636,16 @@ async function compare(event: Event, entry: ScheduleEntry, names: Names, db: Wra
         field: 'billed',
         from: live
           .filter((a) => (fromSchedule(a) && a.billed) || standing.has(a))
-          .map((a) => ({ name: artists.resolve(a.artistId)?.name ?? '?', role: a.role })),
-        to: entry.billed.map(({ name, role }) => ({ name, role })),
+          .map((a) => ({
+            name: artists.resolve(a.artistId)?.name ?? '?',
+            role: a.role,
+            support: a.support ?? false,
+          })),
+        to: entry.billed.map(({ name, role, support }) => ({
+          name,
+          role,
+          support: support === true,
+        })),
       });
     }
   }

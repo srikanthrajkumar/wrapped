@@ -65,7 +65,7 @@ import { SheetFrame, useLingering } from './components/sheet-frame';
 import { Fold } from './components/fold';
 import { Chip } from './components/DockedSearch';
 import { KindMark } from './components/kind-mark';
-import { dayText, eventLine, itemLine, itemTitle, kindName, roleName, timeText } from './format';
+import { creditName, dayText, eventLine, itemLine, itemTitle, kindName, timeText } from './format';
 import { deleteConcert, deleteItem, removeArtist } from './deletes';
 import { offerUndo, undo, undoMessage } from './undo';
 import type { SaveFeedback } from './save-feedback';
@@ -675,8 +675,10 @@ function StageRow({
             className="flex min-h-16 min-w-[min(100%,calc(9*var(--text-body)))] flex-1 flex-col items-stretch justify-center py-2 text-left"
           >
             <span className="break-words">{name}</span>
-            {appearance.role && (
-              <span className="text-sub text-muted-foreground">{roleName(appearance.role)}</span>
+            {creditName(appearance.role, appearance.support) && (
+              <span className="text-sub text-muted-foreground">
+                {creditName(appearance.role, appearance.support)}
+              </span>
             )}
           </button>
           <ColoursButton appearance={appearance} onOpen={onColours} />

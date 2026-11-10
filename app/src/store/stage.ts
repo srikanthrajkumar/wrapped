@@ -58,18 +58,34 @@ const KNOWN_BY: Record<EventKind, readonly Role[]> = {
   harikatha: ['presenter'],
 };
 
+type Known = Pick<Appearance, 'role' | 'support'>;
+
+/** Credited as support: billed `support` (2026-11-10), or the vocal support Role. */
+const isSupport = (appearance: Known) =>
+  appearance.support === true || appearance.role === 'support';
+
 /**
- * The Appearances an Event is known by, from its Appearances in Stage order: those in its
- * kind's Roles, or without one the first Artist on Stage; none before any Artist. It orders what
- * is shown only: no Role ranks above another in the Wrapped.
+ * The Appearances an Event is known by, from its Appearances in Stage order (the Maintainer,
+ * 2026-11-10):
+ * - those in its kind's Roles who are not support;
+ * - for a Concert with none, every violinist who is not support, as equals (a violin duo, such as
+ *   the Akkarai Sisters, reads as both: "Some of them are equal");
+ * - else the first Artist on Stage who is not support.
+ * A support Appearance (a support violinist, a vocal support singer) never names the Event while
+ * anyone else could, and stays on Stage. With only support on Stage, its first names the Event,
+ * as before 2026-11-10, so a lone vocal support singer still gives a heading. None before any
+ * Artist. It orders what is shown only: no Role ranks above another in the Wrapped.
  */
-export function knownBy<T extends Pick<Appearance, 'role'>>(
-  kind: EventKind,
-  stage: readonly T[],
-): T[] {
+export function knownBy<T extends Known>(kind: EventKind, stage: readonly T[]): T[] {
   const roles = KNOWN_BY[kind] ?? KNOWN_BY.concert;
-  const known = stage.filter((appearance) => appearance.role && roles.includes(appearance.role));
-  return known.length > 0 ? known : stage.slice(0, 1);
+  const leads = stage.filter((appearance) => !isSupport(appearance));
+  const known = leads.filter((appearance) => appearance.role && roles.includes(appearance.role));
+  if (known.length > 0) return known;
+  if (kind === 'concert') {
+    const violins = leads.filter((appearance) => appearance.role === 'violin');
+    if (violins.length > 0) return violins;
+  }
+  return (leads.length > 0 ? leads : stage).slice(0, 1);
 }
 
 /** Names joined as a listing reads them: "A", "A & B", "A, B & C". */
