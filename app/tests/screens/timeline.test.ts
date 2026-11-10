@@ -123,16 +123,16 @@ describe('the hero', () => {
     expect(pick([now, next], now)).toEqual(['now', true]);
   });
 
-  it('else the next Planned one still to start, soonest first', () => {
+  it('else their soonest one still to start, soonest first', () => {
     expect(
       pick([
         mine('later', { date: '2026-12-17', startTime: '10:00' }),
         mine('tonight', { date: '2026-12-15', startTime: '18:00' }),
         // Started this morning and not Now: gone by.
         mine('morning', { date: '2026-12-15', startTime: '09:00' }),
-        // Attended, cancelled, or deleted: never the next.
-        mine('heard', { status: 'attended', date: '2026-12-16', startTime: '10:00' }),
+        // Cancelled (by its entry or by the rasika) or deleted: never the next.
         mine('off', { date: '2026-12-15', startTime: '13:00' }, true),
+        mine('called-off', { date: '2026-12-15', startTime: '13:30', cancelled: true }),
         mine('gone', { date: '2026-12-15', startTime: '14:00', deletedAt: 'x' }),
       ]),
     ).toEqual(['tonight', false]);
@@ -141,6 +141,17 @@ describe('the hero', () => {
       'sometime',
       false,
     ]);
+  });
+
+  // The Maintainer's iPhone, 2026-11-09: an own Event already being logged ahead of its day
+  // (Attended, one Item) was skipped for a Planned one weeks later.
+  it('takes the soonest whatever its state, not only a Planned one', () => {
+    expect(
+      pick([
+        mine('planned-later', { date: '2026-12-20', startTime: '18:30' }),
+        mine('logged-ahead', { status: 'attended', date: '2026-12-16', startTime: '16:30' }),
+      ]),
+    ).toEqual(['logged-ahead', false]);
   });
 
   it('is none with nothing on now or ahead', () => {

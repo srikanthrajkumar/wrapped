@@ -112,6 +112,8 @@ test('an entry added from the Schedule is in Next, and stays there marked once c
 
   // A Group by its name, a Dance with its printed title, a cancelled entry marked; no row has a
   // button of its own, and a cancelled one's sheet has no add.
+  // A Group by its name, a Dance with its printed title, a cancelled entry marked; no row has a
+  // button of its own, and a cancelled one's sheet has no add.
   const rows = page.getByRole('main').getByRole('listitem');
   await expect(rows).toHaveCount(3);
   await expect(rows.nth(0)).toContainText('Malladi Brothers');
@@ -233,4 +235,29 @@ test('the "schedule changed" hint opens what changed: keep mine, then take a new
   await row.getByRole('button', { name: 'Schedule changed' }).click();
   await expect(sheet.getByRole('img', { name: 'Cancelled', exact: true })).toBeVisible();
   await expect(sheet.getByRole('img', { name: 'On', exact: true })).toBeVisible();
+});
+
+// The Maintainer's iPhone, 2026-11-09: Add Artist "doesn't seem to be connecting": the names the
+// Season's Schedule bills were never offered, so a billed Artist could only be typed in new.
+test('Add Artist finds an Artist the Schedule bills, and adds them once', async ({ page }) => {
+  await page.goto('/');
+  await finishFirstLaunch(page);
+  await storeEntries(page, [brothers()]);
+  await page.getByRole('button', { name: 'Log a Concert' }).click();
+  await page.getByRole('button', { name: 'Add Artist' }).click();
+  await page.getByRole('searchbox', { name: 'Search Artists' }).fill('ramad');
+  const sheet = page.getByRole('dialog', { name: 'Add Artist' });
+  // Told apart by the Role the Schedule bills them in.
+  await sheet.getByRole('button', { name: 'Pakkala Ramadas Violin', exact: true }).click();
+  await page.getByRole('button', { name: 'Violin' }).click();
+  const stage = page.getByRole('region', { name: 'Stage' });
+  await expect(stage.getByRole('button', { name: 'Pakkala Ramadas Violin' })).toHaveCount(1);
+  // Made once, as an own Artist; offered again as that one, not the Schedule's name.
+  await expect.poll(async () => (await readTable(page, 'artists')).length).toBe(1);
+  await expect(sheet).toHaveCount(0);
+  await page.getByRole('button', { name: 'Add Artist' }).click();
+  await page.getByRole('searchbox', { name: 'Search Artists' }).fill('ramad');
+  const matches = sheet.getByRole('list').getByRole('button');
+  await expect(matches.first()).toHaveAccessibleName(/^Pakkala Ramadas/);
+  await expect(matches.filter({ hasText: 'Pakkala Ramadas' })).toHaveCount(1);
 });

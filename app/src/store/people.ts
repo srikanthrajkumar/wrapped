@@ -35,6 +35,13 @@ export interface NameMatch {
   name: string;
   aliases: string[];
   shared: boolean;
+  /**
+   * Only on the Season's Schedule, in no list yet: `id` is a placeholder, and picking it makes
+   * an own entry of that name, as planning its listing would.
+   */
+  scheduled?: true;
+  /** For such a name, the Role the Schedule bills them in most: a hint to tell names apart. */
+  billedAs?: Role;
 }
 
 export const DEFAULT_NAME_LIMIT = 10;
@@ -85,21 +92,65 @@ async function findNames(
       rank: r,
     });
   };
-  for (const entry of shared) offer(entry, true, [entry.name, ...entry.aliases]);
+  // Every spelling a list already holds, so the Schedule's names below never repeat one.
+  const held = new Set<string>();
+  const hold = (names: readonly string[]) => names.forEach((name) => held.add(fold(name)));
+  for (const entry of shared) {
+    offer(entry, true, [entry.name, ...entry.aliases]);
+    hold([entry.name, ...entry.aliases]);
+  }
   for (const entry of ownEntries) {
     // An own entry the Maintainer promoted reads as the shared one (ADR 0005), so the two are
     // offered once; the name the rasika typed still finds it.
     const resolved = resolve(entry.id);
     if (!resolved) continue;
-    offer(resolved, resolved.shared, [
-      entry.name,
-      ...entry.aliases,
-      resolved.name,
-      ...resolved.aliases,
-    ]);
+    const names = [entry.name, ...entry.aliases, resolved.name, ...resolved.aliases];
+    offer(resolved, resolved.shared, names);
+    hold(names);
   }
+  // The names the Season's Schedule prints that no list holds yet (the Maintainer's iPhone,
+  // 2026-11-09: Add Artist found nothing for "TM Krishna", billed all Season, until a listing of
+  // theirs was planned). A printed name that is a shared id is already offered above.
+  const sharedIds = new Set(shared.map((entry) => entry.id));
+  const billings = new Map<string, Map<Role, number>>();
+  for (const entry of await db.schedule.toArray()) {
+    const printed =
+      kind === 'artist'
+        ? entry.billed.map((person) => ({ name: person.name, role: person.role }))
+        : [{ name: entry.sabha, role: null }];
+    for (const { name, role } of printed) {
+      const key = fold(name);
+      if (key === '' || sharedIds.has(name) || held.has(key)) continue;
+      const r = rank(key, needle);
+      if (r === null) continue;
+      if (role) {
+        const counts = billings.get(key) ?? new Map<Role, number>();
+        billings.set(key, counts.set(role, (counts.get(role) ?? 0) + 1));
+      }
+      if (found.has(`schedule:${key}`)) continue;
+      found.set(`schedule:${key}`, {
+        match: {
+          id: `schedule:${key}`,
+          name: name.trim(),
+          aliases: [],
+          shared: false,
+          scheduled: true,
+        },
+        rank: r,
+      });
+    }
+  }
+  for (const [key, counts] of billings) {
+    const most = [...counts].sort((a, b) => b[1] - a[1])[0]![0];
+    found.get(`schedule:${key}`)!.match.billedAs = most;
+  }
+  // At the same closeness, a name the rasika or the shared lists hold comes first: the Schedule's
+  // names only fill in after them (the council, 2026-11-09).
+  const late = (found: { match: NameMatch }) => (found.match.scheduled ? 1 : 0);
   return [...found.values()]
-    .sort((a, b) => a.rank - b.rank || a.match.name.localeCompare(b.match.name))
+    .sort(
+      (a, b) => a.rank - b.rank || late(a) - late(b) || a.match.name.localeCompare(b.match.name),
+    )
     .slice(0, limit)
     .map(({ match }) => match);
 }
@@ -118,6 +169,19 @@ export function findSabhas(
   { db = defaultDb, limit = DEFAULT_NAME_LIMIT }: WriteOptions & { limit?: number } = {},
 ) {
   return findNames('sabha', query, limit, db);
+}
+
+/**
+ * The entry a name only on the Schedule stands for once picked: the one of that name made since
+ * it was offered, if any (null: none, so the picker makes it, as for a name typed new).
+ */
+export async function heldEntry(
+  kind: Kind,
+  name: string,
+  db: WrappedDB = defaultDb,
+): Promise<{ id: string; name: string } | null> {
+  const id = (await nameMatcher(kind, db)).match(name);
+  return id ? { id, name } : null;
 }
 
 /** Finds the entry a Schedule name means, by its fold, made once for many names. */

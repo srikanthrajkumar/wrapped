@@ -2,7 +2,8 @@
 // same docked search. Before typing it lists the rasika's recent names; as they type, matches
 // from their own and the shared lists, each with a distinguishing line where known. The last row
 // is always "Add “what you typed” as a new Sabha" (or Artist), so a new entry is a deliberate
-// choice, never a typo's side effect. A new name that fails to save shows "Not saved on this
+// choice, never a typo's side effect. The matches include the names the Season's Schedule bills,
+// so a billed Artist is found before any listing of theirs is planned. A new name that fails to save shows "Not saved on this
 // phone." in the sheet, above the search, with Try again.
 
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -12,6 +13,7 @@ import { newId, type EventKind, type Role } from '../../model';
 import {
   createArtist,
   createSabha,
+  heldEntry,
   findArtists,
   findSabhas,
   recentNames,
@@ -49,7 +51,11 @@ export function NamePicker({
   notice?: ReactNode;
 }) {
   const [query, setQuery] = useState('');
-  const [failedAdd, setFailedAdd] = useState<{ id: string; name: string } | null>(null);
+  const [failedAdd, setFailedAdd] = useState<{
+    id: string;
+    name: string;
+    scheduled?: NameMatch;
+  } | null>(null);
   const typed = query.trim();
   const noun = NOUN[kind];
   // The names follow each keystroke; the usual Roles don't change while typing, so they are
@@ -78,15 +84,19 @@ export function NamePicker({
   // One add at a time: a double tap must not create the name twice. Each add has its own id;
   // the write only creates the name, so Try again from the season-wide line never picks it into
   // whatever the screen shows by then. Try again in the sheet adds it and picks it, as now.
+  // A name only on the Season's Schedule is made an entry the same way, by its printed name.
   const adding = useRef(false);
-  const add = async (id: string, name: string) => {
+  const add = async (id: string, name: string, scheduled?: NameMatch) => {
     if (adding.current || !name) return;
     adding.current = true;
     const table = kind === 'artist' ? 'artists' : 'sabhas';
     const create = kind === 'artist' ? createArtist : createSabha;
     try {
+      // Made by another tab or a planned listing since it was offered: that one, not a twin.
+      const held = scheduled && (await heldEntry(kind, name));
+      if (held) return pick(held);
       const created = await saveWith({ table, id, field: '*' }, name, () => create(name, { id }));
-      setFailedAdd(created ? null : { id, name });
+      setFailedAdd(created ? null : { id, name, scheduled });
       if (created) pick(created);
     } finally {
       adding.current = false;
@@ -95,12 +105,13 @@ export function NamePicker({
   const addNew = () => add(newId(), typed);
 
   const rows: SearchRow[] = (names ?? []).map((name) => {
-    const role = roles?.get(name.id);
+    // The usual Role, else for a name only on the Schedule the Role it is billed in.
+    const role = roles?.get(name.id) ?? name.billedAs;
     return {
       key: name.id,
       title: name.name,
       line: role ? roleName(role) : name.aliases.length > 0 ? name.aliases.join(', ') : null,
-      onPick: () => pick(name),
+      onPick: () => (name.scheduled ? void add(newId(), name.name, name) : pick(name)),
     };
   });
 
@@ -126,7 +137,7 @@ export function NamePicker({
               targets={[
                 { table: kind === 'artist' ? 'artists' : 'sabhas', id: failedAdd.id, field: '*' },
               ]}
-              onRetry={() => void add(failedAdd.id, failedAdd.name)}
+              onRetry={() => void add(failedAdd.id, failedAdd.name, failedAdd.scheduled)}
             />
           )}
           <DockedSearch

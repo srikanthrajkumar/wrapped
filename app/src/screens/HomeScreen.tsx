@@ -1,6 +1,6 @@
 // The Season home (DESIGN.md "Season (home, DD2)"; design D3, D11, D14, D17, D29; walkthrough S1,
 // S2; option C, the Maintainer, 2026-11-09). Nothing sits above the curtain: the page starts with
-// the hero, the rasika's concert on the motif (the one on now, else their next Planned one,
+// the hero, the rasika's concert on the motif (the one on now, else their soonest one ahead,
 // tapped to open it; with neither, the "Season" title), the + at its top right, then the install
 // row in a phone's browser tab, "Getting ready for offline…" while the app isn't ready and the
 // new-catalog row when there is one. Under them, the strip of days (Past · Today · each date
@@ -146,8 +146,16 @@ type Place = { at: string; offset: number } | null;
  * the place in them, and the filter. Each launch starts afresh: from today, at the top, with no
  * filter (DESIGN.md "Season").
  */
-const season: { past: boolean; place: Place; filter: Filter; toToday: boolean } = {
+const season: {
+  past: boolean;
+  /** The day the list starts at, picked on the strip or the calendar; null from today. */
+  from: string | null;
+  place: Place;
+  filter: Filter;
+  toToday: boolean;
+} = {
   past: false,
+  from: null,
   place: null,
   filter: NO_FILTER,
   /** Left by the +: the Concert it makes is today's, so Season comes back on today, at its top. */
@@ -156,6 +164,7 @@ const season: { past: boolean; place: Place; filter: Filter; toToday: boolean } 
 
 const showPast = () => {
   season.past = true;
+  season.from = null;
   season.place = null;
 };
 
@@ -321,9 +330,6 @@ function stripBottom(): number {
   return parseFloat(getComputedStyle(strip).top) + strip.offsetHeight;
 }
 
-/** The page's scroll that brings `node` to just under the pinned strip. */
-const under = (node: Element) => node.getBoundingClientRect().top + window.scrollY - stripBottom();
-
 /** The scroll at which the strip has just pinned: the list from its start, the filter first. */
 function listStart(): number {
   const strip = document.querySelector<HTMLElement>('[data-strip]');
@@ -351,14 +357,13 @@ function HomeView() {
   // The month sheet, open on the day the strip had marked.
   const [calendar, setCalendar] = useState<string | null>(null);
   const [calendarShown, calendarOpen] = useLingering(calendar);
-  const [asked, setAsked] = useState<{ day: string; n: number } | null>(null);
+  const [from, setFromState] = useState(season.from);
   const [filter, setFilterState] = useState(season.filter);
   const setFilter = (next: Filter) => {
     season.filter = next;
     setFilterState(next);
   };
-  // A jump the strip asked for, made once the list it is in has drawn.
-  const jump = useRef<string | null>(null);
+  // A jump the strip asked for, made once the list it starts has drawn.
   const [jumped, setJumped] = useState(0);
   // One Concert per tap: a double tap must not make two.
   const creating = useRef(false);
@@ -367,34 +372,6 @@ function HomeView() {
     void sweepNewConcerts();
   }, []);
   const ready = data !== undefined;
-  // Room under the last day, so any day a tap jumps to, the last ones too, can come up to just
-  // under the pinned strip (the council, 2026-11-09: the jump stopped short at the list's end).
-  // Measured after every draw, before the jump and the hold, and again whenever the days resize:
-  // the days above sit at their likely heights until drawn.
-  const tail = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    const fit = () => {
-      const spacer = tail.current;
-      if (!spacer) return;
-      const days = document.querySelectorAll('[data-list] section[data-place]');
-      const last = days[days.length - 1];
-      if (!last || days.length < 2) return void (spacer.style.height = '0px');
-      const end = document.documentElement.scrollHeight - spacer.offsetHeight;
-      const lastTop = last.getBoundingClientRect().top + window.scrollY;
-      const needed = lastTop - stripBottom() + window.innerHeight - end;
-      spacer.style.height = `${Math.max(0, Math.ceil(needed))}px`;
-    };
-    fit();
-    // Again as the days draw at their real heights, which moves the last one.
-    const days = tail.current?.previousElementSibling;
-    const observer = new ResizeObserver(fit);
-    if (days) observer.observe(days);
-    window.addEventListener('resize', fit);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('resize', fit);
-    };
-  });
   useKeptPlace(ready);
   const names = useMemo(
     () => (data ? seasonNames(data.summaries, data.listings, lookup) : []),
@@ -408,29 +385,23 @@ function HomeView() {
     return { ahead: filterDays(data.ahead, test), gone: filterDays(data.gone, test) };
   }, [data, filter, lookup]);
 
-  // The strip's and the calendar's jumps: to a day (a day gone opens Past at it), to today, or
-  // to the days gone, each from the list's start.
+  // The strip's and the calendar's picks (the Maintainer's iPhone, 2026-11-09: a tap scrolled
+  // the hero away, which read as a glitch). A day starts the list there, Today from today, a day
+  // gone the days gone from it back, Past all of them; the page goes back to its top, so the
+  // hero stays where it is and the day picked is the first under the strip, whichever way the
+  // days below it end up shown (one at a time or all on).
   const go = (to: string) => {
-    jump.current = to;
     const toPast = to === 'past' || (to !== 'today' && data !== undefined && to < data.today);
+    const start = to === 'past' || to === 'today' || to === data?.today ? null : to;
     season.past = toPast;
+    season.from = start;
     if (toPast !== past) setPastState(toPast);
+    setFromState(start);
     setJumped((n) => n + 1);
   };
   useLayoutEffect(() => {
-    const to = jump.current;
-    if (to === null) return;
-    jump.current = null;
-    const day =
-      to === 'past' || to === 'today'
-        ? null
-        : document.querySelector(`[data-list] [data-place="${to}"]`);
-    const todays =
-      to === 'today' && document.querySelector(`[data-list] [data-place="${data?.today}"]`);
-    const target = day ?? todays;
-    if (target) window.scrollTo(0, under(target));
-    else window.scrollTo(0, Math.min(window.scrollY, listStart()));
-  }, [jumped, data?.today]);
+    if (jumped > 0) window.scrollTo(0, 0);
+  }, [jumped]);
 
   // Each attempt is its own Concert with its own id: a failed one stays listed, by its date and
   // time, whatever later taps do, and its Try again makes it once (docs/adr/0007). One made and
@@ -453,6 +424,7 @@ function HomeView() {
       }
       noteNewConcert(event, tappedAt);
       season.past = false;
+      season.from = null;
       season.toToday = true;
       navigate(`/event/${event.id}`);
     } finally {
@@ -471,7 +443,9 @@ function HomeView() {
   // Nothing logged, planned or listed in the whole Season: nothing to choose between.
   const bare = data.days.length === 0;
   const filtering = isFiltering(filter);
-  const days = past ? shown.gone : shown.ahead;
+  const days = (past ? shown.gone : shown.ahead).filter(
+    (day) => from === null || (past ? day.date <= from : day.date >= from),
+  );
 
   const showUpdate = offersUpdate({
     available: update.available,
@@ -544,10 +518,10 @@ function HomeView() {
             hasPast={past || shown.gone.length > 0}
             today={data.today}
             dates={shown.ahead.map((day) => day.date).filter((date) => date !== data.today)}
+            from={from}
             listKey={`${past}:${days.map((day) => day.date).join()}`}
             onGo={go}
             onCalendar={setCalendar}
-            asked={asked}
           />
           <BottomDock>
             <SearchBar
@@ -578,7 +552,6 @@ function HomeView() {
               start={calendarShown}
               onPick={(date) => {
                 setCalendar(null);
-                setAsked((was) => ({ day: date, n: (was?.n ?? 0) + 1 }));
                 go(date);
               }}
             />
@@ -619,7 +592,6 @@ function HomeView() {
             </div>
           ))}
         <div className="pb-8">{dayList(days)}</div>
-        <div ref={tail} aria-hidden />
       </div>
       {sheets}
     </>
@@ -628,7 +600,7 @@ function HomeView() {
 
 /**
  * The hero (the Maintainer, 2026-11-09): the rasika's concert, large, on the motif. The one on
- * now, else their next Planned one, on a two-column grid, the content and a 24px column at its
+ * now, else their soonest one ahead, on a two-column grid, the content and a 24px column at its
  * right: the word saying which, with the + in the right column; the title (the Artists it is
  * known by, else its Sabha), with a chevron in that column, centred on its first line; then its
  * line (the Sabha, its day, the time, and once attended its Item count). The + and the chevron
@@ -687,7 +659,7 @@ function Hero({
  * The strip of days (the Maintainer, 2026-11-09): Past at its left, as text; Today; then each
  * date from tomorrow with anything on, slim, its weekday small over its number. It sits at the
  * top of the sheet with no line under it and is pinned there as the page scrolls, the list
- * fading out under it once pinned. A tap jumps the list to that day; as the rasika scrolls, the
+ * fading out under it once pinned. A tap starts the list at that day; as the rasika scrolls, the
  * day under the strip is the one marked, its number a step heavier over a small ink dot, and the
  * strip slides to keep it in view. A calendar at its right end, pinned with it, opens the month
  * sheet for days further off.
@@ -697,17 +669,17 @@ function DayStrip({
   hasPast,
   today: todayDate,
   dates,
+  from,
   listKey,
   onGo,
   onCalendar,
-  asked,
 }: {
-  /** A day the calendar jumped to, held marked as a tap here is. */
-  asked: { day: string; n: number } | null;
   past: boolean;
   hasPast: boolean;
   today: string;
   dates: string[];
+  /** The day the list starts at; null from today. */
+  from: string | null;
   /** Changes whenever the days listed do, so the mark is found again. */
   listKey: string;
   onGo(to: string): void;
@@ -716,10 +688,9 @@ function DayStrip({
   const strip = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState<string | null>(null);
   const [pinned, setPinned] = useState(false);
-  // A day tapped stays marked until the rasika scrolls on, though the page may stop short of
-  // bringing it to the top.
-  const held = useRef<{ day: string; y: number | null } | null>(null);
-  const marked = past ? 'past' : inView === null || inView === todayDate ? 'today' : inView;
+  // Until the list is scrolled into, the day it starts at is marked.
+  const shownDay = inView ?? from ?? todayDate;
+  const marked = past ? 'past' : shownDay === todayDate ? 'today' : shownDay;
 
   // The day at the top of the list, under the strip: the first whose bottom is below it.
   useEffect(() => {
@@ -729,31 +700,37 @@ function DayStrip({
       const pinnedNow = window.scrollY > listStart() + 1;
       setPinned(pinnedNow);
       // The day whose label sticks under the strip fades the rows passing under the label, so
-      // none shows half cut (the council, 2026-11-09).
-      const under = stripBottom() + 1;
+      // none shows half cut (the council, 2026-11-09), by how far they have passed: none for a
+      // day resting just under the strip, as a jump leaves it, whose first row isn't under
+      // anything (the Maintainer's iPhone, 2026-11-09: that row read dimmer than the rest).
+      const top = stripBottom();
       let stuck: HTMLElement | null = null;
+      let fade = 0;
       if (pinnedNow) {
         for (const day of document.querySelectorAll<HTMLElement>(
           '[data-list] section[data-place]',
         )) {
           const box = day.getBoundingClientRect();
-          if (box.bottom > under) {
-            if (box.top < under) stuck = day;
+          if (box.bottom > top + 1) {
+            // Under a pixel is where a jump or a fling leaves a day, not a row passing under.
+            const passed = top - box.top;
+            fade = passed < 1 ? 0 : Math.min(1, passed / FADE_RAMP);
+            if (fade > 0) stuck = day;
             break;
           }
         }
       }
-      for (const day of document.querySelectorAll('[data-list] [data-stuck]'))
-        if (day !== stuck) day.removeAttribute('data-stuck');
-      stuck?.setAttribute('data-stuck', '');
-      if (past) return;
-      const keep = held.current;
-      if (keep) {
-        if (keep.y === null) keep.y = window.scrollY;
-        if (Math.abs(window.scrollY - keep.y) < 2) return setInView(keep.day);
-        held.current = null;
+      for (const day of document.querySelectorAll<HTMLElement>('[data-list] [data-stuck]'))
+        if (day !== stuck) {
+          day.removeAttribute('data-stuck');
+          day.style.removeProperty('--under');
+        }
+      if (stuck) {
+        stuck.setAttribute('data-stuck', '');
+        stuck.style.setProperty('--under', fade.toFixed(3));
       }
-      // Until the list is scrolled into, Today is marked: it stands for the list's start.
+      if (past) return;
+      // Until the list is scrolled into, its first day is marked: it stands for the list's start.
       if (window.scrollY <= listStart() + 1) return setInView(null);
       const limit = stripBottom() + 1;
       const all = document.querySelectorAll<HTMLElement>('[data-list] section[data-place]');
@@ -776,34 +753,6 @@ function DayStrip({
       cancelAnimationFrame(frame);
     };
   }, [past, listKey]);
-
-  // A jump asked for from the calendar holds its day as a tap here does.
-  const hold = (day: string) => {
-    held.current = { day, y: null };
-    setInView(day);
-    // Where the jump lands: it is made as this render commits.
-    requestAnimationFrame(() => {
-      if (held.current?.day === day) held.current.y = window.scrollY;
-    });
-  };
-
-  // A jump the calendar made holds its day as a tap here does: marked at once, as this render
-  // draws, then held until the rasika scrolls on from where it lands.
-  const [seenAsk, setSeenAsk] = useState(asked);
-  if (asked !== seenAsk) {
-    setSeenAsk(asked);
-    if (asked && asked.day >= todayDate) setInView(asked.day);
-  }
-  useLayoutEffect(() => {
-    if (!asked || asked.day < todayDate) return;
-    const day = asked.day;
-    held.current = { day, y: null };
-    requestAnimationFrame(() => {
-      if (held.current?.day === day) held.current.y = window.scrollY;
-    });
-    // A new ask each time, though the day be the same.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [asked]);
 
   // The marked day kept in view in the strip, sliding it no further than needed.
   useLayoutEffect(() => {
@@ -850,10 +799,7 @@ function DayStrip({
         type="button"
         aria-label={spoken ?? label}
         aria-current={on ? 'true' : undefined}
-        onClick={() => {
-          if (key !== 'past') hold(key === 'today' ? todayDate : key);
-          onGo(key);
-        }}
+        onClick={() => onGo(key)}
         style={{ opacity: on ? 1 : ink(key) }}
         // A focus ring only from the keyboard, rounded and inside the stop. Ink and weight
         // change over 250ms, at once with reduced motion.
@@ -910,6 +856,9 @@ function DayStrip({
   );
 }
 
+/** How far a day's rows pass under its stuck label before the label's fade is full. */
+const FADE_RAMP = 24;
+
 /** The strip's ink by time (DESIGN.md "Season"): Past, the floor ahead, and the step a day. */
 const INK_PAST = 0.6;
 const INK_FLOOR = 0.65;
@@ -947,7 +896,7 @@ const addMonths = (month: string, by: number) => {
  * The month sheet (the Maintainer, 2026-11-09): a month at a time, Monday first, each day with
  * anything on (with a filter on, anything that matches) carrying a dot under its number, and
  * only those days tappable. The months page sideways, by the arrows or a swipe, from the first
- * month with anything to the last, past months included. A day tapped jumps the list there (a
+ * month with anything to the last, past months included. A day tapped starts the list there (a
  * day gone opens Past at it) and closes the sheet.
  */
 function CalendarSheet({
@@ -1237,19 +1186,28 @@ function SearchSheet({
         ? filter.kinds.filter((one) => one !== kind)
         : [...filter.kinds, kind],
     });
+  // Each toggle as wide on as off, its check's room and its 600 weight held either way, so one
+  // tapped never moves the others (the Maintainer's iPhone, 2026-11-09: Harikatha's check and
+  // weight pushed into Lecdem). The check follows the word, as on the names below.
   const textToggle = (key: string, label: string, on: boolean, onClick: () => void) => (
     <button
       key={key}
       type="button"
       aria-pressed={on}
       onClick={onClick}
+      data-toggle
       className={cn(
-        'inline-flex min-h-12 items-center gap-1.5 text-body',
-        on ? 'font-semibold text-foreground' : 'text-muted-foreground',
+        'inline-flex min-h-12 items-center gap-1 text-body',
+        on ? 'text-foreground' : 'text-muted-foreground',
       )}
     >
-      {on && <IconCheck aria-hidden className="size-5" />}
-      {label}
+      <span className="grid">
+        <span aria-hidden className="invisible col-start-1 row-start-1 font-semibold">
+          {label}
+        </span>
+        <span className={cn('col-start-1 row-start-1', on && 'font-semibold')}>{label}</span>
+      </span>
+      <IconCheck aria-hidden className={cn('size-4 shrink-0', !on && 'invisible')} />
     </button>
   );
   return (
@@ -1295,7 +1253,7 @@ function SearchSheet({
       focus={field}
     >
       {(mine || kinds.length > 0) && (
-        <div className="flex flex-wrap gap-x-6 pt-2">
+        <div className="flex flex-wrap gap-x-2 pt-2">
           {mine &&
             textToggle('mine', MESSAGES.season.mine, filter.mine, () =>
               onFilter({ ...filter, mine: !filter.mine }),
@@ -1368,7 +1326,7 @@ function DaySection({
         id={`day-${day.date}`}
         // Sticks under the pinned strip while its day is on the screen, as a festival
         // schedule's day labels do.
-        className="sticky top-[calc(var(--app-top-inset,env(safe-area-inset-top))+var(--season-strip,0px))] z-10 -mb-1.5 bg-background pt-4 text-sub font-semibold text-muted-foreground after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-6 after:bg-gradient-to-b after:from-background after:to-transparent after:opacity-0 group-data-[stuck]/day:after:opacity-100"
+        className="sticky top-[calc(var(--app-top-inset,env(safe-area-inset-top))+var(--season-strip,0px))] z-10 -mb-1.5 bg-background pt-4 text-sub font-semibold text-muted-foreground after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-6 after:bg-gradient-to-b after:from-background after:to-transparent after:opacity-0 group-data-[stuck]/day:after:opacity-(--under)"
       >
         {dayText(day.date)}
       </h2>

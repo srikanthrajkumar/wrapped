@@ -189,11 +189,11 @@ and bind the screen tasks.
   Item open as pushed screens with a back gesture. The tab bar hides while the Item editor is
   open. Tidy is reached from home; the Maintainer's `/admin` from Settings.
 - **DD2 Home (D2, approved; option C since the Maintainer's 2026-11-09 answer and review, DESIGN.md "Season"):**
-  the curtain is the hero, the rasika's own Event on now, else their next Planned one (else the "Season"
-  title), on a two-column grid with the + and a chevron in its 24px right column, all but the + opening the
+  the curtain is the hero, the rasika's own Event on now, else their soonest one still to start, whatever
+  its state (else the "Season" title), on a two-column grid with the + and a chevron in its 24px right column, all but the + opening the
   Event. Under it, at the top of the sheet, a slim strip of days, Past · Today · each date ahead with
-  anything on, pinned as the page scrolls with the list fading out under it: a tapped date jumps the list
-  to its day, and the day in view is marked by a heavier number over a dot, its label sticking under the
+  anything on, pinned as the page scrolls with the list fading out under it: a tapped date starts the list
+  at its day, the page back at its top so the hero stays, and the day in view is marked by a heavier number over a dot, its label sticking under the
   strip. A calendar at the strip's right end opens a month sheet, a dot on each day on, a tap jumping there
   or opening Past. The list runs from today on; Past shows the days gone, newest first, in its place. One
   rounded search bar above the tab bar, "Artist or Sabha…", opens a sheet suggesting the Season's billed
