@@ -15,7 +15,6 @@ import {
   IconDots,
   IconGripVertical,
   IconMetronome,
-  IconPencil,
   IconPlus,
   IconTrash,
 } from '@tabler/icons-react';
@@ -253,9 +252,9 @@ function EventView({ eventId }: { eventId: string }) {
           <SectionHead
             id="stage"
             headRef={stageHead}
-            // One pencil at the heading's right opens the Artist picker (the Maintainer,
-            // 2026-11-10: the "Add Artist" row could go). Spoken as what it opens; its mark on
-            // the gutter, its 48px reaching past the heading's line so the line keeps its height.
+            // One + at the heading's right opens the Artist picker (the Maintainer, 2026-11-10:
+            // the "Add Artist" row could go; a +, not a pencil, since it adds). Its mark on the
+            // gutter, its 48px reaching past the heading's line so the line keeps its height.
             action={
               order === null && (
                 <Button
@@ -265,7 +264,7 @@ function EventView({ eventId }: { eventId: string }) {
                   className="-my-3.5 -mr-3.5"
                   onClick={() => setArtistOpen(true)}
                 >
-                  <IconPencil aria-hidden />
+                  <IconPlus aria-hidden />
                 </Button>
               )
             }
