@@ -71,9 +71,12 @@ const startOf = ({ date, startTime }: { date: string; startTime: string | null }
 };
 
 /**
- * The rasika's concert for Season's hero (the Maintainer, 2026-11-09, option C): the Event that
- * holds Now, else their next Planned one still to start (one with no time counts all its day),
- * soonest first; a cancelled one never. Null with neither: the hero falls back to the title.
+ * The rasika's concert for Season's hero (the Maintainer, 2026-11-09): the Event that holds Now,
+ * else their soonest one still to start (one with no time counts all its day), whatever its
+ * state: Planned, or one they have already started logging ahead of the day (the Maintainer's
+ * iPhone, 2026-11-09: an Attended one with an Item was skipped for a Planned one weeks later,
+ * so the hero and the list's first own row named two different concerts). A cancelled or
+ * deleted one never. Null with neither: the hero falls back to the title.
  */
 export function heroEvent(
   summaries: readonly EventSummary[],
@@ -85,8 +88,8 @@ export function heroEvent(
   const next = summaries
     .filter(
       ({ event, cancelled }) =>
-        event.status === 'planned' &&
         !cancelled &&
+        !event.cancelled &&
         event.deletedAt === null &&
         (event.startTime === null ? event.date >= day : startOf(event) > now.getTime()),
     )

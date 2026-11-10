@@ -206,6 +206,19 @@ async function toggle(page: Page, name: string) {
 const clearInList = (page: Page) =>
   page.locator('[data-list]').getByRole('button', { name: 'Clear filters' });
 
+/** Scroll so the day named rests `past` px under the pinned strip (twice: the strip pins first). */
+async function bringUnder(page: Page, name: string, past = 0) {
+  for (let i = 0; i < 2; i++) {
+    await page.getByRole('region', { name }).evaluate((day, past) => {
+      const strip = document.querySelector('[data-strip]')!;
+      window.scrollBy(
+        0,
+        day.getBoundingClientRect().top - strip.getBoundingClientRect().bottom + past,
+      );
+    }, past);
+  }
+}
+
 /** The curtain sits at the very top of the page, with nothing above it. */
 async function atTheTop(page: Page) {
   await expect(page.getByRole('button', { name: 'Log a Concert' })).toBeInViewport();
@@ -250,7 +263,7 @@ async function watchTops(page: Page, selector: string) {
   return () => page.evaluate(() => (window as unknown as { tops: number[] }).tops);
 }
 
-test('the hero holds the rasika’s concert on now, else their next Planned one, else the title', async ({
+test('the hero holds the rasika’s concert on now, else their next one, else the title', async ({
   page,
 }) => {
   await open(page);
@@ -334,50 +347,120 @@ test('the strip: Past, Today, each date ahead; a tap jumps to its day, and it fo
     expect((await stop(page, name).boundingBox())!.height).toBeGreaterThanOrEqual(48);
   }
 
-  // A day tapped: the list jumps to it, its label just under the pinned strip, and it is marked.
+  // Scrolled by hand, the strip follows: the day under it is the one marked.
+  await bringUnder(page, dayHeadingText(3), 40);
+  await expect.poll(() => marked(page)).toBe(dayHeadingText(3));
+  // Further on, the marked day is slid into the strip's view.
+  await bringUnder(page, dayHeadingText(8), 40);
+  await expect.poll(() => marked(page)).toBe(dayHeadingText(8));
+  await expect(stop(page, dayHeadingText(8))).toBeInViewport({ ratio: 1 });
+
+  // A day tapped starts the list there, the page back at its top with the curtain in place
+  // (the Maintainer's iPhone, 2026-11-09: a tap scrolled the hero away), and it is marked.
   await stop(page, dayHeadingText(6)).click();
   await expect.poll(() => marked(page)).toBe(dayHeadingText(6));
-  expect((await strip(page).boundingBox())!.y).toBe(0);
+  await atTheTop(page);
+  expect(await listed(page)).toEqual(Array.from({ length: 5 }, (_, d) => dayFromToday(d + 6)));
   const label = page.locator(`#day-${dayFromToday(6)}`);
   expect(Math.abs((await label.boundingBox())!.y - (await stripBottom(page)))).toBeLessThanOrEqual(
     1,
   );
+  // The same tap from deep in the list lands in the same place.
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await stop(page, dayHeadingText(6)).click();
+  await atTheTop(page);
+  expect((await listed(page))[0]).toBe(dayFromToday(6));
   // Scrolled on within the day, its label sticks under the strip.
-  await page.evaluate(() => window.scrollBy(0, 120));
+  await bringUnder(page, dayHeadingText(6), 60);
   await expect.poll(async () => (await label.boundingBox())!.y).toBe(await stripBottom(page));
   expect(await marked(page)).toBe(dayHeadingText(6));
 
-  // Scrolled by hand, the strip follows: the day under it is the one marked.
-  const third = page.getByRole('region', { name: dayHeadingText(3) });
-  await third.evaluate((day) => {
-    const strip = document.querySelector('[data-strip]')!;
-    window.scrollBy(0, day.getBoundingClientRect().top - strip.getBoundingClientRect().bottom + 40);
-  });
-  await expect.poll(() => marked(page)).toBe(dayHeadingText(3));
-  // Further on, the marked day is slid into the strip's view.
-  await page.getByRole('region', { name: dayHeadingText(8) }).evaluate((day) => {
-    const strip = document.querySelector('[data-strip]')!;
-    window.scrollBy(0, day.getBoundingClientRect().top - strip.getBoundingClientRect().bottom + 40);
-  });
-  await expect.poll(() => marked(page)).toBe(dayHeadingText(8));
-  await expect(stop(page, dayHeadingText(8))).toBeInViewport({ ratio: 1 });
-
-  // The last day too: the list leaves room under it to come up to the strip.
+  // The last day too: alone, under the curtain.
   await stop(page, dayHeadingText(10)).click();
-  await expect
-    .poll(async () =>
-      Math.abs(
-        (await page.locator(`#day-${dayFromToday(10)}`).boundingBox())!.y -
-          (await stripBottom(page)),
-      ),
-    )
-    .toBeLessThanOrEqual(1);
+  await atTheTop(page);
+  expect(await listed(page)).toEqual([dayFromToday(10)]);
   expect(await marked(page)).toBe(dayHeadingText(10));
 
-  // Today: back to the list's start.
+  // Today: the list from today again.
   await stop(page, 'Today').click();
-  await expect(page.locator(`#day-${dayFromToday(1)}`)).toBeInViewport();
+  await atTheTop(page);
+  expect(await listed(page)).toEqual(Array.from({ length: 10 }, (_, d) => dayFromToday(d + 1)));
   expect(await marked(page)).toBe('Today');
+});
+
+// The Maintainer's iPhone, 2026-11-09: the first row under a day's label read dimmer than the
+// rest when nothing had passed under the label, as a jump leaves a day.
+test('a stuck day label fades only the rows that have passed under it', async ({ page }) => {
+  await open(page);
+  await storeEntries(page, [
+    ...Array.from({ length: 10 }, (_, d) =>
+      Array.from({ length: 4 }, (_, i) => entry(`e-${d}-${i}`, d + 1, { startTime: `1${i}:00` })),
+    ).flat(),
+  ]);
+  await page.reload();
+  await expect.poll(() => listed(page)).toHaveLength(10);
+  const label = page.locator(`#day-${dayFromToday(3)}`);
+  // The fade under the label, as drawn.
+  const fade = () =>
+    label.evaluate((h) => Number(getComputedStyle(h, '::after').opacity.replace(/^$/, '0')));
+  const restAt = (past: number) => bringUnder(page, dayHeadingText(3), past);
+  // Resting just under the strip: its first row is under nothing, and shows in full.
+  await restAt(0);
+  await expect.poll(async () => (await label.boundingBox())!.y).toBe(await stripBottom(page));
+  await page.waitForTimeout(100);
+  expect(await fade()).toBe(0);
+  // Halfway into the fade's 24px, half faded; past it, in full.
+  await restAt(12);
+  await expect.poll(fade).toBeCloseTo(0.5, 1);
+  await restAt(40);
+  await expect.poll(fade).toBe(1);
+});
+
+test('the search sheet’s toggles stay put as they turn on, on one line at 390px', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await open(page);
+  await storeEntries(page, [
+    entry('c', 1),
+    entry('d', 1, { kind: 'dance' }),
+    entry('l', 2, { kind: 'lecdem' }),
+    entry('h', 2, { kind: 'harikatha' }),
+  ]);
+  await page.reload();
+  await expect.poll(() => listed(page)).toHaveLength(2);
+  await openSearch(page);
+  const names = ['Mine', 'Dance', 'Lecdem', 'Harikatha'];
+  const toggle = (name: string) => searchSheet(page).getByRole('button', { name, exact: true });
+  // All four read in one frame, as the sheet may still be sliding up.
+  const boxes = () =>
+    searchSheet(page)
+      .locator('[data-toggle]')
+      .evaluateAll((all) =>
+        all.map((b) => {
+          const box = b.getBoundingClientRect();
+          const name = b.querySelector('span > span:last-child')?.textContent ?? '';
+          return [name, Math.round(box.left), Math.round(box.right), box.top] as const;
+        }),
+      );
+  // Across: where each starts and ends (the sheet may still be settling up or down).
+  const across = (all: Awaited<ReturnType<typeof boxes>>) =>
+    all.map(([name, left, right]) => [name, left, right]);
+  // One line: every toggle's top within a pixel of the first's.
+  const oneLine = (all: Awaited<ReturnType<typeof boxes>>) =>
+    all.every(([, , , top]) => Math.abs(top - all[0]![3]) < 1);
+  const off = await boxes();
+  expect(off.map(([name]) => name)).toEqual(names);
+  // One line, inside the gutter.
+  expect(oneLine(off)).toBe(true);
+  expect(Math.max(...off.map(([, , right]) => right))).toBeLessThanOrEqual(390 - 16);
+  for (const name of ['Harikatha', 'Lecdem', 'Mine', 'Dance']) {
+    await toggle(name).click();
+    await expect(toggle(name)).toHaveAttribute('aria-pressed', 'true');
+    const on = await boxes();
+    expect(across(on)).toEqual(across(off));
+    expect(oneLine(on)).toBe(true);
+  }
 });
 
 test('Past shows the days gone, newest first, in place of the list; Today brings it back', async ({
@@ -407,9 +490,10 @@ test('Past shows the days gone, newest first, in place of the list; Today brings
   await stop(page, 'Today').click();
   expect(await listed(page)).toEqual([dayFromToday(1), dayFromToday(2)]);
   expect(await marked(page)).toBe('Today');
+  // A date from Past starts the list at that day.
   await stop(page, 'Past').click();
   await stop(page, dayHeadingText(2)).click();
-  expect(await listed(page)).toEqual([dayFromToday(1), dayFromToday(2)]);
+  expect(await listed(page)).toEqual([dayFromToday(2)]);
   await expect.poll(() => marked(page)).toBe(dayHeadingText(2));
 });
 

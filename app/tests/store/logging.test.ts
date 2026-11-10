@@ -32,6 +32,7 @@ import {
   editAppearance,
   findArtists,
   findSabhas,
+  heldEntry,
 } from '../../src/store/people';
 import { listAppearances, listItems } from '../../src/store/queries';
 import { RuleError } from '../../src/store/rules';
@@ -132,6 +133,74 @@ describe('Artists, Sabhas and Appearances', () => {
     ]);
     expect((await findArtists('Subramanian', { db })).map((m) => m.id)).toEqual(['s-sanjay']);
     expect(await findArtists('', { db })).toEqual([]);
+  });
+
+  // The Maintainer's iPhone, 2026-11-09: Add Artist found nothing for "TM Krishna", billed all
+  // Season, so the rasika could only make a new Artist by hand.
+  it("offers the Season's billed names and Sabhas that no list holds yet, once each", async () => {
+    const db = freshDb();
+    const listed = (id: string, sabha: string, ...names: string[]) => ({
+      id,
+      version: 1,
+      date: '2026-12-15',
+      startTime: '16:00',
+      sabha,
+      kind: 'concert' as const,
+      title: null,
+      billed: names.map((name) => ({ name, role: null, group: null })),
+      cancelled: false,
+    });
+    await db.sharedArtists.put(shared('s-sanjay', 'Sanjay Subrahmanyan'));
+    await db.schedule.bulkPut([
+      listed('a', 'Music Academy', 'TM Krishna', 'Sanjay Subrahmanyan', 'Akkarai Subbulakshmi'),
+      listed('b', 'Narada Gana Sabha', 'TM Krishna', 's-sanjay'),
+    ]);
+    await createArtist('Akkarai Subbulakshmi', { db });
+
+    const found = await findArtists('krish', { db });
+    expect(found).toEqual([
+      { id: expect.any(String), name: 'TM Krishna', aliases: [], shared: false, scheduled: true },
+    ]);
+    // A name a list holds, by its name or as a shared id, is offered as that entry only.
+    expect((await findArtists('sanjay', { db })).map((m) => [m.id, m.scheduled])).toEqual([
+      ['s-sanjay', undefined],
+    ]);
+    expect((await findArtists('akkarai', { db })).filter((m) => m.scheduled)).toEqual([]);
+    expect((await findSabhas('narada', { db })).map((m) => m.name)).toEqual(['Narada Gana Sabha']);
+    // Once made, it is the entry the picker gets, not a twin.
+    // Told apart by the Role they are billed in most; after the names a list holds, at the same
+    // closeness (the council, 2026-11-09).
+    await db.schedule.bulkPut([
+      {
+        ...listed('c', 'Music Academy', 'Krishna Kumar'),
+        billed: [{ name: 'Krishna Kumar', role: 'violin', group: null }],
+      },
+      {
+        ...listed('d', 'Music Academy'),
+        billed: [{ name: 'Krishna Kumar', role: 'violin', group: null }],
+      },
+      {
+        ...listed('e', 'Music Academy'),
+        billed: [{ name: 'Krishna Kumar', role: 'vocal', group: null }],
+      },
+    ]);
+    const kk = await createArtist('Krishnan', { db });
+    expect((await findArtists('krish', { db })).map((m) => [m.name, m.billedAs])).toEqual([
+      ['Krishnan', undefined],
+      ['Krishna Kumar', 'violin'],
+      ['TM Krishna', undefined],
+    ]);
+    await db.artists.delete(kk.id);
+    await db.schedule.bulkDelete(['c', 'd', 'e']);
+    expect(await heldEntry('artist', 'tm krishna', db)).toBeNull();
+    const made = await createArtist('TM Krishna', { db });
+    expect(await heldEntry('artist', 'TM Krishna', db)).toEqual({
+      id: made.id,
+      name: 'TM Krishna',
+    });
+    expect((await findArtists('krish', { db })).map((m) => [m.id, m.scheduled])).toEqual([
+      [made.id, undefined],
+    ]);
   });
 
   it('offers an own entry the Maintainer promoted once, as the shared one', async () => {

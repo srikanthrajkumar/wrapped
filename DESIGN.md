@@ -331,8 +331,10 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   old `/earlier` link opens Season on Past, at its top.
   - **The hero** (the Maintainer, 2026-11-09, and their review of it; builder's calls marked):
     the curtain stops being a title and always shows the rasika's own Event on now, else their
-    next Planned one (soonest to start; one with no time counts all its day; never a cancelled
-    one). It sits on a two-column grid, the content and a 24px column at its right, on the 16px
+    soonest one still to start, whatever its state (one with no time counts all its day; never a
+    cancelled one): one already being logged ahead of its day counts as much as a Planned one
+    (the Maintainer's iPhone, 2026-11-09: the hero skipped it for a Planned one weeks later, so it
+    and the list's first own row named two different concerts). It sits on a two-column grid, the content and a 24px column at its right, on the 16px
     gutters and 8px steps: first the word "Now" or "Next" in `sub` 600 (builder: the one word that
     tells a concert under way from one ahead), the + in the right column; 8px under it the title
     in `heading` 700, the Artists it is known by (else its Sabha, else "No Sabha yet") with its
@@ -370,14 +372,16 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     below the strip, is **chosen**: always in full ink and a step heavier (500), with no dot and
     no pill; ink and weight change over 250ms, at once with reduced motion (the variable font
     takes 500, and moves to it smoothly). Choosing one moves nothing else. The strip
-    slides to keep the mark in view; until the list is scrolled into, Today is marked, as the
-    list's start. A date tapped jumps the list at once (no glide: days far off sit at their
-    likely heights until drawn) so its label sits just under the strip; the list keeps room
-    under its last day for that, measured again as the days draw, so the last days come up to
-    the strip too; the date stays marked until the rasika scrolls on. Today jumps to today's day,
-    or with none to the list's start. Each day's label sticks under the strip while its day is on
-    the screen, as a festival schedule's do, and while stuck fades the rows passing under it over
-    24px, so none shows half cut (the council, 2026-11-09). A stop shows a focus ring only from
+    slides to keep the mark in view; until the list is scrolled into, the day it starts at is
+    marked. A date tapped **starts the list at that day** and takes the page back to its top, so
+    the hero stays where it is and the day sits just under the strip (the Maintainer's iPhone,
+    2026-11-09: a jump that scrolled the hero away read as a glitch, and the same tap landed
+    differently from different places); the days before it are a tap on Today away. Today starts
+    the list from today again. Each day's label sticks under the strip while its day is on the
+    screen, as a festival schedule's do, and fades the rows passing under it over 24px as they
+    pass, so none shows half cut (the council, 2026-11-09), but none under a day resting just
+    under the strip, whose first row is under nothing (the Maintainer's iPhone, 2026-11-09: that
+    row read dimmer than the rest). A stop shows a focus ring only from
     the keyboard, rounded and inside it. With a filter on, dates with no match drop out, and
     Past shows only with a match there, but stays while it is the one shown, so the strip always
     says where the rasika is (builder).
@@ -391,8 +395,8 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     number; only those take a tap, the rest muted (builder: a tap on a day with nothing would
     land nowhere). Today's number is 600. The months page sideways, by the arrows or a swipe,
     from the first month with anything to the last, past months included. It opens on the month
-    of the day in view. A day tapped jumps the list there, a day gone opening Past at it, and
-    closes the sheet.
+    of the day in view. A day tapped starts the list there as a date on the strip does, a day
+    gone starting Past at it, and closes the sheet.
   - **The search bar** (the Maintainer's review, 2026-11-09, "Maps-style"; builder's calls
     marked): one rounded bar, fully round and 48px, in the shell's bottom bar just above the tab
     bar, in thumb reach, on Season only, while there is anything in the Season. The shell's bar
@@ -414,8 +418,12 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     names need room to browse). No title: the 48px field, "Artist or Sabha…", is its first line,
     level with the close (the council: a title only repeated it); under it Mine (only the
     rasika's own Events; shown once there is a Schedule, since without one every row is theirs)
-    and the kinds the Schedule has, Dance, Lecdem and Harikatha, as text toggles, 24px apart: off
-    in muted text, on in full contrast and 600 after a check, never a filled pill. Then the
+    and the kinds the Schedule has, Dance, Lecdem and Harikatha, as text toggles, 8px apart: off
+    in muted text, on in full contrast and 600 with a check after the word, as on the names under
+    them, never a filled pill. Each is as wide on as off, the check's room and the 600 width held
+    either way, so turning one on moves nothing (the Maintainer's iPhone, 2026-11-09: Harikatha's
+    check and weight pushed into Lecdem), and all four fit one line at 390px (the council,
+    2026-11-09: with the check's room held after each, 8px apart sets the words 28px apart). Then the
     names: before typing, those picked, then every other name in the Season, A to Z, to browse
     (the council, 2026-11-09); as the rasika types, the suggestions from the names in
     this Season's Schedule and their own Events, billed Artists, groups by their group name and
@@ -643,7 +651,11 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     "khanda nadai" (FB-29).
 - **Artist and Sabha pickers** (decided 2026-11-01; T041, FR-004, FR-005): the same docked
   search. Before typing it lists the rasika's recent Sabhas or Artists; as they type, matches
-  from their own and the shared lists. Each result shows a distinguishing line (an Artist's
+  from their own and the shared lists, and the names the Season's Schedule prints that no list
+  holds yet, each once (the Maintainer's iPhone, 2026-11-09: Add Artist found nothing for an
+  Artist billed all Season), after the names the lists hold at the same closeness, an Artist's
+  line the Role they are billed in most (the council, 2026-11-09). Picked, such a name becomes
+  an own entry, as planning its listing would make it. Each result shows a distinguishing line (an Artist's
   usual Role, when known), so similar names can be told apart. The last row is always "Add
   “what you typed” as a new Sabha" (or Artist), so a new entry is a deliberate choice, never a
   typo's side effect.
@@ -1024,3 +1036,5 @@ in the phase that builds it):
 | 2026-11-09 | The Maintainer, choosing option C of three mockups, replacing the Today · Coming · Past tabs of the same day. The curtain stops being a title: the hero always shows the rasika's own Event on now, else their next Planned one, large (known-by, Sabha, time, Item count), tapped to open it, so logging starts there; it replaces the Now card. The + stays at its top right. A strip of days replaces the tabs at the top of the sheet: Past · Today · each date ahead with anything on; the list runs from today on, own Events first in each day, listings quieter; a tapped date jumps to its day, and as the rasika scrolls the strip marks the day in view, with sticky day labels, keeping the week's scan; Past shows the days gone, newest first, in place, and Today brings the list back. With a filter on, dates without a match leave the strip and Past shows only with one; "Nothing here matches" with "Clear filters" stays. Back from an Event returns to the same place, past or ahead; `/earlier` opens Past. The filter, its chips and alias matching are kept. The builder's calls: "Now" or "Next" over the hero's title; a long known-by wraps at the same size; with nothing of the rasika's ahead, the "Season" title; the hero's Event also stays in its day; the strip pinned, its stops 48px pills, the day in view filled in ink as the chips that are on; a tapped day stays marked until the rasika scrolls; Today marked at the list's start; Past kept on the strip while shown; jumps made at once; the hero never filtered; the + comes back from today. One council round at 390px (Codex 8.6, Claude reviewers 6 and 6) built four fixes: room under the last day so a jump always lands under the strip (which also ends a stale day label stacked under it), "Today" in a Next hero's line, strip stops marked by fill alone at one size and weight, and the suggestions list shadowed in light. |
 | 2026-11-09 | The Maintainer's review of option C, choosing a mockup. The strip loses its line and its pills: slim dates (a small weekday over the number), the day in view a heavier number over a small ink dot, Past as text at its left, real room on the 8px grid, and once pinned the list fades out under it. A calendar at its right end, pinned with it, opens a month sheet: a dot on each day with anything on (only matching days with a filter on), months paging sideways with past ones reachable, a tap jumping the list (or opening Past for a day gone) and closing the sheet. The hero goes on a two-column grid, the content and a 24px column: "Now"/"Next" with the + in the column, the title with a chevron in the column centred on its first line, then the line; the + and chevron share one right edge, and all but the + opens the Event. Search moves to the bottom, Maps-style: one rounded "Artist or Sabha…" bar above the tab bar on Season, opening a sheet with the field, the suggestions (picked ones ticked) and Mine and the kinds as text toggles; with a filter on the bar reads it as text with one x that clears it all; the in-page box and every chip go. The widen and narrow rules, strip pruning and "Nothing here matches" / "Clear filters" stay. The builder's calls: the search sheet as tall as its content, field focused on open, a pick closing it; the bar's first two parts then "+N"; the bar on surface-raised in dark too; the calendar a month tall, Monday first, only days on tappable; the strip's month shown where it turns; the bar kept while Season loads, so the place held on return never moves. One council round at 390px (Codex 8.8 with no fixes, Claude reviewers 6.5 and 6) built seven: the stuck day label fades the rows passing under it; a strip stop's focus ring only from the keyboard, rounded and inside; no line over the search bar, the list fading above it; the bar shows only whole names then "+N"; the calendar's month on the gutter with its arrows together at the right; the search sheet without a title, 85% tall, the Season's names A to Z under the picks to browse. |
 | 2026-11-09 | The Maintainer, from mockups, for the strip: no dot and no pill under the chosen day, but style B, "time fades": each stop's ink follows time (Past faint, Today full, each day ahead fainter by about 0.13 a day), the chosen day in full ink and 500, over a brief 250ms change, none with reduced motion. The builder's call, from the contrast check asked for: Past at 0.6 and the floor ahead at 0.65, not 0.3 and 0.35, since 0.6 is the least that keeps the number at 4.5:1 in both themes (4.7:1 light, 5.4:1 dark); the weekday in the text colour, so the stop's one ink governs both lines. |
+| 2026-11-09 | Five bugs from the Maintainer's iPhone, fixed at the root. The hero takes the rasika's soonest Event still to start whatever its state, not only a Planned one, so it and the list's first own row never name two different concerts. A date tapped on the strip or the calendar starts the list at that day and takes the page back to its top, so the hero stays where it is and the same tap lands the same way from anywhere; the room kept under the last day for jumps goes. A stuck day label fades the rows under it by how far they have passed, none for a day resting just under the strip. The search sheet's toggles hold the check's room and the 600 width either way, the check after the word, 8px apart, so one turned on moves nothing and all four fit at 390px. The Artist and Sabha pickers offer the names the Season's Schedule prints that no list holds yet. |
+| 2026-11-09 | Withdrawn, the same day: one day at a time (the structure mockups' option C, Morning · Afternoon · Evening bands, the rasika's own Events as cards in their slot, a line at now, a swipe between days, Past off the strip) was built and the Maintainer took it back on seeing it: the problem was never a sense of time, which Now and Next already give, and the time line and the highlighted card were not wanted. Season returns to the timeline above, with the five iPhone fixes kept. What the schedule is for goes back to product discovery first. |
