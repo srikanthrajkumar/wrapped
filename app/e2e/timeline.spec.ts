@@ -416,6 +416,72 @@ test('a stuck day label fades only the rows that have passed under it', async ({
   await expect.poll(fade).toBe(1);
 });
 
+// The Maintainer's iPhone, 2026-11-10: on a fast fling from one day to the next, rows ran over
+// the day's label. Safari moves a sticky label inside paint containment (which skipping a day's
+// drawing brings) only once the fling's frame is done; so no label sits in it, and only the rows
+// skip drawing.
+test('no day label sits inside paint containment, so it holds through a fling', async ({
+  page,
+}) => {
+  await open(page);
+  await storeEntries(page, [entry('e-1', 1), entry('e-2', 2), entry('e-3', 3)]);
+  await page.reload();
+  await expect.poll(() => listed(page)).toHaveLength(3);
+  const clipped = await page.locator('[data-list] section h2').evaluateAll((labels) =>
+    labels.flatMap((label) => {
+      for (let up = label.parentElement; up && up !== document.body; up = up.parentElement) {
+        const style = getComputedStyle(up);
+        const contain = `${style.contain} ${style.contentVisibility}`;
+        if (/paint|strict|content|auto|hidden/.test(contain))
+          return [`${label.textContent}: ${up.tagName} ${contain}`];
+      }
+      return [];
+    }),
+  );
+  expect(clipped).toEqual([]);
+  // The rows still skip drawing while far from the screen.
+  const skipping = await page
+    .locator('[data-list] section ul')
+    .first()
+    .evaluate((list) => getComputedStyle(list).contentVisibility);
+  expect(skipping).toBe('auto');
+});
+
+// The Maintainer, 2026-11-10: Season's bar "looks too different from the way the other search
+// bars work": it takes the search field's shape, its corners, mark and text where the field's are.
+test('the search bar has the search field’s shape', async ({ page }) => {
+  await open(page);
+  await storeEntries(page, [entry('e-1', 1)]);
+  await page.reload();
+  await expect(searchBar(page)).toBeVisible();
+  // The filled box's corners and height, and where its mark and its text start inside it.
+  const shape = (box: string, words: string) =>
+    page.evaluate(
+      ({ box, words }) => {
+        const fill = document.querySelector<HTMLElement>(box)!;
+        const at = fill.getBoundingClientRect();
+        const mark = fill.parentElement!.querySelector('svg')!.getBoundingClientRect();
+        const text = document.querySelector<HTMLElement>(words)!;
+        return {
+          radius: getComputedStyle(fill).borderTopLeftRadius,
+          height: Math.round(at.height),
+          mark: Math.round(mark.left - at.left),
+          words: Math.round(
+            text instanceof HTMLInputElement
+              ? parseFloat(getComputedStyle(text).paddingLeft)
+              : text.getBoundingClientRect().left - at.left,
+          ),
+        };
+      },
+      { box, words },
+    );
+  const barShape = await shape('[data-season-bar]', '[data-season-bar] button > span');
+  await openSearch(page);
+  const field = '[role=dialog] input[type=search]';
+  const fieldShape = await shape(field, field);
+  expect(barShape).toEqual(fieldShape);
+});
+
 test('the search sheet’s toggles stay put as they turn on, on one line at 390px', async ({
   page,
 }) => {

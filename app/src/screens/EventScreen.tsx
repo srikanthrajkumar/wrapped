@@ -15,6 +15,7 @@ import {
   IconDots,
   IconGripVertical,
   IconMetronome,
+  IconPencil,
   IconPlus,
   IconTrash,
 } from '@tabler/icons-react';
@@ -249,7 +250,26 @@ function EventView({ eventId }: { eventId: string }) {
 
       {appearances.length > 0 && (
         <section aria-labelledby="stage" className="pt-8">
-          <SectionHead id="stage" headRef={stageHead}>
+          <SectionHead
+            id="stage"
+            headRef={stageHead}
+            // One pencil at the heading's right opens the Artist picker (the Maintainer,
+            // 2026-11-10: the "Add Artist" row could go). Spoken as what it opens; its mark on
+            // the gutter, its 48px reaching past the heading's line so the line keeps its height.
+            action={
+              order === null && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Add Artist"
+                  className="-my-3.5 -mr-3.5"
+                  onClick={() => setArtistOpen(true)}
+                >
+                  <IconPencil aria-hidden />
+                </Button>
+              )
+            }
+          >
             Stage
           </SectionHead>
           <ul className="hairline-t">
@@ -265,18 +285,6 @@ function EventView({ eventId }: { eventId: string }) {
                 onColours={() => setColoursFor(appearance.id)}
               />
             ))}
-            {order === null && (
-              <li className="hairline-b">
-                <button
-                  type="button"
-                  onClick={() => setArtistOpen(true)}
-                  className="flex min-h-12 w-full items-center gap-2 py-2 text-left text-muted-foreground"
-                >
-                  <IconPlus aria-hidden className="size-5" />
-                  Add Artist
-                </button>
-              </li>
-            )}
           </ul>
         </section>
       )}
