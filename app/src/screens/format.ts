@@ -102,6 +102,16 @@ const ROLE_NAMES: Partial<Record<Role, string>> = { support: 'Vocal support' };
 export const roleName = (role: Role) =>
   ROLE_NAMES[role] ?? role.charAt(0).toUpperCase() + role.slice(1);
 
+/**
+ * What someone was billed as, under their name: their Role, with "support" when the Schedule
+ * credits them as support (2026-11-10), as "Violin support"; null when neither is known. The
+ * vocal support Role already says so.
+ */
+export function creditName(role: Role | null, support = false): string | null {
+  if (!support || role === 'support') return role && roleName(role);
+  return role ? `${roleName(role)} support` : 'Support';
+}
+
 /** An Event's kind as a word, where one is said: "Concert", "Lecdem", "Dance", "Harikatha". */
 export const kindName = (kind: EventKind) => kind.charAt(0).toUpperCase() + kind.slice(1);
 

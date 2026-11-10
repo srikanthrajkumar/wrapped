@@ -104,11 +104,14 @@ describe('the phone’s Supabase client', () => {
     const api = (await getSyncApi({ config: config('0.0.9'), db: store }))!;
 
     const failure = await syncOnce(api, { db: store }).catch((e: unknown) => e);
+    // The server's minimum as the migrations leave it, raised with each change of record shape.
+    const [minimum] = await server<{ min_app_version: string }[]>`
+      select min_app_version from private.server_config`;
 
     expect(failure).toBeInstanceOf(SyncError);
     expect((failure as SyncError).failure).toEqual({
       kind: 'update_required',
-      minimumVersion: '0.1.0',
+      minimumVersion: minimum!.min_app_version,
     });
     expect(await store.outbox.count()).toBe(1);
   });

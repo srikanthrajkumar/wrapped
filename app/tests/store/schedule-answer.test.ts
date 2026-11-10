@@ -109,13 +109,13 @@ describe('"take it" (required)', () => {
         {
           field: 'billed',
           from: [
-            { name: 'Malladi Sreeramprasad', role: 'vocal' },
-            { name: 'Malladi Ravikumar', role: 'vocal' },
-            { name: 'Pakkala Ramadas', role: 'violin' },
+            { name: 'Malladi Sreeramprasad', role: 'vocal', support: false },
+            { name: 'Malladi Ravikumar', role: 'vocal', support: false },
+            { name: 'Pakkala Ramadas', role: 'violin', support: false },
           ],
           to: [
-            { name: 'Alarmel Valli', role: 'dancer' },
-            { name: 'Malladi Ravikumar', role: 'vocal' },
+            { name: 'Alarmel Valli', role: 'dancer', support: false },
+            { name: 'Malladi Ravikumar', role: 'vocal', support: false },
           ],
         },
       ],

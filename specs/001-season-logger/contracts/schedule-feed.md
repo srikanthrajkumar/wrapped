@@ -95,6 +95,7 @@ the catalog, the same day (ADR 0009).
         { "name": "…", "role": "vocal", "group": "Malladi Brothers" },
         { "name": "…", "role": "vocal", "group": "Malladi Brothers" },
         { "name": "…", "role": "violin" },
+        { "name": "…", "role": "violin", "support": true },
         { "name": "…", "role": null }
       ],
       "cancelled": false
@@ -143,22 +144,46 @@ the catalog, the same day (ADR 0009).
   the same `group`. It is absent, or null, for anyone not billed as part of a group. It is for
   display only: the Concert line and the Schedule card show it in place of the members' names,
   and each member still gets their own Appearance and counts on their own in the Wrapped.
+- **`support`** (optional, agreed with the logger on 2026-11-10) is `true` for an
+  instrumentalist the source credits as support to a lead on the same instrument: a title such as
+  "Violin with support", or the Maintainer's ruling. It rides with that instrument's Role, so a
+  support violinist is `"role": "violin", "support": true` and counts as violin in the Wrapped. It
+  is omitted otherwise; a reader takes it as absent when it is missing or null, and refuses the
+  file when it is anything but a boolean. Equals stay plain, sharing a `group` where the source
+  names one: 23 December at Krishna Gana Sabha (A Kanyakumari, Embar S Kannan and L Ramakrishnan)
+  is a violin trio of equals, as its source bills it. This Season it has one case, Badrinarayanan
+  D on 11 November at Madhuradhwani.
+  - A support singer is not this flag: they are billed `"role": "support"` (vocal support), as
+    before. The logger never writes `support: true` beside `role: "support"`; a reader that meets
+    the two together takes them as one redundant credit, reads the person as support, and never
+    refuses the file for it.
+  - It only says who names the Event (below); everyone billed still gets an Appearance on Stage.
+
+  The phone names an Event by its billed people in its kind's lead Roles who are not support
+  (vocal, veena, chitravina, flute, nagaswaram, saxophone or mandolin for a Concert); for a Concert
+  with none, by every violinist who is not support, as equals (the Akkarai Sisters, Ganesh and
+  Kumaresh); else by the first person on Stage who is not support (Maintainer, 2026-11-10). A
+  `support` Role or a `support: true` mark is support. So 11 November at Madhuradhwani, "Violin
+  with support", bills Nagai R. Muralidharan plain and Badrinarayanan D with `support: true`, and
+  reads as Nagai R. Muralidharan alone.
 
 ### Format number
 
-Adding `group`, the kinds `dance` and `harikatha` and the new Roles keeps **`format: 1`**. No
+Adding `group`, the kinds `dance` and `harikatha` and the new Roles keeps **`format: 1`**, and
+so does adding `support` (2026-11-10): it is optional, and a reader that predates it ignores it. No
 reader of the feed has been built yet (T058 to T061), so nothing already installed can misread
 the additions; the first dev feed already says `format: 1`; and every addition is optional or a
 new value. From the first reader on:
 
 - the phone ignores fields it doesn't know;
 - it refuses the whole file, keeping the copy it has, when any entry is malformed (an `id`,
-  `version`, `date` that doesn't exist, `startTime`, `sabha`, `kind`, `title`, `cancelled` or a
-  billed `role` of the wrong type, or `billed` not a list of named people), when `publishedAt`
+  `version`, `date` that doesn't exist, `startTime`, `sabha`, `kind`, `title`, `cancelled`, a
+  billed `role` or a billed `support` of the wrong type, or `billed` not a list of named people), when `publishedAt`
   isn't a real day and time with its offset (`2026-11-31`, `24:00` or `:60` is none), or when the
   file is for an earlier Season than the one it has, or published before it in the same Season
   (compared as instants, so `+05:30` and `Z` order right) (PR #25 review);
-- only `startTime`, `title`, a billed `role` and `group` may be null. `id`, `version`, `date`,
+- only `startTime`, `title`, a billed `role`, `group` and `support` may be null (a null
+  `support` reads as absent; any other non-boolean is malformed). `id`, `version`, `date`,
   `sabha`, `kind`, `cancelled`, `billed` and a billed `name` are always given, never null: a
   `cancelled` of null is refused, never read as false, so it can't reinstate a cancelled Event;
 - it reads a Role it doesn't know as null, since a Role is only a hint;
@@ -174,13 +199,14 @@ For each Event with a `scheduleEntryId`:
 - Attended or Missed: change nothing, set no hint, record nothing. It is the rasika's record of
   what happened (2026-11-07).
 - `touched` is false: copy the new date, time, Sabha, kind, title and billed Artists, with their
-  Roles and group names; set `cancelled`.
+  Roles, group names and support marks; set `cancelled`.
 - `touched` is true: change nothing; set `scheduleChanged` so the hint shows, but only when the
   version differs in a field the hint's sheet shows (date, time, Sabha, kind, title, cancelled,
   billed Artists). A Planned Event whose Stage the rasika changed counts as touched (T058).
 - Billed Artists are matched Artist by Artist, never by place. A Schedule-made Appearance has the
   id derived from the Event and the Artist, so two phones write the same record. One billed again
-  keeps its Appearance and takes the group, and the Role unless the entry gives none (a null Role
+  keeps its Appearance and takes the group and the support mark (set, or cleared when the entry
+  leaves it out), and the Role unless the entry gives none (a null Role
   names nothing). A Schedule tombstone of the Artist, or of one since promoted or merged into
   them, comes back as that row, Colours and Role kept, still naming the Artist it was made for
   (which reads as the billed one). One the

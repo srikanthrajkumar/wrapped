@@ -32,7 +32,7 @@ import {
   type BilledName,
   type ScheduleChange,
 } from '../../store/schedule';
-import { dayText, kindName, roleName, timeText } from '../format';
+import { creditName, dayText, kindName, timeText } from '../format';
 import type { Target } from '../save-feedback';
 import { offerUndo } from '../undo';
 import { NotSavedLine, saveWith, useSaveFeedback } from './feedback';
@@ -70,8 +70,10 @@ const Billed = ({ people }: { people: BilledName[] }) =>
       {people.map((person, i) => (
         <li key={i} className="flex flex-col break-words">
           {person.name}
-          {person.role && (
-            <span className="text-sub text-muted-foreground">{roleName(person.role)}</span>
+          {creditName(person.role, person.support) && (
+            <span className="text-sub text-muted-foreground">
+              {creditName(person.role, person.support)}
+            </span>
           )}
         </li>
       ))}

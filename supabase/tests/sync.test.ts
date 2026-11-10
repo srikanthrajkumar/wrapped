@@ -600,3 +600,36 @@ describe('the kinds, Roles and group names of the schedule feed round-trip (T119
     expect(own.get(`appearances:${legacy.id}`)).not.toHaveProperty('group');
   });
 });
+
+describe('a support mark round-trips (2026-11-10)', () => {
+  it('pushes Appearances billed as support and not, and a row with no mark, and pulls them unchanged', async () => {
+    const rasika = await signUpWriter();
+    const concert = newEvent({ kind: 'concert', title: null });
+    const lead = newArtist('Nagai R. Muralidharan');
+    const helper = newArtist('Badrinarayanan D');
+    const marked = {
+      ...newAppearance(concert.id, helper.id, 2),
+      role: 'violin' as const,
+      billed: true,
+      support: true,
+    };
+    // A row a phone stored before `support` existed: kept as sent, with no such field.
+    const legacy = { ...newAppearance(concert.id, lead.id, 1), role: 'violin' as const };
+    const cleared = { ...legacy, id: crypto.randomUUID(), position: 3, support: false };
+    const sent: PushOp[] = [
+      op('artists', lead),
+      op('artists', helper),
+      op('events', concert),
+      op('appearances', legacy),
+      op('appearances', marked),
+      op('appearances', cleared),
+    ];
+    expect((await pushOk(rasika, sent)).rejected).toEqual([]);
+
+    const own = latestRows(
+      (await pullAll(rasika)).changes.filter((c) => !c.table.startsWith('shared')),
+    );
+    for (const o of sent) expect(own.get(`${o.table}:${o.row.id}`)).toEqual(o.row);
+    expect(own.get(`appearances:${legacy.id}`)).not.toHaveProperty('support');
+  });
+});

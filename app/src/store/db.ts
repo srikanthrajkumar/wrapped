@@ -136,6 +136,18 @@ export class WrappedDB extends Dexie {
     // "Errors"), so tabs still running an older build close their store (below). 3: Dance and
     // Harikatha, their Roles, and an Appearance's `group` (T119-T122), which came without a bump.
     this.version(3).stores({});
+    // 4: an Appearance's `support` (2026-11-10), with no index change. The stored Schedule was
+    // read by a build that dropped `support`, and its tag would answer 304 to the same file: the
+    // tag goes, so the next fetch reads the file again whole. The entries stay until then.
+    this.version(4)
+      .stores({})
+      .upgrade(async (tx) => {
+        const meta = tx.table<{ key: string; value: unknown }, string>('meta');
+        const stored = await meta.get('schedule');
+        if (stored && typeof stored.value === 'object' && stored.value !== null) {
+          await meta.put({ key: 'schedule', value: { ...stored.value, tag: null } });
+        }
+      });
 
     // A newer build is opening the store: close it for good, with no auto-open, so this build
     // never writes again; the screens ask for a reload (store/health.ts). Dexie's own handler
