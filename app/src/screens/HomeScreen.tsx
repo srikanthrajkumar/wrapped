@@ -188,14 +188,13 @@ function placeNow(): Place {
 }
 
 /**
- * A day's height before it is drawn: its label, a 64px row each, and a 20px line more for an
- * entry's printed title (DESIGN.md "Spacing"). Measured against the 2026-27 feed at 390px, 56 of
- * its 60 days draw at exactly this height, the rest within 40px, where a name wraps (47 of 60
- * at 320px, within 44px): only those can move the page in a browser with no scroll anchoring,
- * once each, as they first draw.
+ * A day's rows' height before they are drawn: a 64px row each, and a 20px line more for an
+ * entry's printed title (DESIGN.md "Spacing"); the label above them is always drawn. Measured
+ * against the 2026-27 feed at 390px, 56 of its 60 days draw at exactly this height, the rest
+ * within 40px, where a name wraps (47 of 60 at 320px, within 44px): only those can move the page
+ * in a browser with no scroll anchoring, once each, as they first draw.
  */
-const dayHeight = (day: TimelineDay) =>
-  30 +
+const rowsHeight = (day: TimelineDay) =>
   64 * (day.own.length + day.listings.length) +
   20 * day.listings.filter((listing) => listing.entry.title).length;
 
@@ -1075,7 +1074,7 @@ function SearchBar({
   const shown = Math.min(fit, parts.length);
   const more = parts.length - shown;
   return (
-    <div data-season-bar className="relative flex min-h-12 items-center rounded-full bg-secondary">
+    <div data-season-bar className="relative flex min-h-12 items-center rounded-xl bg-secondary">
       {/* The list fades out above the bar, as under the strip, rather than meeting a line. */}
       <div
         aria-hidden
@@ -1095,7 +1094,7 @@ function SearchBar({
             ? MESSAGES.season.filterOn(parts.join(', '))
             : MESSAGES.season.filterLabel
         }
-        className="flex min-h-12 min-w-0 flex-1 items-center gap-3 rounded-full pl-4 text-left text-body"
+        className="flex min-h-12 min-w-0 flex-1 items-center gap-2 rounded-xl pl-3 text-left text-body"
       >
         <IconSearch aria-hidden className="size-5 shrink-0 text-muted-foreground" />
         {parts.length > 0 ? (
@@ -1104,7 +1103,7 @@ function SearchBar({
             {more > 0 && <span className="shrink-0 text-muted-foreground">+{more}</span>}
           </span>
         ) : (
-          <span className="truncate pr-4 text-muted-foreground">
+          <span className="truncate pr-3 text-muted-foreground">
             {MESSAGES.season.filterPlaceholder}
           </span>
         )}
@@ -1114,7 +1113,7 @@ function SearchBar({
           variant="ghost"
           size="icon"
           aria-label={MESSAGES.season.clear}
-          className="shrink-0 rounded-full"
+          className="shrink-0 rounded-xl"
           onClick={onClear}
         >
           <IconX aria-hidden />
@@ -1301,8 +1300,10 @@ function SearchSheet({
 
 /**
  * One day of the timeline: its label, the rasika's own Events, then the Schedule's other
- * listings. A long Season draws only the days near the screen, each held at its likely height
- * until drawn, so scrolling never jumps.
+ * listings. A long Season draws only the rows near the screen, each day's held at their likely
+ * height until drawn, so scrolling never jumps. The rows, not the day, skip drawing: skipping
+ * clips what it holds, and Safari moves a sticky label inside a clip only once a fling's frame is
+ * done, so the rows ran over the label at a day's change (the Maintainer's iPhone, 2026-11-10).
  */
 function DaySection({
   day,
@@ -1313,14 +1314,9 @@ function DaySection({
   onHint(eventId: string): void;
   onOpen(listing: ScheduleListing): void;
 }) {
-  const style = { containIntrinsicSize: `auto ${dayHeight(day)}px` } as CSSProperties;
+  const style = { containIntrinsicSize: `auto ${rowsHeight(day)}px` } as CSSProperties;
   return (
-    <section
-      data-place={day.date}
-      aria-labelledby={`day-${day.date}`}
-      className="group/day [content-visibility:auto]"
-      style={style}
-    >
+    <section data-place={day.date} aria-labelledby={`day-${day.date}`} className="group/day">
       {/* The day goes with the rows under it: its first row's name 4px under it. */}
       <h2
         id={`day-${day.date}`}
@@ -1330,7 +1326,7 @@ function DaySection({
       >
         {dayText(day.date)}
       </h2>
-      <ul>
+      <ul className="[content-visibility:auto]" style={style}>
         {day.own.map((s) => (
           <EventRow
             key={s.event.id}

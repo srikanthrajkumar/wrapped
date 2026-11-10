@@ -35,6 +35,16 @@ test('the Artists it is known by, the Stage by Role, a rename, and a second Conc
   await expect(stage.first()).toContainText('Ranjani');
   await expect(stage.nth(1)).toContainText('Akkarai');
   await expect(page.getByRole('button', { name: 'Edit order' })).toHaveCount(0);
+  // The Maintainer, 2026-11-10: a pencil on Stage's heading line adds an Artist, a full tap
+  // target, and no "Add Artist" row sits under the Artists.
+  await expect(stage).toHaveCount(2);
+  const pencil = page
+    .getByRole('region', { name: 'Stage' })
+    .getByRole('button', { name: 'Add Artist' });
+  const pen = (await pencil.boundingBox())!;
+  const label = (await page.getByRole('heading', { name: 'Stage' }).boundingBox())!;
+  expect(Math.min(pen.width, pen.height)).toBeGreaterThanOrEqual(44);
+  expect(Math.abs(pen.y + pen.height / 2 - (label.y + label.height / 2))).toBeLessThan(2);
 
   // The name at the top of the Artist's sheet corrects it.
   await stage
