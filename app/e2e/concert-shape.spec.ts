@@ -64,7 +64,7 @@ test('the Artists it is known by, the Stage by Role, a rename, and a second Conc
   await page.keyboard.press('Escape');
   await expect(stage.nth(1)).toContainText('Akkarai Subbalakshmi');
 
-  // Season: the open Concert is a card, and another Concert can be started.
+  // Season: the open Concert is the hero, and another Concert can be started.
   await page.getByRole('main').getByRole('link', { name: 'Season' }).click();
   await expect(page.getByRole('region', { name: 'Now' }).getByRole('link')).toHaveText(/^Ranjani/);
   await page.getByRole('button', { name: 'Log a Concert' }).click();

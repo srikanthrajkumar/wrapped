@@ -1,7 +1,8 @@
 // Settings (DESIGN.md "Settings", laid out 2026-11-03 for Phase 4): the season first, as three
 // icon-led rows whose words are their accessible names, amber when something is wrong: offline
 // readiness, persisted storage, and Export with the day of the last one. Then the theme, then
-// the Maintainer's link, then the app and catalog versions, small and muted. Export lives here
+// the Maintainer's link, then the app and catalog versions, small and muted. A pushed page since
+// 2026-11-11, opened from the hub's Settings mark, which is amber while a row here is. Export lives here
 // alone before sync (the safety rows keep their own); Settings can always be reached, offline
 // too (FR-019). Sync, account and consent join in Phase 7.
 
@@ -25,7 +26,7 @@ import { READY_KEY } from '../store/offline-ready';
 import { setTheme, useTheme, type Theme } from '../theme';
 import { APP_VERSION, exportSeason, useExportState } from './components/export-file';
 import { ExportIcon } from './components/feedback';
-import { Screen, TabHeader } from './components/layout';
+import { Screen, TopBar } from './components/layout';
 import { shortDayText } from './format';
 import { MESSAGES } from './messages';
 
@@ -62,6 +63,16 @@ function useStorageProtected(): boolean | undefined {
     };
   }, []);
   return persisted;
+}
+
+/**
+ * Whether a Settings row is amber, for the hub's Settings mark (DESIGN.md "Colors"): offline
+ * logging isn't available, or the browser hasn't promised to keep the storage.
+ */
+export function useSettingsToFix(): boolean {
+  const offline = useOfflineState();
+  const persisted = useStorageProtected();
+  return offline === 'unavailable' || persisted === false;
 }
 
 /** A row's place while its answer is read, so the rows under it never move. */
@@ -176,7 +187,8 @@ function SettingsView() {
   const catalogVersion = useMeta<string>(CATALOG_VERSION_KEY);
   return (
     <>
-      <TabHeader title="Settings" />
+      <TopBar back={{ href: '/', label: MESSAGES.tabs.season }} />
+      <h1 className="pt-2 pb-2 text-heading font-bold">{MESSAGES.spine.settings}</h1>
       {/* 16px from the title to the first row, as Season's title has to the Now card. */}
       <ul className="mt-2 hairline-t">
         <OfflineRow />

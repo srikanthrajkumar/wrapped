@@ -53,7 +53,7 @@ Rules:
 | `date` | ISO date | Defaults to today (Edge Cases) |
 | `startTime` | `HH:MM` \| null | |
 | `sabhaId` | uuid \| null | Own or shared Sabha |
-| `status` | `planned` \| `attended` \| `missed` | Only `attended` counts in the Wrapped (FR-026) |
+| `status` | `planned` \| `attended` \| `missed` | Only `attended` counts in the Wrapped (FR-026). On screen `planned` reads Shortlisted and `attended` is Heard; `missed` is kept and shown nowhere. The stored words never change (ADR 0010, 2026-11-11) |
 | `cancelled` | boolean | Set from the Schedule only while `touched` is false (FR-027). Never hides the Event: a Planned one stays in its day on Season, shown as cancelled, until the rasika removes it, and one whose Schedule entry is cancelled is shown so whatever this says (2026-11-07) |
 | `source` | `schedule` \| `plan` \| `spot` | Where the Event came from |
 | `scheduleEntryId` | string \| null | The Schedule entry's id, set at pick time or by promotion. One live Event per entry: adding it again returns the one planned, and the Undo of a deleted one is refused while another holds the entry (PR #25 review) |
@@ -64,9 +64,14 @@ Rules:
 | `note` | string \| null | Erased on deletion requests (see Deletion) |
 | `createdAt`, `updatedAt`, `deletedAt` | timestamp | Device clock; display only, never a sync cursor |
 
-State transitions: `planned → attended` (the explicit "Start logging"; viewing or editing
-leaves it Planned), `planned → missed` (rasika says so),
-`missed → planned` and `attended → planned` (undo). A `spot` Event starts `attended`.
+State transitions (ADR 0010, 2026-11-11, replacing the explicit "Start logging"):
+`planned → attended` when the first Item is saved, in that Item's own transaction, or when the
+rasika says on the lapse card that they were there (viewing or editing leaves it `planned`);
+`planned → missed` when its window ended with nothing logged and the rasika let it go, or
+unasked when it was cancelled or shares a slot (starts within 30 minutes) with an Attended
+Event; `missed → planned` when its listing is Shortlisted again; `attended → planned` stays in
+the rules, used by no screen. A `missed` Event that gains an Item becomes `attended`. A `spot`
+Event starts `attended`. A lapsed Event is never deleted by the app.
 
 ### Appearance
 

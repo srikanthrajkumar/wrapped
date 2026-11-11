@@ -2,9 +2,9 @@
 // suggesting from the names in this Season's Schedule and the rasika's own Events: billed Artists,
 // groups by their group name, and Sabhas with their Aliases (KGS finds Krishna Gana Sabha). A
 // pick is a chip. Picks of one sort widen the list (TM Krishna or Sanjay); picks of different
-// sorts narrow it (TM Krishna at the Academy). Quick chips sit with them: Mine (only the
-// rasika's own Events) and the kinds, Dance, Lecdem and Harikatha. Every rule applies alike to
-// the rasika's own Events and to the Schedule's listings. Framework-free, so the rules are
+// sorts narrow it (TM Krishna at the Academy). The kinds sit with them as toggles: Dance, Lecdem
+// and Harikatha (Mine went on 2026-11-11: the Shortlist is its own tab). Every rule applies
+// alike to the rasika's own Events and to the Schedule's listings. Framework-free, so the rules are
 // unit-tested (tests/screens/season-filter.test.ts).
 
 import { fold } from '../catalog/fold';
@@ -87,15 +87,12 @@ export interface SeasonName {
 
 export interface Filter {
   picks: SeasonName[];
-  /** Only the rasika's own Events. */
-  mine: boolean;
   kinds: EventKind[];
 }
 
-export const NO_FILTER: Filter = { picks: [], mine: false, kinds: [] };
+export const NO_FILTER: Filter = { picks: [], kinds: [] };
 
-export const isFiltering = (filter: Filter) =>
-  filter.picks.length > 0 || filter.mine || filter.kinds.length > 0;
+export const isFiltering = (filter: Filter) => filter.picks.length > 0 || filter.kinds.length > 0;
 
 /** The kinds that get a quick chip, in the order they show; a Concert is the default. */
 export const QUICK_KINDS = ['dance', 'lecdem', 'harikatha'] as const satisfies EventKind[];
@@ -235,9 +232,7 @@ export function rowTest(filter: Filter, lookup: Lookup): RowTest {
     own: (summary) =>
       kindOk(summary.event.kind) && (!needsNames || named(rowNames(ownNames(summary, lookup)))),
     listing: (listing) =>
-      !filter.mine &&
-      kindOk(listing.entry.kind) &&
-      (!needsNames || named(rowNames(listingNames(listing, lookup)))),
+      kindOk(listing.entry.kind) && (!needsNames || named(rowNames(listingNames(listing, lookup)))),
   };
 }
 

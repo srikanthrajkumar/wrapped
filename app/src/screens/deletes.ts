@@ -4,12 +4,14 @@
 // delete, then the Undo offer, then leaving the deleted record's screen if it is open.
 
 import { navigate } from 'wouter/use-browser-location';
-import { deleteEvent } from '../store/events';
+import { deleteEvent, removeShortlisted } from '../store/events';
 import { removeItem } from '../store/items';
 import { removeAppearance } from '../store/people';
 import { saveWith } from './components/feedback';
 import { dayText, timeText } from './format';
 import { MESSAGES } from './messages';
+import { navState, under } from './nav';
+import { saveFeedback } from './save-feedback';
 import { offerUndo } from './undo';
 
 /** Off the screen of what was deleted, if the rasika is still on it. */
@@ -33,12 +35,38 @@ export function deleteConcert(event: { id: string; date: string; startTime: stri
       const deleted = await deleteEvent(event.id);
       if (deleted) {
         offerUndo(deleted.receipt);
-        leave(`/event/${event.id}`, '/');
+        // Back to the page it was opened from, in its tab.
+        leave(`/event/${event.id}`, under(navState(), `/event/${event.id}`));
       }
       return deleted;
     },
     { kind: 'delete' },
   );
+}
+
+/**
+ * Take a concert off the Shortlist: its Event deleted, with Undo, only while it is still
+ * Shortlisted with nothing logged (store/events.ts `removeShortlisted`); else nothing happens.
+ */
+export async function unshortlistConcert(event: {
+  id: string;
+  date: string;
+  startTime: string | null;
+}) {
+  const target = { table: 'events' as const, id: event.id, field: 'deletedAt' };
+  const outcome = await saveWith(
+    target,
+    { label: concertLabel(event) },
+    async () => {
+      const deleted = await removeShortlisted(event.id);
+      if (deleted) offerUndo(deleted.receipt);
+      return deleted ?? 'kept';
+    },
+    { kind: 'delete' },
+  );
+  // Kept after all (it was logged meanwhile): nothing was deleted, and nothing is left to retry.
+  if (outcome === 'kept') saveFeedback.drop(target);
+  return outcome;
 }
 
 export function deleteItem(item: { id: string; eventId: string; position: number }) {

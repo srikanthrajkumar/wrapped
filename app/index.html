@@ -7,6 +7,12 @@
       content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
     />
     <meta name="theme-color" content="#090b0c" />
+    <!-- An installed iPhone app draws under the clock and the Dynamic Island, so the hub's
+         curtain reaches the top of the screen and every other screen paints that band itself
+         (DESIGN.md "The status bar"). iOS reads this when the app is added to the Home Screen. -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="color-scheme" content="dark light" />
     <title>Carnatic Wrapped</title>
     <!-- The mark (DESIGN.md "The mark"). -->

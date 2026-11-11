@@ -2,10 +2,9 @@ import { expect, test, type Page } from '@playwright/test';
 import { finishFirstLaunch } from './helpers';
 
 // The bottom bar is the shell's (DESIGN.md "Motion"): moving between an Event and an Item never
-// empties it or changes its height, so the tab bar never jumps. An empty Season has none, and
-// the bar comes in one step; a Season with anything in it holds its search bar (2026-11-09),
-// and coming back to it from an Event the bar never empties between the two. Sampled every animation frame across each move, as
-// the iPhone walkthrough's flicker was seen (2026-11-06).
+// empties it or changes its height, so the tab bar never jumps. The hub has none (its search bar
+// is What's on's since 2026-11-11), so the bar comes and goes in one step. Sampled every
+// animation frame across each move, as the iPhone walkthrough's flicker was seen (2026-11-06).
 
 type Sample = { bar: number; footer: number; buttons: number; labels: string };
 
@@ -74,7 +73,7 @@ function expectOneStep(samples: Sample[], to: string | null) {
   if (to !== null) expect(labels).toEqual(new Set([to]));
 }
 
-test('the bottom bar never empties or shrinks between Event and Item, nor back to Season', async ({
+test('the bottom bar never empties or shrinks between Event and Item, and goes in one step back on Season', async ({
   page,
 }) => {
   await page.goto('/');
@@ -112,13 +111,11 @@ test('the bottom bar never empties or shrinks between Event and Item, nor back t
   });
   expectSteady(samples, 'Next Item|Done', 'Add Item');
 
-  // Event to Season, which now has the Concert: the bar goes from the Event's action to Season's
-  // search bar, never empty between, and changes height at most once.
+  // Event to Season: the hub has no action of its own (its search bar went to What's on,
+  // 2026-11-11), so the bar goes in one step, never half there.
   samples = await sample(page, async () => {
     await main.getByRole('link', { name: 'Season' }).click();
-    await expect(page.locator('footer [data-season-bar]')).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Now' })).toBeVisible();
   });
-  expect(samples.length).toBeGreaterThan(5);
-  expect(samples.filter((s) => Math.round(s.bar) === 0)).toEqual([]);
-  expect(steps(samples.map((s) => Math.round(s.footer))).length).toBeLessThanOrEqual(2);
+  expectOneStep(samples, null);
 });

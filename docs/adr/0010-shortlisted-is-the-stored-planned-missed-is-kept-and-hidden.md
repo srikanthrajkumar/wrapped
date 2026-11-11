@@ -45,32 +45,55 @@ the screens take their words from `MESSAGES`.
 
 - **`planned → attended`** no longer has a button ("Start logging" goes). It happens:
   - when the first Item is saved, inside that Item's own transaction, so an Event with an Item
-    is never left Shortlisted;
+    is never left Shortlisted (a Missed one that gains an Item becomes Heard the same way);
   - when the rasika says they were there on the lapse card (Items optional).
   Either marks the Event `touched` and clears a pending "schedule changed" hint, as today.
-- **The listing's second button** (wording to be approved, "I'm here" in the design) makes the
-  Event **Attended** at once, with `source: 'schedule'` and its Schedule entry, as the + makes a
-  `spot` one. Left with nothing entered it is taken back by the rule the + already has
-  (`screens/new-concert.ts`). On a concert already Shortlisted it only opens the Event ready
-  for its first Item; the status waits for that Item, so backing out leaves it Shortlisted.
-- **Shortlist toggled off** deletes the Event as a tombstone that syncs, with Undo (SF-D22). It
-  is offered only while the Event is `planned`.
+- **The listing's second button** (wording to be approved, "I'm here" in the design)
+  Shortlists the concert if it isn't yet, through the same add, and opens the Event ready for
+  its first Item; the status waits for that Item. So nothing is ever Heard that holds nothing,
+  and the Diary and the Wrapped count only concerts with a log or the rasika's own word.
+  - **Left with nothing logged, it stays Shortlisted**: a star the rasika can take off. The
+    design asked for it to be taken back as an untouched Concert from the + is (R2-19). That
+    take-back (`screens/new-concert.ts`, `discardUntouched`) is proven only for a bare Concert,
+    with no Sabha, Stage or Schedule entry; widening it would delete, unasked, an Event that
+    carries billed Artists. When unsure the app keeps, so it is left for the Maintainer to ask
+    for.
+- **Shortlist toggled off** deletes the Event as a tombstone that syncs, with Undo (SF-D22),
+  through its own action (`removeShortlisted`): only while the Event is still `planned` and
+  holds no Item, checked inside the delete's transaction. A sheet left open while the concert
+  was logged elsewhere deletes nothing: taking a star off never deletes a log.
 - **Lapse** (SF-D24, SF-D39). A `planned` Event has lapsed once its logging window has ended:
   four hours after its start, or the end of its day when it has no start time
   (`store/logging-note.ts`). A lapsed one is shown only on the lapse card.
-  - Tapped there, it becomes `attended`.
-  - Left when the card is closed, it becomes `missed`.
+  - Tapped there, it becomes `attended` (`wasThere`): the rasika's word, which also wins over
+    a `missed` set meanwhile.
+  - Let go when the rasika answers "None of these", it becomes `missed` (`letGo`).
   - One that starts within 30 minutes of an Attended Event of the same day, or whose Schedule
-    entry is cancelled, becomes `missed` without being asked.
-  - One that holds a live Item becomes `attended`, never `missed`, however it came to hold one.
-  Each is an ordinary status save through `mutate.ts`, with its outbox entry. The first time a
-  phone runs this, every Event that lapsed before is asked about once, newest day first.
+    entry is cancelled, is not asked about and not shown.
+  - One that holds a live Item reads as Heard, never as lapsed or Missed, however it came to
+    hold one.
+- **The app never changes a status by itself.** Every write above is the rasika's own answer.
+  Opening the hub writes nothing, so a phone that is not the writer (ADR 0003), one whose
+  clock has jumped, or one still waiting on a pull never queues an edit of its own making.
+  What nobody was asked about is hidden by the same rule on every phone, read from the rows as
+  they are; it is written `missed`, with the rest, in one transaction, when the rasika lets a
+  card go (`settleLapsed`), and until then stays `planned` in storage. (The first draft settled
+  these as the hub opened; Codex's review of the data change, 2026-11-11, showed that an
+  unasked write can hold back a newer server row, and cannot be taken back after a clock
+  jump.) The first time a phone runs this, every Event that lapsed before is asked about once,
+  newest day first.
+- **A log is never hidden.** An Event that holds a live Item is shown as Heard on every
+  screen whatever its stored status (`isHeard`, `screens/timeline.ts`): a build before this
+  ADR, or a pull, can leave an Item on a `planned` or `missed` Event. Its status becomes
+  `attended` the next time the rasika adds an Item to it, brings one back by Undo, or answers a
+  lapse card. Until then only the Wrapped's count, which reads `attended` (FR-026), can differ.
 - **`missed`** (SF-D38). Events stored as Missed stay exactly as they are and are shown and
   counted nowhere: not on Season, What's on, the Shortlist, the Diary or the hero, and never as
   Now. They stay in Export, sync and restore. One Event still holds its Schedule entry, so the
-  entry reads as a plain listing again and its sheet acts on that Event: Shortlist is
-  `missed → planned`, and the second button is `missed → attended` (a new transition).
-- **Unchanged:** only `attended` counts in the Wrapped (FR-026) and is listed in the Diary; the
+  entry reads as a plain listing again and its sheet acts on that Event: either button makes
+  it Shortlisted again (`missed → planned`, as the rules already allowed), and a first Item
+  then makes it Heard. No new transition is needed.
+- **Unchanged:** only `attended` counts in the Wrapped (FR-026); the
   Schedule updates only a `planned` Event, and only a `planned` one carries the "schedule
   changed" hint; `attended → planned` stays in the rules, used by no screen.
 
@@ -93,6 +116,9 @@ the screens take their words from `MESSAGES`.
   question, the second adds concerts the rasika did not hear to the Wrapped (FR-026).
 - **A fourth status for "dropped".** Rejected: `missed` already means it, and a new stored value
   is the shape change this decision avoids.
-- **Hide a lapsed Event by computing it, never writing `missed`.** Rejected: the Event would
-  read Shortlisted in every Export and on any other device for good, and would be asked about
-  again after a restore.
+- **Hide every lapsed Event by computing it, never writing `missed`.** Rejected: an Event the
+  rasika was asked about and let go would read Shortlisted in every Export and on any other
+  device for good, and would be asked about again after a restore. Their answer is a fact
+  worth storing; only what nobody was asked about waits, hidden by rule, for the next answer.
+- **Settle the unasked ones as the hub opens.** The first draft; rejected on Codex's review,
+  for the reasons under "The app never changes a status by itself".

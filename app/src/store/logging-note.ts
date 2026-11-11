@@ -71,6 +71,17 @@ export function inWindow(event: Pick<Event, 'date' | 'startTime'>, now: Date): b
 }
 
 /**
+ * When the Event's window ends: four hours after its start, or the end of its day when it has
+ * no start time. A Shortlisted Event not logged by then has lapsed (store/lapse.ts).
+ */
+export function windowEnd(event: Pick<Event, 'date' | 'startTime'>): Date {
+  const start = eventStart(event);
+  if (start) return new Date(start.getTime() + WINDOW_AFTER_MS);
+  const [y, m, d] = event.date.split('-').map(Number) as [number, number, number];
+  return new Date(y, m - 1, d + 1);
+}
+
+/**
  * Whether the Event is being logged on this phone (D17): an Item changed in the last hour, and
  * inside its window. A note time in the future counts as now.
  */

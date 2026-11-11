@@ -1,8 +1,8 @@
 // Phase 4, safe on the phone (T051 to T053; DESIGN.md "Settings", "Export lives in Settings",
 // "Status", "Install"): Export lives in Settings with the day of the last one; home stays quiet
 // until sync, but for "Getting ready for offline…"; Settings warns when storage isn't protected;
-// and a phone with the app open in a browser tab shows the install row on every screen, which an
-// installed app and a desktop never show.
+// and a phone with the app open in a browser tab shows the install strip above the tab bar on
+// every screen, which an installed app and a desktop never show. Settings is a mark on the hub.
 
 import { devices, expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
@@ -10,10 +10,13 @@ import {
   failWritesOnDemand,
   finishFirstLaunch,
   holdOfflineReady,
+  openHub,
+  openSettings,
   readMeta,
   releaseOfflineReady,
   setFailingWrites,
   storagePersisted,
+  tab,
 } from './helpers';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -32,17 +35,15 @@ const device = (name: string) => {
 const INSTALL_NAME =
   'Install the app so your season stays on this phone. Tap Share, then Add to Home Screen.';
 
-/** A bottom tab, not a back link to the same place. */
-const tab = (page: Page, name: string) =>
-  page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name, exact: true });
-
 /**
- * The install row on Season, Wrapped and Settings (walkthrough FB-46): one 48px row, its top at
- * the same place on each tab, its text and Install label inside the 16px gutters.
+ * The install strip on Season, Shortlist and Diary (walkthrough FB-46; the Maintainer,
+ * 2026-11-11): one strip directly above the tab bar, at the same place on each tab, its text
+ * and Install label inside the 16px gutters.
  */
 async function rowOnEachTab(page: Page, row: Locator): Promise<boolean> {
   const boxes = [];
-  for (const name of ['Season', 'Wrapped', 'Settings']) {
+  const tabs = (await page.getByRole('navigation', { name: 'Main' }).boundingBox())!;
+  for (const name of ['Season', 'Shortlist', 'Diary']) {
     await tab(page, name).click();
     await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
     await expect(row).toBeVisible();
@@ -65,8 +66,10 @@ async function rowOnEachTab(page: Page, row: Locator): Promise<boolean> {
     expect(inside.left).toBeGreaterThanOrEqual(16);
     expect(inside.right).toBeLessThanOrEqual(page.viewportSize()!.width - 16);
   }
-  expect(boxes.map((box) => box.height)).toEqual([48, 48, 48]);
+  // Android's holds a button, so it is 44px; directly above the tab bar on every tab.
+  expect(boxes.map((box) => box.height)).toEqual([44, 44, 44]);
   expect(new Set(boxes.map((box) => box.y)).size).toBe(1);
+  expect(boxes[0]!.y + boxes[0]!.height).toBe(tabs.y);
   return true;
 }
 
@@ -98,7 +101,7 @@ test('Export from Settings carries every record and the values not saved, and ke
   await setFailingWrites(page, false);
 
   await page.getByRole('link', { name: 'Done' }).click();
-  await tab(page, 'Settings').click();
+  await openSettings(page);
   const exportRow = page.getByRole('button', { name: 'Export', exact: true });
   await expect(exportRow).toContainText('—');
 
@@ -143,7 +146,7 @@ test('home is quiet, and says "Getting ready for offline…" only until it is re
   await expect(gettingReady).toBeVisible();
   // Until sync exists, there is no status line.
   await expect(page.getByText(/backed up/)).toHaveCount(0);
-  await tab(page, 'Settings').click();
+  await openSettings(page);
   await expect(page.getByText('Getting ready for offline…')).toBeVisible();
   await tab(page, 'Season').click();
 
@@ -160,7 +163,9 @@ test('storage the browser hasn’t promised to keep reads "Storage not protected
   await storagePersisted(page, false);
   await page.goto('/');
   await finishFirstLaunch(page);
-  await tab(page, 'Settings').click();
+  // The hub's Settings mark says there is something to fix.
+  await expect(page.getByRole('link', { name: 'Settings, something to fix' })).toBeVisible();
+  await openSettings(page);
   await expect(
     page.getByRole('listitem').filter({ hasText: 'Storage not protected' }),
   ).toBeVisible();
@@ -172,15 +177,20 @@ test.describe('the install row', () => {
     // Something entered, so the Concert is kept to come back to.
     await page.getByRole('button', { name: 'Note' }).click();
     await page.getByRole('textbox', { name: 'Note' }).fill('front row');
-    // The Event screen, home and Settings.
-    for (const name of [null, 'Season', 'Settings']) {
-      if (name) await tab(page, name).click();
+    // The Event screen, the hub, Settings, the Shortlist and the Diary: one strip, directly
+    // above the tab bar.
+    const tabs = page.getByRole('navigation', { name: 'Main' });
+    for (const name of [null, 'Season', 'Settings', 'Shortlist', 'Diary']) {
+      if (name === 'Settings') await openSettings(page);
+      else if (name) await tab(page, name).click();
       await expect(page.getByText(INSTALL_NAME)).toHaveCount(1);
       await expect(page.getByText('Add to Home Screen:')).toBeVisible();
+      const strip = (await page.locator('[data-install-strip]').boundingBox())!;
+      expect(strip.y + strip.height).toBe((await tabs.boundingBox())!.y);
     }
     // No dismiss, and it never stands in front of Add Item.
-    await page.goBack();
-    await page.goBack();
+    await openHub(page);
+    await page.getByRole('region', { name: 'Now' }).getByRole('link').click();
     const addItem = page.getByRole('link', { name: 'Add Item' });
     await expect(addItem).toBeVisible();
     await expect(addItem).toBeEnabled();

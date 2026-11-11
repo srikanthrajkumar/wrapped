@@ -1,7 +1,9 @@
-// The pieces every logging screen shares: the pushed screens' top bar (design D5), the bottom
-// bar that holds a screen's one action above the tab bar, and the status line.
+// The pieces every screen shares (DESIGN.md "The Season spine", "Shared parts"): a screen's root
+// and its kept place, the pushed screens' top bar (design D5), the plain tab header and the
+// hub's curtain, the section header with its chevron, the bottom bar that holds a screen's one
+// action above the tab bar, and the status line.
 
-import { IconChevronLeft } from '@tabler/icons-react';
+import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import {
   createContext,
   useContext,
@@ -9,51 +11,63 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
   type RefObject,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useLocation } from 'wouter';
 import { cn } from '@/lib/utils';
-import { useInstall } from '../../install';
+import { MESSAGES } from '../messages';
+import {
+  arrive,
+  lastMove,
+  leftAt,
+  navState,
+  noteScroll,
+  subscribeNav,
+  under,
+  WHATS_ON,
+} from '../nav';
 import { SeasonFeedback } from './feedback';
-import { InstallRow } from './InstallRow';
 import { UndoBar } from './UndoBar';
 
-/** How deep a screen sits: a tab's root, an Event, or an Item in an Event. */
-const depth = (path: string) =>
-  path.startsWith('/event/') ? (path.includes('/item/') ? 2 : 1) : 0;
-// The path of the screen shown last, so the next one knows which way the rasika went.
-let shownPath: string | null = null;
-
 /**
- * A screen's root (DESIGN.md "Motion"): going into an Event or an Item, the screen enters from
- * the right; coming back, from the left. The first screen and a switch between tabs, or within
- * the same depth (a first pick, Next Item), just appear, so nothing waits on motion.
+ * A screen's root (DESIGN.md "Motion", "Navigation"): going into a page, the screen enters from
+ * the right and opens at its top; coming back, from the left. The first screen and a switch
+ * between tabs just appear, so nothing waits on motion. A page come back to, or a tab switched
+ * to, is found where it was left, by the screens that keep their place ({@link useKeptScroll};
+ * What's on keeps its own).
  */
 export function Screen({ children }: { children: ReactNode }) {
   const [path] = useLocation();
   const [enter] = useState<'forward' | 'back' | undefined>(() => {
-    if (shownPath === null) return undefined;
-    const by = depth(path) - depth(shownPath);
-    return by > 0 ? 'forward' : by < 0 ? 'back' : undefined;
+    const move = arrive(path);
+    return move === 'forward' || move === 'back' ? move : undefined;
   });
-  // A screen gone into, or a tab, opens at its top, wherever Season's timeline was scrolled;
-  // Season keeps its own place (HomeScreen), and a screen come back to keeps the browser's.
   useLayoutEffect(() => {
-    if (shownPath === null || shownPath === path) return;
-    if (enter === 'forward' || (depth(path) === 0 && path !== '/')) window.scrollTo(0, 0);
     // Once, as the screen first draws.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (lastMove() === 'forward') window.scrollTo(0, 0);
   }, []);
-  useEffect(() => {
-    shownPath = path;
-  }, [path]);
   return (
     <div data-enter={enter} className="screen flex flex-1 flex-col">
       {children}
     </div>
   );
+}
+
+/**
+ * Keep a page's place: where it was scrolled to as the rasika left it, found again when they
+ * come back to it or switch back to its tab, once its content is `ready`; a page gone into opens
+ * at its top. The tab that is on, tapped, forgets the place first (screens/nav.ts).
+ */
+export function useKeptScroll(ready: boolean) {
+  const [path] = useLocation();
+  useLayoutEffect(() => {
+    if (!ready) return;
+    window.scrollTo(0, lastMove() === 'forward' ? 0 : leftAt(path));
+    return () => noteScroll(path, window.scrollY);
+  }, [ready, path]);
 }
 
 /** The shell's bottom bar, for the screen on show to fill. */
@@ -176,8 +190,8 @@ export function BarHold() {
 /**
  * The top bar of a pushed screen (design D5): only a back chevron labelled with its destination
  * at the left, and at most one item at the right. The top centre belongs to the Dynamic Island.
- * The install row and the season-wide line, when there are any, sit under it (DESIGN.md
- * "Install", "Status").
+ * The season-wide line, when there is one, sits under it (DESIGN.md "Status"); the install
+ * strip is the shell's, above the tab bar.
  */
 export function TopBar({
   back,
@@ -202,62 +216,51 @@ export function TopBar({
         {/* A 48px icon button's mark ends on the gutter, with the content below it. */}
         {right && <div className="-mr-3.5">{right}</div>}
       </div>
-      <InstallRow />
       <SeasonFeedback />
     </>
   );
 }
 
+const PAGE_NAME: Record<string, string> = {
+  '/': MESSAGES.tabs.season,
+  [WHATS_ON]: MESSAGES.spine.whatsOn,
+  '/shortlist': MESSAGES.tabs.shortlist,
+  '/diary': MESSAGES.tabs.diary,
+  '/settings': MESSAGES.spine.settings,
+};
+
 /**
- * A tab's own screen (Season, Wrapped, Settings) starts with its title, then the install row and
- * the season-wide line (DESIGN.md "Install", "Status"). One header for all three, so the install
- * row sits at the same place on each tab. `children` go between the two (Season's "Getting ready
- * for offline…"). An `action` (Season's +) sits at the title's right, its 48px reaching past
- * the line and its mark ending on the gutter.
+ * Where a pushed screen's back chevron goes, and its name: the page under it in its tab's own
+ * stack (screens/nav.ts), so an Event opened from the Diary goes back to the Diary.
+ */
+export function useBack(): { href: string; label: string } {
+  const [path] = useLocation();
+  const nav = useSyncExternalStore(subscribeNav, navState);
+  const href = under(nav, path);
+  return { href, label: PAGE_NAME[href] ?? MESSAGES.tabs.season };
+}
+
+/**
+ * A plain tab header (the Maintainer, 2026-11-11: only the hub has a curtain): the tab's title
+ * on the page, then the season-wide line (DESIGN.md "Status"). The Shortlist and the Diary start
+ * with it. An `action` sits at the title's right, its 48px reaching past the line and its mark
+ * ending on the gutter.
  */
 export function TabHeader({
   title,
-  art,
   action,
-  hero,
   children,
 }: {
   title: string;
-  /** The motif to draw the title on, as a curtain (DESIGN.md "The motif"). */
-  art?: ReactNode;
   action?: ReactNode;
-  /**
-   * Shown in the title's place (Season's hero, the rasika's concert), holding the action itself;
-   * the title is then the page's heading for screen readers alone.
-   */
-  hero?: ReactNode;
   children?: ReactNode;
 }) {
-  // In a phone's browser tab the install row shows on every tab, at one place (FB-46), so the
-  // curtain waits until the app is installed.
-  const { way } = useInstall();
-  const heading = (className: string) =>
-    hero ? (
-      <>
-        <h1 className="sr-only">{title}</h1>
-        {hero}
-      </>
-    ) : action ? (
-      <div className="flex items-center justify-between gap-2">
-        <h1 className={className}>{title}</h1>
-        <div className="-my-3 -mr-3.5">{action}</div>
-      </div>
-    ) : (
-      <h1 className={className}>{title}</h1>
-    );
   return (
     <>
-      {art && way === null ? (
-        <Curtain art={art}>{heading('text-heading font-bold')}</Curtain>
-      ) : (
-        <div className="pt-4 pb-2">{heading('text-title font-semibold')}</div>
-      )}
-      <InstallRow />
+      <div className="flex items-center justify-between gap-2 pt-4 pb-2">
+        <h1 className="text-heading font-bold">{title}</h1>
+        {action && <div className="-my-3 -mr-3.5 flex">{action}</div>}
+      </div>
       {children}
       <SeasonFeedback />
     </>
@@ -268,26 +271,49 @@ export function TabHeader({
 const TOP = 'var(--app-top-inset,env(safe-area-inset-top))';
 
 /**
- * A curtain (DESIGN.md "The motif"): the motif drawn full-bleed behind a tab's title, from the
- * top of the screen, and the page drawn up over it as a sheet with 18px top corners. The
- * motif's ground is the page's own colour, so the status bar above it (which an Android web app
- * can't draw under) never shows a seam.
+ * The hub's curtain (DESIGN.md "The motif", "The status bar"): the motif drawn full-bleed from
+ * the very top of the screen, under the clock and the Dynamic Island, with the safe area as
+ * padding inside it, and the page drawn up over it as a sheet with 18px top corners. While any
+ * of it is under the status bar the shell's band stays clear (`data-curtain` on the root), so
+ * the field shows there; in light, where the clock is white, a rose-ink wash holds it readable.
  */
-function Curtain({ art, children }: { art: ReactNode; children: ReactNode }) {
+export function Curtain({ art, children }: { art: ReactNode; children: ReactNode }) {
+  const field = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    const node = field.current!;
+    const set = () => {
+      // The field still reaches under the status bar: its foot is below the shell's band.
+      const band = document.querySelector<HTMLElement>('[data-status-band]');
+      const inset = band?.offsetHeight ?? 0;
+      root.toggleAttribute('data-curtain', node.getBoundingClientRect().bottom - 18 > inset);
+    };
+    set();
+    window.addEventListener('scroll', set, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', set);
+      root.removeAttribute('data-curtain');
+    };
+  }, []);
   return (
     <div
+      ref={field}
+      data-curtain-field
       className="relative mr-[calc(-16px-env(safe-area-inset-right))] ml-[calc(-16px-env(safe-area-inset-left))]"
       style={{ marginTop: `calc(-1 * ${TOP})` }}
     >
       <div className="absolute inset-0 overflow-hidden">{art}</div>
-      {/* The title holds its contrast: the field fades halfway to the page behind it. */}
+      {/* The hero holds its contrast: the field fades halfway to the page behind it. */}
       <div
         aria-hidden
         className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-background/50 to-transparent"
       />
+      <div aria-hidden className="status-wash absolute inset-x-0 top-0" />
       <div
-        className="relative flex flex-col justify-end pr-[calc(16px+env(safe-area-inset-right))] pb-4 pl-[calc(16px+env(safe-area-inset-left))]"
-        style={{ minHeight: `calc(${TOP} + 112px)`, paddingTop: `calc(${TOP} + 40px)` }}
+        // From the top down, so the hero's row, with Settings and the +, sits at one place in
+        // every state (the council, 2026-11-11: it jumped between the title and a concert).
+        className="relative flex flex-col pr-[calc(16px+env(safe-area-inset-right))] pb-4 pl-[calc(16px+env(safe-area-inset-left))]"
+        style={{ minHeight: `calc(${TOP} + 96px)`, paddingTop: TOP }}
       >
         {children}
       </div>
@@ -338,6 +364,34 @@ export function SectionHead({
       </h2>
       {action}
     </div>
+  );
+}
+
+/**
+ * A section header that opens a page (the Maintainer, 2026-11-11): its label at the left and a
+ * chevron on the gutter at the right, the whole 48px row one link. A chevron always means "this
+ * opens a page", and nothing else carries one.
+ */
+export function SectionLink({
+  href,
+  children,
+  className,
+  onClick,
+}: {
+  href: string;
+  children: ReactNode;
+  className?: string;
+  onClick?: () => void;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className={cn('flex min-h-12 items-center justify-between gap-2 rounded-xl', className)}
+    >
+      {children}
+      <IconChevronRight aria-hidden className="size-[22px] shrink-0 text-foreground" />
+    </Link>
   );
 }
 

@@ -1,11 +1,11 @@
-// Season as option C (the Maintainer, 2026-11-09): the hero holds the rasika's concert (on now,
-// else their next Planned one, else the title), and a strip of days (Past · Today · each date
-// ahead) pinned over the list from today on, a tap jumping to a day and the strip following the
-// scroll; Past shows the days gone, newest first, in place. Each day lists the rasika's own
-// Events first and the Schedule's other listings quieter, with no add control on any row. One
-// filter box, "Artist or Sabha…", with Mine and the kinds as chips, prunes the list and the strip.
-// A listing's sheet adds it, once, and it becomes theirs in place. Back from an Event finds
-// Season where it was left.
+// What's on (the Season spine, 2026-11-11; DESIGN.md "What's on"): the full list, one tap below
+// Season. A strip of days (Today · each date ahead) pinned over the list from today on, a tap
+// jumping to a day and the strip following the scroll; the days gone are reached through the
+// calendar, newest first, in place. Each day lists every concert once, by start time, with no
+// add control on any row. One filter box, "Artist or Sabha…", with the kinds as toggles, prunes
+// the list and the strip. A listing's sheet Shortlists it, once, and it becomes theirs in
+// place. Back from an Event finds What's on where it was left. (The hub's own tests are in
+// hub.spec.ts.)
 
 import { expect, test, type Page } from '@playwright/test';
 import type { EventKind, ScheduleEntry } from '../src/model';
@@ -46,6 +46,23 @@ const brothers = entry('academy-1', 1, {
 async function open(page: Page) {
   await page.goto('/');
   await finishFirstLaunch(page);
+}
+
+/** What's on, loaded afresh: from today, at its top. */
+async function whatsOn(page: Page) {
+  await page.goto('/whats-on');
+  await expect(page.getByRole('heading', { name: "What's on", exact: true })).toBeVisible();
+}
+
+/** The days gone, through the calendar (SF-D32): the day `n` days back tapped. */
+async function daysGone(page: Page, n: number) {
+  await page.getByRole('button', { name: 'Pick a day' }).click();
+  const calendar = page.getByRole('dialog', { name: 'Pick a day' });
+  const day = calendar.getByRole('button', { name: dayHeadingText(n), exact: true });
+  for (let i = 0; i < 3 && (await day.count()) === 0; i++)
+    await calendar.getByRole('button', { name: 'Previous month' }).click();
+  await day.click();
+  await expect(calendar).toHaveCount(0);
 }
 
 /** Store entries as a fetched file would leave them. */
@@ -116,15 +133,6 @@ async function shareSabha(page: Page, sabha: { id: string; name: string; aliases
       }),
     sabha,
   );
-}
-
-/** A Concert holding Now: made by the +, with a note so it is kept. */
-async function concertNow(page: Page) {
-  await page.getByRole('button', { name: 'Log a Concert' }).click();
-  await page.getByRole('button', { name: 'Note' }).click();
-  await page.getByRole('textbox', { name: 'Note' }).fill('front row');
-  await page.getByRole('main').getByRole('link', { name: 'Season' }).click();
-  await expect(page.getByRole('region', { name: 'Now' })).toBeVisible();
 }
 
 /** The page's places, the days among them: the header, the filter, then each day listed. */
@@ -219,9 +227,9 @@ async function bringUnder(page: Page, name: string, past = 0) {
   }
 }
 
-/** The curtain sits at the very top of the page, with nothing above it. */
+/** The page is at its very top: its header first, with nothing above it. */
 async function atTheTop(page: Page) {
-  await expect(page.getByRole('button', { name: 'Log a Concert' })).toBeInViewport();
+  await expect(page.getByRole('heading', { name: "What's on", exact: true })).toBeInViewport();
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
   expect((await places(page))[0]).toBe('header');
   const top = await page
@@ -263,66 +271,7 @@ async function watchTops(page: Page, selector: string) {
   return () => page.evaluate(() => (window as unknown as { tops: number[] }).tops);
 }
 
-test('the hero holds the rasika’s concert on now, else their next one, else the title', async ({
-  page,
-}) => {
-  await open(page);
-  // Nothing in the Season: the title and its + alone, with one quiet mark; no strip, no filter.
-  await expect(page.getByRole('heading', { name: 'Season', exact: true })).toBeVisible();
-  await atTheTop(page);
-  await expect(page.getByRole('img', { name: 'Nothing yet' })).toBeVisible();
-  await expect(strip(page)).toHaveCount(0);
-  await expect(searchBar(page)).toHaveCount(0);
-
-  // Their next Planned concert, over a later one and one already heard.
-  await makeEvents(page, [
-    { days: 3, planned: true, artists: ['Later Vocalist'] },
-    {
-      days: 2,
-      planned: true,
-      time: '19:00',
-      sabha: 'Narada Gana Sabha',
-      artists: ['Next Vocalist'],
-    },
-    { days: -1, artists: ['Heard Vocalist'] },
-  ]);
-  await page.reload();
-  const next = page.getByRole('region', { name: 'Next' });
-  await expect(next.getByRole('link')).toHaveText('Next Vocalist');
-  await expect(next).toContainText(`Narada Gana Sabha · ${dayHeadingText(2)} · 7:00 pm`);
-  await expect(page.getByRole('heading', { name: 'Season', exact: true })).toBeAttached();
-  await atTheTop(page);
-  // On its grid: the + in the label's row and the chevron on the title's first line share one
-  // right edge, the +'s 48px whole.
-  const plus = page.getByRole('button', { name: 'Log a Concert' });
-  expect((await plus.boundingBox())!.height).toBeGreaterThanOrEqual(48);
-  const plusMark = (await plus.locator('svg').boundingBox())!;
-  const chevron = (await next.locator('[data-hero-chevron] svg').boundingBox())!;
-  expect(Math.abs(plusMark.x + plusMark.width - (chevron.x + chevron.width))).toBeLessThanOrEqual(
-    1,
-  );
-  const title = next.getByRole('link');
-  const line = await title.evaluate((node) => parseFloat(getComputedStyle(node).lineHeight));
-  const titleTop = (await title.boundingBox())!.y;
-  expect(Math.abs(chevron.y + chevron.height / 2 - (titleTop + line / 2))).toBeLessThanOrEqual(1);
-  expect(plusMark.y + plusMark.height).toBeLessThanOrEqual(titleTop);
-  // Tapped anywhere but its +, even its line, it opens that Event.
-  const meta = (await next.getByText(/^Narada Gana Sabha · /).boundingBox())!;
-  const hero = (await next.boundingBox())!;
-  await next.click({ position: { x: meta.x - hero.x + 8, y: meta.y - hero.y + meta.height / 2 } });
-  await expect(page).toHaveURL(/\/event\//);
-  await page.getByRole('main').getByRole('link', { name: 'Season', exact: true }).click();
-
-  // A concert on now holds it instead; tapped, it opens, so logging starts here.
-  await concertNow(page);
-  await expect(page.getByRole('region', { name: 'Next' })).toHaveCount(0);
-  const now = page.getByRole('region', { name: 'Now' }).getByRole('link');
-  await expect(now).toHaveText(/^No Sabha yet/);
-  await now.click();
-  await expect(page.getByRole('textbox', { name: 'Note' })).toHaveValue('front row');
-});
-
-test('the strip: Past, Today, each date ahead; a tap jumps to its day, and it follows the scroll', async ({
+test('the strip: Today, each date ahead; a tap jumps to its day, and it follows the scroll', async ({
   page,
 }) => {
   await open(page);
@@ -333,17 +282,17 @@ test('the strip: Past, Today, each date ahead; a tap jumps to its day, and it fo
       Array.from({ length: 4 }, (_, i) => entry(`e-${d}-${i}`, d + 1, { startTime: `1${i}:00` })),
     ).flat(),
   ]);
-  await page.reload();
+  await whatsOn(page);
   await expect
     .poll(() => stops(page))
-    .toEqual(['Past', 'Today', ...Array.from({ length: 10 }, (_, d) => dayHeadingText(d + 1))]);
+    .toEqual(['Today', ...Array.from({ length: 10 }, (_, d) => dayHeadingText(d + 1))]);
   // From today on, every day listed, the strip on Today.
   expect(await listed(page)).toEqual(Array.from({ length: 10 }, (_, d) => dayFromToday(d + 1)));
   expect(await marked(page)).toBe('Today');
   // One chosen stop, by aria-current; no dot and no pill (its ink follows time).
   await expect(strip(page).locator('[aria-current="true"]')).toHaveCount(1);
   await expect(strip(page).locator('[data-dot]')).toHaveCount(0);
-  for (const name of ['Past', 'Today', dayHeadingText(1)]) {
+  for (const name of ['Today', dayHeadingText(1)]) {
     expect((await stop(page, name).boundingBox())!.height).toBeGreaterThanOrEqual(48);
   }
 
@@ -355,8 +304,8 @@ test('the strip: Past, Today, each date ahead; a tap jumps to its day, and it fo
   await expect.poll(() => marked(page)).toBe(dayHeadingText(8));
   await expect(stop(page, dayHeadingText(8))).toBeInViewport({ ratio: 1 });
 
-  // A day tapped starts the list there, the page back at its top with the curtain in place
-  // (the Maintainer's iPhone, 2026-11-09: a tap scrolled the hero away), and it is marked.
+  // A day tapped starts the list there, the page back at its top with the header in place
+  // (the Maintainer's iPhone, 2026-11-09: a tap scrolled the header away), and it is marked.
   await stop(page, dayHeadingText(6)).click();
   await expect.poll(() => marked(page)).toBe(dayHeadingText(6));
   await atTheTop(page);
@@ -375,7 +324,7 @@ test('the strip: Past, Today, each date ahead; a tap jumps to its day, and it fo
   await expect.poll(async () => (await label.boundingBox())!.y).toBe(await stripBottom(page));
   expect(await marked(page)).toBe(dayHeadingText(6));
 
-  // The last day too: alone, under the curtain.
+  // The last day too: alone, under the header.
   await stop(page, dayHeadingText(10)).click();
   await atTheTop(page);
   expect(await listed(page)).toEqual([dayFromToday(10)]);
@@ -397,7 +346,7 @@ test('a stuck day label fades only the rows that have passed under it', async ({
       Array.from({ length: 4 }, (_, i) => entry(`e-${d}-${i}`, d + 1, { startTime: `1${i}:00` })),
     ).flat(),
   ]);
-  await page.reload();
+  await whatsOn(page);
   await expect.poll(() => listed(page)).toHaveLength(10);
   const label = page.locator(`#day-${dayFromToday(3)}`);
   // The fade under the label, as drawn.
@@ -425,7 +374,7 @@ test('no day label sits inside paint containment, so it holds through a fling', 
 }) => {
   await open(page);
   await storeEntries(page, [entry('e-1', 1), entry('e-2', 2), entry('e-3', 3)]);
-  await page.reload();
+  await whatsOn(page);
   await expect.poll(() => listed(page)).toHaveLength(3);
   const clipped = await page.locator('[data-list] section h2').evaluateAll((labels) =>
     labels.flatMap((label) => {
@@ -452,7 +401,7 @@ test('no day label sits inside paint containment, so it holds through a fling', 
 test('the search bar has the search field’s shape', async ({ page }) => {
   await open(page);
   await storeEntries(page, [entry('e-1', 1)]);
-  await page.reload();
+  await whatsOn(page);
   await expect(searchBar(page)).toBeVisible();
   // The filled box's corners and height, and where its mark and its text start inside it.
   const shape = (box: string, words: string) =>
@@ -493,12 +442,13 @@ test('the search sheet’s toggles stay put as they turn on, on one line at 390p
     entry('l', 2, { kind: 'lecdem' }),
     entry('h', 2, { kind: 'harikatha' }),
   ]);
-  await page.reload();
+  await whatsOn(page);
   await expect.poll(() => listed(page)).toHaveLength(2);
   await openSearch(page);
-  const names = ['Mine', 'Dance', 'Lecdem', 'Harikatha'];
+  // Mine went on 2026-11-11: the Shortlist is its own tab.
+  const names = ['Dance', 'Lecdem', 'Harikatha'];
   const toggle = (name: string) => searchSheet(page).getByRole('button', { name, exact: true });
-  // All four read in one frame, as the sheet may still be sliding up.
+  // All read in one frame, as the sheet may still be sliding up.
   const boxes = () =>
     searchSheet(page)
       .locator('[data-toggle]')
@@ -520,7 +470,7 @@ test('the search sheet’s toggles stay put as they turn on, on one line at 390p
   // One line, inside the gutter.
   expect(oneLine(off)).toBe(true);
   expect(Math.max(...off.map(([, , right]) => right))).toBeLessThanOrEqual(390 - 16);
-  for (const name of ['Harikatha', 'Lecdem', 'Mine', 'Dance']) {
+  for (const name of ['Harikatha', 'Lecdem', 'Dance']) {
     await toggle(name).click();
     await expect(toggle(name)).toHaveAttribute('aria-pressed', 'true');
     const on = await boxes();
@@ -529,7 +479,7 @@ test('the search sheet’s toggles stay put as they turn on, on one line at 390p
   }
 });
 
-test('Past shows the days gone, newest first, in place of the list; Today brings it back', async ({
+test('the days gone, through the calendar: newest first, in place of the list; Today brings it back', async ({
   page,
 }) => {
   await open(page);
@@ -540,14 +490,18 @@ test('Past shows the days gone, newest first, in place of the list; Today brings
     entry('gone-3', -3),
   ]);
   await makeEvents(page, [{ days: -1, time: '10:00', artists: ['Yesterday Vocalist'] }]);
-  await page.reload();
+  await whatsOn(page);
   await expect.poll(() => listed(page)).toEqual([dayFromToday(1), dayFromToday(2)]);
   await expect(page.getByRole('region', { name: 'Past', exact: true })).toHaveCount(0);
+  // Past is not on the strip (SF-D32): a day gone is two taps away, the calendar and the day.
+  expect(await stops(page)).not.toContain('Past');
 
-  await stop(page, 'Past').click();
+  await daysGone(page, -1);
   await expect(page.getByRole('region', { name: 'Past', exact: true })).toBeVisible();
+  // While the days gone are shown, the strip says so.
+  expect(await stops(page)).toContain('Past');
   expect(await listed(page)).toEqual([dayFromToday(-1), dayFromToday(-3)]);
-  // Each day as ever: the rasika's own first, then the listings, quieter.
+  // Each day by start time, the rasika's own among the rest.
   expect(await rows(page)).toEqual(['Yesterday Vocalist', 'Artist gone-1', 'Artist gone-3']);
   expect(await marked(page)).toBe('Past');
   await atTheTop(page);
@@ -556,8 +510,8 @@ test('Past shows the days gone, newest first, in place of the list; Today brings
   await stop(page, 'Today').click();
   expect(await listed(page)).toEqual([dayFromToday(1), dayFromToday(2)]);
   expect(await marked(page)).toBe('Today');
-  // A date from Past starts the list at that day.
-  await stop(page, 'Past').click();
+  // A date from the days gone starts the list at that day.
+  await daysGone(page, -1);
   await stop(page, dayHeadingText(2)).click();
   expect(await listed(page)).toEqual([dayFromToday(2)]);
   await expect.poll(() => marked(page)).toBe(dayHeadingText(2));
@@ -587,10 +541,10 @@ test('the search bar and its sheet: one sort widens, two narrow, Aliases find a 
   await makeEvents(page, [
     { days: 3, planned: true, sabha: 'Narada Gana Sabha', artists: ['Sanjay Subrahmanyan'] },
   ]);
-  await page.reload();
+  await whatsOn(page);
   await expect.poll(() => rows(page)).toHaveLength(5);
   const days = (...n: number[]) => n.map(dayHeadingText);
-  expect(await stops(page)).toEqual(['Past', 'Today', ...days(1, 2, 3)]);
+  expect(await stops(page)).toEqual(['Today', ...days(1, 2, 3)]);
 
   // One rounded bar, just above the tab bar, in thumb reach; nothing to search on the page.
   await expect(page.locator('main').getByRole('searchbox')).toHaveCount(0);
@@ -599,11 +553,9 @@ test('the search bar and its sheet: one sort widens, two narrow, Aliases find a 
   const tabs = (await page.getByRole('navigation', { name: 'Main' }).boundingBox())!;
   expect(bar.height).toBeGreaterThanOrEqual(48);
   expect(bar.y + bar.height).toBeLessThanOrEqual(tabs.y);
-  // Its sheet: Mine with a Schedule, and a kind only when the Schedule has one, as text toggles.
+  // Its sheet: a kind only when the Schedule has one, as text toggles; no Mine (2026-11-11).
   await openSearch(page);
-  await expect(
-    searchSheet(page).getByRole('button', { name: 'Mine', exact: true }),
-  ).toHaveAttribute('aria-pressed', 'false');
+  await expect(searchSheet(page).getByRole('button', { name: 'Mine', exact: true })).toHaveCount(0);
   await expect(searchSheet(page).getByRole('button', { name: 'Dance', exact: true })).toBeVisible();
   await expect(searchSheet(page).getByRole('button', { name: 'Lecdem', exact: true })).toHaveCount(
     0,
@@ -614,7 +566,7 @@ test('the search bar and its sheet: one sort widens, two narrow, Aliases find a 
   await pick(page, 'tm kr', 'TM Krishna', 'Artist');
   expect(await rows(page)).toEqual(['TM Krishna', 'TM Krishna']);
   await expect(searchBar(page)).toHaveText('TM Krishna');
-  expect(await stops(page)).toEqual(['Past', 'Today', ...days(1)]);
+  expect(await stops(page)).toEqual(['Today', ...days(1)]);
   // Another Artist widens it, the rasika's own Event with them included.
   await pick(page, 'sanjay', 'Sanjay Subrahmanyan', 'Artist');
   expect(await rows(page)).toEqual([
@@ -623,9 +575,9 @@ test('the search bar and its sheet: one sort widens, two narrow, Aliases find a 
     'Sanjay Subrahmanyan',
     'Sanjay Subrahmanyan',
   ]);
-  expect(await stops(page)).toEqual(['Past', 'Today', ...days(1, 2, 3)]);
-  // A Sabha narrows it, found by its Alias, matching the listing printed by another; the day
-  // gone has no match there, so Past leaves the strip. The bar shows two, then how many more.
+  expect(await stops(page)).toEqual(['Today', ...days(1, 2, 3)]);
+  // A Sabha narrows it, found by its Alias, matching the listing printed by another. The bar
+  // shows two, then how many more.
   await pick(page, 'KGS', 'Krishna Gana Sabha', 'Sabha');
   expect(await rows(page)).toEqual(['TM Krishna']);
   await expect(page.locator('[data-list]')).toContainText('Sri Krishna Gana Sabha');
@@ -657,7 +609,7 @@ test('the search bar and its sheet: one sort widens, two narrow, Aliases find a 
   await pick(page, 'narada', 'Narada Gana Sabha', 'Sabha');
   expect(await rows(page)).toEqual(['Alarmel Valli', 'Sanjay Subrahmanyan']);
   await page.locator('[data-list]').getByRole('link').click();
-  await page.getByRole('main').getByRole('link', { name: 'Season', exact: true }).click();
+  await page.getByRole('main').getByRole('link', { name: "What's on", exact: true }).click();
   await expect(searchBar(page)).toHaveText('Narada Gana Sabha');
   expect(await rows(page)).toEqual(['Alarmel Valli', 'Sanjay Subrahmanyan']);
   // The bar's x clears it all.
@@ -665,31 +617,30 @@ test('the search bar and its sheet: one sort widens, two narrow, Aliases find a 
   await expect.poll(() => rows(page)).toHaveLength(5);
   await expect(searchBar(page)).toHaveText('Artist or Sabha…');
 
-  // Mine: only the rasika's own Events, and the filter narrows them as any row.
-  await toggle(page, 'Mine');
-  expect(await rows(page)).toEqual(['Sanjay Subrahmanyan']);
-  await expect(searchBar(page)).toHaveText('Mine');
+  // A kind narrows a pick: no Dance of TM Krishna's.
   await pick(page, 'tm k', 'TM Krishna', 'Artist');
+  await toggle(page, 'Dance');
   expect(await rows(page)).toEqual([]);
   expect(await stops(page)).toEqual(['Today']);
 
   // Nothing matches here: said so, with one tap to clear every filter.
-  await expect(page.getByText('Nothing here matches.')).toBeVisible();
+  await expect(page.getByText('Nothing here matches')).toBeVisible();
   await clearInList(page).click();
   await expect.poll(() => rows(page)).toHaveLength(5);
   await expect(searchBar(page)).toHaveText('Artist or Sabha…');
-  expect(await stops(page)).toEqual(['Past', 'Today', ...days(1, 2, 3)]);
+  expect(await stops(page)).toEqual(['Today', ...days(1, 2, 3)]);
 
-  // On Past, a filter with no match there keeps Past on the strip, marked, with the clear.
-  await stop(page, 'Past').click();
+  // On the days gone, a filter with no match there keeps Past on the strip, marked, with the
+  // clear.
+  await daysGone(page, -1);
   await toggle(page, 'Dance');
-  await expect(page.getByText('Nothing here matches.')).toBeVisible();
+  await expect(page.getByText('Nothing here matches')).toBeVisible();
   expect(await marked(page)).toBe('Past');
   // The Dance from today on: the Dance alone; a fresh launch starts with no filter.
   await stop(page, 'Today').click();
   // The jump scrolls Today in; a day still off screen reads as empty (content-visibility).
   await expect.poll(() => rows(page)).toEqual(['Alarmel Valli']);
-  await page.reload();
+  await whatsOn(page);
   await expect.poll(() => rows(page)).toHaveLength(5);
   await expect(searchBar(page)).toHaveText('Artist or Sabha…');
 });
@@ -705,7 +656,7 @@ test('the calendar: a month with a dot on each day on, a tap jumping there or to
     entry('far', 20, { billed: sings('Far Singer') }),
     entry('gone', -3),
   ]);
-  await page.reload();
+  await whatsOn(page);
   const calendar = page.getByRole('dialog', { name: 'Pick a day' });
   const day = (n: number) => calendar.getByRole('button', { name: dayHeadingText(n), exact: true });
   /** The month holding a day, paged to by the arrows. */
@@ -760,7 +711,7 @@ test('the calendar: a month with a dot on each day on, a tap jumping there or to
   expect(await dotted(20)).toBe(true);
 });
 
-test('back from an Event finds Season where it was left, on the days gone, held still', async ({
+test('back from an Event finds What’s on where it was left, on the days gone, held still', async ({
   page,
 }) => {
   // Safari has no scroll anchoring: days whose rows wrap to three lines draw taller than their
@@ -797,21 +748,21 @@ test('back from an Event finds Season where it was left, on the days gone, held 
     { days: -5, time: '18:00' },
     { days: 1, planned: true },
   ]);
-  await page.reload();
-  await stop(page, 'Past').click();
+  await whatsOn(page);
+  await daysGone(page, -1);
 
   // The rasika's own Event, the oldest day, under four days of long listings.
   const mine = page.getByRole('region', { name: dayHeadingText(-5) }).getByRole('link');
-  await mine.scrollIntoViewIfNeeded();
+  await mine.evaluate((row) => row.scrollIntoView({ block: 'center' }));
   await page.evaluate(() => window.scrollBy(0, 120));
   const before = Math.round((await mine.boundingBox())!.y);
   expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(1000);
 
   await mine.click();
   await expect(strip(page)).toHaveCount(0);
-  // The Event opens at its top, its back to Season.
+  // The Event opens at its top, its back to What's on.
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
-  const back = page.getByRole('main').getByRole('link', { name: 'Season', exact: true });
+  const back = page.getByRole('main').getByRole('link', { name: "What's on", exact: true });
   const tops = await watchTops(page, `#day-${dayFromToday(-5)}`);
   await back.click();
   await expect(mine).toBeVisible();
@@ -833,35 +784,24 @@ test('back from an Event finds Season where it was left, on the days gone, held 
   expect(await marked(page)).toBe('Past');
 
   // A fresh launch opens as ever: from today, at the top.
-  await page.reload();
+  await whatsOn(page);
   expect(await marked(page)).toBe('Today');
   expect(await listed(page)).toEqual([dayFromToday(1)]);
   await atTheTop(page);
 });
 
-test('the old Earlier page opens Season on Past, at its top; the + comes back from today', async ({
-  page,
-}) => {
+test('the old Earlier page opens What’s on, on its days gone, at its top', async ({ page }) => {
   await open(page);
   await storeEntries(page, [entry('next-1', 1), entry('past-1', -1), entry('past-2', -3)]);
   await page.goto('/earlier');
   await expect(page.getByRole('region', { name: 'Past', exact: true })).toBeVisible();
-  expect(new URL(page.url()).pathname).toBe('/');
+  expect(new URL(page.url()).pathname).toBe('/whats-on');
   expect(await marked(page)).toBe('Past');
   expect(await listed(page)).toEqual([dayFromToday(-1), dayFromToday(-3)]);
   await atTheTop(page);
-
-  // The + from Past: the Concert it makes is today's, so Season comes back from today, at the
-  // top, the hero holding it.
-  await concertNow(page);
-  expect(await marked(page)).toBe('Today');
-  expect(await listed(page)).toEqual([dayFromToday(0), dayFromToday(1)]);
-  await atTheTop(page);
 });
 
-test('without a Schedule, the list is the rasika’s own Events by date, and no Mine', async ({
-  page,
-}) => {
+test('without a Schedule, the list is the rasika’s own Events by date', async ({ page }) => {
   await open(page);
   await makeEvents(page, [
     { days: 3, planned: true },
@@ -869,47 +809,52 @@ test('without a Schedule, the list is the rasika’s own Events by date, and no 
     { days: -1 },
     { days: 1, planned: true },
   ]);
-  await page.reload();
+  await whatsOn(page);
   const days = [-4, -1, 1, 3].map(dayFromToday);
   await expect.poll(() => listed(page)).toEqual([days[2], days[3]]);
   expect(await places(page)).toEqual(['header', days[2], days[3]]);
   await atTheTop(page);
-  // Without a Schedule every row is the rasika's: no Mine, and no kinds.
+  // No Mine, with or without a Schedule.
   await openSearch(page);
   await expect(searchSheet(page).getByRole('button', { name: 'Mine', exact: true })).toHaveCount(0);
   await closeSearch(page);
-  await stop(page, 'Past').click();
+  await daysGone(page, -1);
   expect(await listed(page)).toEqual([days[1], days[0]]);
 });
 
-test('an entry whose planned Event was deleted is added again, once', async ({ page }) => {
+test('an entry whose Shortlisted Event was deleted is Shortlisted again, once', async ({
+  page,
+}) => {
   await open(page);
   await storeEntries(page, [brothers]);
-  await page.reload();
+  await whatsOn(page);
   const row = page.getByRole('main').getByRole('button', { name: /^Malladi Brothers/ });
   const sheet = page.getByRole('dialog', { name: 'Malladi Brothers' });
   await row.click();
-  await sheet.getByRole('button', { name: 'Add' }).click();
-  await sheet.getByRole('link', { name: 'Planned' }).click();
+  await sheet.getByRole('button', { name: 'Shortlist', exact: true }).click();
+  await expect(sheet.getByRole('button', { name: 'Shortlisted' })).toBeVisible();
+  // The second button opens its Event, ready for its first Item.
+  await sheet.getByRole('button', { name: "I'm here" }).click();
+  await expect(page.getByRole('link', { name: 'Add Item' })).toBeVisible();
 
-  // The rasika deletes the planned Event, and lets its Undo lapse.
+  // The rasika deletes the Event, and lets its Undo lapse: back where it was opened from.
   await page.getByRole('button', { name: 'Concert actions' }).click();
   await page.getByRole('menuitem', { name: 'Delete Event' }).click();
-  await expect(page.getByRole('heading', { name: 'Season', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: "What's on", exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Undo', exact: true })).toHaveCount(0, {
     timeout: 10_000,
   });
 
-  // The entry is listed again; adding it plans it again, once, with nothing "not saved".
+  // The entry is listed again; Shortlisting it makes it again, once, with nothing "not saved".
   await row.click();
-  await sheet.getByRole('button', { name: 'Add' }).click();
-  await expect(sheet.getByRole('link', { name: 'Planned' })).toBeVisible();
+  await sheet.getByRole('button', { name: 'Shortlist', exact: true }).click();
+  await expect(sheet.getByRole('button', { name: 'Shortlisted' })).toBeVisible();
   await expect(page.getByText(/not saved/i)).toHaveCount(0);
   const events = await readTable<{ deletedAt: string | null }>(page, 'events');
   expect(events.filter((event) => event.deletedAt === null)).toHaveLength(1);
 });
 
-test('going into an Event, or a listing’s sheet, and back finds Season where it was', async ({
+test('going into an Event, or a listing’s sheet, and back finds What’s on where it was', async ({
   page,
 }) => {
   await open(page);
@@ -919,21 +864,17 @@ test('going into an Event, or a listing’s sheet, and back finds Season where i
   ).flat();
   await storeEntries(page, listings);
   await makeEvents(page, [{ days: 9, planned: true, time: '20:00' }]);
-  await page.reload();
+  await whatsOn(page);
 
   const mine = page.locator('[data-list]').getByRole('link', { name: /^No Sabha yet/ });
-  await mine.scrollIntoViewIfNeeded();
+  await mine.evaluate((row) => row.scrollIntoView({ block: 'center' }));
   await page.evaluate(() => window.scrollBy(0, -200));
   const before = (await mine.boundingBox())!.y;
   const scrolled = await page.evaluate(() => window.scrollY);
   expect(scrolled).toBeGreaterThan(1000);
 
   await mine.click();
-  await expect(
-    page
-      .getByRole('link', { name: 'Add Item' })
-      .or(page.getByRole('button', { name: 'Start logging' })),
-  ).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Add Item' })).toBeVisible();
   // The Event opens at its top, not partway down.
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
   await page.goBack();
@@ -942,7 +883,7 @@ test('going into an Event, or a listing’s sheet, and back finds Season where i
 
   // A listing's sheet opened and closed leaves the page where it was.
   const listing = page.getByRole('button', { name: /^Artist e-8-1/ });
-  await listing.scrollIntoViewIfNeeded();
+  await listing.evaluate((row) => row.scrollIntoView({ block: 'center' }));
   const atSheet = await page.evaluate(() => window.scrollY);
   await listing.click();
   await expect(page.getByRole('dialog')).toBeVisible();

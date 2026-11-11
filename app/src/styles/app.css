@@ -23,6 +23,40 @@
     inset 0 -1px 0 var(--border);
 }
 
+/* The band under the iOS status bar (DESIGN.md "The status bar"): an installed iPhone app draws
+   under the clock and the Dynamic Island (black-translucent), so every screen paints that band
+   itself, in --status-band, fixed above what scrolls. Over the hub's curtain it stays clear
+   (data-curtain on the root), so the motif shows there. Nothing is drawn where there is no top
+   inset: a browser tab, Android, a desktop. */
+@utility status-band {
+  height: var(--app-top-inset, env(safe-area-inset-top));
+  background-color: var(--status-band);
+  transition: background-color 150ms ease-out;
+  :root[data-curtain] & {
+    background-color: transparent;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* The hub's curtain under the clock, in light: iOS draws the clock white whenever the page goes
+   under it, so the light field takes a rose-ink wash there, from the band's own colour down to
+   clear over 1.6 times the inset (none with no inset, and none in dark, whose field is dark). */
+@utility status-wash {
+  height: calc(var(--app-top-inset, env(safe-area-inset-top)) * 1.6);
+  background-image: linear-gradient(
+    to bottom,
+    oklch(0.24 0.045 12 / 0.92) 0%,
+    oklch(0.3 0.07 14 / 0.8) 38%,
+    oklch(0.45 0.12 16 / 0.3) 70%,
+    transparent 100%
+  );
+  .dark & {
+    display: none;
+  }
+}
+
 /* First launch's two fades (DESIGN.md "The motif"), eased (smoothstep, in a dozen stops) rather
    than straight: each leaves and reaches its ends with no slope, so no line shows where it stops.
    The horizon: Silk whole to 45% of its height, then dissolving into the page by its foot. */
@@ -195,6 +229,8 @@
   /* The motif's six tones, Ink and rose (DESIGN.md "The motif"): neutral greys and one rose.
      Ground is the field's base (in dark, the page itself), far its strongest contrast. Rose is
      allowed only here and in charts. */
+  /* The band under the iOS status bar: a rose ink in light, where the clock is white. */
+  --status-band: oklch(0.24 0.045 12);
   --motif-ground: oklch(0.975 0 0);
   --motif-near: oklch(0.92 0 0);
   --motif-mid: oklch(0.8 0 0);
@@ -235,6 +271,7 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.56 0.021 213.5);
+  --status-band: var(--background);
   --motif-ground: oklch(0.148 0.004 228.8);
   --motif-near: oklch(0.22 0 0);
   --motif-mid: oklch(0.38 0 0);

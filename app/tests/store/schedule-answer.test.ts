@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from 'vitest';
 import type { Event, ScheduleEntry } from '../../src/model';
-import { editEvent, restoreTitle } from '../../src/store/events';
+import { editEvent, restoreTitle, setStatus } from '../../src/store/events';
 import { addItem } from '../../src/store/items';
 import { addAppearance, createArtist, editAppearance } from '../../src/store/people';
 import { listAppearances } from '../../src/store/queries';
@@ -90,6 +90,9 @@ async function hinted(db: WrappedDB) {
   const mridangam = await createArtist('Patri Satish Kumar', { db });
   await addAppearance(event.id, mridangam.id, { role: 'mridangam' }, { db });
   await addItem(event.id, { title: 'Vatapi' }, { db });
+  // The first Item makes it Heard (ADR 0010). Put back, it is a Shortlisted Event that holds an
+  // Item, as a build before that rule could leave one: the hint must still spare the Item.
+  await setStatus(event.id, 'planned', { db });
   expect(await publish(db, v2)).toMatchObject({ flagged: 1 });
   return { event, stage };
 }
