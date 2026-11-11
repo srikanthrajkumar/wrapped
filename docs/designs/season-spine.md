@@ -48,6 +48,13 @@ approved in.
 - **Part 1's ADR** is [0010](../adr/0010-shortlisted-is-the-stored-planned-missed-is-kept-and-hidden.md):
   the stored `planned` stays and reads Shortlisted; Missed is kept and hidden. Part 4's rule is
   [0011](../adr/0011-a-concerts-type-is-read-from-its-billing.md).
+- **The hub mockup** (https://claude.ai/artifact/9M5ghrqKMGgMiJ57bQDicb) was accepted by the
+  Maintainer on 2026-11-11, with two changes:
+  - **No search bar on the hub.** It filtered nothing the hub shows and only led to What's on,
+    so it stays on What's on alone, where its list is in view. This replaces SF-D28's "the bar
+    sits on Home and What's on". The hub's bottom stack is the install strip and the tab bar.
+  - **On now is a dot, not "Now, since".** A concert under way keeps its start time, in full
+    ink, with a small ink dot before it (the mockup's option B, "for now").
 - **Copy is still not approved.** The words built are placeholders, listed in the pull request.
 
 ## Problem Statement
