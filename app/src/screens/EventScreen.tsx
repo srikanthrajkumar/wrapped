@@ -260,52 +260,11 @@ function EventView({ eventId }: { eventId: string }) {
         onAddArtist={() => setArtistOpen(true)}
       />
 
-      {appearances.length > 0 && (
-        <section aria-labelledby="stage" className="pt-8">
-          <SectionHead
-            id="stage"
-            headRef={stageHead}
-            // One + at the heading's right opens the Artist picker (the Maintainer, 2026-11-10:
-            // the "Add Artist" row could go; a +, not a pencil, since it adds). Its mark on the
-            // gutter, its 48px reaching past the heading's line so the line keeps its height.
-            action={
-              order === null && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Add Artist"
-                  className="-my-3.5 -mr-3.5"
-                  onClick={() => setArtistOpen(true)}
-                >
-                  <IconPlus aria-hidden />
-                </Button>
-              )
-            }
-          >
-            Stage
-          </SectionHead>
-          <ul className="hairline-t">
-            {appearances.map((appearance) => (
-              <StageRow
-                key={appearance.id}
-                appearance={appearance}
-                rowRef={(node) => {
-                  if (node) rows.current.set(appearance.id, node);
-                  else rows.current.delete(appearance.id);
-                }}
-                onOpen={() => setAppearanceFor(appearance.id)}
-                onColours={() => setColoursFor(appearance.id)}
-              />
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <NoteField eventId={eventId} stored={event.note} />
-
+      {/* Items, then Stage, then Note (the Maintainer, 2026-11-11, restoring the order before
+          2026-11-04): what was sung leads, and each section's lines are its own rows'. */}
       {items.length === 0 && (
-        // Where logging starts: nothing sung yet, and Add Item right under it, in the bar.
-        <Empty className="pt-12 pb-10">
+        // Where logging starts: nothing sung yet, and Add Item in the bar.
+        <Empty className="pt-10 pb-2">
           <EmptyHeader>
             <EmptyMedia variant="icon">
               <IconMusic aria-hidden />
@@ -317,7 +276,7 @@ function EventView({ eventId }: { eventId: string }) {
       )}
 
       {items.length > 0 && (
-        <section aria-labelledby="items" className="pt-8 pb-4">
+        <section aria-labelledby="items" className="pt-8">
           <SectionHead
             id="items"
             headRef={itemsHead}
@@ -412,6 +371,49 @@ function EventView({ eventId }: { eventId: string }) {
           </ol>
         </section>
       )}
+
+      {appearances.length > 0 && (
+        <section aria-labelledby="stage" className="pt-8">
+          <SectionHead
+            id="stage"
+            headRef={stageHead}
+            // One + at the heading's right opens the Artist picker (the Maintainer, 2026-11-10:
+            // the "Add Artist" row could go; a +, not a pencil, since it adds). Its mark on the
+            // gutter, its 48px reaching past the heading's line so the line keeps its height.
+            action={
+              order === null && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Add Artist"
+                  className="-my-3.5 -mr-3.5"
+                  onClick={() => setArtistOpen(true)}
+                >
+                  <IconPlus aria-hidden />
+                </Button>
+              )
+            }
+          >
+            Stage
+          </SectionHead>
+          <ul className="hairline-t">
+            {appearances.map((appearance) => (
+              <StageRow
+                key={appearance.id}
+                appearance={appearance}
+                rowRef={(node) => {
+                  if (node) rows.current.set(appearance.id, node);
+                  else rows.current.delete(appearance.id);
+                }}
+                onOpen={() => setAppearanceFor(appearance.id)}
+                onColours={() => setColoursFor(appearance.id)}
+              />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <NoteField eventId={eventId} stored={event.note} />
 
       <BottomDock>
         {order !== null ? (
@@ -940,14 +942,11 @@ function ColoursButton({ appearance, onOpen }: { appearance: ResolvedAppearance;
       type="button"
       onClick={onOpen}
       aria-label={spoken}
-      // The swatches end on the gutter, with the hairline.
-      className="-mr-2 flex min-h-12 shrink-0 items-center gap-1 rounded-xl px-2 text-sub text-muted-foreground"
+      // 48px to tap, the dot's edge on the gutter, with the hairline. With no Colours yet it is
+      // the same dot, empty (the Maintainer, 2026-11-11, replacing the word "Colours").
+      className="-mr-3.5 flex size-12 shrink-0 items-center justify-center rounded-xl focus-visible:-outline-offset-4"
     >
-      {primary === null ? (
-        'Colours'
-      ) : (
-        <SwatchDot colour={primary} second={secondary as Colour | null} />
-      )}
+      <SwatchDot colour={primary} second={secondary as Colour | null} />
     </button>
   );
 }
@@ -1155,8 +1154,10 @@ function NoteField({ eventId, stored }: { eventId: string; stored: string | null
   // never folds the field away under the finger.
   const [open, setOpen] = useState(() => note.text !== '');
   return (
-    <section aria-label="Note" className="pt-8">
-      <Fold title="Note" open={open} onOpenChange={setOpen}>
+    // The page's last section. No line above it: it follows a list that ends on its own. Its
+    // 48px row holds the label 14px down, so 16px above it sets the label where a section's is.
+    <section aria-label="Note" className="pt-4 pb-4">
+      <Fold title="Note" open={open} onOpenChange={setOpen} line={false}>
         <Saved target={target} quiet>
           <textarea
             aria-label="Note"

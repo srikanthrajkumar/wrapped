@@ -52,35 +52,72 @@ const LIGHT: readonly Colour[] = ['white', 'yellow', 'beige', 'pink', 'grey', 'o
 export const colourName = (colour: Colour) => colour[0]!.toUpperCase() + colour.slice(1);
 
 /**
- * A small swatch, as Stage shows an Appearance's Colours. A two-tone outfit is one circle, half
- * and half, so it reads as one outfit (FB-13, decided 2026-11-05).
+ * A small swatch, as Stage shows an Appearance's Colours: one 20px circle, whatever it holds. A
+ * two-tone outfit is half and half, so it reads as one outfit (FB-13, decided 2026-11-05). With
+ * no Colours it is the same circle, empty and dashed (the Maintainer, 2026-11-11): a plain ring
+ * would read as Black on the dark page and White on the light one.
+ *
+ * Drawn as one SVG (2026-11-11), so every swatch is the same size and its halves meet on a
+ * clean line. As a bordered box with a gradient it was not: the gradient repeated under the
+ * border, so a sliver of each colour showed on the other's side, and a swatch with the 2px ring
+ * had less fill than one with the 1px.
  */
 export function SwatchDot({
   colour,
   second = null,
 }: {
-  colour: Colour | 'unknown';
+  colour: Colour | 'unknown' | null;
   second?: Colour | null;
 }) {
+  const box = 'inline-block size-5 shrink-0';
+  if (colour === null) {
+    return (
+      <svg viewBox="0 0 20 20" aria-hidden className={`${box} text-muted-foreground`}>
+        {/* Twelve dashes, a whole number round the ring, the first centred at the top. */}
+        <circle
+          cx="10"
+          cy="10"
+          r="9.25"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          pathLength="48"
+          strokeDasharray="2.4 1.6"
+          strokeDashoffset="1.2"
+          transform="rotate(-90 10 10)"
+        />
+      </svg>
+    );
+  }
   if (colour === 'unknown') {
     return (
-      <span className="inline-flex size-5 items-center justify-center rounded-full border border-border text-caption">
+      <span
+        className={`${box} inline-flex items-center justify-center rounded-full border border-border text-caption`}
+      >
         ?
       </span>
     );
   }
+  // Black, White and Grey take the 2px ring, so they stand off the page in both themes; the
+  // rest the 1px border. The fill ends under the ring's middle, never outside it.
+  const edged = EDGED.includes(colour) || (second !== null && EDGED.includes(second));
+  const width = edged ? 2 : 1;
+  const r = 10 - width / 2;
   return (
-    <span
-      className={cn(
-        'inline-block size-5 rounded-full border border-border',
-        (EDGED.includes(colour) || (second && EDGED.includes(second))) && 'border-2 border-ring',
-      )}
-      style={{
-        background: second
-          ? `linear-gradient(90deg, ${SWATCHES[colour]} 50%, ${SWATCHES[second]} 50%)`
-          : SWATCHES[colour],
-      }}
-    />
+    <svg viewBox="0 0 20 20" aria-hidden className={box}>
+      {/* The second colour is the whole circle and the first is laid over its left half, so no
+          gap can open where they meet. */}
+      <circle cx="10" cy="10" r={r} fill={SWATCHES[second ?? colour]} />
+      {second && <path d={`M10 ${10 - r}A${r} ${r} 0 0 0 10 ${10 + r}Z`} fill={SWATCHES[colour]} />}
+      <circle
+        cx="10"
+        cy="10"
+        r={r}
+        fill="none"
+        strokeWidth={width}
+        className={edged ? 'stroke-ring' : 'stroke-border'}
+      />
+    </svg>
   );
 }
 

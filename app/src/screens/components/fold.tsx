@@ -13,11 +13,14 @@ export function Fold({
   title,
   open,
   onOpenChange,
+  line = true,
   children,
 }: {
   title: string;
   open: boolean;
   onOpenChange(open: boolean): void;
+  /** The hairline above it; off where the fold follows a list that ends on its own line. */
+  line?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -27,7 +30,7 @@ export function Fold({
       value={open ? 'open' : ''}
       onValueChange={(value) => onOpenChange(value === 'open')}
     >
-      <AccordionItem value="open">
+      <AccordionItem value="open" line={line}>
         <AccordionTrigger>{title}</AccordionTrigger>
         <AccordionContent>{children}</AccordionContent>
       </AccordionItem>

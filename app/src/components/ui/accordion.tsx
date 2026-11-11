@@ -13,12 +13,16 @@ function Accordion({ ...props }: React.ComponentProps<typeof AccordionPrimitive.
 
 function AccordionItem({
   className,
+  line = true,
   ...props
-}: React.ComponentProps<typeof AccordionPrimitive.Item>) {
+}: React.ComponentProps<typeof AccordionPrimitive.Item> & {
+  /** The hairline above the row; off where what is above it ends on a line of its own. */
+  line?: boolean;
+}) {
   return (
     <AccordionPrimitive.Item
       data-slot="accordion-item"
-      className={cn('hairline-t', className)}
+      className={cn(line && 'hairline-t', className)}
       {...props}
     />
   );
