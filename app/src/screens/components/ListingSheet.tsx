@@ -1,34 +1,41 @@
-// A Schedule listing's sheet (the Maintainer, 2026-11-08): tapping a listing on Season's timeline
-// opens it, never a button on the row, so nothing nudges the rasika to add. It shows the full
+// The listing sheet (docs/designs/season-spine.md Parts 1 and 5; the Maintainer, 2026-11-08 and
+// 2026-11-11): tapping a concert's row opens it, never a button on the row. It shows the full
 // billing (each Artist with their Role and group), the Sabha, date, time and printed title, each
-// led by a mark, and one add, which plans it through addFromSchedule with one id per attempt
-// (docs/adr/0007): a retry or a second tap makes the same Event, and a failure shows its row
-// here. Once added, the sheet shows it planned, linking to the Event. A cancelled listing has no
-// add.
+// led by a mark, and two buttons. "Shortlist" makes the rasika's Event through addFromSchedule,
+// with one id per attempt (docs/adr/0007): a retry or a second tap makes the same Event, and a
+// failure shows its row here. Once made it reads "Shortlisted", and tapped again takes the
+// concert off the Shortlist: it deletes that Event, synced, with Undo (SF-D22). The second button
+// opens the Event ready for its first Item, Shortlisting it first if need be (SF-D25); the first
+// Item makes it Heard (ADR 0010). A concert whose window has passed offers only that button, as
+// "I was there". A cancelled listing has neither; one the rasika had Shortlisted keeps
+// "Shortlisted" alone, to take it off.
 
 import {
   IconBuildingCommunity,
   IconCalendar,
-  IconCalendarCheck,
   IconCalendarX,
-  IconChevronRight,
   IconClock,
   IconLetterT,
-  IconPlus,
+  IconMapPin,
+  IconStar,
+  IconStarFilled,
   IconUsers,
   type Icon,
 } from '@tabler/icons-react';
 import type { ReactNode } from 'react';
-import { Link } from 'wouter';
+import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { newId, type ScheduleEntry } from '../../model';
-import type { ScheduleListing } from '../../store/queries';
 import { isDeletedEvent } from '../../store/events';
+import { windowEnd } from '../../store/logging-note';
 import { addFromSchedule } from '../../store/schedule';
 import { byStage } from '../../store/stage';
+import { unshortlistConcert } from '../deletes';
 import { listingLead } from '../timeline';
 import { creditName, dayText, timeText } from '../format';
+import { MESSAGES } from '../messages';
 import { saveFeedback, type Target } from '../save-feedback';
+import { stageOf, type Concert } from '../spine';
 import { NotSavedLine, saveWith, useSaveFeedback } from './feedback';
 import { KindMark } from './kind-mark';
 import { SheetFrame } from './sheet-frame';
@@ -58,8 +65,19 @@ async function add(entry: ScheduleEntry) {
     scheduleEntryId: entry.id,
   };
   const made = id;
-  await saveWith(addTarget(made), value, () => addFromSchedule(entry.id, { id: made }));
+  const event = await saveWith(addTarget(made), value, () =>
+    addFromSchedule(entry.id, { id: made }),
+  );
+  if (event) madeAt.set(entry.id, performance.now());
+  return event;
 }
+
+// When each entry was last Shortlisted from here. The button that made it becomes the one that
+// takes it off, in the same place, so the second tap of a double tap must not undo the first.
+const madeAt = new Map<string, number>();
+const DOUBLE_TAP_MS = 700;
+const justMade = (entryId: string) =>
+  performance.now() - (madeAt.get(entryId) ?? -Infinity) < DOUBLE_TAP_MS;
 
 function Fact({ mark: Mark, name, children }: { mark: Icon; name: string; children?: ReactNode }) {
   return (
@@ -73,20 +91,73 @@ function Fact({ mark: Mark, name, children }: { mark: Icon; name: string; childr
 }
 
 export function ListingSheet({
-  listing,
+  concert,
   open,
   onOpenChange,
+  now,
 }: {
-  listing: ScheduleListing;
+  /** A concert with its Schedule listing: Listed, or the rasika's own, Shortlisted. */
+  concert: Concert;
   open: boolean;
   onOpenChange(open: boolean): void;
+  now: Date;
 }) {
-  const { entry, plannedId } = listing;
+  const entry = concert.listing!.entry;
+  const own = concert.own;
+  const [, navigate] = useLocation();
   const feedback = useSaveFeedback();
   const attempt = attemptOf(entry.id);
   const saving = attempt !== null && feedback.get(addTarget(attempt))?.status === 'saving';
   const lead = listingLead(entry);
   const billed = entry.billed.map((person, i) => ({ ...person, position: i + 1 })).sort(byStage);
+  const shortlisted = stageOf(concert) === 'shortlisted';
+  // Its window has passed: nothing to Shortlist, only to say the rasika was there.
+  const past = now.getTime() > windowEnd(entry).getTime();
+  // Opens the Event ready for its first Item, which makes it Heard (ADR 0010).
+  const here = async () => {
+    const event = own?.event ?? (await add(entry));
+    if (!event) return;
+    onOpenChange(false);
+    navigate(`/event/${event.id}`);
+  };
+
+  // A cancelled concert can be neither Shortlisted nor heard; one the rasika had Shortlisted
+  // can still be taken off.
+  const off = entry.cancelled || concert.cancelled;
+  const toggle = shortlisted ? (
+    // Tapped again, it comes off the Shortlist: its Event deleted, with Undo.
+    <Button
+      size="lg"
+      variant="outline"
+      aria-pressed
+      onClick={(tap) => {
+        // The second tap of a double tap on "Shortlist" lands here: it must not undo the first.
+        if (tap.detail > 1 || justMade(entry.id)) return;
+        onOpenChange(false);
+        void unshortlistConcert(own!.event);
+      }}
+    >
+      <IconStarFilled aria-hidden />
+      {MESSAGES.spine.shortlisted}
+    </Button>
+  ) : !past && !off ? (
+    <Button
+      size="lg"
+      variant="outline"
+      aria-pressed={false}
+      disabled={saving}
+      onClick={() => void add(entry)}
+    >
+      <IconStar aria-hidden />
+      {MESSAGES.spine.shortlist}
+    </Button>
+  ) : null;
+  const second = off ? null : (
+    <Button size="lg" disabled={saving} onClick={() => void here()}>
+      <IconMapPin aria-hidden />
+      {past ? MESSAGES.spine.wasThere : MESSAGES.spine.here}
+    </Button>
+  );
 
   return (
     <SheetFrame
@@ -148,28 +219,11 @@ export function ListingSheet({
         {entry.cancelled && <Fact mark={IconCalendarX} name="Cancelled" />}
       </dl>
       {attempt && <NotSavedLine targets={[addTarget(attempt)]} />}
-      {plannedId ? (
-        <Button size="lg" variant="outline" className="mt-4 w-full justify-between" asChild>
-          <Link href={`/event/${plannedId}`}>
-            <span className="flex items-center gap-2">
-              <IconCalendarCheck aria-hidden />
-              Planned
-            </span>
-            <IconChevronRight aria-hidden />
-          </Link>
-        </Button>
-      ) : (
-        !entry.cancelled && (
-          <Button
-            size="lg"
-            className="mt-4 w-full"
-            disabled={saving}
-            onClick={() => void add(entry)}
-          >
-            <IconPlus aria-hidden />
-            Add
-          </Button>
-        )
+      {(toggle || second) && (
+        <div className={toggle && second ? 'mt-4 grid grid-cols-2 gap-2' : 'mt-4 grid'}>
+          {toggle}
+          {second}
+        </div>
       )}
     </SheetFrame>
   );

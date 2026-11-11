@@ -54,8 +54,8 @@ export type EventChanges = Partial<
 
 /**
  * Create an Event. A `spot` Event, made in the hall, starts Attended; one from the Plan or the
- * Schedule starts Planned. An Attended Event is `touched` from the start, so the Schedule never
- * changes it (FR-027).
+ * Schedule starts Shortlisted (stored `planned`, ADR 0010). An Attended Event is `touched` from
+ * the start, so the Schedule never changes it (FR-027).
  */
 export async function createEvent(
   input: NewEvent,
@@ -204,10 +204,12 @@ const TRANSITIONS: Record<EventStatus, readonly EventStatus[]> = {
 };
 
 /**
- * Move an Event between Planned, Attended and Missed:
- * - `planned → attended` is the explicit "Start logging" (FR-026), and marks it `touched`;
- * - `planned → missed` when the rasika says so;
- * - `missed → planned` and `attended → planned` undo either.
+ * Move an Event between Shortlisted (stored `planned`), Attended and Missed (ADR 0010):
+ * - `planned → attended` when the rasika says they were there (the lapse card), and marks it
+ *   `touched`; a first Item does the same inside its own transaction (store/items.ts);
+ * - `planned → missed` when its time passed unlogged (store/lapse.ts);
+ * - `missed → planned` when its listing is Shortlisted again; `attended → planned` stays for
+ *   an undo no screen offers.
  * Leaving Planned clears a pending "schedule changed" hint: Attended and Missed never carry it.
  */
 export async function setStatus(
@@ -311,6 +313,32 @@ export async function restoreEvent(
       }
       await restoreItemRows(await rows<Item>('items'), db, catalog);
       return restored;
+    },
+  );
+}
+
+/**
+ * Take a concert off the Shortlist (SF-D22; ADR 0010): delete its Event, as {@link deleteEvent}
+ * does, but only while it is still Shortlisted and holds no Item, checked in the delete's own
+ * transaction. A sheet left open while the concert was logged elsewhere, or a retry after it
+ * was, deletes nothing: taking a star off must never delete a log (Codex's review, 2026-11-11).
+ */
+export async function removeShortlisted(
+  id: string,
+  { db = defaultDb }: WriteOptions = {},
+): Promise<Deleted<Event> | undefined> {
+  return db.transaction(
+    'rw',
+    [db.events, db.appearances, db.items, db.outbox, db.meta],
+    async () => {
+      const event = await db.events.get(id);
+      if (!event || event.deletedAt !== null || event.status !== 'planned') return undefined;
+      const items = await db.items
+        .where('eventId')
+        .equals(id)
+        .filter((item) => item.deletedAt === null)
+        .count();
+      return items > 0 ? undefined : deleteEvent(id, { db });
     },
   );
 }

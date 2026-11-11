@@ -56,6 +56,11 @@ export type ImprovisedKind = (typeof IMPROVISED_KINDS)[number];
 /** Dance and Harikatha were added with the schedule feed (T057); their Items work as a Concert's. */
 export const EVENT_KINDS = ['concert', 'lecdem', 'dance', 'harikatha'] as const;
 export type EventKind = (typeof EVENT_KINDS)[number];
+/**
+ * An Event's status, as stored. On screen `planned` reads Shortlisted, `attended` is Heard, and
+ * `missed` is kept but shown and counted nowhere (ADR 0010): the stored words never change, so
+ * no stored Event is ever rewritten.
+ */
 export type EventStatus = 'planned' | 'attended' | 'missed';
 export type EventSource = 'schedule' | 'plan' | 'spot';
 

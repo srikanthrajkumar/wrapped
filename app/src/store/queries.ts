@@ -5,12 +5,29 @@
 import Dexie from 'dexie';
 import { useLiveQuery } from 'dexie-react-hooks';
 import type { Catalog } from '../catalog/load';
-import type { Appearance, Event, Item, Link, OwnEntry, ScheduleEntry, SharedEntry } from '../model';
+import type {
+  Appearance,
+  Event,
+  EventStatus,
+  Item,
+  Link,
+  OwnEntry,
+  ScheduleEntry,
+  SharedEntry,
+} from '../model';
 import { db as defaultDb, type WrappedDB } from './db';
 import { eventStart, readLoggingNotes } from './logging-note';
 import { countUnsynced } from './outbox';
 import { listReceipts } from './receipts';
-import { byStage, joinNames, knownBy, knownNames } from './stage';
+import {
+  accompanying,
+  byStage,
+  concertType,
+  joinNames,
+  knownBy,
+  knownNames,
+  type ConcertType,
+} from './stage';
 
 /** An Artist or Sabha as the screens show it. */
 export interface ResolvedEntry {
@@ -324,6 +341,10 @@ export interface EventSummary {
    * and a group they were billed under. Season's filter matches on these (screens/season-filter.ts).
    */
   stage: { name: string; aliases: string[]; group: string | null }[];
+  /** Everyone else on its Stage, in Stage order: the accompanists a row lists (ADR 0011). */
+  accompanists: string[];
+  /** Its type as a row names it, read from its Stage and never stored (ADR 0011). */
+  type: ConcertType | null;
   itemCount: number;
   /**
    * Marked cancelled (T061): the Event was, or its Schedule entry is now. An Event the rasika
@@ -381,10 +402,13 @@ export async function listEventSummaries(db: WrappedDB = defaultDb): Promise<Eve
   ]);
   return events.map((event) => {
     const names = knownNames(known.get(event.id)!, (a) => artists(a.artistId)?.name ?? '?');
+    const stage = stages.get(event.id) ?? [];
     return {
       event,
       sabha: event.sabhaId ? (sabhas(event.sabhaId) ?? null) : null,
       knownBy: names.length > 0 ? joinNames(names) : null,
+      accompanists: accompanying(event.kind, stage).map((a) => artists(a.artistId)?.name ?? '?'),
+      type: concertType(event.kind, stage),
       stage: (stages.get(event.id) ?? []).map((appearance) => {
         const artist = artists(appearance.artistId);
         return {
@@ -405,11 +429,16 @@ export function useEventSummaries() {
   return useLiveQuery(() => listEventSummaries());
 }
 
-/** A Schedule entry as Season's timeline lists it, with the live Event planned from it, if any. */
+/** A Schedule entry as What's on lists it, with the rasika's live Event made from it, if any. */
 export interface ScheduleListing {
   entry: ScheduleEntry;
-  /** The Event in the Plan made from this entry; null until it is added, or once deleted. */
+  /** The rasika's Event made from this entry; null until it is Shortlisted, or once deleted. */
   plannedId: string | null;
+  /**
+   * That Event's status; null with no Event. One Missed, or Shortlisted and lapsed, is shown
+   * nowhere, so its entry reads as a plain listing again (ADR 0010).
+   */
+  status: EventStatus | null;
 }
 
 /** The stored Schedule from `from` (an ISO date) on, by day, then start time, then Sabha. */
@@ -423,14 +452,17 @@ export async function listSchedule(
       .filter((event) => event.deletedAt === null && event.scheduleEntryId !== null)
       .toArray(),
   ]);
-  const plannedBy = new Map(planned.map((event) => [event.scheduleEntryId!, event.id]));
+  const plannedBy = new Map(planned.map((event) => [event.scheduleEntryId!, event]));
   entries.sort(
     (a, b) =>
       a.date.localeCompare(b.date) ||
       (a.startTime ?? '99').localeCompare(b.startTime ?? '99') ||
       a.sabha.localeCompare(b.sabha),
   );
-  return entries.map((entry) => ({ entry, plannedId: plannedBy.get(entry.id) ?? null }));
+  return entries.map((entry) => {
+    const event = plannedBy.get(entry.id);
+    return { entry, plannedId: event?.id ?? null, status: event?.status ?? null };
+  });
 }
 
 export function useSchedule(from: string) {

@@ -388,26 +388,33 @@ const liveStage = async (eventId: string, db: WrappedDB) =>
     .sort((a, b) => a.position - b.position);
 
 /**
- * Add a Schedule entry to the Plan (FR-025, T061): a Planned Event with `source` `schedule`, its
- * date, time, Sabha, kind and title, and the billed Artists in their Roles and groups, in one
- * transaction. Names are matched to the rasika's or the shared Artists and Sabhas, and a name
- * none has becomes an own entry. Adding it again, or retrying with the same `id`, returns the
- * Event already made, so a double tap never plans it twice. A cancelled entry is refused.
+ * Shortlist a Schedule entry (FR-025, T061; ADR 0010): an Event stored `planned` with `source`
+ * `schedule`, its date, time, Sabha, kind and title, and the billed Artists in their Roles and
+ * groups, in one transaction. Names are matched to the rasika's or the shared Artists and
+ * Sabhas, and a name none has becomes an own entry. Adding it again, or retrying with the same
+ * `id`, returns the Event already made, so a double tap never makes two; one that had lapsed
+ * to Missed is Shortlisted again. A cancelled entry is refused.
  */
 export async function addFromSchedule(
   entryId: string,
   { db = defaultDb, id = newId() }: WriteOptions & { id?: string } = {},
 ): Promise<Event> {
   return db.transaction('rw', tablesOf(db), async () => {
+    // One that lapsed to Missed is Shortlisted again (ADR 0010), by either way back to it.
+    const again = (event: Event) =>
+      event.status === 'missed' && event.scheduleEntryId === entryId
+        ? save('events', { ...event, status: 'planned' }, { db })
+        : event;
     const made = await db.events.get(id);
-    if (made?.deletedAt === null) return made;
+    if (made?.deletedAt === null) return again(made);
     if (made) throw new RuleError([`event id ${id} is already used`]);
     const planned = await db.events
       .where('scheduleEntryId')
       .equals(entryId)
       .filter((event) => event.deletedAt === null)
       .first();
-    if (planned) return planned;
+    // One Event per entry.
+    if (planned) return again(planned);
     const entry = await db.schedule.get(entryId);
     if (!entry) throw new RuleError([ENTRY_GONE]);
     if (entry.cancelled) throw new RuleError([ENTRY_CANCELLED]);

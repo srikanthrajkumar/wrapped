@@ -28,4 +28,52 @@
 **Priority:** P3
 **Depends on:** Tidy (Phase 10)
 
+## The Season spine
+
+### Take back an "I'm here" left with nothing logged
+
+**What:** When the rasika taps the listing sheet's second button on a concert they had not Shortlisted, then leaves the Event with nothing entered, take the Event back, as the + takes back an untouched Concert.
+
+**Why:** The approved design asks for it (season-spine.md, Part 1, R2-19). Today the Event stays Shortlisted, with a star the rasika can take off.
+
+**Context:** ADR 0010 left it out on purpose. `discardUntouched` (`app/src/store/events.ts`) is proven only for a bare Concert, with no Sabha, Stage or Schedule entry; an Event made from a listing carries billed Appearances and may have made own Artists and Sabhas, so "as born" needs its own definition and tests before anything is deleted unasked.
+
+**Effort:** M
+**Priority:** P2
+**Depends on:** the Maintainer asking for it
+
+### Count a Heard concert by its log, not only its status
+
+**What:** When the Wrapped's stats join the Diary, count an Event that holds a live Item as heard, as every screen already shows it (`isHeard`, `app/src/screens/timeline.ts`), or reconcile its stored status first.
+
+**Why:** A build before ADR 0010, or a pull, can leave an Item on a `planned` or `missed` Event. The screens show it as Heard; a count that reads `attended` alone (FR-026) would leave it out.
+
+**Context:** The app never changes a status by itself (ADR 0010), so the stored status follows only at the rasika's next Item, Undo or lapse answer.
+
+**Effort:** S
+**Priority:** P2
+**Depends on:** the Wrapped's stats (Part 8 of the Season spine)
+
+### What's on, back from an Event on the days gone, on WebKit
+
+**What:** Find out whether What's on holds its place on a real iPhone when the rasika comes back from an Event deep in the days gone, under days whose rows wrap; fix the hold if it doesn't.
+
+**Why:** `app/e2e/timeline.spec.ts` ("back from an Event finds What's on where it was left, on the days gone, held still") passes on Chromium with scroll anchoring off, and fails on Playwright's WebKit: the row comes back about 230px from where it was left. The live build (cef452a) fails the same way, so the Season spine did not bring it; the test had only ever run on Chromium.
+
+**Context:** `app/src/screens/pin.ts` holds the place while the days above draw at their real heights. Playwright's WebKit on Linux is not Safari on an iPhone, so see it on the phone first. The same test from today's days passes on WebKit.
+
+**Effort:** M
+**Priority:** P2
+**Depends on:** a look on an iPhone
+
+### The type marks, and the copy
+
+**What:** Settle the row's type marks (words today: "Flute", "Jugalbandi"; or icons), and approve the Season spine's words, all placeholders in `MESSAGES.spine`.
+
+**Why:** Both were deferred by the Maintainer (season-spine.md, Part 4 "Open", "Open Questions").
+
+**Effort:** S
+**Priority:** P2
+**Depends on:** the Maintainer
+
 ## Completed

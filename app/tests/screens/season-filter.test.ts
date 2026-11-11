@@ -1,6 +1,6 @@
 // Season's filter (the Maintainer, 2026-11-09): picks of one sort widen the list, picks of
-// different sorts narrow it, a Sabha's Aliases find it, Mine keeps only the rasika's own Events,
-// and every rule applies to the rasika's own Events as to the Schedule's listings.
+// different sorts narrow it, a Sabha's Aliases find it, and every rule applies to the rasika's
+// own Events as to the Schedule's listings. (Mine went on 2026-11-11: the Shortlist is a tab.)
 
 import { describe, expect, it } from 'vitest';
 import type { Event, OwnEntry, ScheduleEntry, SharedEntry } from '../../src/model';
@@ -20,6 +20,9 @@ import {
 import { timeline } from '../../src/screens/timeline';
 import type { EventSummary, ResolvedEntry, ScheduleListing } from '../../src/store/queries';
 
+// Before any Event below has lapsed, so each is shown.
+const EARLY = new Date('2026-12-01T08:00:00');
+
 const listing = (id: string, fields: Partial<ScheduleEntry> = {}): ScheduleListing => ({
   entry: {
     id,
@@ -34,6 +37,7 @@ const listing = (id: string, fields: Partial<ScheduleEntry> = {}): ScheduleListi
     ...fields,
   },
   plannedId: null,
+  status: null,
 });
 
 const billed = (...names: string[]) =>
@@ -71,6 +75,8 @@ const own = (
     : null,
   knownBy: null,
   stage,
+  accompanists: [],
+  type: null,
   itemCount: 0,
   cancelled: false,
 });
@@ -121,7 +127,7 @@ const find = (query: string): SeasonName => named(query)[0]!;
 
 /** The ids of the rows a filter lets in, own first, as Season lists them. */
 function shown(filter: Filter, with_: Lookup = lookup) {
-  const days = filterDays(timeline(summaries, listings), rowTest(filter, with_));
+  const days = filterDays(timeline(summaries, listings, EARLY), rowTest(filter, with_));
   return days.flatMap((day) => [
     ...day.own.map((s) => s.event.id),
     ...day.listings.map((l) => l.entry.id),
@@ -211,12 +217,6 @@ describe('season filter', () => {
     expect(shown({ ...NO_FILTER, kinds: ['dance', 'harikatha'] })).toEqual(['mine-kgs', 'dance']);
   });
 
-  it('keeps only the rasika’s own Events with Mine, and narrows them as any other row', () => {
-    expect(shown({ ...NO_FILTER, mine: true })).toEqual(['mine-tmk', 'mine-bare', 'mine-kgs']);
-    expect(shown({ ...NO_FILTER, mine: true, picks: [find('T M Krishna')] })).toEqual(['mine-tmk']);
-    expect(shown({ ...NO_FILTER, mine: true, kinds: ['harikatha'] })).toEqual(['mine-kgs']);
-  });
-
   it('matches the rasika’s own Events by any Artist on Stage, their Aliases and group', () => {
     const stage = [
       { name: 'Ravi', aliases: ['Mysore Ravi'], group: null },
@@ -238,6 +238,7 @@ describe('season filter', () => {
         listing('a', { date: '2026-12-15', billed: billed('A') }),
         listing('b', { date: '2026-12-16', billed: billed('B') }),
       ],
+      EARLY,
     );
     const b = suggest(
       seasonNames(

@@ -13,6 +13,7 @@ import {
   notApplicableValue,
   unknownValue,
   type DetailValue,
+  type Event,
   type Improvised,
   type Item,
   type LayaVinyasam,
@@ -52,6 +53,21 @@ type ItemStart = Partial<
 >;
 
 /**
+ * An Item made live makes its concert Heard (ADR 0010): a Shortlisted Event, or one that had
+ * lapsed to Missed, becomes Attended in the caller's transaction, so an Event is never left
+ * Shortlisted or hidden by an Item the rasika entered or brought back. It is then their record:
+ * `touched`, with no Schedule hint.
+ */
+async function markHeard(event: Event, db: WrappedDB): Promise<void> {
+  if (event.status === 'attended') return;
+  await save(
+    'events',
+    { ...event, status: 'attended', touched: true, scheduleChanged: false },
+    { db },
+  );
+}
+
+/**
  * Insert a new Item last in its Event's running order, in one transaction with its outbox
  * entry and the logging note. With `id`, a live Item of the same Event that already has it is
  * returned unchanged, so a create replayed after a reopen never adds a second one; an id taken
@@ -69,7 +85,7 @@ async function insertItem(
       if (existing.deletedAt === null && existing.eventId === eventId) return existing;
       throw new RuleError([`item id ${id} is already used`]);
     }
-    await getLive('events', eventId, { db });
+    await markHeard(await getLive('events', eventId, { db }), db);
     const items = await liveItems(eventId, db);
     const item: Item = {
       id,
@@ -367,6 +383,8 @@ export async function restoreItem(
     const tombstone = record && (await db.items.get(record.id));
     if (!tombstone) return null;
     const item = catalog ? remapItem(tombstone, catalog.remap) : tombstone;
+    // Brought back, it is an Item of this Event again: the concert is Heard (ADR 0010).
+    await markHeard(event, db);
     const live = await liveItems(item.eventId, db);
     const index = live.filter((other) => other.position < item.position).length;
     const order = [...live];

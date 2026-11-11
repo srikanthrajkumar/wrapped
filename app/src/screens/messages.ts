@@ -38,6 +38,58 @@ export const MESSAGES = {
       `Saved on this phone · ${count} ${count === 1 ? 'change' : 'changes'} not yet backed up`,
     allSynced: 'All backed up',
   },
+  /** The tab bar (the Maintainer, 2026-11-11). */
+  tabs: { season: 'Season', shortlist: 'Shortlist', diary: 'Diary' },
+  /**
+   * The Season spine's words (docs/designs/season-spine.md). Placeholders: the Maintainer has
+   * approved none of them yet, bar the tabs' names and "Shortlist" / "Shortlisted".
+   */
+  spine: {
+    whatsOn: "What's on",
+    /** The hero's choice between Shortlisted concerts in one slot. */
+    pick: (slot: string) => `Pick your ${slot}`,
+    startingSoon: 'Starting soon',
+    /** Starting soon's door into What's on: the count of the rest, or with none, all of today. */
+    more: (count: number) => `+${count} more`,
+    allOfToday: 'All of today',
+    onNow: 'On now',
+    shortlist: 'Shortlist',
+    shortlisted: 'Shortlisted',
+    /** The listing sheet's second button, and for a concert whose time has passed. */
+    here: "I'm here",
+    wasThere: 'I was there',
+    /** The Shortlist tile's line. */
+    nothingYet: 'Nothing yet',
+    at: (count: number, time: string) => `${count} at ${time}`,
+    onDay: (count: number, day: string) => `${count} on ${day}`,
+    onNowCount: (count: number) => `${count} on now`,
+    /** Earlier today, folded to one line on What's on. */
+    earlier: 'Earlier today',
+    /** The lapse card (SF-D24). */
+    lapse: {
+      question: 'Were you at any of these?',
+      yes: (name: string) => `I was at ${name}`,
+      none: 'None of these',
+    },
+    empty: {
+      today: {
+        title: 'Nothing more today',
+        next: (day: string, time: string | null, lead: string, sabha: string | null) =>
+          `${day} starts${time ? ` at ${time}` : ''} with ${lead}${sabha ? ` at ${sabha}` : ''}.`,
+      },
+      season: { title: 'Nothing listed yet', line: 'Concerts show here once the Schedule is out.' },
+      shortlist: {
+        title: 'Nothing shortlisted',
+        line: "Shortlist a concert from What's on to keep it here.",
+      },
+      diary: { title: 'Nothing heard yet', line: 'Every concert you log is kept here.' },
+      items: { title: 'No Items yet', line: 'Add each piece as it is sung.' },
+      search: { title: 'Nothing here matches' },
+    },
+    tomorrow: 'Tomorrow',
+    settings: 'Settings',
+    settingsToFix: 'Settings, something to fix',
+  },
   /** Season's hero, strip of days and filter (the Maintainer, 2026-11-09; DESIGN.md "Season"). */
   season: {
     /** The hero's word for the rasika's concert: on now, or their next Planned one. */
@@ -60,7 +112,6 @@ export const MESSAGES = {
     filterOn: (what: string) => `Filter: ${what}`,
     filterPlaceholder: 'Artist or Sabha…',
     suggestions: 'Suggestions',
-    mine: 'Mine',
     remove: (name: string) => `Remove ${name}`,
     /** What a suggestion is, under its name. */
     nameKind: { artist: 'Artist', group: 'Group', sabha: 'Sabha' },

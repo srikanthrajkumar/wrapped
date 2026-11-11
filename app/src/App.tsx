@@ -1,64 +1,84 @@
-import { useEffect, useRef, useState } from 'react';
+import { IconHome, IconNotebook, IconStar, type Icon } from '@tabler/icons-react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Link, Redirect, Route, Switch, useLocation, useRoute } from 'wouter';
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 import { cn } from '@/lib/utils';
 import { ConcertSummary } from './screens/components/ConcertSummary';
+import { InstallStrip } from './screens/components/InstallRow';
 import { ActionBar, BarProvider, type Bar } from './screens/components/layout';
+import { DiaryScreen } from './screens/DiaryScreen';
 import { EventScreen } from './screens/EventScreen';
 import { FirstLaunch } from './screens/FirstLaunch';
-import { HomeScreen, ToPast } from './screens/HomeScreen';
+import { HubScreen } from './screens/HubScreen';
 import { ItemEditor } from './screens/ItemEditor';
+import { MESSAGES } from './screens/messages';
+import {
+  arrive,
+  enterTab,
+  forgetScroll,
+  navState,
+  subscribeNav,
+  TAB_ROOT,
+  tabTarget,
+  WHATS_ON,
+  type Tab,
+} from './screens/nav';
 import { Placeholder } from './screens/Placeholder';
 import { preloadSettings, SettingsScreen } from './screens/SettingsScreen';
+import { ShortlistScreen } from './screens/ShortlistScreen';
+import { ToPast, WhatsOnScreen } from './screens/WhatsOnScreen';
 import { holdNewConcert } from './screens/new-concert';
 import { leaveEvent } from './screens/undo';
 import { db } from './store/db';
 import { useFirstLaunchDone } from './store/first-launch';
 import { clearReceipts } from './store/receipts';
 
-// Navigation per plan.md DD1: three bottom tabs (Season, Wrapped, Settings). Event and Item
-// open as pushed screens; the tab bar hides while the Item editor is open. The Schedule and Tidy
-// are reached from Season, and the Maintainer's /admin from Settings. The days gone are Season's
-// Past tab; the old /earlier page opens it.
+// Navigation (DESIGN.md "Navigation"; the Maintainer, 2026-11-11): three bottom tabs, one per
+// stage of a concert: Season (the hub), Shortlist and Diary. What's on is one tap below Season,
+// and Settings a mark on the hub. Each tab keeps its own back stack (screens/nav.ts); an Event
+// and its Items open in the tab they were reached from, with the tab bar still in view, which
+// hides only while the Item editor is open. The tab that is on, tapped, returns to its top.
 
 const ITEM_ROUTE = '/event/:eventId/item/:itemId';
 
-const TABS = [
-  {
-    href: '/',
-    label: 'Season',
-    owns: (path: string) => !/^\/(wrapped|settings|admin)\b/.test(path),
-  },
-  { href: '/wrapped', label: 'Wrapped', owns: (path: string) => path.startsWith('/wrapped') },
-  {
-    href: '/settings',
-    label: 'Settings',
-    owns: (path: string) => /^\/(settings|admin)\b/.test(path),
-  },
+const TABS: { tab: Tab; label: string; icon: Icon }[] = [
+  { tab: 'season', label: MESSAGES.tabs.season, icon: IconHome },
+  { tab: 'shortlist', label: MESSAGES.tabs.shortlist, icon: IconStar },
+  { tab: 'diary', label: MESSAGES.tabs.diary, icon: IconNotebook },
 ];
 
 function TabBar() {
   const [path] = useLocation();
+  const nav = useSyncExternalStore(subscribeNav, navState);
   return (
     <nav
       aria-label="Main"
       className="flex border-t border-border bg-background pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)]"
     >
-      {TABS.map((tab) => {
-        const current = tab.owns(path);
+      {TABS.map(({ tab, label, icon: Mark }) => {
+        const current = nav.tab === tab;
         return (
           <Link
-            key={tab.href}
-            href={tab.href}
+            key={tab}
+            href={tabTarget(nav, tab)}
             aria-current={current ? 'page' : undefined}
+            onClick={(event) => {
+              if (!current) return enterTab(tab, tabTarget(nav, tab));
+              // The tab that is on returns to its top: its root, at the top of the page.
+              forgetScroll(TAB_ROOT[tab]);
+              if (path !== TAB_ROOT[tab]) return;
+              event.preventDefault();
+              window.scrollTo(0, 0);
+            }}
             className={cn(
-              // Tab labels grow with the phone's text only to 1.4x, as native tab bars do, so
-              // three always fit on a 320px phone.
-              'flex min-h-12 min-w-0 flex-1 items-center justify-center px-1 text-center text-[min(var(--text-sub),21px)]',
+              // An icon over its word, 56px. The words grow with the phone's text only to 1.4x,
+              // as native tab bars do, so three always fit on a 320px phone.
+              'flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 text-center text-[min(var(--text-caption),18px)] leading-4',
               current ? 'font-semibold text-foreground' : 'text-muted-foreground',
             )}
           >
-            {tab.label}
+            <Mark aria-hidden className="size-[22px] shrink-0" />
+            {label}
           </Link>
         );
       })}
@@ -157,6 +177,7 @@ function useFooterRoom(footer: HTMLElement | null, inset: number) {
 export function App() {
   const done = useFirstLaunchDone();
   const [inItemEditor] = useRoute(ITEM_ROUTE);
+  const [path] = useLocation();
   const [bar, setBar] = useState<Bar | null>(null);
   const inset = useKeyboardInset();
   const [footer, setFooter] = useState<HTMLElement | null>(null);
@@ -169,19 +190,39 @@ export function App() {
 
   // Until the store answers, only the dark background shows (no flash of the wrong screen).
   if (done === undefined) return null;
+  // Before any screen draws: which tab the page is in, and which way the rasika went.
+  if (done) arrive(path);
 
   return (
     <BarProvider value={bar}>
       <div className="flex min-h-dvh flex-col pt-[var(--app-top-inset,env(safe-area-inset-top))]">
+        {/* The band under the iOS status bar, painted by the shell above what scrolls; clear
+            over the hub's curtain (DESIGN.md "The status bar"). */}
+        {done && (
+          <div
+            aria-hidden
+            data-status-band
+            className="pointer-events-none fixed inset-x-0 top-0 z-30 status-band"
+          />
+        )}
         <main className="flex flex-1 flex-col pr-[calc(16px+env(safe-area-inset-right))] pl-[calc(16px+env(safe-area-inset-left))]">
           {!done ? (
             <FirstLaunch />
           ) : (
             <Switch>
               <Route path="/">
-                <HomeScreen />
+                <HubScreen />
               </Route>
-              {/* The Earlier page is Season's Past tab now (the Maintainer, 2026-11-09). */}
+              <Route path={WHATS_ON}>
+                <WhatsOnScreen />
+              </Route>
+              <Route path="/shortlist">
+                <ShortlistScreen />
+              </Route>
+              <Route path="/diary">
+                <DiaryScreen />
+              </Route>
+              {/* The Earlier page is What's on's days gone now (the Maintainer, 2026-11-09). */}
               <Route path="/earlier">
                 <ToPast />
               </Route>
@@ -191,15 +232,16 @@ export function App() {
               <Route path="/event/:eventId">
                 {({ eventId }) => <EventScreen eventId={eventId} />}
               </Route>
-              {/* The Schedule is in Season's timeline now (the Maintainer, 2026-11-08). */}
+              {/* The Schedule is What's on (the Maintainer, 2026-11-08 and 2026-11-11). */}
               <Route path="/schedule">
-                <Redirect to="/" replace />
+                <Redirect to={WHATS_ON} replace />
+              </Route>
+              {/* The Wrapped tab is the Diary; its stats and Cards come later, at its top. */}
+              <Route path="/wrapped">
+                <Redirect to="/diary" replace />
               </Route>
               <Route path="/tidy">
                 <Placeholder title="Tidy" back="/" />
-              </Route>
-              <Route path="/wrapped">
-                <Placeholder title="Wrapped" />
               </Route>
               <Route path="/settings">
                 <SettingsScreen />
@@ -215,12 +257,17 @@ export function App() {
         </main>
         {done && <ConcertSummary />}
         {done && (
+          // The bottom stack, one frame on every screen: a screen's action (What's on's search
+          // bar, an Event's Add Item) with any Undo bars, then the install strip, then the tabs.
           <footer ref={setFooter} className="sticky z-10" style={{ bottom: inset }}>
             <ActionBar onBar={setBar} />
             {inItemEditor ? (
               <div className="h-[env(safe-area-inset-bottom)] bg-background" />
             ) : (
-              <TabBar />
+              <>
+                <InstallStrip />
+                <TabBar />
+              </>
             )}
           </footer>
         )}

@@ -1,6 +1,7 @@
-// The Schedule (T058 to T061), listed in Season's timeline since 2026-11-08: an entry added from
-// its sheet as Planned, a cancellation that keeps the Planned Event in its day marked, an add
-// whose write failed, tried again, that plans the entry once, and the "schedule changed" sheet.
+// The Schedule (T058 to T061), listed on What's on (2026-11-08, 2026-11-11): an entry Shortlisted
+// from its sheet (stored `planned`, ADR 0010), a cancellation that keeps the Shortlisted Event in
+// its day marked, a Shortlist whose write failed, tried again, that makes the Event once, and the
+// "schedule changed" sheet.
 
 import { expect, test, type Page } from '@playwright/test';
 import type { ScheduleEntry } from '../src/model';
@@ -72,19 +73,28 @@ async function storeEntries(page: Page, entries: ScheduleEntry[]) {
   await page.reload();
 }
 
-/** A listing's row on Season's timeline: the row is its own tap, with no button in it. */
+/** A concert's row on What's on: the row is its own tap, with no button in it. */
 const listingRow = (page: Page, name: string) =>
   page.getByRole('main').getByRole('button', { name: new RegExp(`^${name}`) });
 
-/** Open a listing's sheet and add it. */
+/** Open a listing's sheet and Shortlist it. */
 async function add(page: Page, name: string) {
   await listingRow(page, name).click();
-  await page.getByRole('dialog', { name }).getByRole('button', { name: 'Add' }).click();
+  await page
+    .getByRole('dialog', { name })
+    .getByRole('button', { name: 'Shortlist', exact: true })
+    .click();
 }
 
-/** The rasika's own row for an Event, in its day (the hero may hold the same Event). */
+/** A concert's row in its day on What's on, the rasika's own or a plain listing. */
 const ownRow = (page: Page, name: string) =>
-  page.locator('[data-list]').getByRole('link', { name: new RegExp(`^${name}`) });
+  page.locator('[data-list]').getByRole('listitem').filter({ hasText: name });
+
+/** What's on, loaded afresh: where the Schedule is listed. */
+async function whatsOn(page: Page) {
+  await page.goto('/whats-on');
+  await expect(page.getByRole('heading', { name: "What's on", exact: true })).toBeVisible();
+}
 
 test('the e2e build never asks the real public-data project for the Schedule (ADR 0009)', async ({
   page,
@@ -103,48 +113,54 @@ test('the e2e build never asks the real public-data project for the Schedule (AD
   expect(asked).toEqual([]);
 });
 
-test('an entry added from the Schedule is in Next, and stays there marked once cancelled', async ({
+test('an entry Shortlisted from the Schedule is the rasika’s, and stays marked once cancelled', async ({
   page,
 }) => {
   await page.goto('/');
   await finishFirstLaunch(page);
   await storeEntries(page, [brothers(), margam, called]);
+  await whatsOn(page);
 
-  // A Group by its name, a Dance with its printed title, a cancelled entry marked; no row has a
-  // button of its own, and a cancelled one's sheet has no add.
-  // A Group by its name, a Dance with its printed title, a cancelled entry marked; no row has a
-  // button of its own, and a cancelled one's sheet has no add.
+  // A Group by its name with its accompanist under it, a Dance with its printed title, a
+  // cancelled entry marked; no row has a button of its own, and a cancelled one's sheet has
+  // neither Shortlist nor the second button.
   const rows = page.getByRole('main').getByRole('listitem');
   await expect(rows).toHaveCount(3);
   await expect(rows.nth(0)).toContainText('Malladi Brothers');
+  await expect(rows.nth(0)).toContainText('Pakkala Ramadas');
   await expect(rows.nth(0)).toContainText('Music Academy · 4:00 pm');
   await expect(rows.nth(1).getByRole('img', { name: 'Dance' })).toBeVisible();
   await expect(rows.nth(1)).toContainText('Margam');
   await expect(rows.nth(2).getByRole('img', { name: 'Cancelled' })).toBeVisible();
   await expect(rows.getByRole('button')).toHaveCount(3);
   await listingRow(page, 'T. M. Krishna').click();
-  await expect(page.getByRole('dialog').getByRole('button', { name: 'Add' })).toHaveCount(0);
+  await expect(page.getByRole('dialog').getByRole('button', { name: /Shortlist/ })).toHaveCount(0);
+  await expect(page.getByRole('dialog').getByRole('button', { name: "I'm here" })).toHaveCount(0);
   await page.keyboard.press('Escape');
 
-  // Two quick taps plan it once.
+  // Two quick taps Shortlist it once: the second never takes it off again.
   await listingRow(page, 'Malladi Brothers').click();
   await page
     .getByRole('dialog', { name: 'Malladi Brothers' })
-    .getByRole('button', { name: 'Add' })
+    .getByRole('button', { name: 'Shortlist', exact: true })
     .dblclick();
-  await expect(page.getByRole('dialog').getByRole('link', { name: 'Planned' })).toBeVisible();
+  await expect(page.getByRole('dialog').getByRole('button', { name: 'Shortlisted' })).toBeVisible();
   const events = await readTable<{ id: string; status: string; source: string }>(page, 'events');
   expect(events).toHaveLength(1);
   expect(events[0]).toMatchObject({ status: 'planned', source: 'schedule' });
   expect(await readTable(page, 'appearances')).toHaveLength(3);
 
   await page.keyboard.press('Escape');
-  await expect(ownRow(page, 'Malladi Brothers')).toBeVisible();
+  // Shown once, as theirs, with the star.
+  await expect(rows).toHaveCount(3);
+  await expect(
+    ownRow(page, 'Malladi Brothers').getByRole('img', { name: 'Shortlisted' }),
+  ).toBeVisible();
   await expect(
     ownRow(page, 'Malladi Brothers').getByRole('img', { name: 'Cancelled' }),
   ).toHaveCount(0);
 
-  // The Sabha cancels: the Planned Event stays in its day, marked, until the rasika removes it.
+  // The Sabha cancels: the Shortlisted Event stays in its day, marked, until the rasika removes it.
   await storeEntries(page, [brothers({ version: 2, cancelled: true }), margam, called]);
   await expect(
     ownRow(page, 'Malladi Brothers').getByRole('img', { name: 'Cancelled' }),
@@ -152,17 +168,20 @@ test('an entry added from the Schedule is in Next, and stays there marked once c
   await expect
     .poll(async () => (await readTable<{ cancelled: boolean }>(page, 'events'))[0]?.cancelled)
     .toBe(true);
-  // Shown once, as theirs; the Dance is still the one listing to add.
-  await expect(listingRow(page, 'Malladi Brothers')).toHaveCount(0);
+  // Shown once, as theirs; the Dance is still a listing to Shortlist.
+  await expect(rows).toHaveCount(3);
   await page.getByRole('main').getByRole('button').filter({ hasText: 'Margam' }).click();
-  await expect(page.getByRole('dialog').getByRole('button', { name: 'Add' })).toHaveCount(1);
+  await expect(
+    page.getByRole('dialog').getByRole('button', { name: 'Shortlist', exact: true }),
+  ).toHaveCount(1);
 });
 
-test('an add whose write failed is tried again and plans the entry once', async ({ page }) => {
+test('a Shortlist whose write failed is tried again and makes the Event once', async ({ page }) => {
   await failWritesOnDemand(page);
   await page.goto('/');
   await finishFirstLaunch(page);
   await storeEntries(page, [brothers()]);
+  await whatsOn(page);
 
   await setFailingWrites(page, true);
   await add(page, 'Malladi Brothers');
@@ -172,7 +191,7 @@ test('an add whose write failed is tried again and plans the entry once', async 
 
   await setFailingWrites(page, false);
   await sheet.getByRole('button', { name: /Try again/ }).click();
-  await expect(sheet.getByRole('link', { name: 'Planned' })).toBeVisible();
+  await expect(sheet.getByRole('button', { name: 'Shortlisted' })).toBeVisible();
   await expect(sheet.getByText('Not saved', { exact: true })).toHaveCount(0);
   expect(await readTable(page, 'events')).toHaveLength(1);
   expect(await readTable(page, 'artists')).toHaveLength(3);
@@ -184,20 +203,21 @@ test('the "schedule changed" hint opens what changed: keep mine, then take a new
   await page.goto('/');
   await finishFirstLaunch(page);
   await storeEntries(page, [brothers()]);
+  await whatsOn(page);
   await add(page, 'Malladi Brothers');
 
   // The rasika makes it theirs: the Schedule then only hints.
-  await page.getByRole('dialog').getByRole('link', { name: 'Planned' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: "I'm here" }).click();
   await page.getByRole('button', { name: 'Note' }).click();
   await page.getByRole('textbox', { name: 'Note' }).fill('front row');
   await page.getByRole('textbox', { name: 'Note' }).blur();
   await expect
     .poll(async () => (await readTable<{ note: string | null }>(page, 'events'))[0]?.note)
     .toBe('front row');
-  await page.goto('/');
+  await whatsOn(page);
   await storeEntries(page, [brothers({ version: 2, startTime: '18:00' })]);
 
-  // The day's own row, not the hero, which holds the same Event as the rasika's next.
+  // Its row in its day on What's on.
   const next = page.locator('[data-list]');
   await next.getByRole('button', { name: 'Schedule changed' }).click();
   const sheet = page.getByRole('dialog', { name: 'Schedule changed' });
@@ -221,7 +241,7 @@ test('the "schedule changed" hint opens what changed: keep mine, then take a new
   await next.getByRole('button', { name: 'Schedule changed' }).click();
   await sheet.getByRole('button', { name: 'Take it' }).click();
   await expect(sheet).toHaveCount(0);
-  await expect(next.getByRole('link', { name: /^Malladi Brothers/ })).toContainText('6:30 pm');
+  await expect(ownRow(page, 'Malladi Brothers')).toContainText('6:30 pm');
   const [taken] = await readTable<{ startTime: string; note: string; scheduleChanged: boolean }>(
     page,
     'events',

@@ -2,6 +2,7 @@
 // states"). Names are shown as stored: the catalog's plain English spelling, or as typed.
 
 import type { DetailValue, Event, EventKind, Item, Role } from '../model';
+import type { ConcertType } from '../store/stage';
 
 /** A Detail as text: "?" when Unknown, "" when Not applicable, else its text. */
 export function detailText(value: DetailValue): string {
@@ -113,6 +114,10 @@ export function creditName(role: Role | null, support = false): string | null {
 }
 
 /** An Event's kind as a word, where one is said: "Concert", "Lecdem", "Dance", "Harikatha". */
+/** A concert's type as a row names it (ADR 0011): "Flute", "Jugalbandi". */
+export const typeName = (type: ConcertType) =>
+  type === 'jugalbandi' ? 'Jugalbandi' : roleName(type);
+
 export const kindName = (kind: EventKind) => kind.charAt(0).toUpperCase() + kind.slice(1);
 
 /** The current time as `HH:MM`, for an Event logged now. */

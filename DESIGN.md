@@ -218,15 +218,16 @@ the fields so they hold no glare.
 
 **Where it appears, and nowhere else:**
 
-- **Season, as a curtain:** full-bleed from the top of the screen behind the hero, the rasika's
-  concert (or with none the title, "Season", `heading`; option C, 2026-11-09), its bottom 16px
-  above the sheet, with the page drawn up over it as a sheet with
-  18px top corners from 112px under the status bar. The field fades halfway to the page over
-  its bottom 80px, so the title holds at least 7:1 (measured). An installed Android web app
-  can't draw under the status bar; the dark ground is the page colour, so there is no seam.
-  In a phone's browser tab, where the install row shows, Season keeps its hero or title on the
-  plain page, without the motif, until the app is installed, so the row stays at one place on every tab (FB-46). What else the shelf
-  holds is to be decided.
+- **Season, as a curtain, and only there** (the Maintainer, 2026-11-11: only the hub has a
+  curtain; the Shortlist and the Diary take a plain tab header): full-bleed from the very top
+  of the screen behind the hero, the rasika's concert (or with none the title, "Season",
+  `heading`), its bottom 16px above the sheet, with the page drawn up over it as a sheet with
+  18px top corners. The field fades halfway to the page over its bottom 80px, so the title
+  holds at least 7:1 (measured). On an installed iPhone it draws up under the clock and the
+  Dynamic Island, with the safe area as padding inside it ("The status bar"). An installed
+  Android web app can't draw under the status bar; the dark ground is the page colour, so
+  there is no seam. In a phone's browser tab it is drawn too: the install strip sits above the
+  tab bar now, so the hero no longer yields to it (2026-11-11).
 - **The Concert summary's top edge, as a curtain:** 96px, the summary drawn up over it with
   18px corners. The page behind it goes grey under the scrim, so only this Concert's field
   carries rose.
@@ -323,8 +324,8 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     8px past the text into the gutter instead of pushing the text in, and a text button's
     label (Remove Laya vinyasam, Edit order) starts or ends on the gutter.
 - **Thumb zone.** Primary actions sit in the bottom third: the fixed "Add Item" bar, the
-  docked search box, "Done" and "Next Item →". Season's bottom bar holds its search bar
-  (2026-11-09); its + sits at the hero's right. The page keeps room for everything docked at the
+  docked search box, "Done" and "Next Item →". What's on's bottom bar holds its search bar
+  (2026-11-09); Season's + sits at the hero's right. The page keeps room for everything docked at the
   bottom (the action, any Undo bars, the tab bar): a field moved to behind them scrolls up above
   them.
 - **Pushed screens' top bar** (decided 2026-11-01). The top centre belongs to the Dynamic Island,
@@ -371,52 +372,98 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
 
 **Screen layouts** (top to bottom; the full rules are DD2–DD5 in plan.md):
 
-- **Season (home, DD2):** option C (the Maintainer, 2026-11-09, chosen from three mockups,
-  replacing the Today · Coming · Past tabs of the same day, and before them one endless
-  timeline and the Earlier page): people care most about today, then the days coming, and only
-  now and then about the past, and picking which concerts to go to by Artist or Sabha must be
-  dead easy. **Nothing sits above the curtain** (the Maintainer, 2026-11-08). The curtain holds
-  the hero, the rasika's own concert; then the install row, "Getting ready for offline…" and the
-  new-catalog row; then, at the top of the sheet, the strip of days, then every day from today
-  on, by day; at the bottom, above the tab bar, the search bar (the Maintainer's review,
-  2026-11-09). Past, on the strip, shows the days gone, newest day first, in
-  place of that list; Today or a date brings it back. Season opens from today, at the very top,
-  with no filter. Coming back from an Event, a sheet or another tab finds Season as it was left,
-  on the days gone or from today, at the same place: kept by the day at the top of the screen as
-  the page goes and held there before the first paint while the days above draw at their real
-  heights, until the rasika scrolls (its anchor found again at each correction, let go once gone,
-  and held on through a page still too short to reach its place), so nothing slides even where
-  the browser has no scroll anchoring. Pushed screens and the other tabs open at their top. The
-  old `/earlier` link opens Season on Past, at its top.
-  - **The hero** (the Maintainer, 2026-11-09, and their review of it; builder's calls marked):
-    the curtain stops being a title and always shows the rasika's own Event on now, else their
-    soonest one still to start, whatever its state (one with no time counts all its day; never a
-    cancelled one): one already being logged ahead of its day counts as much as a Planned one
-    (the Maintainer's iPhone, 2026-11-09: the hero skipped it for a Planned one weeks later, so it
-    and the list's first own row named two different concerts). It sits on a two-column grid, the content and a 24px column at its right, on the 16px
-    gutters and 8px steps: first the word "Now" or "Next" in `sub` 600 (builder: the one word that
-    tells a concert under way from one ahead), the + in the right column; 8px under it the title
-    in `heading` 700, the Artists it is known by (else its Sabha, else "No Sabha yet") with its
-    kind's mark, a chevron in the right column centred on the title's first line; 4px under it
-    the line in `sub` at 80% of the text colour: the Sabha, the day (for Next, "Today" when it is
-    today, so it never reads as on now), the time, and once attended the Item count ("Music
-    Academy · 6:00 pm · 11 Items"). The +'s mark and the chevron end on one right edge, the
-    gutter; the +'s 48px reaches past its column. The whole hero opens the Event, all but its +,
-    so logging starts from the hero. It replaces the Now card in the sheet; the Event also stays
-    in its day, since the list is the whole Schedule and the hero a way in (builder). A long
-    known-by wraps at the same size, never cut or shrunk (builder: "Larger text", rows and
-    headers wrap instead of truncating), the chevron staying on its first line. With no own Event
-    on now or ahead, the curtain falls back to the "Season" title with its + at its right
-    (builder: the page keeps its name when there is nothing of the rasika's to show, and no nudge
-    to add stands in for it); the title is the page's heading for screen readers either way.
+- **Season, the hub** (the Maintainer, 2026-11-11, on the Season spine approved 2026-11-10 and
+  its mockup; it replaces option C of 2026-11-09, one page holding the hero and the whole
+  Schedule): the pick is made on the move, at any hour, so Season answers "what can I still
+  catch" on open, as a few small things. Top to bottom: the curtain with the hero; the status
+  rows ("Getting ready for offline…", the failures no field shows, the new-catalog row); the
+  lapse card, when there is one; Starting soon; the Shortlist tile; the Diary block. It opens at
+  its top, and is found where it was left when come back to. Its bottom stack holds no search
+  bar. **Nothing sits above the curtain** (the Maintainer, 2026-11-08), and the curtain is the
+  one block in every state, the empty Season included, so the + is in view on open.
+  - **The hero** (Part 7; the Maintainer, 2026-11-09 and 2026-11-11). On the curtain: first a
+    48px row holding the hero's word in `sub` 600 at the left ("Now", "Next", or for a choice
+    "Pick your dusk") and at the right two 48px marks, Settings and the +, the +'s mark ending
+    on the gutter. Under it the concert: its title in `heading` 700, the Artists it is known by
+    (else its Sabha, else "No Sabha yet") with its kind's mark; 4px under it a line in `sub` at
+    80% of the text colour: the Sabha, the day (for Next, "Today" when it is today, so it never
+    reads as on now), the time, and once Heard the Item count. **No chevron**: the whole
+    concert opens its Event, ready for its first Item. A long name wraps at the same size,
+    never cut or shrunk. Which concert: the one the rasika is logging now; else one of theirs
+    under way (a Heard one before a Shortlisted one; under way is from its start until 2½
+    hours after it, SF-D30); else their soonest ahead, one with no time counting all its day. A
+    cancelled, Missed or lapsed one never. With none, the row holds the tab's title, "Season",
+    in `heading` 700 in the word's place, and the title is the page's heading for screen
+    readers either way.
+  - **A choice, never a pick** (SF-D19, SF-D33): two or more Shortlisted concerts in one slot,
+    starting within 30 minutes of each other (4:00 and 4:30 clash; 4:00 and 6:00 don't), read
+    as a choice. The word names the slot ("Pick your dusk": morning before 11:30, afternoon
+    before 3:30, dusk before 5:30, then evening; placeholder words), and each concert is its
+    own way in, 12px apart: its name in `title` 600 over its line. A Heard concert is never
+    part of a choice: it is the one the rasika chose.
+  - **Settings and the +.** Settings is a mark on the hub (Part 9), a gear spoken "Settings",
+    in the `warning` amber and spoken "Settings, something to fix" while a Settings row is
+    amber. The + (the Maintainer, 2026-11-08) starts a Concert that is not on the Schedule
+    straight into logging, spoken "Log a Concert"; it still starts another, a past one
+    included, while one is in progress, one per tap.
+  - **Starting soon** (SF-D26, SF-D27, SF-D37): a section label, then up to four rows ("The
+    row"), then its door. Only concerts under way or in the next slot qualify: the next start
+    time today and any within 30 minutes of it, however far off (at 4:10 it shows the 6:00 to
+    6:30 slot, never nothing while today has one). The rasika's Shortlisted ones among them come
+    first, then the rest of the next slot by time and Sabha, then the others under way, the
+    latest to start first, so the pick at 3:40 is never pushed out by concerts long under way.
+    The concert the hero shows as being logged is left out. **The door** is a 48px row in
+    `body` 600 with a chevron on the gutter: the count of the rest ("+4 more"), or with none
+    "All of today"; it opens What's on.
+  - **The Shortlist tile**: the one filled block on the hub (`surface-raised`, 14px corners,
+    16px padding, 24px under Starting soon): "Shortlist" in `body` 600 over a `sub` muted line
+    saying when (today's by slot, "2 at 4:00 pm", or "1 on now"; the days ahead by day, "1 on
+    Mon"; three parts at most), then the count in `title` 600 and a chevron. With nothing
+    Shortlisted it reads "Nothing yet" and carries no count. It opens the Shortlist.
+  - **The Diary block**, shown once a concert is heard: a section header with its chevron
+    ("Diary", opening the Diary), then the last concert heard as one row, its name over
+    "Sabha · day · N Items", opening its Event. No graph and no stats (the Maintainer,
+    2026-11-11).
+  - **Three chevrons, and no more**: Starting soon's door, the Shortlist tile and the Diary
+    block. With nothing left today the empty state's button takes the door's place and its
+    chevron.
+  - **The lapse card** (SF-D24, SF-D39; ADR 0010): at the top of the sheet, on `surface` with
+    14px corners, when a Shortlisted concert's window ended (four hours after its start) with
+    nothing logged. "Were you at any of these?" in `body` 600, then each lapsed concert under
+    its day in `caption`: its name over "Sabha · time", and at its right a 48px round outline
+    button with a check, spoken "I was at …", which makes it Heard (Items optional). "None of
+    these", a quiet text button, lets the rest go: they become Missed, kept and shown nowhere.
+    One in the same slot as a concert the rasika heard, or cancelled, goes without being asked.
+  - **Empty** ("Empty states"): with nothing under way and nothing more today, Starting soon
+    gives way to "Nothing more today" over one line naming the next day's first concert
+    ("Tomorrow starts at 9:00 am with Sankari Krishnan at Music Academy.") and one outline
+    button, "Tomorrow" with the chevron, which opens What's on at that day. With no Schedule
+    and nothing of the rasika's, it reads "Nothing listed yet".
+  - **New catalog prompt** (decided 2026-11-01; FR-038): one row at the top of the hub's sheet, under
+    the status rows: "An updated song catalog is ready." with "Update" and "Later". It never
+    shows while a Concert is being logged. "Later" hides it until the next
+    launch.
+- **What's on** (Part 3; the Maintainer, 2026-11-09 and 2026-11-11): the full list, one tap
+  below Season, never a tab, and it must breathe: it is the most important list. A pushed page:
+  its top bar ("‹ Season"), its name in `heading` 700, the strip of days, then every day from
+  today on, by day; in the bottom stack, its search bar. Opened from the hub it starts from
+  today, at its very top, whatever was picked before; coming back from an Event, a sheet or
+  another tab finds it as it was left, on the days gone or from today, at the same place: kept
+  by the day at the top of the screen as the page goes and held there before the first paint
+  while the days above draw at their real heights, until the rasika scrolls (its anchor found
+  again at each correction, let go once gone, and held on through a page still too short to
+  reach its place), so nothing slides even where the browser has no scroll anchoring. The old
+  `/earlier` link opens it on the days gone, at its top; `/schedule` opens it from today.
   - **The strip of days** (the Maintainer, 2026-11-09, and their review of it; builder's calls
-    marked): one row at the top of the sheet, sliding sideways, with no line under it: **Past**
-    at its left as text (only when a day gone has anything, or a match with a filter on),
-    **Today**, then each date from tomorrow with anything on, slim, never a pill: its weekday in
+    marked): one row under What's on's name, sliding sideways, with no line under it: **Today**, then
+    each date from tomorrow with anything on, slim, never a pill: its weekday in
     `caption`, muted, over its number in `body` ("Tue" / "15"), the month beside the number at
     the first date and where the month turns ("15 Dec", then "16"; builder: the number alone is
-    enough within a month). Past and Today keep the same shape, an empty line over their word,
-    so the words sit on the numbers' line. Each stop is 48px tall and at least 44px wide, 8px
+    enough within a month). Today keeps the same shape, an empty line over its word, so the word sits on the
+    numbers' line. **Past is not on the strip** (SF-D32, 2026-11-11): a day gone is two taps
+    away, the calendar and then the day, for a late log; while the days gone are the ones
+    shown, a Past stop stands at the strip's left, in the same shape, so the strip still says
+    where the rasika is, and Today brings the list back. Each stop is 48px tall and at least 44px wide, 8px
     apart, with 8px above and below the row and its first stop's text on the gutter (builder:
     real breathing room on the 8px grid). It **stays pinned** under the top inset as the page
     scrolls, on the page's background (builder: it is the list's index, and the "what's on this
@@ -432,18 +479,17 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     no pill; ink and weight change over 250ms, at once with reduced motion (the variable font
     takes 500, and moves to it smoothly). Choosing one moves nothing else. The strip
     slides to keep the mark in view; until the list is scrolled into, the day it starts at is
-    marked. A date tapped **starts the list at that day** and takes the page back to its top, so
-    the hero stays where it is and the day sits just under the strip (the Maintainer's iPhone,
-    2026-11-09: a jump that scrolled the hero away read as a glitch, and the same tap landed
+    marked. A date tapped **starts the list at that day** and takes the page back to its top, so the
+    header stays where it is and the day sits just under the strip (the Maintainer's iPhone,
+    2026-11-09: a jump that scrolled the header away read as a glitch, and the same tap landed
     differently from different places); the days before it are a tap on Today away. Today starts
     the list from today again. Each day's label sticks under the strip while its day is on the
     screen, as a festival schedule's do, and fades the rows passing under it over 24px as they
     pass, so none shows half cut (the council, 2026-11-09), but none under a day resting just
     under the strip, whose first row is under nothing (the Maintainer's iPhone, 2026-11-09: that
     row read dimmer than the rest). A stop shows a focus ring only from
-    the keyboard, rounded and inside it. With a filter on, dates with no match drop out, and
-    Past shows only with a match there, but stays while it is the one shown, so the strip always
-    says where the rasika is (builder).
+    the keyboard, rounded and inside it. With a filter on, dates with no match drop out
+    (builder).
   - **The calendar** (the Maintainer's review, 2026-11-09; builder's calls marked): a 48px
     calendar mark at the strip's right end, pinned with it, its mark on the gutter, spoken "Pick
     a day". It opens a sheet as tall as one month (builder: the list stays in view above it):
@@ -458,10 +504,12 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     gone starting Past at it, and closes the sheet.
   - **The search bar** (the Maintainer's review, 2026-11-09, "Maps-style"; builder's calls
     marked): one bar, 48px, shaped as the app's other search fields (the Maintainer, 2026-11-10:
-    it looked too different): 14px corners, the search mark 12px in and the text at 40px, in the shell's bottom bar just above the tab
-    bar, in thumb reach, on Season only, while there is anything in the Season. The shell's bar
+    it looked too different): 14px corners, the search mark 12px in and the text at 40px, in the shell's bottom stack above the
+    install strip and the tab bar, in thumb reach, on What's on only (the Maintainer took it off
+    the hub on 2026-11-11: there it filtered nothing in view), while there is anything in the
+    Season. The shell's bar
     keeps the page clear of it (the last row scrolls up above it) and sits on the safe area; on
-    Season it has no line over it, the list fading out above it over 24px, as under the strip
+    What's on it has no line over it, the list fading out above it over 24px, as under the strip
     (the council, 2026-11-09). It reads "Artist or Sabha…" in muted text after a search mark, on `surface-raised` in both
     themes (builder: in dark that is the search field's own fill, one step lighter than the page,
     with no border or shadow, depth by lightness). Tapped, it opens the search sheet. With a
@@ -469,20 +517,20 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     as many parts as fit whole, then "+N" for the rest ("Music Academy +1"), so no name is ever
     cut and more being on always shows (the council, 2026-11-09; only a first part too long
     alone ends in an ellipsis), and one 48px x at its right, spoken "Clear
-    filters", that clears it all. While Season loads, the bar keeps what it showed, so the page
+    filters", that clears it all. While What's on loads, the bar keeps what it showed, so the page
     never moves under the place it is held at.
   - **The search sheet** (the Maintainer's review, 2026-11-09; builder's calls marked): opened from
     the bar with its field focused, so the keyboard rises at once (builder: tapping a search bar
     says "I'll type", as in Maps; the second recorded exception to no autofocus, after the Item
     editor's), 85% of the screen tall, sitting above the keyboard (the council, 2026-11-09: the
     names need room to browse). No title: the 48px field, "Artist or Sabha…", is its first line,
-    level with the close (the council: a title only repeated it); under it Mine (only the
-    rasika's own Events; shown once there is a Schedule, since without one every row is theirs)
-    and the kinds the Schedule has, Dance, Lecdem and Harikatha, as text toggles, 8px apart: off
+    level with the close (the council: a title only repeated it); under it the
+    kinds the Schedule has, Dance, Lecdem and Harikatha, as text toggles, 8px apart (Mine went on
+    2026-11-11, SF-D28: the Shortlist is its own tab): off
     in muted text, on in full contrast and 600 with a check after the word, as on the names under
     them, never a filled pill. Each is as wide on as off, the check's room and the 600 width held
     either way, so turning one on moves nothing (the Maintainer's iPhone, 2026-11-09: Harikatha's
-    check and weight pushed into Lecdem), and all four fit one line at 390px (the council,
+    check and weight pushed into Lecdem), and all fit one line at 390px (the council,
     2026-11-09: with the check's room held after each, 8px apart sets the words 28px apart). Then the
     names: before typing, those picked, then every other name in the Season, A to Z, to browse
     (the council, 2026-11-09); as the rasika types, the suggestions from the names in
@@ -496,47 +544,29 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     Picks of one sort widen the list (TM Krishna or Sanjay; an Artist and a group are one sort,
     the performers); picks of different sorts narrow it (TM Krishna at the Academy); kinds
     picked together widen each other. Every filter applies to the days ahead and the days gone
-    alike, to own Events as to listings, and prunes the strip and the calendar's dots; the hero
-    is never filtered, since it is where the rasika logs (builder). A list the filter empties
-    says "Nothing here matches." with one outline "Clear filters" under it, which turns every
-    filter off. Filters last while the app is open, across Past and Events, and **not across
-    launches** (builder): Season opens whole each time, so a filter set yesterday never hides a
-    Concert today without being seen. The + brings Season back from today, at its top, even from
-    Past (builder): the Concert it makes is today's, and the hero holds it.
-  - **Each day:** its label (as Next's were, sticking under the strip), then the rasika's own Events by start time
-    (Planned, Attended, being logged, cancelled and kept, and those made by hand), then the Schedule's other entries for that day, quieter: muted and not bold, with no button of
-    their own. An entry the rasika planned shows once, as theirs. A day with nothing in it is
-    not shown. Rows far from the screen aren't drawn until scrolled near, each day's held at their
-    likely height (a 64px row each, and 20px more for a printed title); the label is always drawn,
-    outside what skips drawing, since Safari moves a sticky label inside it only once a fling's frame
-    is done and the rows ran over it at a day's change (the Maintainer's iPhone, 2026-11-10): at 390px, 56 of the 2026-27 feed's 60 days draw at exactly that height and the rest within 40px, where a name wraps, so a browser with no scroll anchoring moves the page at most that much, once, as such a day first draws; with 391 entries, scrolling at 4x CPU
-    slowdown holds p95 under 28ms a frame.
-  - **The +** (the Maintainer, 2026-11-08, replacing walkthrough S1's "+ Log a Concert" bar):
-    a Concert not on the Schedule is the rarer way in, so it is a 48px + icon button in the
-    hero's right column (or at the Season title's right), spoken "Log a Concert", its mark on the gutter.
-    The curtain is the one block in every state, the empty Season included, and the page opens
-    at its top, so the + is always in view on open. It still starts another Concert, a past one included, while one
-    is in progress, one per tap. Season's bottom bar holds only its search bar (2026-11-09).
-  - **Now** (walkthrough S1; in the hero since option C, 2026-11-09, no longer a card in the
-    sheet): the Event that holds Now is the hero's, tapped to open it. A Planned one opens on its
-    Event screen, whose bar holds "Start logging", so the Season page keeps one filled button.
-  - **Every Event row** (the hero and the list's own rows) leads with the Artists the Event is known by
-    (walkthrough S2; see Event below), the Sabha first on the line under it. Before any Artist,
-    the row leads with the Sabha, or "No Sabha yet".
-  - **Empty home** (decided 2026-11-01): with nothing logged, planned or listed, home is the
-    title with its + alone (2026-11-08), and one quiet calendar mark, no words, at about a third
-    of the sheet's height; no strip or filter, as there is nothing to choose between. The days from
-    today on with nothing in them, unfiltered, show the same mark, spoken "Nothing ahead" (the
-    days gone, "Nothing yet"). Without a Schedule (no feed delivered yet) the list is the
-    rasika's own Events alone, in the same order, opening the same way. ("Lecdem" joins with the Lecdem variant, T063; Dance and
-    Harikatha with T122.)
-  - **New catalog prompt** (decided 2026-11-01; FR-038): one row at the top of home, under
-    the status line: "An updated song catalog is ready." with "Update" and "Later". It never
-    shows while a Concert holds Now through logging activity. "Later" hides it until the next
-    launch.
-  - **The rasika's rows and the Schedule** (the Maintainer, 2026-11-07; T061): a Planned Event
+    alike, to own Events as to listings, and prunes the strip and the calendar's dots; the hub
+    is never filtered (builder). A list the filter empties
+    shows the empty state, "Nothing here matches", with one outline "Clear filters" under it,
+    which turns every filter off. Filters last while the app is open, across the days gone and Events, and
+    **not across launches** (builder): What's on opens whole each time, so a filter set yesterday
+    never hides a Concert today without being seen.
+  - **Each day:** its label (sticking under the strip), then every concert that day once, **by
+    start time** (then Sabha), the rasika's own among the rest (SF-D31), each as "The row". A
+    listing the rasika Shortlisted or heard shows once, as theirs. **Today starts from now**:
+    what is over (2½ hours after its start, unless the rasika is still logging it) folds to one
+    48px line, "Earlier today" with its count and a down chevron, open at a tap, when they
+    are back in their slots; a concert under way carries the dot. A day gone, a day ahead and
+    a list a filter narrowed show whole. A day with nothing in it is not shown. Rows far from
+    the screen aren't drawn until scrolled near, each day's held at their likely height (a
+    64px row each, and 20px more for a printed title and for the accompanists); the label is
+    always drawn, outside what skips drawing, since Safari moves a sticky label inside it only
+    once a fling's frame is done and the rows ran over it at a day's change (the Maintainer's
+    iPhone, 2026-11-10).
+  - **Empty**: a list the filter empties, and a Season with nothing listed, show the empty
+    state ("Empty states"); the days gone with nothing say "Nothing yet".
+  - **The rasika's rows and the Schedule** (the Maintainer, 2026-11-07; T061): a Shortlisted Event
     whose Schedule entry is cancelled stays in its day until the rasika removes it (Delete
-    Event), even once its start time has passed,
+    Event) or its time passes (it then lapses to Missed unasked, ADR 0010),
     its title muted and a cancelled mark (a calendar with a cross) at the row's right, spoken
     "Cancelled". One the Schedule changed after the rasika edited it carries a calendar with "!"
     there, spoken "Schedule changed": a 48px button of its own beside the row, which opens what
@@ -548,14 +578,50 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     with a check. Billed Artists list a name per line, the Role under it. Two buttons share the
     bottom: "Keep mine" (outline, an X) and "Take it" (primary, a check). Either closes the
     sheet once saved; a failure shows its row in the sheet. A change to Concert that takes a
-    typed title offers Undo, as a kind change does. Season no longer hides a cancelled Event;
-    it is never Now.
-  - **Which Event is Now** (decided 2026-11-01; D3, refined by D17): an Event being logged (an
-    Item added or changed in the last 60 minutes) holds Now while it is inside its window.
-    Otherwise the Event with the nearest start holds it. Any other Event in its window shows as
-    one smaller line under the block, tapped to open. A Concert lets go of Now by itself after
-    an hour without logging or at the end of its window; nothing ends it by hand (walkthrough
-    S13, 2026-11-05).
+    typed title offers Undo, as a kind change does. A cancelled Event is never
+    hidden while it is ahead, and is never on now.
+- **The row** (Part 4; ADR 0011; the shared list row, on Starting soon, What's on, the
+  Shortlist and the Diary): the lead in `body`, in the text colour, with its kind's mark
+  before it and, when the concert isn't vocal, its type after it in `caption`, muted ("Flute",
+  "Veena", "Jugalbandi"); a printed title on its own `sub` muted line; the accompanists on a
+  `sub` muted line, joined by " · "; then "Sabha · time" in `sub`, muted. 10px above and below:
+  64px with two lines, 20px more for each line added, the hairline drawn inside. No faces, no
+  button on the row, and no chevron. The rasika's own carry a quiet mark, never bold or a card
+  (SF-D31): a small filled star after the time once Shortlisted, spoken "Shortlisted"; the Item
+  count once Heard ("· 9 Items"). **On now is a dot** (the Maintainer, 2026-11-11, option B of
+  two mockups, "for now"): a concert under way keeps its start time, in the text colour, with
+  an 8px ink dot before it, spoken "On now"; never "Now, since", never rose, and it never
+  moves. A cancelled one is dimmed to 60%, with the cancelled mark at its right. A tap opens
+  the listing sheet; a Heard row, or one the rasika made by hand, opens its Event.
+- **The listing sheet** (Parts 1 and 5; the Maintainer, 2026-11-08 and 2026-11-11, replacing
+  "+ Add" and "Planned"): titled by the concert's lead with its kind's mark, every fact led by
+  its mark (a "T" for the title, calendar, clock, building, people): the date, time, Sabha and
+  each billed Artist with their Role and group under the name. Two 56px buttons share the
+  bottom. **Shortlist**, outlined, with a star: it makes the rasika's Event (one id per
+  attempt, ADR 0007, and a new attempt once its Event was deleted) and then reads
+  **Shortlisted**, the star filled; tapped again it takes the concert off the Shortlist,
+  deleting that Event, synced, with Undo (SF-D22). **"I'm here"** (placeholder words), filled:
+  it opens the Event ready for its first Item, Shortlisting it first if need be; the first
+  Item makes it Heard (ADR 0010). A concert whose window has passed offers only that button,
+  as "I was there". A cancelled entry shows the cancelled mark and has neither.
+- **Shortlist** (Part 6): a plain tab header, then the concerts the rasika Shortlisted, by
+  day, today first ("Today", then "Mon 21 Dec"), each as "The row"; a row opens its sheet,
+  where Shortlisted takes it off. Concerts starting within 30 minutes of each other are one
+  slot: a slot of two or more is led by a `caption` line, its time at the left and its count at
+  the right, so a clash is simply one slot with two rows. One whose time has passed is not
+  here: the hub asks about it once. Empty, it shows the empty state, with one outline button
+  to What's on.
+- **Diary** (Part 8, cut to its list by the Maintainer on 2026-11-11): a plain tab header,
+  then every concert the rasika has heard, newest first, each as "The row" with its day in the
+  time's place ("Sat 19 Dec · 6:30 pm · 9 Items"), opening its Event. Empty, it shows the
+  empty state. The Wrapped's stats and Cards come later, at its top; their "Your Season so
+  far" header takes another title, so "Season" names only the tab.
+- **Empty states** (the Maintainer, 2026-11-11): shadcn's Empty, in the app's tokens
+  (`app/src/components/ui/empty.tsx`), only where something is truly empty: a 48px mark on
+  `surface-raised` with 14px corners, a `body` 600 title, one `sub` muted line, and at most
+  one outline button, centred, 32px above and below. An Event with no Items ("No Items yet",
+  where logging starts, Add Item right under it in the bar); the hub with nothing left today;
+  an empty Shortlist; an empty Diary; a search with no match; a Season with nothing listed.
 - **Event (DD3):** top to bottom, heading → Stage → Note → Items (walkthrough S2, S3, decided
   2026-11-04, replacing the Sabha-led block and the running order before Stage).
   - **Heading:** the Artists the Event is known by, in `title`, wrapping rather than truncating:
@@ -580,20 +646,14 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     bar ready (decided 2026-11-01). Left with nothing entered (only the kind, date and time it
     was made with), by the back gesture, the top bar or a tab, even after a reload, it leaves no
     trace: no row, no Undo bar, no "Not saved" (the Maintainer, 2026-11-08). Anything entered keeps it, an edit that failed to save included. It leaves no row only with proof it never left the phone (its birth still queued and never sent, and nothing heard from the server); otherwise it is deleted as a tombstone that syncs, so the server keeps no empty Concert. No page anywhere may have it open: from the + tap, before it is written, every open page of it in any tab holds a lock named for it, shared, and taking it back needs that lock alone and at once, so a tab with it open, or another tab's Season sweeping as it is born, never loses it; with no Web Locks it is kept. When unsure it is kept too: a new Sabha or Artist still typed, being written or failed, whose entry names no Concert, keeps it (PR #30 reviews).
-  - A fixed full-width 56px bar at the bottom holds the one action for the Event's state
-    (decided 2026-11-01): "Start logging" on a Planned Event that is only being viewed (DD7),
-    "Add Item" once it is started. Nothing follows the last Item: a Concert ends on its own
-    (walkthrough S13; see "Finishing a Concert").
-- **A Schedule entry on Season** (the Maintainer, 2026-11-08, replacing the Schedule screen of T061; its
-  route goes to Season): a row of Season's timeline, quieter than the rasika's own: the Artists
-  it is billed by (a Group by its name) with its kind's mark, or its Sabha when nobody is billed;
-  a printed title under it; then "Sabha · time". No button on the row: a tap opens its sheet,
-  titled by the same name, with every fact led by its mark (a "T" for the title, calendar, clock,
-  building, people): the date, time, Sabha and each billed Artist with their Role and group
-  under the name. One filled "+ Add" at the bottom plans it as the Schedule add did (one id per
-  attempt, ADR 0007, and a new attempt once its Event was deleted); once added the row becomes the rasika's in its day, and the sheet's
-  button becomes an outlined "Planned" with a calendar check, opening the Event. A cancelled entry stays on its day, dimmed, with the cancelled mark; its sheet shows the mark and has
-  no add.
+  - A fixed full-width 56px bar at the bottom holds "Add Item", whatever the Event's stage
+    (the Season spine, 2026-11-11, replacing "Start logging" on a Planned Event, DD7): the first
+    Item makes a Shortlisted concert Heard (ADR 0010), so nothing stands before logging. An
+    Event with no Items shows the empty state where its Items go, "No Items yet", right above
+    the bar. Nothing follows the last Item: a Concert ends on its own (walkthrough S13; see
+    "Finishing a Concert").
+  - Its top bar's back chevron names the page it was opened from, in its tab: "‹ Season",
+    "‹ What's on", "‹ Shortlist" or "‹ Diary" ("Navigation"). The tab bar stays in view.
 - **Item editor (DD4):** top bar "‹ Music Academy" (the Event's Sabha). The bottom bar holds
   "Next Item →", outlined, at the left and "Done", the filled main action, at the right
   (walkthrough S9, decided 2026-11-04). Once picked, the title is the first content line, with
@@ -610,7 +670,8 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   fold, Improvised, holding Alapana, Tanam, Niraval, Kalpana swaram and the Laya vinyasam as
   rows of the same kind (walkthrough S14). Bottom bar: "Done", "Next Item →".
 - **Wrapped (DD5):** headline numbers → the range as a quiet subtitle → a vertical list of 9:16
-  Card previews, each with its own Share.
+  Card previews, each with its own Share. Not built yet: it joins the Diary, at its top (the
+  Season spine, 2026-11-11).
 - **First launch (decided 2026-11-01; FR-050, FR-042, FR-049):** one step per screen, in order:
   Welcome (wordmark, one sentence, "Continue with Google" as the 56px primary) → Google sign-in
   → Consent 1 → Consent 2 → "Getting ready to log offline" with real progress → the empty home.
@@ -619,7 +680,9 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   shows only once the catalog is stored. Each failure (sign-in cancelled, no signal, a Google
   error, the download stopping) is one line of text and one "Try again", on the step it
   happened, keeping the answers already given.
-- **Settings** (laid out 2026-11-03 for Phase 4): the season first, as three icon-led rows,
+- **Settings** (laid out 2026-11-03 for Phase 4; a pushed page since 2026-11-11, opened from
+  the hub's Settings mark, with "‹ Season" in its top bar and its name in `heading`): the
+  season first, as three icon-led rows,
   each with its words in its accessible name and amber when something is wrong: offline
   readiness ("Ready offline"), persisted storage ("Storage protected", amber "Storage not
   protected" when the browser hasn't promised to keep it), and Export with the date of the last
@@ -656,6 +719,29 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
      collapsed.
 
   Each screen gets a VoiceOver and a TalkBack pass before it is called done.
+
+## The status bar
+
+Decided by the Maintainer on 2026-11-11. An installed iPhone app draws under the clock and the
+Dynamic Island (`apple-mobile-web-app-status-bar-style: black-translucent` in
+`app/index.html`), so the app, not iOS, paints that band.
+
+- **The hub's curtain reaches the top of the screen**, with the safe area as padding inside
+  it, so the motif shows under the clock.
+- **Every other screen paints the band itself**: a fixed strip as tall as the top inset, in
+  `--status-band`, above what scrolls, so no row passes under the clock. Over the hub's curtain
+  the band is clear, and takes its colour once the sheet has scrolled up to it (150ms).
+- **Dark:** `--status-band` is the page colour, `background`, the screen's own surface.
+- **Light:** iOS draws the clock white whenever the page goes under it, so a white band would
+  hide it. `--status-band` is a rose ink, oklch(0.24 0.045 12), on every screen; and the hub's
+  light curtain takes a wash of the same ink under the clock, fading to clear over 1.6 times
+  the inset (measured on the mockup: the clock holds 4.5:1 or better). This departs, in light
+  only, from "each screen's own surface colour"; the Maintainer saw it on the mockup.
+- Nothing is drawn where there is no top inset: a browser tab, Android, a desktop.
+- iOS reads the setting when the app is added to the Home Screen: an app added before
+  2026-11-11 keeps its black bar until it is removed and added again. On an iOS that reports
+  no top inset to an installed app (WebKit bug 301994, seen on 26.1), the curtain simply
+  starts under the bar.
 
 ## Elevation & Depth
 
@@ -895,13 +981,16 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   resolved; it never covers or disables Add Item. Its exact wording is settled with the rest of
   the system messages.
 - **Install** (eng review D15, drawn 2026-11-03): on a phone with the app open in a browser tab,
-  every screen shows one persistent row under its title, with no dismiss. On iPhone it draws
+  every screen but the Item editor shows one thin persistent strip directly above the tab bar,
+  the same on every tab, with no dismiss (the Maintainer, 2026-11-11, replacing the row under
+  each title; where What's on's search bar is, the stack is search bar, strip, tab bar). On iPhone it draws
   Safari's steps as marks (the Share glyph, then Add to Home Screen); on Android it has one
   Install button that opens the browser's prompt. Installed, or on a desktop, it shows nothing.
   Why it stays: Safari can clear a website's storage after 7 days without a visit, and leaves
-  installed apps alone. On Season, Wrapped and Settings one tab header draws it 8px under the
-  title, so it sits at the same place on each tab (FB-46): a 48px row with its hairline drawn
-  inside, its text on the gutter. As built and accepted 2026-11-03:
+  installed apps alone. It is part of the shell's bottom stack, so it sits at the same place on every screen
+  (FB-46): a 36px strip on iPhone, 44px on Android where it holds a button, in `sub`, muted,
+  its hairline drawn inside at its top, its text on the gutter. As drawn 2026-11-03 and moved
+  2026-11-11:
   - **iPhone** (and iPad): "Add to Home Screen:", then Tabler IconShare2 (Safari's Share glyph),
     a small › for "then", and IconSquarePlus (Add to Home Screen). The marks grow with the text
     and wrap together. The row is read as "Install the app so your season stays on this phone.
@@ -990,6 +1079,18 @@ Every system message on the logging screens, drafted 2026-11-01 for the Maintain
 (D28). Builders copy these strings rather than writing their own; tests may assert them. The
 voice: plain, short, the glossary's words, no exclamation marks, never blaming the rasika.
 
+**The Season spine's words are placeholders** (2026-11-11): the Maintainer has approved the
+tabs' names (Season, Shortlist, Diary) and "Shortlist" / "Shortlisted", and none of the rest.
+They live in `MESSAGES.spine` (`app/src/screens/messages.ts`) and join this table once
+approved: "Pick your dusk" (and morning, afternoon, evening), "Starting soon", "+4 more", "All
+of today", "On now", "I'm here", "I was there", "Earlier today", "Nothing yet", "2 at 4:00 pm",
+"1 on Mon", "1 on now", "Were you at any of these?", "I was at …", "None of these", "Nothing
+more today", "Tomorrow starts at 9:00 am with … at …", "Tomorrow", "Nothing listed yet",
+"Concerts show here once the Schedule is out.", "Nothing shortlisted", "Shortlist a concert
+from What's on to keep it here.", "Nothing heard yet", "Every concert you log is kept here.",
+"No Items yet", "Add each piece as it is sung.", "Nothing here matches", "What's on",
+"Settings, something to fix".
+
 | Where                        | When                                                                                                                                                                                                           | Text                                                                                                                                                                                                                      | Action                     |
 | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
 | Welcome                      | First launch                                                                                                                                                                                                   | **Carnatic Wrapped** · "Log the Concerts you attend this December, even with no signal, and see your season whole."                                                                                                       | Continue with Google       |
@@ -1025,7 +1126,7 @@ voice: plain, short, the glossary's words, no exclamation marks, never blaming t
 | Any screen, top              | An Export from "Still opening" timed out: the file holds only the changes not saved, and gets no check badge                                                                                                   | The Export's name, after Export: "This Export holds only the changes not saved. Your season was still opening; export again once it opens."                                                                               | Export                     |
 | Item, Artist, any screen top | A delete failed; Try again deletes it and offers Undo, Dismiss keeps it. At the top it is named by what it was, as Not deleted · Concert, Mon 2 Nov                                                            | "Not deleted" · "Not deleted on this phone."                                                                                                                                                                              | Try again · Dismiss        |
 | Item                         | A repick failed; never retried, the pick is kept for Export                                                                                                                                                    | "Not changed" · "Not changed on this phone."                                                                                                                                                                              | Export · Dismiss           |
-| Any screen, top              | Failures no field on screen shows (a new Concert, Start logging, an added Artist, values from before a relaunch). One is named by what it was, as Not saved · Concert, Mon 2 Nov, 9:17 am; several are counted | "2 not saved" · "2 changes not saved on this phone."                                                                                                                                                                      | Try again · Export · Clear |
+| Any screen, top              | Failures no field on screen shows (a new Concert, a Shortlist, an added Artist, values from before a relaunch). One is named by what it was, as Not saved · Concert, Mon 2 Nov, 9:17 am; several are counted | "2 not saved" · "2 changes not saved on this phone."                                                                                                                                                                      | Try again · Export · Clear |
 | Clear's sheet                | Before Clear removes anything                                                                                                                                                                                  | "Is the Export saved where you can find it?" · "Clearing removes 2 changes from this phone."                                                                                                                              | Yes, clear · Not yet       |
 | Any screen, top              | The Export file can't be made at all                                                                                                                                                                           | "Export failed" · "The Export couldn't be made on this phone."                                                                                                                                                            | Try again                  |
 | Export button                | Handed over: a check on the button; from a store that couldn't be read, its name says so                                                                                                                       | "Exported" · "This Export holds only the changes not saved. The stored season couldn't be read; it's still on this phone."                                                                                                |                            |
@@ -1106,3 +1207,4 @@ in the phase that builds it):
 | 2026-11-10 | The Maintainer, on violin concerts: violinists lead a Concert that bills no singer or lead instrument, as equals, never as fallbacks ("they shouldn't be fallbacks though right. Some of them are equal"), so the Akkarai Sisters or Ganesh and Kumaresh read as both names. Someone the Schedule credits as support (`support: true`, as 11 Nov at Madhuradhwani, "Violin with support") never names the Event but stays on Stage in their Role. |
 | 2026-11-10 | The Maintainer's three fixes on the live build. Season's search bar takes the search field's shape (14px corners, the mark 12px in, the text at 40px) in place of a fully round pill: it "looks too different" from the other search bars; Mine and the kinds stay text toggles, unlike the Item chips. A fast fling from one day to the next no longer runs rows over the day's label: the rows, not the day, skip drawing while far from the screen, since Safari moves a sticky label inside paint containment only once a fling's frame is done. On an Event, the "Add Artist" row under Stage goes, and a + at the right of Stage's heading opens the Artist picker, spoken "Add Artist". The builder's call: its 48px reaches past the heading's line, which keeps its height. Asked for as a pencil; one council round at 390px (Codex 7.8, Claude reviewers 8 and 7) agreed that a pencil reads as editing while it opens Add Artist, and the Maintainer chose the + they offered. |
 | 2026-11-11 | The Season spine, the Maintainer's decisions on the approved design (docs/designs/season-spine.md): tabs Season · Shortlist · Diary, Settings a mark on the hub; "Interested" is Shortlist and the heard concerts' tab the Diary, "Wrapped" kept for the stats and Cards to come; What's on one tap below Season, never a tab; only the hub has a curtain; exactly three chevrons on the hub (+N more, the Shortlist tile, the Diary block), none on the hero or rows; the install row a thin strip above the tab bar on every tab; the hub's curtain under the iOS status bar and the band painted in each other screen's surface; shadcn Empty for true empties; the shared parts built once; each tab its own back stack, the tab bar kept on an Event, the active tab back to its top. ADR 0010 keeps `planned` as the stored word for Shortlisted and keeps Missed, hidden; ADR 0011 reads a concert's type from its billing. |
+| 2026-11-11 | The hub's mockup (https://claude.ai/artifact/9M5ghrqKMGgMiJ57bQDicb) accepted by the Maintainer, with two changes: no search bar on the hub (it stays on What's on), and a concert under way shows an ink dot before its start time, in full ink, never "Now, since" (option B of two mockups, "for now"). Built as one change with the Season spine: the hub, What's on, the row, the listing sheet (Shortlist, "I'm here"), the Shortlist and the Diary, the lapse card, the tab bar with an icon over each word, the install strip above it, and the band under the iOS status bar (a rose ink in light, where the clock is white). One council round at 390px (two Claude reviewers and Codex): built, the hero's row at one place in every state, accompanists' names never broken mid-name, a clash set apart on the Shortlist, "None of these" in the text colour, room under an Event's empty state, the row's focus ring inside it; not built, as against a decision of the Maintainer's, the time in ink on every row, the clash left out of Starting soon, an ink Settings mark, and no separator before the dot. Codex's review of the data change: the app never changes a status by itself, taking a star off never deletes a log, and a log is never hidden (ADR 0010). |

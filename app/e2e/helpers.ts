@@ -147,3 +147,24 @@ export async function storagePersisted(
     StorageManager.prototype.persist = () => Promise.resolve(persisted);
   }, persisted);
 }
+
+/** A bottom tab, not a back link to the same place. */
+export const tab = (page: Page, name: string) =>
+  page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name, exact: true });
+
+/**
+ * The hub, whatever page Season was left on: its tab once to reach it, and once more, as the
+ * tab that is on, to return to its top.
+ */
+export async function openHub(page: Page): Promise<void> {
+  await tab(page, 'Season').click();
+  await tab(page, 'Season').click();
+  await expect(page.locator('[data-curtain-field]')).toBeVisible();
+}
+
+/** Settings, opened as a rasika does: the hub, then the mark on its curtain. */
+export async function openSettings(page: Page): Promise<void> {
+  await openHub(page);
+  await page.getByRole('link', { name: /^Settings/ }).click();
+  await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
+}

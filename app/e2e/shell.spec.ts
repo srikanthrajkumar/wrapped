@@ -18,7 +18,7 @@ test('first launch leads to the empty home, once', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Carnatic Wrapped' })).toBeVisible();
   await finishFirstLaunch(page);
   const tabs = page.getByRole('navigation', { name: 'Main' }).getByRole('link');
-  await expect(tabs).toHaveText(['Season', 'Wrapped', 'Settings']);
+  await expect(tabs).toHaveText(['Season', 'Shortlist', 'Diary']);
   await expect(tabs.first()).toHaveAttribute('aria-current', 'page');
   // Day one: the title with its + alone, no day yet, and no bottom bar (2026-11-08).
   await expect(page.getByRole('button', { name: 'Log a Concert' })).toBeVisible();

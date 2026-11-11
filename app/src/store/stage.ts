@@ -122,3 +122,43 @@ export function knownNames<T extends Partial<Pick<Appearance, 'group'>>>(
   }
   return names;
 }
+
+/** A concert's type as a row names it (ADR 0011): its lead's Role, or a Jugalbandi. */
+export type ConcertType = Role | 'jugalbandi';
+
+/** The Roles a type is named for; a vocal concert, the usual kind, shows none. */
+const TYPED: readonly Role[] = [
+  'veena',
+  'chitravina',
+  'flute',
+  'nagaswaram',
+  'saxophone',
+  'mandolin',
+  'violin',
+  'mridangam',
+  'thavil',
+  'ghatam',
+  'khanjira',
+  'morsing',
+];
+
+/**
+ * A Concert's type, read from its Stage each time and never stored (ADR 0011): the Role of the
+ * Artists it is known by; two of different Roles are a Jugalbandi. None for a vocal Concert,
+ * for one whose Stage carries no Roles, and for a Lecdem, a Dance and a Harikatha, which keep
+ * their kind's mark.
+ */
+export function concertType(kind: EventKind, stage: readonly Known[]): ConcertType | null {
+  if (kind !== 'concert') return null;
+  const roles = new Set(knownBy(kind, stage).map((appearance) => appearance.role));
+  roles.delete(null);
+  if (roles.size > 1) return 'jugalbandi';
+  const [role] = roles;
+  return role && TYPED.includes(role) ? role : null;
+}
+
+/** Everyone on Stage the Event is not known by, in Stage order: its accompanists. */
+export function accompanying<T extends Known>(kind: EventKind, stage: readonly T[]): T[] {
+  const known = new Set(knownBy(kind, stage));
+  return stage.filter((appearance) => !known.has(appearance));
+}

@@ -15,6 +15,7 @@ import {
   IconDots,
   IconGripVertical,
   IconMetronome,
+  IconMusic,
   IconPlus,
   IconTrash,
 } from '@tabler/icons-react';
@@ -30,10 +31,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty';
 import { cn } from '@/lib/utils';
 import { fold } from '../catalog/fold';
 import { EVENT_KINDS, newId, type Colour, type EventKind, type Item, type Role } from '../model';
-import { changeKind, editEvent, setStatus } from '../store/events';
+import { changeKind, editEvent } from '../store/events';
 import { moveItemBy } from '../store/items';
 import { addAppearance, editAppearance, renameArtist, usualRoles } from '../store/people';
 import {
@@ -58,7 +66,9 @@ import {
   Screen,
   SectionHead,
   TopBar,
+  useBack,
   useFocusOnOpen,
+  useKeptScroll,
 } from './components/layout';
 import { NamePicker, RoleChips } from './components/NamePicker';
 import { SheetFrame, useLingering } from './components/sheet-frame';
@@ -67,6 +77,7 @@ import { Chip } from './components/DockedSearch';
 import { KindMark } from './components/kind-mark';
 import { creditName, dayText, eventLine, itemLine, itemTitle, kindName, timeText } from './format';
 import { deleteConcert, deleteItem, removeArtist } from './deletes';
+import { MESSAGES } from './messages';
 import { offerUndo, undo, undoMessage } from './undo';
 import type { SaveFeedback } from './save-feedback';
 
@@ -113,6 +124,9 @@ function EventView({ eventId }: { eventId: string }) {
   const [coloursFor, setColoursFor] = useState<string | null>(null);
   const [appearanceFor, setAppearanceFor] = useState<string | null>(null);
   const feedback = useSaveFeedback();
+  // Back to the page it was opened from, in its tab (screens/nav.ts).
+  const back = useBack();
+  useKeptScroll(event !== undefined && items !== undefined && appearances !== undefined);
   // The Artist sheets, kept while they slide closed (an Artist removed included).
   const [colours, coloursOpen] = useLingering(
     appearances?.find((a) => a.id === coloursFor) ?? null,
@@ -156,7 +170,7 @@ function EventView({ eventId }: { eventId: string }) {
   if (event === null) {
     return (
       <>
-        <TopBar back={{ href: '/', label: 'Season' }} />
+        <TopBar back={back} />
         <p className="py-6 text-body text-muted-foreground">This Concert is not on this phone.</p>
       </>
     );
@@ -165,7 +179,6 @@ function EventView({ eventId }: { eventId: string }) {
   const known = knownBy(event.kind, appearances);
   const knownAs =
     known.length > 0 ? joinNames(knownNames(known, (a) => nameShown(feedback, a.artist))) : null;
-  const target = (field: string) => eventTarget(eventId, field);
 
   // Deletes go through save feedback as their own kind (screens/deletes.ts): a failed one reads
   // "Not deleted", its Try again offers Undo too, and nothing is thrown.
@@ -212,7 +225,7 @@ function EventView({ eventId }: { eventId: string }) {
   return (
     <>
       <TopBar
-        back={{ href: '/', label: 'Season' }}
+        back={back}
         right={
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -289,6 +302,19 @@ function EventView({ eventId }: { eventId: string }) {
       )}
 
       <NoteField eventId={eventId} stored={event.note} />
+
+      {items.length === 0 && (
+        // Where logging starts: nothing sung yet, and Add Item right under it, in the bar.
+        <Empty className="pt-12 pb-10">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <IconMusic aria-hidden />
+            </EmptyMedia>
+            <EmptyTitle>{MESSAGES.spine.empty.items.title}</EmptyTitle>
+            <EmptyDescription>{MESSAGES.spine.empty.items.line}</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      )}
 
       {items.length > 0 && (
         <section aria-labelledby="items" className="pt-8 pb-4">
@@ -400,20 +426,9 @@ function EventView({ eventId }: { eventId: string }) {
           >
             Done
           </Button>
-        ) : event.status === 'planned' ? (
-          // The bar's own change, to Add Item, shows the save.
-          <Saved target={target('status')} quiet>
-            <Button
-              size="lg"
-              className="w-full"
-              onClick={() =>
-                void saveWith(target('status'), 'attended', () => setStatus(eventId, 'attended'))
-              }
-            >
-              Start logging
-            </Button>
-          </Saved>
         ) : (
+          // Logging starts here, whatever the Event's stage: the first Item makes a Shortlisted
+          // concert Heard (ADR 0010), so nothing stands before it.
           <Button size="lg" className="w-full" asChild>
             <Link href={`/event/${eventId}/item/new`}>
               <IconPlus aria-hidden />
