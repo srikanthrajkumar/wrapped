@@ -5,16 +5,26 @@
 // own carry a quiet mark, never bold or a card (SF-D31): a star once Shortlisted, the Item count
 // once Heard. One under way keeps its start time, in full ink, with a dot before it (the
 // Maintainer, 2026-11-11). A cancelled one is dimmed and marked.
+//
+// How each line holds its shape (the Maintainer, 2026-11-11, from a mockup of every variant):
+// - the lead wraps and is never cut; its type stays with its last word, never alone on a line;
+// - a printed title takes two lines at most, then "…";
+// - the accompanists take one line: as many whole names as fit, then "+N" (fit-names.ts);
+// - the last line breaks only between its facts: the time never parts from its dot and star.
+// So a row is 64px with two lines and 20px more for each line added, and nothing in it is cut
+// but a title past its second line; the sheet has it all.
 
 import { IconCalendarExclamation, IconCalendarX, IconStarFilled } from '@tabler/icons-react';
 import { Fragment, type ReactNode } from 'react';
 import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { fitNames, namesLine } from '../fit-names';
 import { itemCount, timeText, typeName } from '../format';
 import { MESSAGES } from '../messages';
 import { stageOf, type Concert } from '../spine';
 import { KindMark } from './kind-mark';
+import { useLineMetrics } from './line-metrics';
 
 /** The mark for a concert under way: 8px of ink, still, spoken "On now". */
 export function OnNowDot({ className }: { className?: string }) {
@@ -27,66 +37,111 @@ export function OnNowDot({ className }: { className?: string }) {
   );
 }
 
+/** What sits at the row's right and takes room from its text: the cancelled mark, the hint. */
+const CANCELLED_MARK = 8 + 20;
+const HINT = 8 + 48 - 14;
+
+/**
+ * The accompanists, on one line: as many whole names as fit the row's text column, then "+N".
+ * `taken` is the room the row's marks take from it.
+ */
+function Accompanists({ names, taken }: { names: readonly string[]; taken: number }) {
+  const line = useLineMetrics();
+  // A pixel spare for rounding. Where the page can't be measured, every name, clipped.
+  const shown = line ? fitNames(names, line.width - taken - 1, line.measure) : names.length;
+  return (
+    <span className="overflow-hidden text-sub whitespace-nowrap text-muted-foreground">
+      {namesLine(names, shown)}
+    </span>
+  );
+}
+
 export function ConcertRow({
   concert,
   on = false,
-  when,
+  day,
   onOpen,
   onHint,
 }: {
   concert: Concert;
   /** Under way: the dot, and the start time in full ink. */
   on?: boolean;
-  /** Said in the time's place where the list isn't under its day ("Sat 19 Dec · 6:30 pm"). */
-  when?: string;
+  /** Its day, said before the time where the list isn't under it: the Diary's "Sat 19 Dec". */
+  day?: string;
   /** Opens the concert's sheet; without it, or once Heard, the row opens its Event. */
   onOpen?: (concert: Concert) => void;
   /** Opens what the Schedule changed, for a Shortlisted row that carries the hint. */
   onHint?: (eventId: string) => void;
 }) {
   const stage = stageOf(concert);
-  const time = when ?? (concert.startTime ? timeText(concert.startTime) : null);
+  const own = concert.own;
+  const changed = stage === 'shortlisted' && own!.event.scheduleChanged && onHint;
+  const time = concert.startTime ? timeText(concert.startTime) : null;
+  const star = stage === 'shortlisted' && (
+    <IconStarFilled
+      role="img"
+      aria-label={MESSAGES.spine.shortlisted}
+      className="ml-1.5 inline size-3.5 shrink-0 align-[-0.1em] text-foreground"
+    />
+  );
+  // The last line's facts, each whole: the line breaks between them, never inside one, and the
+  // time keeps its dot before it and its star after it.
+  const facts: ReactNode[] = [];
+  if (concert.sabha) facts.push(concert.sabha);
+  if (day) facts.push(<span className="whitespace-nowrap">{day}</span>);
+  if (time) {
+    facts.push(
+      <span className="whitespace-nowrap">
+        {on && <OnNowDot className="mr-1.5 align-[0.1em]" />}
+        <span className={cn(on && 'text-foreground')}>{time}</span>
+        {star}
+      </span>,
+    );
+  }
+  if (stage === 'heard') {
+    facts.push(<span className="whitespace-nowrap">{itemCount(own!.itemCount)}</span>);
+  }
+  // The type goes with the lead's last word, so it never stands alone on a line.
+  const lastWord = concert.lead.lastIndexOf(' ') + 1;
   const body: ReactNode = (
     <>
       <span className={cn('flex min-w-0 flex-1 flex-col', concert.cancelled && 'opacity-60')}>
         <span className="break-words text-foreground">
           <KindMark kind={concert.kind} className="mr-1.5" />
-          {concert.lead}
-          {concert.type && (
-            <span className="ml-2 text-caption text-muted-foreground">
-              {typeName(concert.type)}
-            </span>
+          {concert.type ? (
+            <>
+              {concert.lead.slice(0, lastWord)}
+              <span className="whitespace-nowrap">
+                {concert.lead.slice(lastWord)}
+                <span className="ml-2 text-caption text-muted-foreground">
+                  {typeName(concert.type)}
+                </span>
+              </span>
+            </>
+          ) : (
+            concert.lead
           )}
         </span>
         {concert.title && (
-          <span className="text-sub break-words text-muted-foreground">{concert.title}</span>
-        )}
-        {concert.accompanists.length > 0 && (
-          // Each name whole: the line wraps at a separator, never inside a name (the council,
-          // 2026-11-11: "Anirudh / Athreya" left one word alone on a line).
-          <span className="text-sub text-muted-foreground">
-            {concert.accompanists.map((name, i) => (
-              <Fragment key={i}>
-                {i > 0 && ' · '}
-                <span className="inline-block max-w-full break-words">{name}</span>
-              </Fragment>
-            ))}
+          <span className="line-clamp-2 text-sub break-words text-muted-foreground">
+            {concert.title}
           </span>
         )}
-        {/* One line of text, its marks set in it: the dot before the time, the star after. */}
+        {concert.accompanists.length > 0 && (
+          <Accompanists
+            names={concert.accompanists}
+            taken={(concert.cancelled ? CANCELLED_MARK : 0) + (changed ? HINT : 0)}
+          />
+        )}
         <span className="text-sub text-muted-foreground">
-          {concert.sabha}
-          {concert.sabha && time && ' · '}
-          {on && <OnNowDot className="mr-1.5 align-[0.1em]" />}
-          {time && <span className={cn(on && 'text-foreground')}>{time}</span>}
-          {stage === 'shortlisted' && (
-            <IconStarFilled
-              role="img"
-              aria-label={MESSAGES.spine.shortlisted}
-              className="ml-1.5 inline size-3.5 shrink-0 align-[-0.1em] text-foreground"
-            />
-          )}
-          {stage === 'heard' && ` · ${itemCount(concert.own!.itemCount)}`}
+          {facts.map((fact, i) => (
+            <Fragment key={i}>
+              {i > 0 && ' · '}
+              {fact}
+            </Fragment>
+          ))}
+          {/* With no time to follow, the star follows the last fact. */}
+          {!time && star}
         </span>
       </span>
       {concert.cancelled && (
@@ -103,8 +158,6 @@ export function ConcertRow({
   // drawing, which would cut a ring drawn outside it.
   const shape =
     'flex min-h-16 min-w-0 flex-1 items-center gap-2 py-2.5 text-left focus-visible:-outline-offset-2';
-  const own = concert.own;
-  const changed = stage === 'shortlisted' && own!.event.scheduleChanged && onHint;
   return (
     <li className="flex items-center gap-2 hairline-b">
       {onOpen && stage !== 'heard' && concert.listing ? (
