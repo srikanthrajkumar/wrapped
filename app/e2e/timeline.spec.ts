@@ -882,8 +882,13 @@ test('going into an Event, or a listing’s sheet, and back finds What’s on wh
   expect(Math.abs((await mine.boundingBox())!.y - before)).toBeLessThanOrEqual(1);
 
   // A listing's sheet opened and closed leaves the page where it was.
+  // Its row is already on the screen, a few rows above the rasika's own: only brought in if
+  // need be, never moved to the middle. Back from the Event the page is still held at its place
+  // until the rasika scrolls (screens/pin.ts); a scroll made by script is not theirs, and the
+  // hold would take the page back.
   const listing = page.getByRole('button', { name: /^Artist e-8-1/ });
-  await listing.evaluate((row) => row.scrollIntoView({ block: 'center' }));
+  await listing.scrollIntoViewIfNeeded();
+  await expect(listing).toBeInViewport();
   const atSheet = await page.evaluate(() => window.scrollY);
   await listing.click();
   await expect(page.getByRole('dialog')).toBeVisible();
