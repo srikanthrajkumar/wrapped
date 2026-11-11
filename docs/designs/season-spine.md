@@ -7,6 +7,49 @@ Status: APPROVED (2026-11-10, by the Maintainer; this includes their explicit ac
 Mode: Builder
 Builds on: docs/designs/carnatic-wrapped.md (the approved product design, 2026-10-27)
 
+## Decisions since approval (the Maintainer, 2026-11-11)
+
+These change the parts below where they differ. Read "Interested" as **Shortlist**, "Home" as
+**Season** and the "Wrapped" tab as **Diary** throughout; the parts keep the words they were
+approved in.
+
+- **The names.** The tabs are **Season · Shortlist · Diary**. Home is named Season.
+  "Interested" becomes Shortlist everywhere: the tab, the listing sheet's button ("Shortlist",
+  then "Shortlisted") and the state. The tab of heard concerts is the Diary. "Wrapped" is kept
+  for the stats and Cards that come later at the Diary's top; their "Your Season so far" header
+  will take another title, so "Season" names only the tab.
+- **What's on** stays one tap below Season, with no fourth tab, and must breathe: it is the
+  most important list.
+- **Only the hub has a curtain.** Shortlist and Diary take a plain tab header.
+- **Scope of the build.** Part 1 (the spine, the ADR first), Part 2 (the hub), Parts 3 to 7
+  (What's on, the row, the listing sheet, the Shortlist tab, the hero) and Part 9 (the tabs).
+  The Diary is only a plain list of heard concerts, newest first, so every logged concert has
+  a home once Past leaves the strip. No Wrapped stats, Cards or graph; the hub's Diary block
+  shows the last concert heard, with no graph. This replaces the cut line's interim Home: the
+  hub lands with the core.
+- **Exactly three chevrons on the hub**, one per piece that opens a page: Starting soon's
+  "+N more" opens What's on; the Shortlist tile opens the Shortlist; the Diary block opens the
+  Diary. The hero has no chevron, and the whole hero still opens its Event. Rows carry none.
+- **The install row** (FB-46) becomes a thin strip directly above the tab bar, the same on
+  every tab, shown only in a browser tab. Where the bottom search bar is (Season, What's on),
+  the stack is search bar, strip, tab bar. This replaces Part 9's "under the hero".
+- **The iOS status bar.** The hub's curtain draws up under the clock and the Dynamic Island
+  (`black-translucent`, the safe area as padding inside the curtain); every other tab paints
+  that band in its own surface colour, in dark and light.
+- **Empty states** use shadcn's Empty where something is truly empty: an Event with no Items
+  (where logging starts), the hub with no concerts left today (pointing to the next day's
+  first), an empty Shortlist, an empty Diary and a search with no match.
+- **Shared patterns, built once:** the tab header (plain or curtain), the section header with
+  its chevron, the list row, the listing sheet, the empty state, the bottom stack (search,
+  strip, tab bar) and the safe areas.
+- **Navigation.** Each tab keeps its own back stack (What's on, then Shortlist, then back to
+  Season returns to What's on where it was left); the tab bar stays on an Event; tapping the
+  tab that is on returns it to its top.
+- **Part 1's ADR** is [0010](../adr/0010-shortlisted-is-the-stored-planned-missed-is-kept-and-hidden.md):
+  the stored `planned` stays and reads Shortlisted; Missed is kept and hidden. Part 4's rule is
+  [0011](../adr/0011-a-concerts-type-is-read-from-its-billing.md).
+- **Copy is still not approved.** The words built are placeholders, listed in the pull request.
+
 ## Problem Statement
 
 The Season page is effectively the app; Wrapped is the flex on top. On the Maintainer's iPhone

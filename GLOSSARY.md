@@ -46,13 +46,25 @@ _Avoid_: kathakalakshepam, discourse
 The published list of upcoming Events across Sabhas, supplied by the logger project.
 _Avoid_: listings, calendar, reckoner (the printed source, not the term)
 
-**Plan**:
-The Events the rasika intends to attend, picked from the Schedule or entered by hand.
-_Avoid_: wishlist, my schedule
+**Shortlist**:
+The Events the rasika would like to go to, picked from the Schedule. Shortlisting is not a commitment: logging is.
+_Avoid_: Plan, Interested, Saved, wishlist, my schedule
 
-**Planned / Attended / Missed**:
-The status of an Event. It is Planned until the rasika marks it Attended (by logging it) or Missed (by not going). Only Attended Events count in the Wrapped.
+**Listed / Shortlisted / Heard**:
+The three stages an Event passes through for one rasika: Listed on the Schedule, Shortlisted, then Heard once the rasika logs it. A Heard Event is an Attended one.
+_Avoid_: Planned (the stored word, below), going, booked
+
+**Shortlisted / Attended / Missed**:
+The status of an Event. It is Shortlisted until the rasika logs it (Attended) or its time passes unlogged (Missed). Only Attended Events count in the Wrapped; a Missed one is kept and shown nowhere. The store keeps the status under its first names, `planned`, `attended` and `missed` (ADR 0010).
 _Avoid_: skipped, cancelled (a cancellation is the Sabha's, not the rasika's)
+
+**What's on**:
+The full list of the Schedule from now on: what is under way, what starts next, then later today and the days ahead.
+_Avoid_: timeline, listings, the Season page
+
+**Diary**:
+Every Event the rasika has heard, newest first.
+_Avoid_: History, Past, log
 
 ### What is performed
 
@@ -154,11 +166,11 @@ _Avoid_: category, theme
 ### The Wrapped
 
 **Season**:
-The yearly Chennai music season around December, named by its years, such as 2026-27. It is a name, not a boundary: Events are never cut off by it.
+The yearly Chennai music season around December, named by its years, such as 2026-27. It is a name, not a boundary: Events are never cut off by it. On screen the word names only the first tab, the hub that answers what can still be caught.
 _Avoid_: Margazhi (a month within it), festival, year
 
 **Wrapped**:
-The statistics and Cards built from the Attended Events within a Wrapped range.
+The statistics and Cards built from the Attended Events within a Wrapped range. They sit at the top of the Diary; the tab itself is not called Wrapped.
 _Avoid_: summary, report, stats, recap
 
 **Concert summary**:
