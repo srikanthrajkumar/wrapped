@@ -80,3 +80,52 @@ test('the Artists it is known by, the Stage by Role, a rename, and a second Conc
   await page.keyboard.press('Escape');
   await expect(page.getByRole('region', { name: 'Stage' })).toContainText('Violin');
 });
+
+// The Maintainer, 2026-11-11: Items, then Stage, then Note, with no line doubled between them;
+// an Artist's Colours are one 20px dot, empty until they are set, its halves drawn exactly.
+test('the Concert reads Items, Stage, Note, and Colours is a dot', async ({ page }) => {
+  await page.goto('/');
+  await finishFirstLaunch(page);
+  await page.getByRole('button', { name: 'Log a Concert' }).click();
+  await addArtist(page, 'Ranjani');
+  await page.getByRole('button', { name: 'Add “Ranjani” as a new Artist' }).click();
+  await page.getByRole('button', { name: 'Vocal' }).click();
+
+  const top = async (name: string) =>
+    (await page.getByRole('heading', { name, exact: true }).boundingBox())!.y;
+  // With nothing sung, the empty state stands where the Items go: first.
+  expect(await top('No Items yet')).toBeLessThan(await top('Stage'));
+  expect(await top('Stage')).toBeLessThan(await top('Note'));
+
+  await page.getByRole('link', { name: 'Add Item' }).click();
+  await page.getByRole('searchbox').fill('Bhavayami');
+  await page.getByRole('button', { name: 'Use what I typed: “Bhavayami”' }).click();
+  await page.getByRole('link', { name: 'Done' }).click();
+  expect(await top('Items')).toBeLessThan(await top('Stage'));
+  expect(await top('Stage')).toBeLessThan(await top('Note'));
+  // Stage ends on its last row's line; Note draws none above itself.
+  const note = page.getByRole('region', { name: 'Note' }).locator('[data-slot="accordion-item"]');
+  await expect(note).toHaveCSS('box-shadow', 'none');
+
+  // No Colours yet: the same dot, empty, in a full tap target, and no word.
+  const colours = page.getByRole('button', { name: /^Colours for Ranjani/ });
+  await expect(colours).toHaveAccessibleName('Colours for Ranjani, none');
+  await expect(colours).toHaveText('');
+  const target = (await colours.boundingBox())!;
+  expect(Math.min(target.width, target.height)).toBeGreaterThanOrEqual(44);
+  const dot = colours.locator('svg');
+  expect(Math.round((await dot.boundingBox())!.width)).toBe(20);
+  await expect(dot.locator('circle')).toHaveAttribute('fill', 'none');
+
+  // Two tones: one dot of the same size, the first colour on the left half, over the second.
+  await colours.click();
+  await page.getByRole('radio', { name: 'Red' }).click();
+  await page.getByRole('button', { name: 'Second colour' }).click();
+  await page.getByRole('radio', { name: 'Blue' }).click();
+  await page.keyboard.press('Escape');
+  await expect(colours).toHaveAccessibleName('Colours for Ranjani, Red and Blue');
+  expect(Math.round((await dot.boundingBox())!.width)).toBe(20);
+  await expect(dot.locator('circle').first()).toHaveAttribute('fill', '#1E5AA8');
+  await expect(dot.locator('path')).toHaveAttribute('fill', '#C62828');
+  await expect(dot.locator('path')).toHaveAttribute('d', 'M10 0.5A9.5 9.5 0 0 0 10 19.5Z');
+});

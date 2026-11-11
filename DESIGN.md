@@ -632,8 +632,11 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   one outline button, centred, 32px above and below. An Event with no Items ("No Items yet",
   where logging starts, Add Item right under it in the bar); the hub with nothing left today;
   an empty Shortlist; an empty Diary; a search with no match; a Season with nothing listed.
-- **Event (DD3):** top to bottom, heading → Stage → Note → Items (walkthrough S2, S3, decided
-  2026-11-04, replacing the Sabha-led block and the running order before Stage).
+- **Event (DD3):** top to bottom, heading → Items → Stage → Note (the Maintainer, 2026-11-11,
+  restoring the order before 2026-11-04, when the walkthrough's S2 and S3 had put Stage and
+  Note first: what was sung leads, and the page lost its doubled lines). Each section is a
+  `sub` 600 muted label, a hairline, its rows, and the last row's hairline; nothing draws a
+  second line against that one, so Note, the last section, has none above it.
   - **Heading:** the Artists the Event is known by, in `title`, wrapping rather than truncating:
     its vocal, veena, chitravina, flute, nagaswaram, saxophone or mandolin Artists (a Lecdem's
     or Harikatha's presenters, a Dance's dancers), joined with "&" ("Ranjani & Gayatri"; three
@@ -646,11 +649,13 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     button opens the Sabha picker, with the date and time beside it.
   - **Stage**, shown once it has an Artist (before then the heading adds one), with a + at its
     heading's right, spoken "Add Artist", that opens the Artist picker; no "Add Artist" row
-    under the Artists (the Maintainer, 2026-11-10). Then **Note**,
-    then **Items**: numbered rows, title then Raga · Composer, under the heading "Items"
-    (walkthrough S12). The Items come last, so the list ends right above the bar.
-  - **Note** is a fold (walkthrough P6, 2026-11-05): open when it has text, so a note written
-    stays in view, and one 48px row when empty.
+    under the Artists (the Maintainer, 2026-11-10). Each Artist's row ends in their Colours, a
+    20px dot in a 48px target on the gutter: empty and dashed until they are set, never the
+    word "Colours" (the Maintainer, 2026-11-11; see "Colour sheet").
+  - **Items**, first under the heading: numbered rows, title then Raga · Composer, under the
+    label "Items" (walkthrough S12). With none, the empty state stands in their place.
+  - **Note**, last, is a fold (walkthrough P6, 2026-11-05): open when it has text, so a note
+    written stays in view, and one 48px row when empty, its label where a section's would be.
   - The top bar's "⋯" holds Delete Event (its Export moved to Settings on 2026-11-03). Season's
     + opens this screen at once, started, with the date and time set to now and the Add Item
     bar ready (decided 2026-11-01). Left with nothing entered (only the kind, date and time it
@@ -659,8 +664,8 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   - A fixed full-width 56px bar at the bottom holds "Add Item", whatever the Event's stage
     (the Season spine, 2026-11-11, replacing "Start logging" on a Planned Event, DD7): the first
     Item makes a Shortlisted concert Heard (ADR 0010), so nothing stands before logging. An
-    Event with no Items shows the empty state where its Items go, "No Items yet", right above
-    the bar. Nothing follows the last Item: a Concert ends on its own (walkthrough S13; see
+    Event with no Items shows the empty state where its Items go, "No Items yet", under the
+    heading. Nothing follows the last Item: a Concert ends on its own (walkthrough S13; see
     "Finishing a Concert").
   - Its top bar's back chevron names the page it was opened from, in its tab: "‹ Season",
     "‹ What's on", "‹ Shortlist" or "‹ Diary" ("Navigation"). The tab bar stays in view.
@@ -959,6 +964,11 @@ Dynamic Island (`apple-mobile-web-app-status-bar-style: black-translucent` in
   - On Stage and on the Artist sheet's Colours button, a two-tone outfit is one 20px circle,
     half and half, first colour on the left, so it reads as one outfit (FB-13, decided
     2026-11-05). It takes the ring border when either half is Black, White or Grey.
+  - **The dot is one drawing** (the Maintainer, 2026-11-11): every dot is 20px across, ring
+    included, whatever it holds, and the halves meet on one clean line (as a bordered box with
+    a gradient, a sliver of each colour showed on the other's side). With no Colours it is the
+    same circle with no fill, its 1.5px muted ring dashed: a plain ring is what Black looks
+    like on the dark page and White on the light one. "?" keeps its mark.
 - **Finishing a Concert** (walkthrough S13, decided 2026-11-05, replacing "Done with this
   Concert" and the "What it added" card): there is nothing to tap. A Concert ends on its own, by
   its window and the hour's logging hold, and can always be edited, so there is nothing to
@@ -1219,3 +1229,4 @@ in the phase that builds it):
 | 2026-11-11 | The Season spine, the Maintainer's decisions on the approved design (docs/designs/season-spine.md): tabs Season · Shortlist · Diary, Settings a mark on the hub; "Interested" is Shortlist and the heard concerts' tab the Diary, "Wrapped" kept for the stats and Cards to come; What's on one tap below Season, never a tab; only the hub has a curtain; exactly three chevrons on the hub (+N more, the Shortlist tile, the Diary block), none on the hero or rows; the install row a thin strip above the tab bar on every tab; the hub's curtain under the iOS status bar and the band painted in each other screen's surface; shadcn Empty for true empties; the shared parts built once; each tab its own back stack, the tab bar kept on an Event, the active tab back to its top. ADR 0010 keeps `planned` as the stored word for Shortlisted and keeps Missed, hidden; ADR 0011 reads a concert's type from its billing. |
 | 2026-11-11 | The hub's mockup (https://claude.ai/artifact/9M5ghrqKMGgMiJ57bQDicb) accepted by the Maintainer, with two changes: no search bar on the hub (it stays on What's on), and a concert under way shows an ink dot before its start time, in full ink, never "Now, since" (option B of two mockups, "for now"). Built as one change with the Season spine: the hub, What's on, the row, the listing sheet (Shortlist, "I'm here"), the Shortlist and the Diary, the lapse card, the tab bar with an icon over each word, the install strip above it, and the band under the iOS status bar (a rose ink in light, where the clock is white). One council round at 390px (two Claude reviewers and Codex): built, the hero's row at one place in every state, accompanists' names never broken mid-name, a clash set apart on the Shortlist, "None of these" in the text colour, room under an Event's empty state, the row's focus ring inside it; not built, as against a decision of the Maintainer's, the time in ink on every row, the clash left out of Starting soon, an ink Settings mark, and no separator before the dot. Codex's review of the data change: the app never changes a status by itself, taking a star off never deletes a log, and a log is never hidden (ADR 0010). |
 | 2026-11-11 | The row's lines, from a mockup of every variant (the same artifact) measured on the Season's 542 listings at 390px: accompanists that don't fit one line show as many whole names as fit, then "+N" (the Maintainer chose B of three: A kept wrapping, C cut with "…"); with it, the lead wraps and is never cut and its type stays with its last word, a printed title stops at two lines, and the last line breaks only between its facts. Not built, shown as further ideas only: the time first on the last line, and one mark for a row both cancelled and changed. |
+| 2026-11-11 | The Event's page, from the Maintainer's screenshot of it: Items, then Stage, then Note, restoring the order before 2026-11-04, so no two lines stand against each other (Note draws none above itself); an Artist's Colours are a 20px dot in place of the word, empty and dashed until set (dashed, since a plain ring reads as Black on the dark page and White on the light one); and the dot is drawn as one SVG, every dot the same size and a two-tone one's halves exact, where the bordered gradient let a sliver of each colour show on the other's side. |
