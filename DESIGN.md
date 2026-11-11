@@ -332,8 +332,38 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   the left, labelled with its destination ("‹ Season", "‹ Music Academy"), and at most one
   item at the right: a "⋯" actions menu or a text action such as "Done". What the screen is
   about is its first content block, in large type.
-- **Navigation (DD1).** Three bottom tabs: Season (home), Wrapped, Settings. Event and Item are
-  pushed screens with a back gesture. The tab bar hides while the Item editor is open.
+- **Navigation (DD1; the Season spine, the Maintainer, 2026-11-11).** Three bottom tabs, one
+  per stage of a concert: **Season** (the hub), **Shortlist** and **Diary**. Settings is a mark
+  on the hub. What's on is one tap below Season, never a fourth tab. Event and Item are pushed
+  screens with a back gesture. Each tab keeps its own back stack: What's on, then Shortlist,
+  then back to Season finds What's on where it was left. The tab bar stays on an Event and
+  hides only while the Item editor is open. Tapping the tab that is on returns it to its top.
+- **The Season spine** (the Maintainer, 2026-11-11, on
+  [docs/designs/season-spine.md](docs/designs/season-spine.md), approved 2026-11-10; it
+  replaces "Season (home, DD2)" below wherever the two differ):
+  - **Words.** Home is Season; "Interested" is Shortlist (the tab, the listing sheet's
+    "Shortlist" then "Shortlisted", the state); the tab of heard concerts is the Diary.
+    "Wrapped" names only the stats and Cards that come later at the Diary's top, and "Season"
+    only the tab. The store keeps `planned` for Shortlisted (ADR 0010).
+  - **Only the hub has a curtain.** Shortlist and Diary take the plain tab header.
+  - **Three chevrons on the hub, and no more:** Starting soon's "+N more" (What's on), the
+    Shortlist tile (Shortlist) and the Diary block (Diary). A chevron means "this opens a
+    page". The hero has none, though the whole hero opens its Event; rows have none.
+  - **The bottom stack** is one frame, the same on every tab: the search bar (Season and
+    What's on only), then the install strip (FB-46: thin, only in a browser tab), then the tab
+    bar.
+  - **The status bar.** The hub's curtain draws up under the clock and the Dynamic Island
+    (`black-translucent`, with the safe area as padding inside the curtain). Every other screen
+    paints that band in its own surface colour, in dark and light.
+  - **Empty states** are shadcn's Empty, in our tokens, only where something is truly empty: an
+    Event with no Items, the hub with nothing left today, an empty Shortlist or Diary, a search
+    with no match.
+  - **Shared parts, built once:** the tab header (plain or curtain), the section header with
+    its chevron, the list row, the listing sheet, the empty state, the bottom stack and the
+    safe areas.
+  - **Craft.** Spacing on the 8px grid with 4px half-steps; line heights on the 4px grid;
+    Tabler icons wherever one says it, each with an accessible name, and a word kept wherever an
+    icon alone would be ambiguous; every tap target at least 44px.
 
 **Screen layouts** (top to bottom; the full rules are DD2–DD5 in plan.md):
 
@@ -1071,3 +1101,4 @@ in the phase that builds it):
 | 2026-11-10 | The mark, from four directions riffing on a floral rosette (tala, kolam, padma, swara; the kolam chosen) and then three single-line kolams (13, 17 and 21 dots; the 13 chosen): a sikku kolam on rows 1-3-5-3-1, built as a mirror curve, the line always √2⁄4 s from the dots. The app icon is that kolam in white glass on a plain ink tile, blushing to rose toward the lower right, lifted by soft shadows, its rim strongest on the left and fading out to the right (the Maintainer, after rose glass: no red glow, more white, more lift). The favicon stays the red five-dot cut. |
 | 2026-11-10 | The Maintainer, on violin concerts: violinists lead a Concert that bills no singer or lead instrument, as equals, never as fallbacks ("they shouldn't be fallbacks though right. Some of them are equal"), so the Akkarai Sisters or Ganesh and Kumaresh read as both names. Someone the Schedule credits as support (`support: true`, as 11 Nov at Madhuradhwani, "Violin with support") never names the Event but stays on Stage in their Role. |
 | 2026-11-10 | The Maintainer's three fixes on the live build. Season's search bar takes the search field's shape (14px corners, the mark 12px in, the text at 40px) in place of a fully round pill: it "looks too different" from the other search bars; Mine and the kinds stay text toggles, unlike the Item chips. A fast fling from one day to the next no longer runs rows over the day's label: the rows, not the day, skip drawing while far from the screen, since Safari moves a sticky label inside paint containment only once a fling's frame is done. On an Event, the "Add Artist" row under Stage goes, and a + at the right of Stage's heading opens the Artist picker, spoken "Add Artist". The builder's call: its 48px reaches past the heading's line, which keeps its height. Asked for as a pencil; one council round at 390px (Codex 7.8, Claude reviewers 8 and 7) agreed that a pencil reads as editing while it opens Add Artist, and the Maintainer chose the + they offered. |
+| 2026-11-11 | The Season spine, the Maintainer's decisions on the approved design (docs/designs/season-spine.md): tabs Season · Shortlist · Diary, Settings a mark on the hub; "Interested" is Shortlist and the heard concerts' tab the Diary, "Wrapped" kept for the stats and Cards to come; What's on one tap below Season, never a tab; only the hub has a curtain; exactly three chevrons on the hub (+N more, the Shortlist tile, the Diary block), none on the hero or rows; the install row a thin strip above the tab bar on every tab; the hub's curtain under the iOS status bar and the band painted in each other screen's surface; shadcn Empty for true empties; the shared parts built once; each tab its own back stack, the tab bar kept on an Event, the active tab back to its top. ADR 0010 keeps `planned` as the stored word for Shortlisted and keeps Missed, hidden; ADR 0011 reads a concert's type from its billing. |
