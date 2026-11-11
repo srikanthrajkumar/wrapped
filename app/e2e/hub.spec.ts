@@ -363,6 +363,71 @@ test('with nothing left today, the hub points to the next day’s first concert'
   await expect(first).toHaveAttribute('data-place', NEXT_DAY);
 });
 
+// The row's lines hold their shape (the Maintainer, 2026-11-11; DESIGN.md "The row").
+test('a row keeps its lines: whole names then "+N", the type with the lead, a title in two', async ({
+  page,
+}) => {
+  const artist = (name: string, role: ScheduleEntry['billed'][number]['role']) => ({
+    name,
+    role,
+    group: null,
+    support: false,
+  });
+  await openAt(page, at('15:40'), [
+    entry('many', '16:00', {
+      billed: [
+        artist('Singer many', 'vocal'),
+        artist('Thiruvizha Sri. Viju. S. Anand', 'violin'),
+        artist('R. Sankaranarayanan', 'mridangam'),
+        artist('H. Prasanna', 'ghatam'),
+      ],
+    }),
+    entry('duo', '16:00', {
+      billed: [
+        artist('Charulatha Chandrashekar Ramanujam', 'flute'),
+        artist('Drummer duo', 'mridangam'),
+      ],
+    }),
+    entry('named', '16:00', {
+      title:
+        'A printed title that runs on and on, well past one line and past a second line too, ' +
+        'so that the row has to stop it somewhere and leave the rest of it to the sheet',
+    }),
+  ]);
+  await door(page).click();
+  const rows = page.getByRole('region', { name: 'Sun 20 Dec' }).getByRole('listitem');
+
+  // Three names don't fit 358px: two whole ones and a count, on one line, never cut.
+  const many = rows.filter({ hasText: 'Singer many' });
+  const names = many.getByText('Thiruvizha Sri. Viju. S. Anand');
+  await expect(names).toHaveText('Thiruvizha Sri. Viju. S. Anand · R. Sankaranarayanan +1');
+  expect(await names.evaluate((line) => line.scrollWidth <= line.clientWidth)).toBe(true);
+  expect(Math.round((await names.boundingBox())!.height)).toBe(20);
+  expect(Math.round((await many.boundingBox())!.height)).toBe(84);
+
+  // The type stays on the line of the lead's last word.
+  const type = rows.filter({ hasText: 'Charulatha' }).getByText('Flute', { exact: true });
+  expect(
+    await type.evaluate((type) => {
+      const word = document.createRange();
+      const text = type.previousSibling!;
+      word.setStart(text, 0);
+      word.setEnd(text, text.textContent!.length);
+      return Math.abs(word.getBoundingClientRect().bottom - type.getBoundingClientRect().bottom);
+    }),
+  ).toBeLessThan(6);
+
+  // A printed title stops at its second line.
+  const title = rows.filter({ hasText: 'Singer named' }).getByText(/^A printed title/);
+  expect(Math.round((await title.boundingBox())!.height)).toBe(40);
+
+  // On a wider page every name fits, and the count goes.
+  await page.setViewportSize({ width: 600, height: 844 });
+  await expect(names).toHaveText(
+    'Thiruvizha Sri. Viju. S. Anand · R. Sankaranarayanan · H. Prasanna',
+  );
+});
+
 // On an installed iPhone the page draws under the clock (black-translucent), so the app paints
 // that band. The top inset is stood in for by the shell's own variable.
 test('the status band is clear over the hub’s curtain, and painted everywhere else', async ({

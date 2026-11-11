@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/empty';
 import { ConcertRow } from './components/ConcertRow';
 import { Screen, TabHeader, useKeptScroll } from './components/layout';
-import { dayText, timeText } from './format';
+import { dayText } from './format';
 import { MESSAGES } from './messages';
 import { diary, isoDay, owned } from './spine';
 import { useSeason } from './use-season';
@@ -53,12 +53,9 @@ function DiaryView() {
               key={summary.event.id}
               concert={owned(summary)}
               // Not under its day here, so the row says it: "Sat 19 Dec · 6:30 pm".
-              when={[
-                summary.event.date === today ? MESSAGES.season.today : dayText(summary.event.date),
-                summary.event.startTime && timeText(summary.event.startTime),
-              ]
-                .filter(Boolean)
-                .join(' · ')}
+              day={
+                summary.event.date === today ? MESSAGES.season.today : dayText(summary.event.date)
+              }
             />
           ))}
         </ul>
