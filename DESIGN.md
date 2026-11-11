@@ -349,9 +349,13 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   - **Three chevrons on the hub, and no more:** Starting soon's "+N more" (What's on), the
     Shortlist tile (Shortlist) and the Diary block (Diary). A chevron means "this opens a
     page". The hero has none, though the whole hero opens its Event; rows have none.
-  - **The bottom stack** is one frame, the same on every tab: the search bar (Season and
-    What's on only), then the install strip (FB-46: thin, only in a browser tab), then the tab
+  - **The bottom stack** is one frame, the same on every tab: the search bar (What's on
+    only; the Maintainer took it off the hub on seeing the mockup, since it filtered nothing
+    the hub shows), then the install strip (FB-46: thin, only in a browser tab), then the tab
     bar.
+  - **On now is a dot.** A concert under way keeps its start time, in full ink, with an 8px
+    ink dot before it, spoken "On now"; no "Now, since" (the Maintainer, 2026-11-11, option B
+    of two mockups, "for now"). The dot is ink, never rose, and never moves.
   - **The status bar.** The hub's curtain draws up under the clock and the Dynamic Island
     (`black-translucent`, with the safe area as padding inside the curtain). Every other screen
     paints that band in its own surface colour, in dark and light.
