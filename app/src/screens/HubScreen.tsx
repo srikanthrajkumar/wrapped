@@ -83,6 +83,11 @@ function SeasonArt() {
 // "Later" hides the catalog row until the next launch (design D29): kept for this page's life.
 let updateLater = false;
 
+// The lapsed concerts that were still being asked about when the rasika said "Yes" to another:
+// for those, what is left to answer is "None of the rest" (the Maintainer, 2026-11-13). Kept for
+// this page's life, by Event, so a later day's question starts as "None of these" again.
+const askedWithAYes = new Set<string>();
+
 export function HubScreen() {
   return (
     <Screen>
@@ -420,8 +425,17 @@ function LapseCard({ lapsed }: { lapsed: EventSummary[] }) {
     id: summary.event.id,
     field: 'status',
   });
-  const wasAt = (summary: EventSummary) =>
-    saveWith(target(summary), 'attended', () => wasThere(summary.event.id));
+  const wasAt = async (summary: EventSummary) => {
+    // Noted before the save, so the list drawn as it lands already reads "None of the rest";
+    // taken back if the save fails, when no "Yes" was given.
+    const others = lapsed
+      .map((other) => other.event.id)
+      .filter((id) => id !== summary.event.id && !askedWithAYes.has(id));
+    for (const id of others) askedWithAYes.add(id);
+    const event = await saveWith(target(summary), 'attended', () => wasThere(summary.event.id));
+    if (!event) for (const id of others) askedWithAYes.delete(id);
+  };
+  const rest = lapsed.some((summary) => askedWithAYes.has(summary.event.id));
   // Each one asked about is let go as its own save; then what nobody was asked about (one in a
   // heard concert's slot, a cancelled one) is settled with them, in one transaction.
   const none = async () => {
@@ -491,7 +505,7 @@ function LapseCard({ lapsed }: { lapsed: EventSummary[] }) {
           className="flex min-h-12 w-full items-center rounded-xl text-left font-semibold text-foreground focus-visible:-outline-offset-2"
           onClick={() => void none()}
         >
-          {MESSAGES.spine.lapse.none}
+          {rest ? MESSAGES.spine.lapse.rest : MESSAGES.spine.lapse.none}
         </button>
       </Panel>
     </section>

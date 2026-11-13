@@ -70,6 +70,8 @@ export const MESSAGES = {
       yes: 'Yes',
       yesSpoken: (name: string) => `Yes, I was at ${name}`,
       none: 'None of these',
+      /** Once one has been answered: what is left to let go is the rest. */
+      rest: 'None of the rest',
     },
     empty: {
       today: {

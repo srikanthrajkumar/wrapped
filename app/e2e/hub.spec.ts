@@ -359,9 +359,12 @@ test('the lapse card asks once: a tap makes it Heard, the rest are kept as Misse
   // Neither is on the Shortlist any more, nor the hero.
   await expect(page.getByRole('region', { name: 'Next' })).toHaveCount(0);
 
+  // Before any answer, the other answer is for all of them; after a "Yes", for the rest.
+  await expect(card.getByRole('button', { name: 'None of these' })).toBeVisible();
   await card.getByRole('button', { name: 'I was at Evening Singer' }).click();
   await expect(card.getByRole('listitem')).toHaveCount(1);
-  await card.getByRole('button', { name: 'None of these' }).click();
+  await expect(card.getByRole('button', { name: 'None of these' })).toHaveCount(0);
+  await card.getByRole('button', { name: 'None of the rest' }).click();
   await expect(card).toHaveCount(0);
 
   const stored = await readTable<{ status: string; startTime: string; deletedAt: string | null }>(
