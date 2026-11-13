@@ -1,7 +1,7 @@
 // The Season spine's rules (docs/designs/season-spine.md, approved 2026-11-10; the Maintainer's
 // decisions of 2026-11-11; ADR 0010 and 0011): one concert as every row shows it, whichever stage
 // it is at (Listed, Shortlisted, Heard); what is under way; the hub's hero, which never picks
-// for the rasika; Starting soon; and the Shortlist's slots. Framework-free, so the rules are
+// for the rasika; the hub's first section; and the Shortlist's slots. Framework-free, so the rules are
 // unit-tested (tests/screens/spine.test.ts).
 
 import type { EventKind } from '../model';
@@ -13,7 +13,7 @@ import { isHeard, isShown, listingFacts, listingLead } from './timeline';
 
 /** A concert reads as under way from its start until this long after it (SF-D30). */
 export const UNDER_WAY_MS = 2.5 * 60 * 60 * 1000;
-/** Starting soon shows at most this many rows (SF-D26). */
+/** The hub's first section shows at most this many rows (SF-D26). */
 export const SOON_ROWS = 4;
 
 /** One concert as a row shows it: a Schedule listing, the rasika's own Event, or both. */
@@ -148,20 +148,28 @@ export function isOver(concert: Concert, notes: Notes, now: Date): boolean {
 }
 
 export interface Soon {
-  /** Up to four rows: the rasika's Shortlisted ones, then the next slot, then others under way. */
+  /**
+   * The day the hub's first section is of: today while anything is on or ahead, else the next
+   * day that has a concert; null with nothing ahead at all.
+   */
+  day: string | null;
+  /**
+   * Up to four rows. Today: the rasika's Shortlisted ones, then the next slot, then others under
+   * way. Another day: its first four, in start order.
+   */
   rows: Concert[];
-  /** How many more are under way or in the next slot: the count into What's on. */
-  more: number;
-  /** With nothing left today, the first concert of the next day that has any. */
-  next: Concert | null;
+  /** How many concerts the section's page holds for that day: today's not yet over, or all. */
+  count: number;
 }
 
 /**
- * Starting soon (SF-D26, SF-D27, SF-D37). Only concerts under way or in the next slot qualify:
- * the next start time today and any within 30 minutes of it, however far off. Up to four rows:
- * the rasika's Shortlisted ones among them first, then the rest of the next slot, then the
- * others under way, the latest to start first, so the 3:40 pick is never pushed out by concerts
- * long under way. `hero` is the Event the hero already shows as being logged, left out.
+ * The hub's first section (SF-D26, SF-D27, SF-D37; the Maintainer, 2026-11-13). Today, only
+ * concerts under way or in the next slot qualify: the next start time today and any within 30
+ * minutes of it, however far off. Up to four rows: the rasika's Shortlisted ones among them
+ * first, then the rest of the next slot, then the others under way, the latest to start first,
+ * so the 3:40 pick is never pushed out by concerts long under way. `hero` is the Event the hero
+ * already shows as being logged, left out. With nothing left today the section is the next
+ * day's, its first four in start order: the star marks a Shortlisted one where it falls.
  */
 export function startingSoon(
   all: readonly Concert[],
@@ -170,9 +178,8 @@ export function startingSoon(
   hero: string | null = null,
 ): Soon {
   const today = isoDay(now);
-  const open = all.filter(
-    (concert) => !concert.cancelled && (hero === null || concert.own?.event.id !== hero),
-  );
+  const live = all.filter((concert) => !concert.cancelled);
+  const open = live.filter((concert) => hero === null || concert.own?.event.id !== hero);
   const on = open.filter((concert) => underWay(concert, notes, now));
   const ahead = open.filter(
     (concert) => concert.date === today && (startMs(concert) ?? 0) > now.getTime(),
@@ -185,15 +192,34 @@ export function startingSoon(
     ...slot.filter((concert) => !mine(concert)),
     ...on.filter((concert) => !mine(concert)).reverse(),
   ];
-  const rows = ordered.slice(0, SOON_ROWS);
-  return {
-    rows,
-    more: ordered.length - rows.length,
-    next:
-      ordered.length > 0
-        ? null
-        : (all.find((concert) => !concert.cancelled && concert.date > today) ?? null),
-  };
+  if (ordered.length > 0) {
+    return {
+      day: today,
+      rows: ordered.slice(0, SOON_ROWS),
+      count: live.filter(
+        (concert) =>
+          underWay(concert, notes, now) || (concert.date === today && !isOver(concert, notes, now)),
+      ).length,
+    };
+  }
+  const day = live.find((concert) => concert.date > today)?.date ?? null;
+  const ofDay = day === null ? [] : live.filter((concert) => concert.date === day);
+  return { day, rows: ofDay.slice(0, SOON_ROWS), count: ofDay.length };
+}
+
+/** A concert reads as near from this long before its start (the Maintainer, 2026-11-13). */
+export const NEAR_MS = 60 * 60 * 1000;
+
+/**
+ * The whole minutes until a concert starts, while it is inside the hour: 1 to 59, rounded up,
+ * so "in 1 min" holds until the minute it starts. Null further off, once started, or with no
+ * time. Worked out from the clock and the start time; nothing is stored.
+ */
+export function minutesTo(concert: Pick<Concert, 'date' | 'startTime'>, now: Date): number | null {
+  const start = startMs(concert);
+  if (start === null) return null;
+  const minutes = Math.ceil((start - now.getTime()) / 60_000);
+  return minutes >= 1 && minutes * 60_000 < NEAR_MS ? minutes : null;
 }
 
 export type Hero =

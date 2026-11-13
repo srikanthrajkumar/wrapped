@@ -1,26 +1,26 @@
-// Season, the hub (docs/designs/season-spine.md Parts 2 and 7; the Maintainer's mockup, accepted
-// 2026-11-11; DESIGN.md "Season, the hub"). It answers "what can I still catch" on open, as a few
-// small things: the hero on the curtain (the rasika's concert on now or next, or a choice between
-// two they Shortlisted in one slot, with Settings and the + at its right); the status rows; the
-// lapse card, when a Shortlisted concert's time has passed; Starting soon, up to four rows and
-// the door into What's on; the Shortlist tile; and the Diary block, the last concert heard.
-// Exactly three chevrons, one per piece that opens a page. The bottom stack holds no search bar:
-// that is What's on's.
+// Season, the hub (docs/designs/season-spine.md Parts 2 and 7; the Maintainer's mockups, accepted
+// 2026-11-11 and 2026-11-13; DESIGN.md "Season, the hub"). It answers "what can I still catch" on
+// open: the hero on the curtain (the rasika's concert on now or next, or a choice between two
+// they Shortlisted in one slot, with the + at its right), then three sections in one pattern
+// (DESIGN.md "The section pattern"): Today, or the next day once nothing is left today;
+// Shortlist; Diary. Each has a header that opens its page, with one chevron, and its concerts
+// below on a panel. Above them, when a Shortlisted concert's time has passed, the question about
+// it, in the same pattern. The bottom stack holds no search bar: that is What's on's.
 
+import { IconLoader2, IconMoon, IconPlus } from '@tabler/icons-react';
 import {
-  IconCheck,
-  IconChevronRight,
-  IconLoader2,
-  IconMoon,
-  IconPlus,
-  IconSettings,
-} from '@tabler/icons-react';
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+  Fragment,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import {
   Empty,
-  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
@@ -39,19 +39,19 @@ import { useSeasonRagaKeys, type EventSummary } from '../store/queries';
 import { ConcertRow } from './components/ConcertRow';
 import { saveWith, SeasonFeedback, useSaveFeedback } from './components/feedback';
 import { KindMark } from './components/kind-mark';
-import { Curtain, Screen, SectionLink, useKeptScroll } from './components/layout';
+import { Curtain, Panel, Screen, SectionHeader, useKeptScroll } from './components/layout';
 import { useReloadGuard } from './components/reload-guard';
-import { dayText, itemCount, nowTime, timeText } from './format';
+import { dayText, itemCount, nameBreaks, nowTime, timeText } from './format';
 import { MESSAGES } from './messages';
 import { WHATS_ON } from './nav';
 import { saveFeedback } from './save-feedback';
 import { claimNewConcert, dropNewConcert, noteNewConcert, sweepNewConcerts } from './new-concert';
-import { useSettingsToFix } from './SettingsScreen';
 import {
   diary,
   hubHero,
   isoDay,
   lapsedToAsk,
+  minutesTo,
   shortlist,
   shortlistDays,
   slotName,
@@ -95,7 +95,7 @@ export function HubScreen() {
 const Title = ({ summary }: { summary: EventSummary }) => (
   <>
     <KindMark kind={summary.event.kind} className="mr-1.5" />
-    {summary.knownBy ?? summary.sabha?.name ?? 'No Sabha yet'}
+    {summary.knownBy ? nameBreaks(summary.knownBy) : (summary.sabha?.name ?? 'No Sabha yet')}
   </>
 );
 
@@ -103,18 +103,42 @@ const Title = ({ summary }: { summary: EventSummary }) => (
 const dayName = (date: string, now: Date) =>
   date === isoDay(now) ? MESSAGES.season.today : dayText(date);
 
-/** The hero's line under a name: the Sabha, the day unless it is on now, the time, the Items. */
-function heroLine(summary: EventSummary, now: Date, on: boolean, choice = false): string {
+/**
+ * The hero's line under a name: the Sabha, then when. Inside the hour that is "in 20 min", in
+ * full ink, as its row says it (the council, 2026-11-13: the most urgent fact on the screen had
+ * the least weight); else the day unless it is on now, and the time; then the Items, once any.
+ */
+function HeroLine({
+  summary,
+  now,
+  on,
+  choice = false,
+}: {
+  summary: EventSummary;
+  now: Date;
+  on: boolean;
+  choice?: boolean;
+}) {
   const { event } = summary;
-  return [
+  const near = on ? null : minutesTo(event, now);
+  const quiet = [
     summary.knownBy && summary.sabha?.name,
     // A choice for today is named by its slot, so its lines carry no "Today".
-    !on && !(choice && event.date === isoDay(now)) && dayName(event.date, now),
-    event.startTime && timeText(event.startTime),
-    event.status === 'attended' && itemCount(summary.itemCount),
+    near === null && !on && !(choice && event.date === isoDay(now)) && dayName(event.date, now),
+    near === null && event.startTime && timeText(event.startTime),
+    event.status === 'attended' && summary.itemCount > 0 && itemCount(summary.itemCount),
   ]
     .filter(Boolean)
     .join(' · ');
+  return (
+    <span className="text-sub text-foreground">
+      <span className="opacity-80">
+        {quiet}
+        {quiet && near !== null && ' · '}
+      </span>
+      {near !== null && MESSAGES.spine.inMinutes(near)}
+    </span>
+  );
 }
 
 function HubView() {
@@ -128,7 +152,6 @@ function HubView() {
   const updating = useReloadGuard(updateNow);
   const undos = useSyncExternalStore(subscribeUndo, undoOffers);
   const { open, hint, sheets } = useConcertSheets(data);
-  const toFix = useSettingsToFix();
   useKeptScroll(data !== undefined);
   // One Concert per tap: a double tap must not make two.
   const creating = useRef(false);
@@ -168,20 +191,12 @@ function HubView() {
     }
   };
 
+  // The +, larger (the Maintainer, 2026-11-13): a 28px mark in its 48px target. Settings is a
+  // tab now.
   const actions = (
-    <>
-      <Button variant="ghost" size="icon" asChild className={cn(toFix && 'text-warning')}>
-        <Link
-          href="/settings"
-          aria-label={toFix ? MESSAGES.spine.settingsToFix : MESSAGES.spine.settings}
-        >
-          <IconSettings aria-hidden />
-        </Link>
-      </Button>
-      <Button variant="ghost" size="icon" aria-label="Log a Concert" onClick={() => void logNow()}>
-        <IconPlus aria-hidden />
-      </Button>
-    </>
+    <Button variant="ghost" size="icon" aria-label="Log a Concert" onClick={() => void logNow()}>
+      <IconPlus aria-hidden className="size-7" />
+    </Button>
   );
 
   if (!data) {
@@ -198,7 +213,8 @@ function HubView() {
     isBeingLogged(hero.summary.event, data.notes.get(hero.summary.event.id), data.now);
   const soon = startingSoon(data.all, data.notes, data.now, logging ? hero.summary.event.id : null);
   const mine = shortlist(data.all);
-  const heard = diary(data.summaries).find(
+  const allHeard = diary(data.summaries);
+  const heard = allHeard.find(
     (summary) => !(logging && summary.event.id === hero.summary.event.id),
   );
   const showUpdate = offersUpdate({
@@ -217,7 +233,7 @@ function HubView() {
       {offline === 'getting-ready' && (
         <p
           role="status"
-          className="flex min-h-12 items-center gap-2 text-sub text-muted-foreground"
+          className="flex min-h-12 items-center gap-2 px-2 text-sub text-muted-foreground"
         >
           <IconLoader2
             aria-hidden
@@ -226,9 +242,11 @@ function HubView() {
           {MESSAGES.offline.gettingReady}
         </p>
       )}
-      <SeasonFeedback />
+      <div className="px-2">
+        <SeasonFeedback />
+      </div>
       {showUpdate && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-y border-border py-1">
+        <div className="mx-2 mb-4 flex flex-wrap items-center justify-between gap-2 border-y border-border py-1">
           <span className="py-2">
             {update.newCatalog ? MESSAGES.newCatalog : MESSAGES.appUpdate}
           </span>
@@ -257,7 +275,7 @@ function HubView() {
 
       {lapsed.length > 0 && <LapseCard lapsed={lapsed} />}
 
-      <StartingSoon
+      <FirstSection
         soon={soon}
         bare={data.all.length === 0}
         notes={data.notes}
@@ -266,42 +284,53 @@ function HubView() {
         onHint={hint}
       />
 
-      <ShortlistTile shortlisted={mine} notes={data.notes} now={data.now} />
+      <ShortlistSection shortlisted={mine} notes={data.notes} now={data.now} />
 
-      {heard && (
-        <section aria-labelledby="hub-diary" className="pt-4 pb-8">
-          <SectionLink href="/diary">
-            <h2 id="hub-diary" className="text-sub font-semibold text-muted-foreground">
-              {MESSAGES.tabs.diary}
-            </h2>
-          </SectionLink>
-          <Link href={`/event/${heard.event.id}`} className="flex min-h-12 flex-col pb-2.5">
-            <span className="break-words text-foreground">
-              <Title summary={heard} />
-            </span>
-            <span className="text-sub text-muted-foreground">
-              {[
-                heard.knownBy && heard.sabha?.name,
-                dayName(heard.event.date, data.now),
-                itemCount(heard.itemCount),
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            </span>
-          </Link>
-        </section>
-      )}
-      {!heard && <div className="pb-8" />}
+      {/* Always there, so the hub is the same three sections on day one (the council,
+          2026-11-13); with nothing heard it says so on its line. */}
+      <section aria-labelledby="hub-diary" className="pt-4 pb-8">
+        <SectionHeader
+          id="hub-diary"
+          label={MESSAGES.tabs.diary}
+          href="/diary"
+          count={allHeard.length}
+          line={allHeard.length === 0 ? MESSAGES.spine.empty.diary.title : undefined}
+        />
+        {heard && (
+          <Panel>
+            <li>
+              <Link
+                href={`/event/${heard.event.id}`}
+                className="flex min-h-16 flex-col justify-center py-2.5 focus-visible:-outline-offset-2"
+              >
+                <span className="break-words text-balance text-foreground">
+                  <Title summary={heard} />
+                </span>
+                <span className="text-sub text-muted-foreground">
+                  {[
+                    heard.knownBy && heard.sabha?.name,
+                    dayName(heard.event.date, data.now),
+                    // Never "0 Items" (the Maintainer, 2026-11-13).
+                    heard.itemCount > 0 && itemCount(heard.itemCount),
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
+              </Link>
+            </li>
+          </Panel>
+        )}
+      </section>
       {sheets}
     </>
   );
 }
 
 /**
- * The hero (Part 7), on the curtain: its word and, at the right, Settings and the +; then the
- * rasika's concert, large, the whole of it opening its Event with no chevron; or, for
- * Shortlisted concerts in one slot, each as its own way in, so the hero never picks for them.
- * With no concert of theirs on now or ahead it is the tab's title.
+ * The hero (Part 7), on the curtain: its word and, at the right, the +; then the rasika's
+ * concert, large, the whole of it opening its Event with no chevron; or, for Shortlisted
+ * concerts in one slot, each as its own way in, so the hero never picks for them. With no
+ * concert of theirs on now or ahead it is the tab's title.
  */
 function HubHero({
   hero,
@@ -325,15 +354,15 @@ function HubHero({
           : MESSAGES.season.next;
   return (
     <div className="relative">
-      {/* Two 48px marks at the row's right, the +'s ending on the gutter, as before. Outside
-          the hero's own region, which holds the concert alone. */}
-      <div className="absolute top-0 right-0 z-10 -mr-3.5 flex">{actions}</div>
+      {/* The +'s 48px at the row's right, its mark ending on the hub's column. Outside the
+          hero's own region, which holds the concert alone. */}
+      <div className="absolute top-0 right-0 z-10 -mr-[15px] flex">{actions}</div>
       {word ? (
         <h1 className="sr-only">{MESSAGES.tabs.season}</h1>
       ) : (
         <h1
           className={cn(
-            'flex min-h-12 items-center pr-24 text-heading font-bold',
+            'flex min-h-12 items-center pr-12 text-heading font-bold',
             loading && 'invisible',
           )}
         >
@@ -347,19 +376,19 @@ function HubHero({
 
 function HeroConcert({ hero, word, now }: { hero: Hero; word: string; now: Date }) {
   return (
-    <section aria-label={word}>
-      <p className="flex min-h-12 items-center pr-24 text-sub font-semibold text-foreground">
+    // 24px from its last line to the first section, as the title has.
+    <section aria-label={word} className="pb-2">
+      <p className="flex min-h-12 items-center pr-12 text-sub font-semibold text-foreground">
         {word}
       </p>
       {hero.kind !== 'pick' && (
         <Link href={`/event/${hero.summary.event.id}`} className="flex flex-col gap-1">
-          {/* A long name wraps at the same size, never cut (DESIGN.md "Larger text"). */}
-          <span className="text-heading font-bold break-words text-foreground">
+          {/* A long name wraps at the same size, never cut (DESIGN.md "Larger text"), its lines
+              balanced and never broken after an "&" or an initial. */}
+          <span className="text-heading font-bold break-words text-balance text-foreground">
             <Title summary={hero.summary} />
           </span>
-          <span className="text-sub text-foreground/80">
-            {heroLine(hero.summary, now, hero.kind === 'now')}
-          </span>
+          <HeroLine summary={hero.summary} now={now} on={hero.kind === 'now'} />
         </Link>
       )}
       {hero.kind === 'pick' && (
@@ -367,12 +396,10 @@ function HeroConcert({ hero, word, now }: { hero: Hero; word: string; now: Date 
           {hero.summaries.map((summary) => (
             <li key={summary.event.id}>
               <Link href={`/event/${summary.event.id}`} className="flex min-h-12 flex-col gap-1">
-                <span className="text-title font-semibold break-words text-foreground">
+                <span className="text-title font-semibold break-words text-balance text-foreground">
                   <Title summary={summary} />
                 </span>
-                <span className="text-sub text-foreground/80">
-                  {heroLine(summary, now, hero.now, true)}
-                </span>
+                <HeroLine summary={summary} now={now} on={hero.now} choice />
               </Link>
             </li>
           ))}
@@ -407,66 +434,78 @@ function LapseCard({ lapsed }: { lapsed: EventSummary[] }) {
   };
   const days = [...new Set(lapsed.map((summary) => summary.event.date))];
   return (
-    <section aria-labelledby="hub-lapse" className="mt-2 mb-4 rounded-xl bg-card px-4 pt-4 pb-1">
-      <h2 id="hub-lapse" className="font-semibold">
-        {MESSAGES.spine.lapse.question}
-      </h2>
-      {days.map((date) => (
-        <div key={date}>
-          <p className="pt-1 pb-1.5 text-caption text-muted-foreground">{dayText(date)}</p>
-          <ul>
-            {lapsed
-              .filter((summary) => summary.event.date === date)
-              .map((summary) => (
-                <li key={summary.event.id} className="flex items-center gap-3 py-2.5 hairline-b">
-                  <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="break-words">
-                      <Title summary={summary} />
+    // The section pattern (the council, 2026-11-13): the question as a header that opens nothing,
+    // so with no chevron, and the concerts it asks about on a panel. One day is said under the
+    // question; several, each above its own.
+    <section aria-labelledby="hub-lapse" className="pb-4">
+      <SectionHeader
+        id="hub-lapse"
+        label={MESSAGES.spine.lapse.question}
+        line={days.length === 1 ? dayText(days[0]!) : undefined}
+      />
+      <Panel as="div">
+        {days.map((date) => (
+          <div key={date}>
+            {days.length > 1 && (
+              <p className="pt-3 text-caption text-muted-foreground">{dayText(date)}</p>
+            )}
+            <ul>
+              {lapsed
+                .filter((summary) => summary.event.date === date)
+                .map((summary) => (
+                  <li key={summary.event.id} className="flex items-center gap-3 py-2.5 hairline-b">
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="break-words text-balance">
+                        <Title summary={summary} />
+                      </span>
+                      <span className="text-sub text-muted-foreground">
+                        {[
+                          summary.knownBy && summary.sabha?.name,
+                          summary.event.startTime && timeText(summary.event.startTime),
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </span>
                     </span>
-                    <span className="text-sub text-muted-foreground">
-                      {[
-                        summary.knownBy && summary.sabha?.name,
-                        summary.event.startTime && timeText(summary.event.startTime),
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </span>
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full"
-                    aria-label={MESSAGES.spine.lapse.yes(
-                      summary.knownBy ?? summary.sabha?.name ?? dayText(date),
-                    )}
-                    onClick={() => void wasAt(summary)}
-                  >
-                    <IconCheck aria-hidden />
-                  </Button>
-                </li>
-              ))}
-          </ul>
-        </div>
-      ))}
-      <button
-        type="button"
-        // In the text colour and the card's whole width, so it reads as the card's other answer
-        // (the council, 2026-11-11: in muted text it looked inert).
-        className="flex min-h-12 w-full items-center rounded-xl text-left text-sub text-foreground"
-        onClick={() => void none()}
-      >
-        {MESSAGES.spine.lapse.none}
-      </button>
+                    {/* A word, not a tick: three reviewers read a tick in a ring as already
+                        answered (the council, 2026-11-13). */}
+                    <Button
+                      variant="outline"
+                      className="h-12 min-w-16 rounded-full px-4"
+                      aria-label={MESSAGES.spine.lapse.yesSpoken(
+                        summary.knownBy ?? summary.sabha?.name ?? dayText(date),
+                      )}
+                      onClick={() => void wasAt(summary)}
+                    >
+                      {MESSAGES.spine.lapse.yes}
+                    </Button>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        ))}
+        <button
+          type="button"
+          // The panel's other answer: its whole width, under the last row's line, in the weight
+          // of an action (the council, 2026-11-11 and 2026-11-13: lighter, it read as a label).
+          className="flex min-h-12 w-full items-center rounded-xl text-left font-semibold text-foreground focus-visible:-outline-offset-2"
+          onClick={() => void none()}
+        >
+          {MESSAGES.spine.lapse.none}
+        </button>
+      </Panel>
     </section>
   );
 }
 
 /**
- * Starting soon (SF-D26): up to four rows, then the door into What's on, the count of the rest
- * with its chevron. With nothing left today, an empty state that points to the next day's
- * first concert; with no Schedule at all, one that says so.
+ * The hub's first section (SF-D26; the Maintainer, 2026-11-13): "Today", with up to four rows
+ * that say how close each is, its header opening What's on. Once nothing is left today it is
+ * the next day's ("Tomorrow"), with that day's first rows and its header opening What's on at
+ * that day. The empty state is kept for when there is truly nothing: no Schedule, or nothing
+ * listed ahead.
  */
-function StartingSoon({
+function FirstSection({
   soon,
   bare,
   notes,
@@ -481,65 +520,45 @@ function StartingSoon({
   onOpen(concert: Concert): void;
   onHint(eventId: string): void;
 }) {
-  if (soon.rows.length === 0) {
-    const next = soon.next;
-    return (
-      <Empty>
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <IconMoon aria-hidden />
-          </EmptyMedia>
-          <EmptyTitle>
-            {bare ? MESSAGES.spine.empty.season.title : MESSAGES.spine.empty.today.title}
-          </EmptyTitle>
-          {bare ? (
-            <EmptyDescription>{MESSAGES.spine.empty.season.line}</EmptyDescription>
-          ) : (
-            next && (
-              <EmptyDescription>
-                {MESSAGES.spine.empty.today.next(
-                  nextDayName(next.date, now),
-                  next.startTime && timeText(next.startTime),
-                  next.lead,
-                  next.sabha,
-                )}
-              </EmptyDescription>
-            )
-          )}
-        </EmptyHeader>
-        {next && (
-          <EmptyContent>
-            {/* In the door's place, with its chevron: it opens What's on, at that day. */}
-            <Button variant="outline" asChild className="pr-3">
-              <Link href={WHATS_ON} onClick={() => startWhatsOnAt(next.date)}>
-                {nextDayName(next.date, now)}
-                <IconChevronRight aria-hidden className="size-[22px]" />
-              </Link>
-            </Button>
-          </EmptyContent>
-        )}
-      </Empty>
-    );
-  }
+  const today = isoDay(now);
+  const day = soon.day ?? today;
   return (
-    <section aria-labelledby="hub-soon">
-      <h2 id="hub-soon" className="py-2 text-sub font-semibold text-muted-foreground">
-        {MESSAGES.spine.startingSoon}
-      </h2>
-      <ul>
-        {soon.rows.map((concert) => (
-          <ConcertRow
-            key={concert.key}
-            concert={concert}
-            on={underWay(concert, notes, now)}
-            onOpen={onOpen}
-            onHint={onHint}
-          />
-        ))}
-      </ul>
-      <SectionLink href={WHATS_ON} className="font-semibold">
-        {soon.more > 0 ? MESSAGES.spine.more(soon.more) : MESSAGES.spine.allOfToday}
-      </SectionLink>
+    <section aria-labelledby="hub-first">
+      <SectionHeader
+        id="hub-first"
+        label={day === today ? MESSAGES.season.today : nextDayName(day, now)}
+        count={soon.count}
+        href={WHATS_ON}
+        onClick={day === today ? undefined : () => startWhatsOnAt(day)}
+      />
+      {soon.rows.length > 0 ? (
+        <Panel>
+          {soon.rows.map((concert) => (
+            <ConcertRow
+              key={concert.key}
+              concert={concert}
+              on={underWay(concert, notes, now)}
+              // Today's rows say how close they are; another day's keep the clock time.
+              now={day === today ? now : undefined}
+              onOpen={onOpen}
+              onHint={onHint}
+            />
+          ))}
+        </Panel>
+      ) : (
+        <Empty className="pt-6">
+          <EmptyHeader>
+            {/* The bare mark: on a filled tile it read as a button (the council, 2026-11-13). */}
+            <EmptyMedia>
+              <IconMoon aria-hidden className="size-7 text-muted-foreground" />
+            </EmptyMedia>
+            <EmptyTitle>
+              {bare ? MESSAGES.spine.empty.season.title : MESSAGES.spine.empty.today.title}
+            </EmptyTitle>
+            {bare && <EmptyDescription>{MESSAGES.spine.empty.season.line}</EmptyDescription>}
+          </EmptyHeader>
+        </Empty>
+      )}
     </section>
   );
 }
@@ -558,10 +577,11 @@ function nearDayName(date: string, now: Date): string {
 }
 
 /**
- * The Shortlist tile: the one filled block on the hub, opening the Shortlist. How many concerts
- * the rasika Shortlisted, and when: today's by slot, the days ahead by day.
+ * The hub's Shortlist section: its header alone, as it has no rows of its own (a panel wraps
+ * rows only). Under its label, how many concerts the rasika Shortlisted and when: today's by
+ * slot, the near ones in full ink as a row says them, the days ahead by day.
  */
-function ShortlistTile({
+function ShortlistSection({
   shortlisted,
   notes,
   now,
@@ -570,45 +590,60 @@ function ShortlistTile({
   notes: Notes;
   now: Date;
 }) {
-  const parts: string[] = [];
+  const parts: { text: string; near: boolean }[] = [];
   const today = isoDay(now);
   for (const day of shortlistDays(shortlisted)) {
     if (day.date === today) {
       for (const slot of day.slots) {
-        const on = slot.filter((concert) => underWay(concert, notes, now)).length;
-        if (on > 0) parts.push(MESSAGES.spine.onNowCount(on));
-        const ahead = slot.length - on;
-        if (ahead > 0)
-          parts.push(
-            slot[0]!.startTime
-              ? MESSAGES.spine.at(ahead, timeText(slot[0]!.startTime))
+        const later = slot.filter((concert) => !underWay(concert, notes, now));
+        const on = slot.length - later.length;
+        if (on > 0) parts.push({ text: MESSAGES.spine.onNowCount(on), near: true });
+        const ahead = later.length;
+        // Said by the first still to start, not by one of the slot already under way.
+        const first = later[0];
+        if (!first) continue;
+        const minutes = minutesTo(first, now);
+        if (minutes !== null) {
+          parts.push({ text: MESSAGES.spine.inCount(ahead, minutes), near: true });
+        } else {
+          parts.push({
+            text: first.startTime
+              ? MESSAGES.spine.at(ahead, timeText(first.startTime))
               : MESSAGES.spine.onDay(ahead, MESSAGES.season.today),
-          );
+            near: false,
+          });
+        }
       }
     } else {
       const count = day.slots.reduce((sum, slot) => sum + slot.length, 0);
-      parts.push(MESSAGES.spine.onDay(count, nearDayName(day.date, now)));
+      parts.push({ text: MESSAGES.spine.onDay(count, nearDayName(day.date, now)), near: false });
     }
   }
-  // Three parts at most; the rest as one count, so the line stays one line.
+  // Three parts at most; the rest as one mark, so the line stays one line.
   const said = parts.slice(0, 3);
   return (
-    <Link
-      href="/shortlist"
-      className="mt-6 flex min-h-20 items-center gap-3 rounded-xl bg-secondary p-4"
-    >
-      <span className="flex min-w-0 flex-1 flex-col gap-1">
-        <span className="font-semibold">{MESSAGES.tabs.shortlist}</span>
-        <span className="text-sub text-muted-foreground">
-          {shortlisted.length === 0
-            ? MESSAGES.spine.nothingYet
-            : said.join(' · ') + (parts.length > said.length ? ' …' : '')}
-        </span>
-      </span>
-      {shortlisted.length > 0 && (
-        <span className="text-title font-semibold tabular-nums">{shortlisted.length}</span>
-      )}
-      <IconChevronRight aria-hidden className="size-[22px] shrink-0" />
-    </Link>
+    <section aria-labelledby="hub-shortlist" className="pt-4">
+      <SectionHeader
+        id="hub-shortlist"
+        label={MESSAGES.tabs.shortlist}
+        href="/shortlist"
+        count={shortlisted.length}
+        line={
+          shortlisted.length === 0 ? (
+            MESSAGES.spine.nothingYet
+          ) : (
+            <>
+              {said.map((part, i) => (
+                <Fragment key={i}>
+                  {i > 0 && ' · '}
+                  {part.near ? <span className="text-foreground">{part.text}</span> : part.text}
+                </Fragment>
+              ))}
+              {parts.length > said.length && ' …'}
+            </>
+          )
+        }
+      />
+    </section>
   );
 }

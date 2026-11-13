@@ -127,3 +127,18 @@ export function nowTime(now = new Date()): string {
 
 /** "1 Item", "8 Items". */
 export const itemCount = (n: number) => `${n} ${n === 1 ? 'Item' : 'Items'}`;
+
+/**
+ * A name as a heading wraps it (the council, 2026-11-13: a hero broke "& C." from "S. Keshav
+ * Chandra"): no break after an "&" or after an initial, so a pair breaks before its "&" and
+ * initials stay with their name. For display only: the name itself is unchanged.
+ */
+export const nameBreaks = (name: string) =>
+  name
+    .split(' ')
+    .map((word, i, words) =>
+      i === words.length - 1
+        ? word
+        : word + (word === '&' || /^[A-Z]\.$/.test(word) ? '\u00A0' : ' '),
+    )
+    .join('');

@@ -2,7 +2,7 @@
 // "Status", "Install"): Export lives in Settings with the day of the last one; home stays quiet
 // until sync, but for "Getting ready for offline…"; Settings warns when storage isn't protected;
 // and a phone with the app open in a browser tab shows the install strip above the tab bar on
-// every screen, which an installed app and a desktop never show. Settings is a mark on the hub.
+// every screen, which an installed app and a desktop never show. Settings is the fourth tab.
 
 import { devices, expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
@@ -163,8 +163,9 @@ test('storage the browser hasn’t promised to keep reads "Storage not protected
   await storagePersisted(page, false);
   await page.goto('/');
   await finishFirstLaunch(page);
-  // The hub's Settings mark says there is something to fix.
+  // Settings' tab says there is something to fix, with an amber dot on its mark.
   await expect(page.getByRole('link', { name: 'Settings, something to fix' })).toBeVisible();
+  await expect(page.locator('nav [data-to-fix]')).toBeVisible();
   await openSettings(page);
   await expect(
     page.getByRole('listitem').filter({ hasText: 'Storage not protected' }),

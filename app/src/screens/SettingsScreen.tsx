@@ -26,7 +26,7 @@ import { READY_KEY } from '../store/offline-ready';
 import { setTheme, useTheme, type Theme } from '../theme';
 import { APP_VERSION, exportSeason, useExportState } from './components/export-file';
 import { ExportIcon } from './components/feedback';
-import { Screen, TopBar } from './components/layout';
+import { Screen, TabHeader } from './components/layout';
 import { shortDayText } from './format';
 import { MESSAGES } from './messages';
 
@@ -187,9 +187,8 @@ function SettingsView() {
   const catalogVersion = useMeta<string>(CATALOG_VERSION_KEY);
   return (
     <>
-      <TopBar back={{ href: '/', label: MESSAGES.tabs.season }} />
-      <h1 className="pt-2 pb-2 text-heading font-bold">{MESSAGES.spine.settings}</h1>
-      {/* 16px from the title to the first row, as Season's title has to the Now card. */}
+      {/* A tab since 2026-11-13 (the Maintainer): a plain header, with no way back to give. */}
+      <TabHeader title={MESSAGES.tabs.settings} />
       <ul className="mt-2 hairline-t">
         <OfflineRow />
         <StorageRow />

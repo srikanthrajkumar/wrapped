@@ -150,7 +150,10 @@ export async function storagePersisted(
 
 /** A bottom tab, not a back link to the same place. */
 export const tab = (page: Page, name: string) =>
-  page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name, exact: true });
+  page
+    .getByRole('navigation', { name: 'Main' })
+    // By its first word: Settings' tab is "Settings, something to fix" while a row needs fixing.
+    .getByRole('link', { name: new RegExp(`^${name}`) });
 
 /**
  * The hub, whatever page Season was left on: its tab once to reach it, and once more, as the
@@ -162,9 +165,8 @@ export async function openHub(page: Page): Promise<void> {
   await expect(page.locator('[data-curtain-field]')).toBeVisible();
 }
 
-/** Settings, opened as a rasika does: the hub, then the mark on its curtain. */
+/** Settings, opened as a rasika does: by its tab (the fourth, since 2026-11-13). */
 export async function openSettings(page: Page): Promise<void> {
-  await openHub(page);
-  await page.getByRole('link', { name: /^Settings/ }).click();
+  await tab(page, 'Settings').click();
   await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
 }

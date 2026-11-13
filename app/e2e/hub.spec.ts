@@ -84,10 +84,11 @@ async function openAt(page: Page, time: Date, entries: ScheduleEntry[] = SUNDAY)
   await page.locator('main h1').waitFor();
 }
 
-const soon = (page: Page) => page.getByRole('region', { name: 'Starting soon' });
-/** Each of Starting soon's rows, by the name it leads with. */
-const soonRows = async (page: Page) =>
-  (await soon(page).getByRole('listitem').allInnerTexts()).map((text) => text.split('\n')[0]);
+/** The hub's first section: Today, or the next day once nothing is left today. */
+const soon = (page: Page, day = 'Today') => page.getByRole('region', { name: day, exact: true });
+/** Each of its rows, by the name it leads with. */
+const soonRows = async (page: Page, day = 'Today') =>
+  (await soon(page, day).getByRole('listitem').allInnerTexts()).map((text) => text.split('\n')[0]);
 const door = (page: Page) => page.locator('main a[href="/whats-on"]');
 const sheet = (page: Page) => page.getByRole('dialog');
 const chevrons = (page: Page) => page.locator('main .tabler-icon-chevron-right');
@@ -105,24 +106,37 @@ async function shortlist(page: Page, name: string) {
   await expect(sheet(page)).toHaveCount(0);
 }
 
-test('day one: the title, Settings and the +, an empty Shortlist, and nothing listed', async ({
-  page,
-}) => {
+test('day one: the title and the +, three sections, and nothing listed', async ({ page }) => {
   await page.goto('/');
   await finishFirstLaunch(page);
   await expect(page.getByRole('heading', { name: 'Season', exact: true })).toBeVisible();
-  for (const mark of [
-    page.getByRole('button', { name: 'Log a Concert' }),
-    page.getByRole('link', { name: /^Settings/ }),
-  ]) {
-    const box = (await mark.boundingBox())!;
-    expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(44);
-  }
-  await expect(page.getByText('Nothing listed yet')).toBeVisible();
+  // The +: a 28px mark in a 48px target. Settings has left the curtain for the tab bar.
+  const plus = page.getByRole('button', { name: 'Log a Concert' });
+  expect((await plus.boundingBox())!.width).toBeGreaterThanOrEqual(44);
+  expect((await plus.locator('svg').boundingBox())!.width).toBe(28);
+  await expect(page.getByRole('main').getByRole('link', { name: /^Settings/ })).toHaveCount(0);
+  // One pattern, three sections, three chevrons; the empty state only where nothing is listed.
+  await expect(page.getByRole('main').getByRole('heading', { level: 2 })).toHaveText([
+    'Today',
+    'Nothing listed yet',
+    'Shortlist',
+    'Diary',
+  ]);
+  await expect(chevrons(page)).toHaveCount(3);
   await expect(page.locator('main a[href="/shortlist"]')).toContainText('Nothing yet');
-  // No search bar on the hub, and no Diary block until something is heard.
+  await expect(page.locator('main a[href="/diary"]')).toContainText('Nothing heard yet');
+  // No panel without rows, and no search bar on the hub.
+  await expect(page.locator('main .panel')).toHaveCount(0);
   await expect(page.locator('footer [data-season-bar]')).toHaveCount(0);
-  await expect(page.locator('main a[href="/diary"]')).toHaveCount(0);
+
+  // Four tabs. Settings is one, with a plain header and no way back to give.
+  await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link')).toHaveCount(4);
+  await tab(page, 'Settings').click();
+  await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
+  await expect(tab(page, 'Settings')).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('main').getByRole('link', { name: 'Season' })).toHaveCount(0);
+  await tab(page, 'Season').click();
+  await expect(page.locator('[data-curtain-field]')).toBeVisible();
 
   // The Shortlist and the Diary: a plain header each, and their empty states.
   await tab(page, 'Shortlist').click();
@@ -134,18 +148,35 @@ test('day one: the title, Settings and the +, an empty Shortlist, and nothing li
   await expect(page.getByText('Nothing heard yet')).toBeVisible();
 });
 
-test('at 3:40 the hub shows what starts soon, and What’s on is one tap away', async ({ page }) => {
+test('at 3:40 the hub shows today’s next slot, how close it is, and What’s on one tap away', async ({
+  page,
+}) => {
   await openAt(page, at('15:40'));
   // The next slot first, by Sabha; the two under way wait behind the door.
   expect(await soonRows(page)).toEqual(['Singer d4', 'Singer e4', 'Singer f4', 'Singer g4']);
   await expect(soon(page).getByRole('listitem').first()).toContainText('Violinist d4');
-  await expect(soon(page).getByRole('listitem').first()).toContainText('Sabha d4 · 4:00 pm');
-  await expect(door(page)).toHaveText('+2 more');
-  // No row carries a chevron or a button of its own; the door and the tile do.
+  // Inside the hour a row says how close it is, in full ink; the clock time is for What's on.
+  const first = soon(page).getByRole('listitem').first();
+  await expect(first).toContainText('Sabha d4 · in 20 min');
+  await expect(first.getByText('in 20 min')).toHaveCSS(
+    'color',
+    await first.getByText('Singer d4').evaluate((lead) => getComputedStyle(lead).color),
+  );
+  // The header is the way into What's on, with the count of what is left today: the two under
+  // way, the four at 4:00 and the one at 6:00.
+  await expect(door(page)).toContainText('Today');
+  await expect(door(page)).toContainText('7');
+  // No row carries a chevron or a button of its own; each section's header does: three.
   await expect(soon(page).getByRole('listitem').locator('.tabler-icon-chevron-right')).toHaveCount(
     0,
   );
-  await expect(chevrons(page)).toHaveCount(2);
+  await expect(chevrons(page)).toHaveCount(3);
+  // The rows stand on a panel, their text on the header's column, 24px from the screen's edge.
+  const column = (locator: ReturnType<Page['locator']>) =>
+    locator.evaluate((node) => Math.round(node.getBoundingClientRect().left));
+  expect(await column(page.getByRole('heading', { name: 'Today', exact: true }))).toBe(24);
+  expect(await column(first.getByText('Singer d4'))).toBe(24);
+  expect(await column(page.locator('main .panel').first())).toBe(8);
 
   // What's on: today from now, what is over folded to one line, a dot on what is under way.
   await door(page).click();
@@ -179,12 +210,19 @@ test('at 3:40 the hub shows what starts soon, and What’s on is one tap away', 
   await page.getByRole('main').getByRole('link', { name: 'Season', exact: true }).click();
   const next = page.getByRole('region', { name: 'Next' });
   await expect(next.getByRole('link')).toContainText('Singer f4');
-  await expect(next).toContainText('Sabha f4 · Today · 4:00 pm');
+  await expect(next).toContainText('Sabha f4 · in 20 min');
   // No chevron on the hero.
   await expect(next.locator('.tabler-icon-chevron-right')).toHaveCount(0);
   expect((await soonRows(page))[0]).toBe('Singer f4');
+  // Its star ends the lead's line, in its own column at the row's right edge.
+  const mine = soon(page).getByRole('listitem').first();
+  const star = (await mine.getByRole('img', { name: 'Shortlisted' }).boundingBox())!;
+  const lead = (await mine.getByText('Singer f4').boundingBox())!;
+  expect(star.y).toBeGreaterThanOrEqual(lead.y);
+  expect(star.y + star.height).toBeLessThanOrEqual(lead.y + lead.height);
+  expect(Math.round(star.x + star.width)).toBeGreaterThanOrEqual(390 - 24 - 1);
   const tile = page.locator('main a[href="/shortlist"]');
-  await expect(tile).toContainText('1 at 4:00 pm');
+  await expect(tile).toContainText('1 in 20 min');
   await tile.click();
   await expect(page.getByRole('heading', { name: 'Shortlist', exact: true })).toBeVisible();
   await expect(page.getByRole('main').getByRole('listitem')).toHaveCount(1);
@@ -210,7 +248,7 @@ test('a clash is a choice; the first Item makes a concert Heard; the Diary keeps
   const pick = page.getByRole('region', { name: 'Pick your dusk' });
   await expect(pick.getByRole('link')).toHaveCount(2);
   await expect(pick.getByRole('link').first()).toContainText('Singer f4');
-  await expect(pick.getByRole('link').first()).toContainText('Sabha f4 · 4:00 pm');
+  await expect(pick.getByRole('link').first()).toContainText('Sabha f4 · in 20 min');
 
   // One chosen: it opens ready for its first Item, which makes it Heard.
   await pick.getByRole('link').nth(1).click();
@@ -339,25 +377,41 @@ test('the lapse card asks once: a tap makes it Heard, the rest are kept as Misse
   await page.locator('main h1').waitFor();
   await expect(card).toHaveCount(0);
   // The one heard is in the Diary, and on the hub's Diary block; the Missed one is nowhere.
-  await expect(page.locator('main a[href="/diary"]')).toBeVisible();
+  const diary = page.getByRole('region', { name: 'Diary', exact: true });
+  await expect(diary.locator('a[href="/diary"]')).toContainText('1');
   await expect(chevrons(page)).toHaveCount(3);
+  // Heard with nothing logged yet: its row says nothing about Items, here or in the Diary.
+  await expect(diary.getByRole('listitem')).toContainText('Evening Singer');
+  await expect(diary.getByRole('listitem')).not.toContainText('Item');
   await tab(page, 'Diary').click();
   await expect(page.getByRole('main').getByRole('listitem')).toHaveCount(1);
   await expect(page.getByRole('main').getByRole('listitem')).toContainText('Evening Singer');
+  await expect(page.getByRole('main').getByRole('listitem')).not.toContainText('Item');
   await tab(page, 'Shortlist').click();
   await expect(page.getByText('Nothing shortlisted')).toBeVisible();
 });
 
-test('with nothing left today, the hub points to the next day’s first concert', async ({
+test('with nothing left today, Tomorrow leads, and a concert under way reads "On now"', async ({
   page,
 }) => {
-  await openAt(page, at('21:40'));
-  await expect(page.getByText('Nothing more today')).toBeVisible();
-  await expect(
-    page.getByText('Tomorrow starts at 9:00 am with Singer z at Sabha z.'),
-  ).toBeVisible();
-  // In the door's place, with its chevron: What's on, starting at that day.
-  await page.getByRole('link', { name: 'Tomorrow' }).click();
+  // 4:10: the 4:00 slot has begun. The next slot is 6:00, then those under way, latest first.
+  await openAt(page, at('16:10'));
+  expect(await soonRows(page)).toEqual(['Flautist i6Flute', 'Singer g4', 'Singer f4', 'Singer e4']);
+  const rows = soon(page).getByRole('listitem');
+  await expect(rows.nth(0)).toContainText('Sabha i6 · 6:00 pm');
+  await expect(rows.nth(1)).toContainText('Sabha g4 On now');
+  await expect(rows.nth(1)).not.toContainText('4:00 pm');
+
+  // 9:40 pm: no big empty state. The first section is tomorrow's, with its clock times.
+  await page.clock.setFixedTime(at('21:40'));
+  await page.reload();
+  await page.locator('main h1').waitFor();
+  await expect(page.getByText('Nothing more today')).toHaveCount(0);
+  expect(await soonRows(page, 'Tomorrow')).toEqual(['Singer z']);
+  await expect(soon(page, 'Tomorrow').getByRole('listitem')).toContainText('Sabha z · 9:00 am');
+  // Its header opens What's on, starting at that day.
+  await expect(door(page)).toContainText('Tomorrow');
+  await door(page).click();
   await expect(page.getByRole('heading', { name: "What's on", exact: true })).toBeVisible();
   const first = page.locator('[data-list] section[data-place]').first();
   await expect(first).toHaveAttribute('data-place', NEXT_DAY);
@@ -516,7 +570,7 @@ test('the tab bar stays at the foot of the screen through the hub’s states', a
 
   // The evening passes with the hub open: nothing more today, then the next morning's card.
   await page.clock.fastForward('06:00:00');
-  await expect(page.getByText('Nothing more today')).toBeVisible();
+  await expect(soon(page, 'Tomorrow').getByRole('listitem').first()).toBeVisible();
   await expectNavAtFoot(page);
   await page.clock.fastForward('12:00:00');
   await expect(page.getByRole('region', { name: 'Were you at any of these?' })).toBeVisible();

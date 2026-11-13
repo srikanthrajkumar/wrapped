@@ -17,6 +17,12 @@
   box-shadow: inset 0 -1px 0 var(--border);
 }
 
+/* A panel's last row ends on the panel's own edge, with no line (DESIGN.md "The section
+   pattern"). Unlayered, so it holds over the row's own hairline utility. */
+.panel > :last-child {
+  box-shadow: none;
+}
+
 @utility hairline-y {
   box-shadow:
     inset 0 1px 0 var(--border),
@@ -160,6 +166,8 @@
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-panel: var(--panel);
+  --color-tab-idle: var(--tab-idle);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
@@ -202,6 +210,10 @@
   --background: oklch(1 0 0);
   --foreground: oklch(0.2 0.014 60);
   --card: oklch(1 0 0);
+  /* The section pattern's panel: one quiet step off the page (DESIGN.md "The section pattern"). */
+  --panel: oklch(0.965 0 0);
+  /* A tab that isn't on. */
+  --tab-idle: var(--muted-foreground);
   --card-foreground: var(--foreground);
   --popover: oklch(1 0 0);
   --popover-foreground: var(--foreground);
@@ -254,6 +266,9 @@
   --background: oklch(0.148 0.004 228.8);
   --foreground: oklch(0.88 0.014 80);
   --card: oklch(0.218 0.008 223.9);
+  --panel: oklch(0.195 0.006 226);
+  /* A step under the muted text, so the tab that is on stands out in a dim hall: 5.4:1. */
+  --tab-idle: oklch(0.62 0.012 75);
   --card-foreground: var(--foreground);
   --popover: oklch(0.218 0.008 223.9);
   --popover-foreground: var(--foreground);

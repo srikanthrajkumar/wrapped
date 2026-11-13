@@ -30,6 +30,10 @@ approved in.
 - **Exactly three chevrons on the hub**, one per piece that opens a page: Starting soon's
   "+N more" opens What's on; the Shortlist tile opens the Shortlist; the Diary block opens the
   Diary. The hero has no chevron, and the whole hero still opens its Event. Rows carry none.
+  *Since 2026-11-13* (hub polish; DESIGN.md "The section pattern", "Season, the hub"): the
+  three are the headers of the hub's three sections, Today, Shortlist and Diary, in one
+  pattern; "Starting soon" and its door are "Today", the Shortlist tile is a header with its
+  line, and Settings is the fourth tab.
 - **The install row** (FB-46) becomes a thin strip directly above the tab bar, the same on
   every tab, shown only in a browser tab. Where the bottom search bar is (Season, What's on),
   the stack is search bar, strip, tab bar. This replaces Part 9's "under the hero".
