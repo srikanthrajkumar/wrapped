@@ -478,3 +478,101 @@ test('the status band is clear over the hub’s curtain, and painted everywhere 
   });
   expect(lightness).toBeLessThan(0.2);
 });
+
+// The tab bar stays at the foot of the screen (the Maintainer's iPhone, 2026-11-12: it sat a
+// keyboard's height up the hub, the page scrolling under it).
+/** How far the tab bar's foot is from the screen's: 0 when it is where it belongs. */
+const navLift = (page: Page) =>
+  page.evaluate(() => {
+    const nav = document.querySelector('nav[aria-label="Main"]')!;
+    return Math.round(window.innerHeight - nav.getBoundingClientRect().bottom);
+  });
+
+/** At the foot with the page at its top, and at its end. */
+async function expectNavAtFoot(page: Page) {
+  await expect.poll(() => navLift(page)).toBe(0);
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await expect.poll(() => navLift(page)).toBe(0);
+  await page.evaluate(() => window.scrollTo(0, 0));
+}
+
+test('the tab bar stays at the foot of the screen through the hub’s states', async ({ page }) => {
+  // The clock runs, so the hub changes in place as it does in the hand.
+  await page.clock.install({ time: at('15:40') });
+  await page.goto('/');
+  await finishFirstLaunch(page);
+  // Day one: nothing listed.
+  await expect(page.getByText('Nothing listed yet')).toBeVisible();
+  await expectNavAtFoot(page);
+
+  await storeEntries(page, SUNDAY);
+  await page.reload();
+  await expect(soon(page).getByRole('listitem').first()).toBeVisible();
+  await expectNavAtFoot(page);
+  // With a hero: one Shortlisted, ahead.
+  await shortlist(page, 'Singer d4');
+  await expect(page.getByRole('region', { name: 'Next' })).toBeVisible();
+  await expectNavAtFoot(page);
+
+  // The evening passes with the hub open: nothing more today, then the next morning's card.
+  await page.clock.fastForward('06:00:00');
+  await expect(page.getByText('Nothing more today')).toBeVisible();
+  await expectNavAtFoot(page);
+  await page.clock.fastForward('12:00:00');
+  await expect(page.getByRole('region', { name: 'Were you at any of these?' })).toBeVisible();
+  await expectNavAtFoot(page);
+  await page.getByRole('button', { name: 'None of these' }).click();
+  await expect(page.getByRole('region', { name: 'Were you at any of these?' })).toHaveCount(0);
+  await expectNavAtFoot(page);
+});
+
+test('a keyboard that has gone never holds the tab bar up', async ({ page }) => {
+  // A stand-in keyboard: the visual viewport reports what it covers, as on iOS, and says so
+  // only when told to.
+  await page.addInitScript(() => {
+    let covered = 0;
+    const viewport = window.visualViewport!;
+    Object.defineProperty(viewport, 'height', {
+      configurable: true,
+      get: () => window.innerHeight - covered,
+    });
+    (window as unknown as { keyboard(px: number, tell: boolean): void }).keyboard = (px, tell) => {
+      covered = px;
+      if (tell) viewport.dispatchEvent(new Event('resize'));
+    };
+  });
+  const keyboard = (px: number, tell: boolean) =>
+    page.evaluate(
+      ([px, tell]) =>
+        (window as unknown as { keyboard(px: number, tell: boolean): void }).keyboard(px, tell),
+      [px, tell] as const,
+    );
+  await openAt(page, at('15:40'));
+  await page
+    .getByRole('main')
+    .getByRole('button', { name: /^Singer d4/ })
+    .first()
+    .click();
+  await sheet(page).getByRole('button', { name: "I'm here" }).click();
+  await expect(page.getByText('No Items yet')).toBeVisible();
+  await page.getByRole('button', { name: 'Note' }).click();
+  await page.getByRole('textbox', { name: 'Note' }).focus();
+  // With a field in hand the bar rides above the keyboard.
+  await keyboard(336, true);
+  await expect.poll(() => navLift(page)).toBe(336);
+
+  // The rasika leaves by the tab bar. The field goes with its page, which fires no blur, and
+  // the phone goes on reporting the keyboard: the bar still comes down.
+  await tab(page, 'Season').click();
+  await expect(page.locator('[data-curtain-field]')).toBeVisible();
+  await expectNavAtFoot(page);
+
+  // And once the field is only left, the keyboard's going unannounced.
+  await page.goBack();
+  await page.getByRole('button', { name: 'Note' }).click();
+  await page.getByRole('textbox', { name: 'Note' }).focus();
+  await keyboard(336, true);
+  await expect.poll(() => navLift(page)).toBe(336);
+  await page.getByRole('textbox', { name: 'Note' }).blur();
+  await expect.poll(() => navLift(page)).toBe(0);
+});
