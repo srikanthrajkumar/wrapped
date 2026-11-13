@@ -30,6 +30,7 @@ import {
   WHATS_ON,
 } from '../nav';
 import { SeasonFeedback } from './feedback';
+import { LineInset } from './line-metrics';
 import { UndoBar } from './UndoBar';
 
 /**
@@ -226,7 +227,7 @@ const PAGE_NAME: Record<string, string> = {
   [WHATS_ON]: MESSAGES.spine.whatsOn,
   '/shortlist': MESSAGES.tabs.shortlist,
   '/diary': MESSAGES.tabs.diary,
-  '/settings': MESSAGES.spine.settings,
+  '/settings': MESSAGES.tabs.settings,
 };
 
 /**
@@ -273,7 +274,9 @@ const TOP = 'var(--app-top-inset,env(safe-area-inset-top))';
 /**
  * The hub's curtain (DESIGN.md "The motif", "The status bar"): the motif drawn full-bleed from
  * the very top of the screen, under the clock and the Dynamic Island, with the safe area as
- * padding inside it, and the page drawn up over it as a sheet with 18px top corners. While any
+ * padding inside it, fading into the page below it (the council, 2026-11-13: no sheet edge, so
+ * no corner sits against a panel's). Its content stands on the hub's 24px column, 8px clear of
+ * the safe area (the Maintainer, 2026-11-13: more room above and left of the title). While any
  * of it is under the status bar the shell's band stays clear (`data-curtain` on the root), so
  * the field shows there; in light, where the clock is white, a rose-ink wash holds it readable.
  */
@@ -286,7 +289,7 @@ export function Curtain({ art, children }: { art: ReactNode; children: ReactNode
       // The field still reaches under the status bar: its foot is below the shell's band.
       const band = document.querySelector<HTMLElement>('[data-status-band]');
       const inset = band?.offsetHeight ?? 0;
-      root.toggleAttribute('data-curtain', node.getBoundingClientRect().bottom - 18 > inset);
+      root.toggleAttribute('data-curtain', node.getBoundingClientRect().bottom - 24 > inset);
     };
     set();
     window.addEventListener('scroll', set, { passive: true });
@@ -303,21 +306,20 @@ export function Curtain({ art, children }: { art: ReactNode; children: ReactNode
       style={{ marginTop: `calc(-1 * ${TOP})` }}
     >
       <div className="absolute inset-0 overflow-hidden">{art}</div>
-      {/* The hero holds its contrast: the field fades halfway to the page behind it. */}
+      {/* The field fades into the page, and the hero holds its contrast over it. */}
       <div
         aria-hidden
-        className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-background/50 to-transparent"
+        className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-background to-transparent"
       />
       <div aria-hidden className="status-wash absolute inset-x-0 top-0" />
       <div
-        // From the top down, so the hero's row, with Settings and the +, sits at one place in
-        // every state (the council, 2026-11-11: it jumped between the title and a concert).
-        className="relative flex flex-col pr-[calc(16px+env(safe-area-inset-right))] pb-4 pl-[calc(16px+env(safe-area-inset-left))]"
-        style={{ minHeight: `calc(${TOP} + 96px)`, paddingTop: TOP }}
+        // From the top down, so the hero's row, with the +, sits at one place in every state
+        // (the council, 2026-11-11: it jumped between the title and a concert).
+        className="relative flex flex-col pr-[calc(24px+env(safe-area-inset-right))] pb-4 pl-[calc(24px+env(safe-area-inset-left))]"
+        style={{ minHeight: `calc(${TOP} + 72px)`, paddingTop: `calc(${TOP} + 8px)` }}
       >
         {children}
       </div>
-      <div aria-hidden className="relative h-[18px] rounded-t-[18px] bg-background" />
     </div>
   );
 }
@@ -368,30 +370,81 @@ export function SectionHead({
 }
 
 /**
- * A section header that opens a page (the Maintainer, 2026-11-11): its label at the left and a
- * chevron on the gutter at the right, the whole 48px row one link. A chevron always means "this
- * opens a page", and nothing else carries one.
+ * The section pattern's header (DESIGN.md "The section pattern"; the Maintainer, 2026-11-13): the
+ * label at title size, an optional muted line under it, and at the right, on the label's line,
+ * a count when above zero and a chevron. With an `href` the whole row is one link that opens the
+ * section's page; without one it carries no chevron, as a chevron always means "this opens a
+ * page". Its text stands 8px in from the page's gutter, on the column a {@link Panel} holds its
+ * rows to, and its chevron's tip ends on the same column at the right.
  */
-export function SectionLink({
+export function SectionHeader({
+  id,
+  label,
+  line,
+  count = 0,
   href,
-  children,
-  className,
   onClick,
 }: {
-  href: string;
-  children: ReactNode;
-  className?: string;
+  id: string;
+  label: string;
+  /** One muted line under the label: a section with no rows says what it holds here. */
+  line?: ReactNode;
+  count?: number;
+  href?: string;
   onClick?: () => void;
 }) {
-  return (
+  const body = (
+    <>
+      <span className="flex min-w-0 flex-1 flex-col py-2.5">
+        <h2 id={id} className="text-title font-semibold break-words">
+          {label}
+        </h2>
+        {line && <span className="text-sub text-muted-foreground">{line}</span>}
+      </span>
+      {count > 0 && (
+        <span className="mt-3.5 text-sub text-muted-foreground tabular-nums">{count}</span>
+      )}
+      {href && (
+        <IconChevronRight
+          aria-hidden
+          className="mt-[13px] -mr-[7px] size-[22px] shrink-0 text-muted-foreground"
+        />
+      )}
+    </>
+  );
+  const shape = 'flex min-h-12 items-start px-2';
+  return href ? (
     <Link
       href={href}
       onClick={onClick}
-      className={cn('flex min-h-12 items-center justify-between gap-2 rounded-xl', className)}
+      className={cn(shape, 'rounded-xl focus-visible:-outline-offset-2')}
     >
-      {children}
-      <IconChevronRight aria-hidden className="size-[22px] shrink-0 text-foreground" />
+      {body}
     </Link>
+  ) : (
+    <div className={shape}>{body}</div>
+  );
+}
+
+/**
+ * The section pattern's panel (DESIGN.md "The section pattern"): a quiet surface one step above
+ * the page, around a section's rows and nothing else. It reaches 8px past the page's gutter and
+ * holds its rows 16px in, so their text stands on the header's column; a row's own hairline
+ * divides it from the next, and the last row has none (app.css `.panel`).
+ */
+export function Panel({
+  as: Tag = 'ul',
+  className,
+  children,
+}: {
+  as?: 'ul' | 'div';
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <LineInset.Provider value={16}>
+      <Tag className={cn('panel -mx-2 rounded-2xl bg-panel px-4', className)}>{children}</Tag>
+    </LineInset.Provider>
   );
 }
 

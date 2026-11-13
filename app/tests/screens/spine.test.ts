@@ -14,6 +14,7 @@ import {
   shortlistDays,
   slotName,
   stageOf,
+  minutesTo,
   startingSoon,
   underWay,
 } from '../../src/screens/spine';
@@ -141,7 +142,7 @@ describe('under way', () => {
   });
 });
 
-describe('Starting soon', () => {
+describe('the hub’s first section', () => {
   // 3:40 pm: three under way, five in the 4:00 slot, one at 4:30 and one at 6:00.
   const sowmya = own('sowmya', { scheduleEntryId: 'f4' });
   const murthy = own('murthy', { scheduleEntryId: 'i6', startTime: '18:00' });
@@ -166,8 +167,9 @@ describe('Starting soon', () => {
     const soon = startingSoon(all, notes(), at('15:40'));
     expect(keys(soon.rows)).toEqual(['f4', 'd4', 'e4', 'g4']);
     // The 4:30 one is in the 4:00 slot; the three under way wait behind it, latest first.
-    expect(soon.more).toBe(4);
-    expect(soon.next).toBeNull();
+    expect(soon.day).toBe('2026-12-20');
+    // The header's count is all of today not yet over: the three under way and the six ahead.
+    expect(soon.count).toBe(9);
   });
 
   it('shows the next slot however far off, never nothing while today has one', () => {
@@ -175,7 +177,8 @@ describe('Starting soon', () => {
     // Only the 6:00 slot is ahead. The rasika's own come first, the one under way and the one
     // ahead; then the others under way, the latest to start first.
     expect(keys(soon.rows)).toEqual(['f4', 'i6', 'h4', 'g4']);
-    expect(soon.more).toBe(4);
+    // The 1:30 one is over; seven are under way and one is ahead.
+    expect(soon.count).toBe(8);
   });
 
   it('leaves out a Shortlisted concert outside the set, a cancelled one, and the hero’s own', () => {
@@ -185,10 +188,51 @@ describe('Starting soon', () => {
     expect(keys(startingSoon(all, notes(), at('15:40'), 'sowmya').rows)).not.toContain('f4');
   });
 
-  it('points to the next day’s first concert once nothing is left today', () => {
+  it('becomes the next day’s once nothing is left today: its first four, in start order', () => {
     const soon = startingSoon(all, notes(), at('21:00'));
-    expect(soon.rows).toEqual([]);
-    expect(soon.next?.key).toBe('z');
+    expect(soon.day).toBe('2026-12-21');
+    expect(keys(soon.rows)).toEqual(['z']);
+    expect(soon.count).toBe(1);
+
+    // A Shortlisted one stays where its time puts it, and a cancelled one is left out.
+    const pick = own('pick', { scheduleEntryId: 'm3', date: '2026-12-22', startTime: '09:30' });
+    const later = concerts(
+      [pick],
+      [
+        listing('m1', '09:00', { date: '2026-12-22' }),
+        listing('m2', '09:00', { date: '2026-12-22', cancelled: true }),
+        listing('m3', '09:30', { date: '2026-12-22' }, pick),
+        listing('m4', '10:00', { date: '2026-12-22' }),
+        listing('m5', '11:00', { date: '2026-12-22' }),
+        listing('m6', '16:00', { date: '2026-12-22' }),
+        listing('n1', '09:00', { date: '2026-12-23' }),
+      ],
+      at('21:00'),
+    );
+    const next = startingSoon(later, notes(), at('21:00'));
+    expect(next.day).toBe('2026-12-22');
+    expect(keys(next.rows)).toEqual(['m1', 'm3', 'm4', 'm5']);
+    expect(next.count).toBe(5);
+  });
+
+  it('has no day once nothing is listed ahead', () => {
+    const gone = concerts([], [listing('a', '09:00')], at('21:00'));
+    expect(startingSoon(gone, notes(), at('21:00'))).toEqual({ day: null, rows: [], count: 0 });
+    expect(startingSoon([], notes(), at('21:00'))).toEqual({ day: null, rows: [], count: 0 });
+  });
+});
+
+describe('how close a concert is', () => {
+  const [row] = concerts([], [listing('a', '18:00')], at('08:00'));
+  it('counts the minutes inside the hour, rounded up, and nothing further off or once begun', () => {
+    expect(minutesTo(row!, at('16:59'))).toBeNull();
+    expect(minutesTo(row!, at('17:00'))).toBeNull();
+    expect(minutesTo(row!, at('17:01'))).toBe(59);
+    expect(minutesTo(row!, at('17:40'))).toBe(20);
+    expect(minutesTo(row!, new Date(at('17:59').getTime() + 30_000))).toBe(1);
+    expect(minutesTo(row!, at('18:00'))).toBeNull();
+    expect(minutesTo(row!, at('18:20'))).toBeNull();
+    expect(minutesTo({ date: '2026-12-20', startTime: null }, at('17:40'))).toBeNull();
   });
 });
 

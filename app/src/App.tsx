@@ -1,4 +1,4 @@
-import { IconHome, IconNotebook, IconStar, type Icon } from '@tabler/icons-react';
+import { IconHome, IconNotebook, IconSettings, IconStar, type Icon } from '@tabler/icons-react';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Link, Redirect, Route, Switch, useLocation, useRoute } from 'wouter';
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
@@ -24,7 +24,7 @@ import {
   type Tab,
 } from './screens/nav';
 import { Placeholder } from './screens/Placeholder';
-import { preloadSettings, SettingsScreen } from './screens/SettingsScreen';
+import { preloadSettings, SettingsScreen, useSettingsToFix } from './screens/SettingsScreen';
 import { ShortlistScreen } from './screens/ShortlistScreen';
 import { ToPast, WhatsOnScreen } from './screens/WhatsOnScreen';
 import { holdNewConcert } from './screens/new-concert';
@@ -33,9 +33,9 @@ import { db } from './store/db';
 import { useFirstLaunchDone } from './store/first-launch';
 import { clearReceipts } from './store/receipts';
 
-// Navigation (DESIGN.md "Navigation"; the Maintainer, 2026-11-11): three bottom tabs, one per
-// stage of a concert: Season (the hub), Shortlist and Diary. What's on is one tap below Season,
-// and Settings a mark on the hub. Each tab keeps its own back stack (screens/nav.ts); an Event
+// Navigation (DESIGN.md "Navigation"; the Maintainer, 2026-11-11 and 2026-11-13): four bottom
+// tabs: one per stage of a concert, Season (the hub), Shortlist and Diary, then Settings, with
+// an amber dot while one of its rows needs fixing. What's on is one tap below Season. Each tab keeps its own back stack (screens/nav.ts); an Event
 // and its Items open in the tab they were reached from, with the tab bar still in view, which
 // hides only while the Item editor is open. The tab that is on, tapped, returns to its top.
 
@@ -45,11 +45,13 @@ const TABS: { tab: Tab; label: string; icon: Icon }[] = [
   { tab: 'season', label: MESSAGES.tabs.season, icon: IconHome },
   { tab: 'shortlist', label: MESSAGES.tabs.shortlist, icon: IconStar },
   { tab: 'diary', label: MESSAGES.tabs.diary, icon: IconNotebook },
+  { tab: 'settings', label: MESSAGES.tabs.settings, icon: IconSettings },
 ];
 
 function TabBar() {
   const [path] = useLocation();
   const nav = useSyncExternalStore(subscribeNav, navState);
+  const toFix = useSettingsToFix();
   return (
     <nav
       aria-label="Main"
@@ -57,11 +59,13 @@ function TabBar() {
     >
       {TABS.map(({ tab, label, icon: Mark }) => {
         const current = nav.tab === tab;
+        const fix = tab === 'settings' && toFix;
         return (
           <Link
             key={tab}
             href={tabTarget(nav, tab)}
             aria-current={current ? 'page' : undefined}
+            aria-label={fix ? MESSAGES.spine.settingsToFix : undefined}
             onClick={(event) => {
               if (!current) return enterTab(tab, tabTarget(nav, tab));
               // The tab that is on returns to its top: its root, at the top of the page.
@@ -72,12 +76,24 @@ function TabBar() {
             }}
             className={cn(
               // An icon over its word, 56px. The words grow with the phone's text only to 1.4x,
-              // as native tab bars do, so three always fit on a 320px phone.
+              // as native tab bars do, so four always fit on a 320px phone. A tab that isn't on
+              // is a step dimmer than muted text (the council, 2026-11-13: in a dim hall the one
+              // that is on hardly stood out).
               'flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 text-center text-[min(var(--text-caption),18px)] leading-4',
-              current ? 'font-semibold text-foreground' : 'text-muted-foreground',
+              current ? 'font-semibold text-foreground' : 'text-tab-idle',
             )}
           >
-            <Mark aria-hidden className="size-[22px] shrink-0" />
+            <span className="relative">
+              <Mark aria-hidden className="size-[22px] shrink-0" />
+              {/* Amber is "something to fix", and nothing else (DESIGN.md "Colours"). */}
+              {fix && (
+                <span
+                  aria-hidden
+                  data-to-fix
+                  className="absolute -top-1 -right-1.5 size-2.5 rounded-full bg-warning ring-2 ring-background"
+                />
+              )}
+            </span>
             {label}
           </Link>
         );

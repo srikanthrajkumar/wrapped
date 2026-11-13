@@ -1,5 +1,5 @@
-// Where the rasika is in the app (the Maintainer, 2026-11-11; DESIGN.md "Navigation"): three
-// tabs, Season, Shortlist and Diary, each with its own back stack. What's on, then Shortlist,
+// Where the rasika is in the app (the Maintainer, 2026-11-11 and 2026-11-13; DESIGN.md
+// "Navigation"): four tabs, Season, Shortlist, Diary and Settings, each with its own back stack. What's on, then Shortlist,
 // then Season again finds What's on where it was left; an Event opened from the Diary goes back
 // to the Diary; the tab that is on, tapped, returns to its top. The URL stays the page's own
 // (`/event/:id` whichever tab opened it), so the stacks are kept here, in memory and in
@@ -8,12 +8,13 @@
 
 import type { BrowserStorage } from '../browser-storage';
 
-export type Tab = 'season' | 'shortlist' | 'diary';
+export type Tab = 'season' | 'shortlist' | 'diary' | 'settings';
 
 export const TAB_ROOT: Record<Tab, string> = {
   season: '/',
   shortlist: '/shortlist',
   diary: '/diary',
+  settings: '/settings',
 };
 
 export const WHATS_ON = '/whats-on';
@@ -23,6 +24,8 @@ export function homeTab(path: string): Tab | null {
   if (path.startsWith('/event/')) return null;
   if (path === TAB_ROOT.shortlist) return 'shortlist';
   if (path === TAB_ROOT.diary) return 'diary';
+  // Settings, and the Maintainer's review under it.
+  if (path === TAB_ROOT.settings || path === '/admin') return 'settings';
   return 'season';
 }
 
@@ -40,7 +43,7 @@ export interface NavState {
 
 export const startState = (): NavState => ({
   tab: 'season',
-  stacks: { season: ['/'], shortlist: ['/shortlist'], diary: ['/diary'] },
+  stacks: { season: ['/'], shortlist: ['/shortlist'], diary: ['/diary'], settings: ['/settings'] },
 });
 
 /** Which way the rasika went: into a page, back to one, across to another tab, or nowhere. */
@@ -49,7 +52,7 @@ export type Move = 'forward' | 'back' | 'tab' | 'same';
 /**
  * The stacks after the rasika reaches `path`. A page already in its tab's stack is gone back to,
  * and what was above it is left; a new one goes on top, in place of any page as deep or deeper
- * (the next Item replaces the last, Settings replaces What's on). A page no tab owns stays in
+ * (the next Item replaces the last). A page no tab owns stays in
  * the tab that is on.
  */
 export function visit(state: NavState, path: string): { state: NavState; move: Move } {
@@ -86,8 +89,10 @@ function read(storage: BrowserStorage | null): NavState {
     if (!stored || !(stored.tab! in TAB_ROOT) || typeof stored.stacks !== 'object') return start;
     for (const tab of Object.keys(TAB_ROOT) as Tab[]) {
       const stack = stored.stacks?.[tab];
+      // A page kept under a tab that is no longer its own is dropped: Settings sat in Season's
+      // stack until it became a tab, and a stack ending on it would send Season's tab there.
       if (Array.isArray(stack) && stack[0] === TAB_ROOT[tab] && stack.every(isPath))
-        start.stacks[tab] = stack;
+        start.stacks[tab] = stack.filter((page) => (homeTab(page) ?? tab) === tab);
     }
     return { tab: stored.tab!, stacks: start.stacks };
   } catch {

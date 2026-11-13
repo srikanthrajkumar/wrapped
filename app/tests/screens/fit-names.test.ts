@@ -3,6 +3,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { fitNames, namesLine } from '../../src/screens/fit-names';
+import { nameBreaks } from '../../src/screens/format';
 
 /** A fixed-width type: ten to the character. */
 const measure = (text: string) => text.length * 10;
@@ -54,5 +55,25 @@ describe('fitNames', () => {
 
   it('shows none of none', () => {
     expect(fitNames([], 100, measure)).toBe(0);
+  });
+});
+
+// A lead or a hero's name, as a heading wraps it (the council, 2026-11-13).
+describe('where a name may break', () => {
+  const NBSP = '\u00A0';
+  it('never after an "&" or an initial, so a pair breaks before its "&"', () => {
+    expect(nameBreaks('Charulatha Chandrashekar & C. S. Keshav Chandra')).toBe(
+      `Charulatha Chandrashekar &${NBSP}C.${NBSP}S.${NBSP}Keshav Chandra`,
+    );
+    expect(nameBreaks('T. M. Krishna')).toBe(`T.${NBSP}M.${NBSP}Krishna`);
+    expect(nameBreaks('Ranjani & Gayatri')).toBe(`Ranjani &${NBSP}Gayatri`);
+  });
+
+  it('leaves a name with neither as it is, and a last initial where it stands', () => {
+    expect(nameBreaks('Sid Sriram')).toBe('Sid Sriram');
+    expect(nameBreaks('Thiruvizha Sri. Viju')).toBe('Thiruvizha Sri. Viju');
+    expect(nameBreaks('Nagai R. Muralidharan & Badrinarayanan. D')).toBe(
+      `Nagai R.${NBSP}Muralidharan &${NBSP}Badrinarayanan. D`,
+    );
   });
 });

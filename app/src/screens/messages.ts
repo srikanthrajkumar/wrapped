@@ -39,7 +39,7 @@ export const MESSAGES = {
     allSynced: 'All backed up',
   },
   /** The tab bar (the Maintainer, 2026-11-11). */
-  tabs: { season: 'Season', shortlist: 'Shortlist', diary: 'Diary' },
+  tabs: { season: 'Season', shortlist: 'Shortlist', diary: 'Diary', settings: 'Settings' },
   /**
    * The Season spine's words (docs/designs/season-spine.md). Placeholders: the Maintainer has
    * approved none of them yet, bar the tabs' names and "Shortlist" / "Shortlisted".
@@ -48,17 +48,16 @@ export const MESSAGES = {
     whatsOn: "What's on",
     /** The hero's choice between Shortlisted concerts in one slot. */
     pick: (slot: string) => `Pick your ${slot}`,
-    startingSoon: 'Starting soon',
-    /** Starting soon's door into What's on: the count of the rest, or with none, all of today. */
-    more: (count: number) => `+${count} more`,
-    allOfToday: 'All of today',
+    /** A concert inside the hour, on a row, the hero and the Shortlist's line. */
+    inMinutes: (minutes: number) => `in ${minutes} min`,
+    inCount: (count: number, minutes: number) => `${count} in ${minutes} min`,
     onNow: 'On now',
     shortlist: 'Shortlist',
     shortlisted: 'Shortlisted',
     /** The listing sheet's second button, and for a concert whose time has passed. */
     here: "I'm here",
     wasThere: 'I was there',
-    /** The Shortlist tile's line. */
+    /** The hub's Shortlist line. */
     nothingYet: 'Nothing yet',
     at: (count: number, time: string) => `${count} at ${time}`,
     onDay: (count: number, day: string) => `${count} on ${day}`,
@@ -68,14 +67,13 @@ export const MESSAGES = {
     /** The lapse card (SF-D24). */
     lapse: {
       question: 'Were you at any of these?',
-      yes: (name: string) => `I was at ${name}`,
+      yes: 'Yes',
+      yesSpoken: (name: string) => `Yes, I was at ${name}`,
       none: 'None of these',
     },
     empty: {
       today: {
         title: 'Nothing more today',
-        next: (day: string, time: string | null, lead: string, sabha: string | null) =>
-          `${day} starts${time ? ` at ${time}` : ''} with ${lead}${sabha ? ` at ${sabha}` : ''}.`,
       },
       season: { title: 'Nothing listed yet', line: 'Concerts show here once the Schedule is out.' },
       shortlist: {
@@ -87,7 +85,6 @@ export const MESSAGES = {
       search: { title: 'Nothing here matches' },
     },
     tomorrow: 'Tomorrow',
-    settings: 'Settings',
     settingsToFix: 'Settings, something to fix',
   },
   /** Season's hero, strip of days and filter (the Maintainer, 2026-11-09; DESIGN.md "Season"). */

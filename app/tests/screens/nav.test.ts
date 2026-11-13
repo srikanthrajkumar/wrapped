@@ -65,11 +65,52 @@ describe('the tabs’ stacks', () => {
     expect(tabTarget(visit(state, '/diary').state, 'shortlist')).toBe('/event/a');
   });
 
-  it('puts Settings and What’s on under Season, one in the other’s place', () => {
-    expect(homeTab('/settings')).toBe('season');
+  it('keeps Settings as its own tab, with the review under it', () => {
+    expect(homeTab('/settings')).toBe('settings');
+    expect(homeTab('/admin')).toBe('settings');
+    expect(homeTab(WHATS_ON)).toBe('season');
     expect(homeTab('/event/a')).toBeNull();
-    expect(walk(WHATS_ON, '/settings').state.stacks.season).toEqual(['/', '/settings']);
-    expect(walk('/settings', '/admin').state.stacks.season).toEqual(['/', '/settings', '/admin']);
+    // What's on is left where it was, under Season, while Settings is on.
+    const { state, moves } = walk(WHATS_ON, '/settings', '/admin');
+    expect(moves).toEqual(['forward', 'tab', 'forward']);
+    expect(state.tab).toBe('settings');
+    expect(state.stacks.season).toEqual(['/', WHATS_ON]);
+    expect(state.stacks.settings).toEqual(['/settings', '/admin']);
+    expect(tabTarget(state, 'season')).toBe(WHATS_ON);
+    expect(tabTarget(state, 'settings')).toBe('/settings');
+  });
+
+  it('drops Settings from a Season stack kept from before it was a tab', () => {
+    const kept = new Map<string, string>([
+      [
+        'wrapped.nav.v1',
+        JSON.stringify({
+          tab: 'season',
+          stacks: { season: ['/', '/settings'], shortlist: ['/shortlist'], diary: ['/diary'] },
+        }),
+      ],
+    ]);
+    const before = Object.getOwnPropertyDescriptor(globalThis, 'sessionStorage');
+    Object.defineProperty(globalThis, 'sessionStorage', {
+      configurable: true,
+      value: {
+        getItem: (key: string) => kept.get(key) ?? null,
+        setItem: (key: string, value: string) => void kept.set(key, value),
+        removeItem: (key: string) => void kept.delete(key),
+      },
+    });
+    try {
+      resetNav();
+      expect(navState().stacks.season).toEqual(['/']);
+      expect(navState().stacks.settings).toEqual(['/settings']);
+      // Season's tab goes to the hub, never back into Settings.
+      arrive('/settings');
+      expect(tabTarget(navState(), 'season')).toBe('/');
+    } finally {
+      if (before) Object.defineProperty(globalThis, 'sessionStorage', before);
+      else delete (globalThis as { sessionStorage?: unknown }).sessionStorage;
+      resetNav();
+    }
   });
 
   it('answers the same page with no move', () => {

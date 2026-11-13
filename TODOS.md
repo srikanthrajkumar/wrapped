@@ -76,4 +76,16 @@
 **Priority:** P2
 **Depends on:** the Maintainer
 
+### Hub polish: what the council asked for and was left
+
+**What:** Three things two council rounds raised on the hub's mockup (2026-11-13) that were not built: (1) leave the hero's concert out of the Today rows, where it shows a second time; (2) set the Sabha a step brighter than the accompanists on a row; (3) give every other empty state (an Event with no Items, the Shortlist and Diary tabs, a search with no match) the bare mark the hub's now has, in place of the filled tile.
+
+**Why:** (1) was raised by three reviewers in both rounds and goes against the Maintainer's earlier call, so it is theirs to reopen. (2) came from one reviewer and the row's lines were settled on 2026-11-11. (3) keeps one look for every empty state: the hub's lost its tile because it read as a button.
+
+**Context:** `app/src/screens/spine.ts` `startingSoon` already leaves out the concert the hero shows as being logged (`hero`); `app/src/screens/components/ConcertRow.tsx`; `EmptyMedia variant="icon"` in each screen.
+
+**Effort:** S
+**Priority:** P2
+**Depends on:** the Maintainer
+
 ## Completed
