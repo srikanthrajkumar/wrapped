@@ -473,7 +473,9 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     and at its right a 48px outline button with the word "Yes", spoken "Yes, I was at …",
     which makes it Heard (Items optional). A word, not a tick: three reviewers read a tick in
     a ring as already answered. Under the last row's line, "None of these" in `body` 600, the
-    panel's whole width, lets the rest go: they become Missed, kept and shown nowhere. One in
+    panel's whole width, lets the rest go (it reads "None of the rest" once one has been
+    answered "Yes", so it never sounds like taking that answer back; the Maintainer,
+    2026-11-13): they become Missed, kept and shown nowhere. One in
     the same slot as a concert the rasika heard, or cancelled, goes without being asked.
   - **Empty** ("Empty states"): kept for when there is truly nothing. With no Schedule and
     nothing of the rasika's, under the "Today" header: "Nothing listed yet" over its one line.
@@ -1155,7 +1157,7 @@ tabs' names (Season, Shortlist, Diary) and "Shortlist" / "Shortlisted", and none
 They live in `MESSAGES.spine` (`app/src/screens/messages.ts`) and join this table once
 approved: "Pick your dusk" (and morning, afternoon, evening), "On now", "in 25 min", "I'm
 here", "I was there", "Earlier today", "Nothing yet", "2 at 4:00 pm", "1 in 20 min", "1 on
-Mon", "1 on now", "Were you at any of these?", "Yes", "Yes, I was at …", "None of these",
+Mon", "1 on now", "Were you at any of these?", "Yes", "Yes, I was at …", "None of these", "None of the rest",
 "Nothing more today", "Tomorrow", "Nothing listed yet",
 "Concerts show here once the Schedule is out.", "Nothing shortlisted", "Shortlist a concert
 from What's on to keep it here.", "Nothing heard yet", "Every concert you log is kept here.",
