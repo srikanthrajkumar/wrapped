@@ -174,6 +174,52 @@ function ExportRow() {
   );
 }
 
+/**
+ * How the phone has sized the page, small and muted under the versions: what a screenshot of
+ * Settings needs to say when the app sits wrongly on a phone no test can stand in for (the tab
+ * bar off the bottom edge on an installed iPhone, 2026-11-13). The screen, the page as the
+ * browser reports it, the three viewport heights, the safe areas at top and bottom, how far
+ * the tab bar's foot is from the page's, and whether the app is installed.
+ */
+function ScreenFacts() {
+  const [facts, setFacts] = useState('');
+  useEffect(() => {
+    const read = () => {
+      const probe = document.createElement('div');
+      probe.style.cssText =
+        'position:fixed;top:0;left:0;width:0;visibility:hidden;pointer-events:none;' +
+        'padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)';
+      document.body.append(probe);
+      const unit = (height: string) => {
+        probe.style.height = height;
+        return Math.round(probe.getBoundingClientRect().height);
+      };
+      const style = getComputedStyle(probe);
+      const insets = `${parseFloat(style.paddingTop)}/${parseFloat(style.paddingBottom)}`;
+      probe.style.padding = '0';
+      const heights = ['100dvh', '100lvh', '100svh'].map(unit).join('/');
+      probe.remove();
+      const bar = document.querySelector('nav[aria-label="Main"]');
+      const foot = bar ? Math.round(window.innerHeight - bar.getBoundingClientRect().bottom) : '-';
+      const installed =
+        (navigator as { standalone?: boolean }).standalone === true ||
+        window.matchMedia?.('(display-mode: standalone)').matches === true;
+      setFacts(
+        `${screen.width}×${screen.height} · ${window.innerWidth}×${window.innerHeight} · ` +
+          `${heights} · ${insets} · ${foot} · ${installed ? 'installed' : 'tab'}`,
+      );
+    };
+    read();
+    window.addEventListener('resize', read);
+    return () => window.removeEventListener('resize', read);
+  }, []);
+  return facts ? (
+    <span data-screen-facts>
+      {MESSAGES.versions.screen} {facts}
+    </span>
+  ) : null;
+}
+
 export function SettingsScreen() {
   return (
     <Screen>
@@ -232,6 +278,7 @@ function SettingsView() {
             {MESSAGES.versions.catalog} {catalogVersion}
           </span>
         )}
+        <ScreenFacts />
       </p>
     </>
   );

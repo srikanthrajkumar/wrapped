@@ -31,6 +31,13 @@
           document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff');
         }
       } catch (error) {}
+      // Before anything draws: an installed iPhone app, which iOS sizes a status bar short
+      // (app/src/styles/base.css `--app-height`; DESIGN.md "The status bar").
+      try {
+        if (navigator.standalone === true) {
+          document.documentElement.setAttribute('data-ios-app', '');
+        }
+      } catch (error) {}
     </script>
   </head>
   <body>

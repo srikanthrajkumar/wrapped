@@ -133,7 +133,7 @@ export const MESSAGES = {
   lastExport: (day: string) => `Last: ${day}`,
   neverExported: '—',
   /** Settings' version lines, each label before its version: "App 0.1.0". */
-  versions: { app: 'App', catalog: 'Catalog' },
+  versions: { app: 'App', catalog: 'Catalog', screen: 'Screen' },
   /** The install row, on a phone with the app open in a browser tab (eng review D15). */
   install: {
     iPhone: 'Add to Home Screen:',

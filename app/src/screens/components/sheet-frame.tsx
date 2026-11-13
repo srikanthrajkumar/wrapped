@@ -51,9 +51,11 @@ export function SheetFrame({
       <SheetContent
         side="bottom"
         style={
-          inset > 0 ? { bottom: inset, maxHeight: `calc(100dvh - ${inset}px - 24px)` } : undefined
+          inset > 0
+            ? { bottom: inset, maxHeight: `calc(var(--app-height) - ${inset}px - 24px)` }
+            : undefined
         }
-        className={cn(tall && 'h-[92dvh]', className)}
+        className={cn(tall && 'h-[calc(var(--app-height)*0.92)]', className)}
         // Focus goes to the sheet itself, not its search box: only the Item editor's search
         // autofocuses, so no keyboard rises unasked (DESIGN.md "Search box"; design D24).
         onOpenAutoFocus={(event) => {

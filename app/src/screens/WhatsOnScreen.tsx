@@ -973,7 +973,7 @@ function SearchSheet({
       title={MESSAGES.season.filterLabel}
       // Tall, the names under the field to browse; the field is its first line, level with the
       // close, with no title over it to say what the field already says (the council).
-      className="data-[side=bottom]:h-[85dvh]"
+      className="data-[side=bottom]:h-[calc(var(--app-height)*0.85)]"
       header={
         <form
           role="search"

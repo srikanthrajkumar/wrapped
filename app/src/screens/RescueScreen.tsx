@@ -36,7 +36,7 @@ export function RescueScreen({ replaced = false }: { replaced?: boolean }) {
       ? MESSAGES.actions.tryAgainAnyway
       : MESSAGES.actions.tryAgain;
   return (
-    <div className="flex min-h-dvh flex-col pt-[env(safe-area-inset-top)] pr-[calc(16px+env(safe-area-inset-right))] pb-[calc(16px+env(safe-area-inset-bottom))] pl-[calc(16px+env(safe-area-inset-left))]">
+    <div className="flex min-h-(--app-height) flex-col pt-[env(safe-area-inset-top)] pr-[calc(16px+env(safe-area-inset-right))] pb-[calc(16px+env(safe-area-inset-bottom))] pl-[calc(16px+env(safe-area-inset-left))]">
       <div role="alert" className="flex flex-1 flex-col items-center justify-center gap-3 py-8">
         <IconAlertCircle aria-hidden className="size-10 text-destructive" />
         <h1 className="text-center text-title font-semibold">

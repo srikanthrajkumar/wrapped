@@ -291,7 +291,7 @@ function NewItem({ eventId }: { eventId: string }) {
     <div
       className="flex flex-col pb-2"
       style={{
-        height: `calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - ${inset}px)`,
+        height: `calc(var(--app-height) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - ${inset}px)`,
       }}
     >
       {/* Backing out discards what was typed (design D12). */}
