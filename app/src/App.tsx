@@ -211,7 +211,7 @@ export function App() {
 
   return (
     <BarProvider value={bar}>
-      <div className="flex min-h-dvh flex-col pt-[var(--app-top-inset,env(safe-area-inset-top))]">
+      <div className="flex min-h-(--app-height) flex-col pt-[var(--app-top-inset,env(safe-area-inset-top))]">
         {/* The band under the iOS status bar, painted by the shell above what scrolls; clear
             over the hub's curtain (DESIGN.md "The status bar"). */}
         {done && (

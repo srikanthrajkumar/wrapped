@@ -22,9 +22,25 @@ body {
   overscroll-behavior: none;
 }
 
+/* The height of the screen the app has (DESIGN.md "The status bar"). dvh tracks the visible
+   area as the browser chrome shows and hides; 100vh would not. An installed iPhone app that
+   draws under the clock (black-translucent) is the exception: there iOS reports 100dvh, 100%
+   and innerHeight a status bar short of the screen (seen on the Maintainer's iPhone,
+   2026-11-13: the tab bar sat 59pt above the bottom edge), and only the large viewport is the
+   whole screen. With the page sized to that, iOS lays the whole screen out. An installed app
+   has no browser chrome, so nothing is lost by it. `data-ios-app` is set in index.html, before
+   anything draws. Everything that sizes itself to the screen uses this, never a dvh. */
+:root {
+  --app-height: 100dvh;
+}
+
+:root[data-ios-app] {
+  --app-height: 100lvh;
+  min-height: 100lvh;
+}
+
 #root {
-  /* dvh tracks the visible area as the browser chrome shows and hides; 100vh would not. */
-  min-height: 100dvh;
+  min-height: var(--app-height);
 }
 
 /* Under 16px, iOS Safari zooms into the field and stays zoomed. */

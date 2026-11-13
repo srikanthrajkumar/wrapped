@@ -19,7 +19,7 @@ export function FirstLaunch() {
           steps, so it never restarts. */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-x-0 top-0 h-[80dvh] overflow-hidden horizon-fade"
+        className="pointer-events-none fixed inset-x-0 top-0 h-[calc(var(--app-height)*0.8)] overflow-hidden horizon-fade"
       >
         <Motif
           seed={{ kind: 'mark' }}
@@ -35,7 +35,7 @@ export function FirstLaunch() {
 
 function Screen({ children, action }: { children: React.ReactNode; action: React.ReactNode }) {
   return (
-    <div className="relative flex min-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom))] flex-col pb-4">
+    <div className="relative flex min-h-[calc(var(--app-height)-env(safe-area-inset-top)-env(safe-area-inset-bottom))] flex-col pb-4">
       {/* Under the horizon, low, near the thumb. With large text the words rise into the silk,
           so a scrim rises behind them from 192px above, the page's colour by their first line. */}
       <div className="flex flex-1 flex-col justify-end py-8">

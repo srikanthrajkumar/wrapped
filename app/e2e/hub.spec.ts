@@ -633,3 +633,39 @@ test('a keyboard that has gone never holds the tab bar up', async ({ page }) => 
   await page.getByRole('textbox', { name: 'Note' }).blur();
   await expect.poll(() => navLift(page)).toBe(0);
 });
+
+// An installed iPhone app that draws under the clock is sized a status bar short by iOS unless
+// its page is as tall as the large viewport (the Maintainer's iPhone, 2026-11-13: the tab bar
+// sat 59pt above the bottom edge). No test here can stand in for that iOS, so this holds the
+// wiring: which height the app sizes itself by, where.
+test('an installed iPhone app sizes its page by the whole screen, a browser tab as before', async ({
+  page,
+}) => {
+  const sizedBy = () =>
+    page.evaluate(() => ({
+      installed: document.documentElement.hasAttribute('data-ios-app'),
+      height: getComputedStyle(document.documentElement).getPropertyValue('--app-height').trim(),
+    }));
+  await page.goto('/');
+  await finishFirstLaunch(page);
+  expect(await sizedBy()).toEqual({ installed: false, height: '100dvh' });
+
+  // Opened from the Home Screen: iOS says so before anything draws.
+  await page.addInitScript(() =>
+    Object.defineProperty(navigator, 'standalone', { configurable: true, get: () => true }),
+  );
+  await page.reload();
+  await page.locator('main h1').waitFor();
+  expect(await sizedBy()).toEqual({ installed: true, height: '100lvh' });
+  // The shell is as tall as the screen it has, and the tab bar is at its foot.
+  const shell = await page.evaluate(() => {
+    const column = document.querySelector('main')!.parentElement!;
+    return [Math.round(column.getBoundingClientRect().height), window.innerHeight];
+  });
+  expect(shell[0]).toBeGreaterThanOrEqual(shell[1]!);
+  await expectNavAtFoot(page);
+  // Settings says how the phone sized the page, for a screenshot to carry.
+  await tab(page, 'Settings').click();
+  await expect(page.locator('[data-screen-facts]')).toContainText('installed');
+  await expect(page.locator('[data-screen-facts]')).toContainText('· 0 ·');
+});
