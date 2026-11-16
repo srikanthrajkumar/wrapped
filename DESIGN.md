@@ -733,7 +733,9 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   2026-11-01, as in the approved preview): the special-form chips (RTP, Viruttam / Slokam,
   Medley), "? Don't know", "Use what I typed: …", a divider, the results from weakest to best,
   then the box. The fixed rows stay pinned; only the results scroll. With few or no results the
-  stack shrinks, so the fixed rows sit just above the box. The reading order for screen readers
+  stack shrinks, so the fixed rows sit just above the box. When the room above the box is too
+  short for the best match under them, the fixed rows give way ("Search states", "When the room
+  is short"). The reading order for screen readers
   is the same top-to-bottom order, and the results list is labelled "best match last". After a pick, the Details as values (see "Values"), then one
   fold, Improvised, holding Alapana, Tanam, Niraval, Kalpana swaram and the Laya vinyasam as
   rows of the same kind (walkthrough S14). Bottom bar: "Done", "Next Item →".
@@ -942,6 +944,19 @@ Dynamic Island (`apple-mobile-web-app-status-bar-style: black-translucent` in
   fixed rows, so "Use what I typed" is the next tap, and screen readers hear "No matches".
   Without the catalog on the phone, the box still works and one muted line reads "Catalog not
   on this phone yet. What you type is kept and can be matched later in Tidy."
+  - **When the room is short** (decided 2026-11-15, from the Maintainer's iPhone): the best
+    match is never the row that is cut. With a keyboard up on a short screen the room left under
+    the pinned rows can be less than one result. Then, once something is typed, every pinned row
+    but "Use what I typed" steps aside: the kind chips and "? Don't know" in the Item editor;
+    the "?", "Not sure" and "N/A" chips, the Nadai chips and a Raga's move and remove in a Detail
+    picker. The best match stands whole and unfaded by the box, "Use what I typed" pinned over
+    the results. The rows come back when the box is cleared or the room returns.
+  - They step aside only for a best match that would otherwise be cut or faded, and only when
+    "Use what I typed" is there to stay. With room for the best match, nothing changes.
+  - With too little room even then (text at 200%), everything above the box scrolls as one,
+    resting at its foot, with nothing hidden.
+  - The stack comes to rest at its foot again when the room changes (a keyboard rising or
+    growing), unless the rasika has scrolled it up.
 - **Buttons:** primary fills with `primary`; secondary is a 1px border on transparent. Every
   target is at least 48px; the main action on a screen is 56px. Pressed state: opacity 0.6
   (base.css), with no hover styles outside `(hover: hover) and (pointer: fine)`.
@@ -1296,3 +1311,4 @@ in the phase that builds it):
 | 2026-11-13 | Hub polish, after the Maintainer's day with 0.3.0 on an iPhone, mocked and taken through two council rounds (https://claude.ai/artifact/KvyNbu8WzuukzfAmy24Yr8; two Claude reviewers and Codex scored it 8.2, 7 and 7, then 9, 7.5 and 7; all three chose panels over flat). **One section pattern** for the hub and the pages to come: a header (label in `title`, a count, a chevron; the whole row opens the page) over its rows on a quiet panel, all text on one column 24px from each edge; a section with no rows carries one line under its label and no panel (the Maintainer had asked that all three sections get a panel; a panel around one grey line read as a disabled field to two reviewers, so the Shortlist has none). The first section is always **"Today"**, its rows saying "in 25 min" inside the hour and "On now" once started, from the clock alone; with nothing left today it is **"Tomorrow"**, in start order, in place of the large empty state. The Diary section always shows. **Settings is the fourth tab**, with an amber dot while a row needs fixing; the + is a 28px mark; the curtain gives its title more room and fades into the page with no sheet edge. **The star** ends the lead's line in its own column. A Diary row never says "0 Items". The question about lapsed concerts takes the pattern, with "Yes" in place of a tick. Tabs that aren't on are a step dimmer. Not changed, though three reviewers asked: the hero's concert is still the first Today row (the Maintainer's earlier call). |
 | 2026-11-13 | The tab bar stays at the foot of the screen. On the Maintainer's iPhone it sat a keyboard's height (336pt) up the hub with no keyboard showing: the bottom stack rides on the keyboard's height as the visual viewport reports it, and that number was stale, since a field that leaves the page with its screen fires no blur and nothing read it again. Now a keyboard counts only while a field holds the focus, and while one does the height is read again four times a second (`app/src/hooks/use-keyboard-inset.ts`). |
 | 2026-11-13 | The tab bar off the bottom edge on the Maintainer's iPhone, once the app was added again and drew under the clock: 59pt up, the height of the top inset. An installed iPhone app with `black-translucent` reports 100dvh, 100% and `innerHeight` short of the screen by that inset (reported by several projects on iOS 26 and 27; not in Apple's notes), and only 100lvh is the whole screen. The app now sizes itself by `--app-height`: 100dvh, and 100lvh in an installed iPhone app. Not provable off the phone, so Settings closes with a "Screen" line that says how the phone sized the page. |
+| 2026-11-15 | The best match is never half hidden. From the Maintainer's iPhone in Safari (2026-11-14, "Endaro" typed, about 370pt above the keyboard): the three pinned rows stood whole and the one result wanted had lost its title under them, since only the results gave way. From real renders of three ways at that height the Maintainer chose: while the room is short and something is typed, only "Use what I typed" stays pinned, and the kind chips and "? Don't know" step aside until the box is cleared or the room returns (not the rows leaving one at a time from the top; not all of them scrolling away above the weakest result, which put "Use what I typed" twelve rows up). The builder's calls: the same rule in the Detail pickers, which share the search and had the same cut (their chips step aside); "whole" means clear of the fade too, so a two-line best match is given 104px, not 80; with too little room even then (text at 200%) everything above the box scrolls as one; the stack rests at its foot again when the room changes; the Artist and Sabha pickers have no pinned rows and were already whole. Screens with room look as they did, compared pixel for pixel at 844pt. |

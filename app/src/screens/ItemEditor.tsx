@@ -169,12 +169,14 @@ function ItemSearch({
             ))}
           </div>
           <FixedRow onClick={() => onPick({ kind: 'unknown' })}>? Don’t know</FixedRow>
-          {typed && (
-            <FixedRow onClick={() => onPick({ kind: 'typed', text: typed })}>
-              Use what I typed: “{typed}”
-            </FixedRow>
-          )}
         </>
+      }
+      typedRow={
+        typed && (
+          <FixedRow onClick={() => onPick({ kind: 'typed', text: typed })}>
+            Use what I typed: “{typed}”
+          </FixedRow>
+        )
       }
       results={results}
     />

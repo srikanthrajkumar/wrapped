@@ -203,12 +203,17 @@ export function DetailInput({
             <StateChips value={value} onChange={choose} />
             {field === 'nadai' && <NadaiChips value={value} onChange={choose} />}
             {extra}
-            {typed && (
+          </div>
+        }
+        typedRow={
+          typed && (
+            // 12px under the chips, as they are from each other.
+            <div className="pt-2">
               <FixedRow onClick={() => choose(unresolvedValue(typed))}>
                 Use what I typed: “{typed}”
               </FixedRow>
-            )}
-          </div>
+            </div>
+          )
         }
         results={results}
       />

@@ -8,7 +8,7 @@ import { expect, test, type Page } from '@playwright/test';
 import type { ScheduleEntry } from '../src/model';
 import { harnessScript } from './harness/build';
 import type { Harness } from './harness/entry';
-import { finishFirstLaunch, openHub, readTable, tab } from './helpers';
+import { finishFirstLaunch, openHub, readTable, standInKeyboard, tab } from './helpers';
 
 const DAY = '2026-12-20';
 const NEXT_DAY = '2026-12-21';
@@ -584,26 +584,7 @@ test('the tab bar stays at the foot of the screen through the hub’s states', a
 });
 
 test('a keyboard that has gone never holds the tab bar up', async ({ page }) => {
-  // A stand-in keyboard: the visual viewport reports what it covers, as on iOS, and says so
-  // only when told to.
-  await page.addInitScript(() => {
-    let covered = 0;
-    const viewport = window.visualViewport!;
-    Object.defineProperty(viewport, 'height', {
-      configurable: true,
-      get: () => window.innerHeight - covered,
-    });
-    (window as unknown as { keyboard(px: number, tell: boolean): void }).keyboard = (px, tell) => {
-      covered = px;
-      if (tell) viewport.dispatchEvent(new Event('resize'));
-    };
-  });
-  const keyboard = (px: number, tell: boolean) =>
-    page.evaluate(
-      ([px, tell]) =>
-        (window as unknown as { keyboard(px: number, tell: boolean): void }).keyboard(px, tell),
-      [px, tell] as const,
-    );
+  const keyboard = await standInKeyboard(page);
   await openAt(page, at('15:40'));
   await page
     .getByRole('main')
