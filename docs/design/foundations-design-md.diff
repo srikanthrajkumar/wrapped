@@ -1,0 +1,113 @@
+--- a/DESIGN.md
++++ b/DESIGN.md
+@@ -62,8 +62,13 @@
+ components:
+   touch-target: '48px'
+   primary-action-height: '56px'
+-  list-row-height: '64px two lines, 48px one'
+-  screen-gutter: '16px'
++  list-row-height: '68px two lines, 88px three, 48px one'
++  fill-edge: '8px'
++  text-edge: '24px'
++  fill-radius: '16px'
++  row-padding: '12px'
++  section-gap: '32px'
++  label-gap: '8px'
+   motion-press: '100ms ease-out'
+   motion-state: '150ms ease-out'
+   motion-sheet: '220ms cubic-bezier(0.2, 0, 0, 1)'
+@@ -291,13 +296,19 @@
+ 
+ | Role      | Size / line height | Weight              | Used for                                                   |
+ | --------- | ------------------ | ------------------- | ---------------------------------------------------------- |
+-| caption   | 13 / 16            | 400                 | The "Raga" kind word, the "not matched" note, field labels |
+-| secondary | 15 / 20            | 400                 | Raga · Composer · Tala lines, Appearance roles, chips      |
+-| body      | 17 / 24            | 400, 600 for titles | Everything else; Item titles in 600                        |
+-| title     | 20 / 28            | 600                 | Screen headers, the Now card's title                       |
+-| heading   | 24 / 32            | 700                 | Section heads on home and the Wrapped                      |
++| caption   | 13 / 16            | 400                 | The instrument after a name, a search row's kind word ("Raga"), the eyebrow, the strip's weekday, tab words; one line |
++| secondary | 15 / 20            | 400                 | Every second line, counts and times, facts, field labels, rows inside a panel, chips |
++| body      | 17 / 24            | 400; 600 "strong"   | Row names and text; strong: every label above a panel, an Item's title, buttons |
++| title     | 20 / 28            | 600                 | Sheet and dialog titles, a hero choice's names             |
++| heading   | 24 / 32            | 700                 | Every page's title, the curtain's "Season" and its hero    |
+ | display   | 32 / 40            | 700                 | Wrapped headline numbers ("39 Events · 241 Items")         |
+ 
++- **Place decides level** (foundations, 2026-11-16, [docs/design/foundations.md](docs/design/foundations.md)): a label above a
++  panel is body 600; a label inside one is a row; a time or count is never a caption.
++- **One emphasis rule:** what is live (under way, within the hour, the hero's word) or selected
++  (the chosen day, the tab that is on, a pressed chip) is 600 in ink at its own size. Weights are
++  400, 600 and 700 only.
++
+ - Body is 17px, so every input is above iOS's 16px zoom threshold (base.css keeps the floor).
+ - Numbers that line up in a column (Item numbers, counts) use `font-variant-numeric: tabular-nums`.
+ - Text never goes below 13px.
+@@ -318,8 +329,11 @@
+   row is never hidden. Each screen is checked at 320px wide and 200% text with the keyboard
+   open.
+ 
+-- **Spacing** on a 4px base: 4, 8, 12, 16, 20, 24, 32, 40, 48. The screen gutter is 16px plus
+-  the safe-area inset. Related lines sit 4px apart; rows 8px; sections 24–32px.
++- **Spacing** on an 8px grid with 4px half-steps (foundations, 2026-11-16). Two edges, plus the
++  safe-area inset: every fill (panel, field, bottom button) stands 8px from the screen with 16px
++  corners, and all text 24px from it. Rows have 12px above and below; sections are 32px apart,
++  a label 8px over its panel, the first section 16px under the curtain or strip, a page title
++  24px over its content, all measured between line boxes. A 48px target may reach into a gap.
+   - The grid is 8px, with 4px for tight inner gaps (decided 2026-11-04, after the Carbon-like
+     2x grid the Maintainer asked for). Two-line rows are 64px and one-line rows 48px; the
+     hairline is drawn inside the row (`hairline-t`, `hairline-b`), so it never adds a pixel.
+@@ -381,9 +395,10 @@
+     bottom stack and the safe areas.
+   - **The section pattern** (the Maintainer, 2026-11-13, from a mockup taken through two
+     council rounds, https://claude.ai/artifact/KvyNbu8WzuukzfAmy24Yr8; built for the hub, and
+-    the pattern other pages reuse; `SectionHeader` and `Panel` in
++    since the foundations of 2026-11-16 the pattern of every page: each What's on and Shortlist
++    day, the Event's Items and Stage, Settings' groups; `SectionHeader` and `Panel` in
+     `app/src/screens/components/layout.tsx`). A section is a header and, below it, its rows.
+-    - **The header** is one row, at least 48px: the label in `title` (20/28, 600), and at the
++    - **The header** is one row, at least 48px: the label in `body` 600 (17/24, ink), and at the
+       right, on the label's line, a count in `sub`, muted and tabular, when it is above zero,
+       then a chevron, muted. The whole row is one link to the section's page. A header that
+       opens nothing has no chevron (the hub's "Were you at any of these?").
+@@ -397,7 +412,7 @@
+     - **One column.** The page's gutter stays 16px. A panel reaches 8px past it and holds its
+       rows 16px in; a header stands 8px in. So every label and every row's text starts 24px
+       from the screen's left edge, and every count, chevron tip, star and the hub's + end 24px
+-      from its right. Edges and gaps are on the 8px grid: 8, 16, 24; 16px between sections.
++      from its right. Edges and gaps are on the 8px grid: 8, 16, 24; 32px between sections.
+     - A row on a panel has 16px less room than one on the page, and its accompanists are fitted
+       to that ("The row").
+   - **Craft.** Spacing on the 8px grid with 4px half-steps; line heights on the 4px grid;
+@@ -630,8 +645,9 @@
+   Shortlist and the Diary): the lead in `body`, in the text colour, with its kind's mark
+   before it and, when the concert isn't vocal, its type after it in `caption`, muted ("Flute",
+   "Veena", "Jugalbandi"); a printed title on its own `sub` muted line; the accompanists on a
+-  `sub` muted line, joined by " · "; then "Sabha · time" in `sub`, muted. 10px above and below:
+-  64px with two lines, 20px more for each line added, the hairline drawn inside. No faces, no
++  `sub` muted line, joined by " · "; then "Sabha · time" in `sub`, muted. 12px above and below:
++  68px with two lines, 20px more for each line added, the hairline drawn inside; on a panel on
++  every page (foundations, 2026-11-16). No faces, no
+   button on the row, and no chevron. **How each line holds its shape** (the Maintainer,
+   2026-11-11, from a mockup of every variant, measured on the Season's 542 listings at 390px):
+   the **lead** wraps and is never cut, its lines balanced, never broken after an "&" or an
+@@ -837,10 +853,12 @@
+ ## Shapes
+ 
+ - Radius base 10px (preset `--radius: 0.625rem`), scaled: 6 / 8 / 10 / 14 / 18px.
+-- **Lists are rows, not cards** (decided 2026-11-01): Season's timeline, the running order
+-  and Stage are rows on the background, divided by the `border` hairline, with no fill and no
+-  rounding. A fill means "this one is different": the Now card, the best search match, sheets.
+-- Buttons and the Now card: 14–18px, so tap areas read as soft blocks in the dark.
++- **Lists are rows on a panel** (foundations, 2026-11-16, replacing "rows, not cards" of
++  2026-11-01): every group of rows under one label sits on the quiet panel, divided by the
++  `border` hairline inside it; a row itself has no fill. A fill on a row still means "this one
++  is different": the best search match.
++- Every fill on the 8px edge (panels, fields, bottom buttons, the Undo bar): 16px. The curtain's
++  sheet edge: 18px (the Maintainer, 2026-11-14).
+ - Chips and the outfit swatches: fully round.
+ - Badges: 8px.
+ - Icons: Tabler, 20–22px, 2px stroke, always next to a text label unless the meaning is
+@@ -1301,3 +1319,4 @@
+ | 2026-11-13 | The tab bar stays at the foot of the screen. On the Maintainer's iPhone it sat a keyboard's height (336pt) up the hub with no keyboard showing: the bottom stack rides on the keyboard's height as the visual viewport reports it, and that number was stale, since a field that leaves the page with its screen fires no blur and nothing read it again. Now a keyboard counts only while a field holds the focus, and while one does the height is read again four times a second (`app/src/hooks/use-keyboard-inset.ts`). |
+ | 2026-11-13 | The tab bar off the bottom edge on the Maintainer's iPhone, once the app was added again and drew under the clock: 59pt up, the height of the top inset. An installed iPhone app with `black-translucent` reports 100dvh, 100% and `innerHeight` short of the screen by that inset (reported by several projects on iOS 26 and 27; not in Apple's notes), and only 100lvh is the whole screen. The app now sizes itself by `--app-height`: 100dvh, and 100lvh in an installed iPhone app. Not provable off the phone, so Settings closes with a "Screen" line that says how the phone sized the page. |
+ | 2026-11-14 | Maintainer 2026-11-14: the curtain keeps its sheet edge and half fade; the council's flat fade is reverted. Seen live on 2026-11-13 and not liked ("Please bring back the old kind of curtain"). Back: the 18px sheet edge, the fade halfway to the page, and the curtain's 96px. Kept from that round, as the Maintainer's own asks: the 24px column and the 8px more above the title, the 28px +, Settings as a tab. The council's worry, a sheet corner against a panel's, was checked at 375px in dark and light: the section's header stands between them, 66px apart, and they don't meet. |
++| 2026-11-16 | The foundations (docs/design/foundations.md), signed off by the Maintainer one decision at a time, each taken through two council rounds: panels everywhere, every fill 8px from the screen with 16px corners and all text 24px from it; one rhythm, rows 12px top and bottom (68px for two lines), sections 32px apart, a label 8px over its panel; one type scale, every label above a panel in body 600, every page title in heading 700, live or selected in 600 ink, times and counts never in caption, 500 retired. |
