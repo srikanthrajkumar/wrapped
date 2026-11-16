@@ -12,7 +12,7 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty';
 import { ConcertRow } from './components/ConcertRow';
-import { Screen, TabHeader, useKeptScroll } from './components/layout';
+import { Panel, Screen, TabHeader, useKeptScroll } from './components/layout';
 import { dayText } from './format';
 import { MESSAGES } from './messages';
 import { diary, isoDay, owned } from './spine';
@@ -47,7 +47,8 @@ function DiaryView() {
           </EmptyHeader>
         </Empty>
       ) : (
-        <ul className="pt-2 pb-8">
+        // One panel, under the page's title (foundations, 2026-11-16).
+        <Panel>
           {heard.map((summary) => (
             <ConcertRow
               key={summary.event.id}
@@ -58,7 +59,7 @@ function DiaryView() {
               }
             />
           ))}
-        </ul>
+        </Panel>
       )}
     </>
   );

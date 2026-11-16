@@ -14,6 +14,8 @@ export function Fold({
   open,
   onOpenChange,
   line = true,
+  last = false,
+  className,
   children,
 }: {
   title: string;
@@ -21,6 +23,9 @@ export function Fold({
   onOpenChange(open: boolean): void;
   /** The hairline above it; off where the fold follows a list that ends on its own line. */
   line?: boolean;
+  /** The page's last block: nothing under its content, so the page's own room ends it. */
+  last?: boolean;
+  className?: string;
   children: ReactNode;
 }) {
   return (
@@ -29,10 +34,17 @@ export function Fold({
       collapsible
       value={open ? 'open' : ''}
       onValueChange={(value) => onOpenChange(value === 'open')}
+      className={className}
     >
-      <AccordionItem value="open" line={line}>
+      {/* Last on the page and closed, its row's 48px reaches into the page's scroll room and
+          adds no height (foundations, 2026-11-16). */}
+      <AccordionItem
+        value="open"
+        line={line}
+        className={last ? 'data-[state=closed]:-mb-2' : undefined}
+      >
         <AccordionTrigger>{title}</AccordionTrigger>
-        <AccordionContent>{children}</AccordionContent>
+        <AccordionContent className={last ? 'pb-0' : undefined}>{children}</AccordionContent>
       </AccordionItem>
     </Accordion>
   );

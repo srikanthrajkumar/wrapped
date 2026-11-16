@@ -25,6 +25,7 @@ import {
 import type { ReactNode } from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { newId, type ScheduleEntry } from '../../model';
 import { isDeletedEvent } from '../../store/events';
 import { windowEnd } from '../../store/logging-note';
@@ -220,7 +221,7 @@ export function ListingSheet({
       </dl>
       {attempt && <NotSavedLine targets={[addTarget(attempt)]} />}
       {(toggle || second) && (
-        <div className={toggle && second ? 'mt-4 grid grid-cols-2 gap-2' : 'mt-4 grid'}>
+        <div className={cn('fill-edge mt-4 grid', toggle && second && 'grid-cols-2 gap-2')}>
           {toggle}
           {second}
         </div>

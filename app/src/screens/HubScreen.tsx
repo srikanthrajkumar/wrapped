@@ -37,6 +37,7 @@ import { letGo, settleLapsed, wasThere } from '../store/lapse';
 import { isBeingLogged } from '../store/logging-note';
 import { useSeasonRagaKeys, type EventSummary } from '../store/queries';
 import { ConcertRow } from './components/ConcertRow';
+import { ActionRow } from './components/rows';
 import { saveWith, SeasonFeedback, useSaveFeedback } from './components/feedback';
 import { KindMark } from './components/kind-mark';
 import { Curtain, Panel, Screen, SectionHeader, useKeptScroll } from './components/layout';
@@ -52,6 +53,7 @@ import {
   isoDay,
   lapsedToAsk,
   minutesTo,
+  owned,
   shortlist,
   shortlistDays,
   slotName,
@@ -141,7 +143,8 @@ function HeroLine({
         {quiet}
         {quiet && near !== null && ' · '}
       </span>
-      {near !== null && MESSAGES.spine.inMinutes(near)}
+      {/* Live, in 600 (foundations' emphasis rule). */}
+      {near !== null && <span className="font-semibold">{MESSAGES.spine.inMinutes(near)}</span>}
     </span>
   );
 }
@@ -238,7 +241,7 @@ function HubView() {
       {offline === 'getting-ready' && (
         <p
           role="status"
-          className="flex min-h-12 items-center gap-2 px-2 text-sub text-muted-foreground"
+          className="flex min-h-12 items-center gap-2 text-sub text-muted-foreground"
         >
           <IconLoader2
             aria-hidden
@@ -247,11 +250,9 @@ function HubView() {
           {MESSAGES.offline.gettingReady}
         </p>
       )}
-      <div className="px-2">
-        <SeasonFeedback />
-      </div>
+      <SeasonFeedback />
       {showUpdate && (
-        <div className="mx-2 mb-4 flex flex-wrap items-center justify-between gap-2 border-y border-border py-1">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-y border-border py-1">
           <span className="py-2">
             {update.newCatalog ? MESSAGES.newCatalog : MESSAGES.appUpdate}
           </span>
@@ -278,54 +279,40 @@ function HubView() {
         </div>
       )}
 
-      {lapsed.length > 0 && <LapseCard lapsed={lapsed} />}
+      {/* One rhythm (foundations, 2026-11-16): the first section 16px under the curtain's
+          foot, then 32px between sections. */}
+      <div className="flex flex-col [&>section]:mt-8 [&>section:first-child]:mt-4">
+        {lapsed.length > 0 && <LapseCard lapsed={lapsed} />}
 
-      <FirstSection
-        soon={soon}
-        bare={data.all.length === 0}
-        notes={data.notes}
-        now={data.now}
-        onOpen={open}
-        onHint={hint}
-      />
-
-      <ShortlistSection shortlisted={mine} notes={data.notes} now={data.now} />
-
-      {/* Always there, so the hub is the same three sections on day one (the council,
-          2026-11-13); with nothing heard it says so on its line. */}
-      <section aria-labelledby="hub-diary" className="pt-4 pb-8">
-        <SectionHeader
-          id="hub-diary"
-          label={MESSAGES.tabs.diary}
-          href="/diary"
-          count={allHeard.length}
-          line={allHeard.length === 0 ? MESSAGES.spine.empty.diary.title : undefined}
+        <FirstSection
+          soon={soon}
+          bare={data.all.length === 0}
+          notes={data.notes}
+          now={data.now}
+          onOpen={open}
+          onHint={hint}
         />
-        {heard && (
-          <Panel>
-            <li>
-              <Link
-                href={`/event/${heard.event.id}`}
-                className="flex min-h-16 flex-col justify-center py-2.5 focus-visible:-outline-offset-2"
-              >
-                <span className="break-words text-balance text-foreground">
-                  <Title summary={heard} />
-                </span>
-                <span className="text-sub text-muted-foreground">
-                  {[
-                    heard.knownBy && heard.sabha?.name,
-                    dayName(heard.event.date, data.now),
-                    // Never "0 Items" (the Maintainer, 2026-11-13).
-                    heard.itemCount > 0 && itemCount(heard.itemCount),
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </span>
-              </Link>
-            </li>
-          </Panel>
-        )}
-      </section>
+
+        <ShortlistSection shortlisted={mine} notes={data.notes} now={data.now} />
+
+        {/* Always there, so the hub is the same three sections on day one (the council,
+            2026-11-13); with nothing heard it says so on its line. */}
+        <section aria-labelledby="hub-diary">
+          <SectionHeader
+            id="hub-diary"
+            label={MESSAGES.tabs.diary}
+            href="/diary"
+            count={allHeard.length}
+            line={allHeard.length === 0 ? MESSAGES.spine.empty.diary.title : undefined}
+          />
+          {heard && (
+            <Panel>
+              {/* A Concert row, heard, as the Diary page draws it (the row spec, 2026-11-16). */}
+              <ConcertRow concert={owned(heard)} day={dayName(heard.event.date, data.now)} />
+            </Panel>
+          )}
+        </section>
+      </div>
       {sheets}
     </>
   );
@@ -451,41 +438,38 @@ function LapseCard({ lapsed }: { lapsed: EventSummary[] }) {
     // The section pattern (the council, 2026-11-13): the question as a header that opens nothing,
     // so with no chevron, and the concerts it asks about on a panel. One day is said under the
     // question; several, each above its own.
-    <section aria-labelledby="hub-lapse" className="pb-4">
+    <section aria-labelledby="hub-lapse">
       <SectionHeader
         id="hub-lapse"
         label={MESSAGES.spine.lapse.question}
         line={days.length === 1 ? dayText(days[0]!) : undefined}
       />
-      <Panel as="div">
+      <Panel>
         {days.map((date) => (
-          <div key={date}>
+          <Fragment key={date}>
             {days.length > 1 && (
-              <p className="pt-3 text-caption text-muted-foreground">{dayText(date)}</p>
+              // A day's caption, inside the panel: 12px under what is above, 8px over its row.
+              <li aria-hidden className="pt-3 pb-2 text-sub text-muted-foreground">
+                {dayText(date)}
+              </li>
             )}
-            <ul>
-              {lapsed
-                .filter((summary) => summary.event.date === date)
-                .map((summary) => (
-                  <li key={summary.event.id} className="flex items-center gap-3 py-2.5 hairline-b">
-                    <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="break-words text-balance">
-                        <Title summary={summary} />
-                      </span>
-                      <span className="text-sub text-muted-foreground">
-                        {[
-                          summary.knownBy && summary.sabha?.name,
-                          summary.event.startTime && timeText(summary.event.startTime),
-                        ]
-                          .filter(Boolean)
-                          .join(' · ')}
-                      </span>
-                    </span>
-                    {/* A word, not a tick: three reviewers read a tick in a ring as already
-                        answered (the council, 2026-11-13). */}
+            {lapsed
+              .filter((summary) => summary.event.date === date)
+              .map((summary) => (
+                // A Concert row with no star, its "Yes" the one nested control (the row spec,
+                // 2026-11-16). The row itself opens nothing, as before.
+                <ConcertRow
+                  key={summary.event.id}
+                  concert={owned(summary)}
+                  star={false}
+                  still
+                  controlWidth={8 + 64}
+                  control={
+                    // A word, not a tick: three reviewers read a tick in a ring as already
+                    // answered (the council, 2026-11-13). 48px tall, 12px above and below.
                     <Button
                       variant="outline"
-                      className="h-12 min-w-16 rounded-full px-4"
+                      className="my-3 h-12 min-w-16 shrink-0 rounded-full px-4"
                       aria-label={MESSAGES.spine.lapse.yesSpoken(
                         summary.knownBy ?? summary.sabha?.name ?? dayText(date),
                       )}
@@ -493,20 +477,17 @@ function LapseCard({ lapsed }: { lapsed: EventSummary[] }) {
                     >
                       {MESSAGES.spine.lapse.yes}
                     </Button>
-                  </li>
-                ))}
-            </ul>
-          </div>
+                  }
+                />
+              ))}
+          </Fragment>
         ))}
-        <button
-          type="button"
-          // The panel's other answer: its whole width, under the last row's line, in the weight
-          // of an action (the council, 2026-11-11 and 2026-11-13: lighter, it read as a label).
-          className="flex min-h-12 w-full items-center rounded-xl text-left font-semibold text-foreground focus-visible:-outline-offset-2"
-          onClick={() => void none()}
-        >
-          {rest ? MESSAGES.spine.lapse.rest : MESSAGES.spine.lapse.none}
-        </button>
+        {/* The panel's other answer, an Action row under the last one (the row spec). */}
+        <li>
+          <ActionRow onClick={() => void none()}>
+            {rest ? MESSAGES.spine.lapse.rest : MESSAGES.spine.lapse.none}
+          </ActionRow>
+        </li>
       </Panel>
     </section>
   );
@@ -636,7 +617,7 @@ function ShortlistSection({
   // Three parts at most; the rest as one mark, so the line stays one line.
   const said = parts.slice(0, 3);
   return (
-    <section aria-labelledby="hub-shortlist" className="pt-4">
+    <section aria-labelledby="hub-shortlist">
       <SectionHeader
         id="hub-shortlist"
         label={MESSAGES.tabs.shortlist}
@@ -650,7 +631,12 @@ function ShortlistSection({
               {said.map((part, i) => (
                 <Fragment key={i}>
                   {i > 0 && ' · '}
-                  {part.near ? <span className="text-foreground">{part.text}</span> : part.text}
+                  {part.near ? (
+                    // Live, in 600 ink (foundations' emphasis rule).
+                    <span className="font-semibold text-foreground">{part.text}</span>
+                  ) : (
+                    part.text
+                  )}
                 </Fragment>
               ))}
               {parts.length > said.length && ' …'}

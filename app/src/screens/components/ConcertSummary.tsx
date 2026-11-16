@@ -135,8 +135,8 @@ export function ConcertSummary() {
           <DialogDescription className="-mt-2.5">{summary.line}</DialogDescription>
         </DialogHeader>
         <DialogClose asChild>
-          {/* Its mark ends 16px in from the corner, level with the title. */}
-          <Button variant="ghost" size="icon" className="absolute top-2 right-2">
+          {/* Its mark ends 24px in from the side, level with the title (foundations). */}
+          <Button variant="ghost" size="icon" className="absolute top-2 right-1.5">
             <IconX aria-hidden />
             <span className="sr-only">Close</span>
           </Button>
@@ -161,7 +161,7 @@ export function ConcertSummary() {
 function Count({ n, one, many }: { n: number; one: string; many: string }) {
   return (
     <div className="flex flex-col-reverse">
-      <dt className="text-caption text-muted-foreground">{n === 1 ? one : many}</dt>
+      <dt className="text-sub text-muted-foreground">{n === 1 ? one : many}</dt>
       <dd className="text-display font-bold tabular-nums">{n}</dd>
     </div>
   );

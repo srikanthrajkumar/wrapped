@@ -36,10 +36,10 @@ export function RescueScreen({ replaced = false }: { replaced?: boolean }) {
       ? MESSAGES.actions.tryAgainAnyway
       : MESSAGES.actions.tryAgain;
   return (
-    <div className="flex min-h-(--app-height) flex-col pt-[env(safe-area-inset-top)] pr-[calc(16px+env(safe-area-inset-right))] pb-[calc(16px+env(safe-area-inset-bottom))] pl-[calc(16px+env(safe-area-inset-left))]">
+    <div className="flex min-h-(--app-height) flex-col pt-[env(safe-area-inset-top)] pr-[calc(24px+env(safe-area-inset-right))] pb-[calc(16px+env(safe-area-inset-bottom))] pl-[calc(24px+env(safe-area-inset-left))]">
       <div role="alert" className="flex flex-1 flex-col items-center justify-center gap-3 py-8">
         <IconAlertCircle aria-hidden className="size-10 text-destructive" />
-        <h1 className="text-center text-title font-semibold">
+        <h1 className="text-center text-heading font-bold">
           {replaced ? MESSAGES.replaced.title : MESSAGES.rescue.title}
         </h1>
       </div>
@@ -61,13 +61,13 @@ export function RescueScreen({ replaced = false }: { replaced?: boolean }) {
             }}
           />
         )}
-        <Button size="lg" className="w-full" onClick={reload}>
+        <Button size="lg" className="fill-edge w-[calc(100%+32px)]" onClick={reload}>
           {reloadLabel}
         </Button>
         <Button
           size="lg"
           variant="outline"
-          className="w-full"
+          className="fill-edge w-[calc(100%+32px)]"
           aria-label={
             !handover
               ? MESSAGES.actions.export
@@ -101,7 +101,7 @@ export function StoreGate({ children }: { children: ReactNode }) {
     // While the row shows, it takes the top safe area, and the app below adds none of its own.
     <div style={slow ? ({ '--app-top-inset': '0px' } as CSSProperties) : undefined}>
       {slow && (
-        <div className="border-b border-border pt-[env(safe-area-inset-top)] pr-[calc(16px+env(safe-area-inset-right))] pl-[calc(16px+env(safe-area-inset-left))]">
+        <div className="border-b border-border pt-[env(safe-area-inset-top)] pr-[calc(24px+env(safe-area-inset-right))] pl-[calc(24px+env(safe-area-inset-left))]">
           <SafetyRow
             label={MESSAGES.short.stillOpening}
             sentence={MESSAGES.short.stillOpening}

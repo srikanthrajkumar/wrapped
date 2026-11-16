@@ -36,11 +36,14 @@ function AccordionTrigger({
   return (
     // An h2, as the section heads around it are (Radix's default h3 would skip a level).
     <AccordionPrimitive.Header asChild>
-      <h2 className="flex">
+      {/* Its 48px row reaches 4px into what follows, so the label stands 8px over it, as a
+          label stands over its panel (foundations, 2026-11-16). */}
+      <h2 className="-mb-1 flex">
         <AccordionPrimitive.Trigger
           data-slot="accordion-trigger"
           className={cn(
-            'group/accordion-trigger flex min-h-12 flex-1 items-center justify-between gap-2 py-2 text-left text-sub font-semibold text-muted-foreground disabled:pointer-events-none disabled:opacity-50',
+            // A fold's title is a label above what it holds: body 600, in ink (foundations).
+            'group/accordion-trigger flex min-h-12 flex-1 items-center justify-between gap-2 py-2 text-left text-body font-semibold text-foreground disabled:pointer-events-none disabled:opacity-50',
             className,
           )}
           {...props}
@@ -49,7 +52,7 @@ function AccordionTrigger({
           <IconChevronDown
             aria-hidden
             data-slot="accordion-trigger-icon"
-            className="pointer-events-none size-5 shrink-0 transition-transform duration-200 ease-sheet group-aria-expanded/accordion-trigger:rotate-180"
+            className="pointer-events-none -mr-1 size-5 shrink-0 text-muted-foreground transition-transform duration-200 ease-sheet group-aria-expanded/accordion-trigger:rotate-180"
           />
         </AccordionPrimitive.Trigger>
       </h2>
@@ -66,8 +69,9 @@ function AccordionContent({
   return (
     <AccordionPrimitive.Content
       data-slot="accordion-content"
-      // A focus ring inside stays inside the clip: 4px of padding, taken back by the margin.
-      className="-mx-1 overflow-hidden px-1 ease-sheet data-open:animate-accordion-down data-closed:animate-accordion-up"
+      // A focus ring inside stays inside the clip, and a field reaches the 8px edge: 16px of
+      // padding at the sides, taken back by the margin.
+      className="-mx-4 overflow-hidden px-4 ease-sheet data-open:animate-accordion-down data-closed:animate-accordion-up"
       // Focus moving in as the fold opens finishes the opening, so the field is at its place and
       // the page at its height when it is scrolled clear of the footer (App's useFooterRoom).
       onFocus={(event) => {

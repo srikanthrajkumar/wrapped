@@ -19,8 +19,28 @@
 
 /* A panel's last row ends on the panel's own edge, with no line (DESIGN.md "The section
    pattern"). Unlayered, so it holds over the row's own hairline utility. */
-.panel > :last-child {
+.panel > :last-child,
+.panel > :last-child > li:last-child {
   box-shadow: none;
+}
+
+/* A label stands 8px over its panel (foundations, 2026-11-16); a label with no panel under it
+   (the hub's Shortlist) ends its section on its last line. */
+[data-section-label] + [data-panel] {
+  margin-top: 8px;
+}
+
+/* The page's last line stands 24px over whatever is fixed at the bottom (foundations): over a
+   screen's action, whose frame adds 8px of its own, the page keeps 16. */
+main:has(~ footer [data-slot='bar-frame']:not([hidden])) {
+  padding-bottom: 16px;
+}
+
+/* The two edges (foundations, 2026-11-16): a page and a sheet hold their text 24px from the
+   screen's sides, and a fill (a panel, a field, a button) reaches 16px past that, so it stands
+   8px from the screen with its own 16px inset. */
+@utility fill-edge {
+  margin-inline: -16px;
 }
 
 @utility hairline-y {
@@ -197,6 +217,9 @@
   --radius-lg: 10px;
   --radius-xl: 14px;
   --radius-2xl: 18px;
+  /* Every fill on the 8px edge: panels, fields, the search bar, buttons, the Undo bar
+     (foundations, 2026-11-16). The curtain's sheet edge keeps its own 18px. */
+  --radius-fill: 16px;
 
   --ease-sheet: cubic-bezier(0.2, 0, 0, 1);
 }

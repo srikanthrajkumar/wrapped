@@ -39,7 +39,8 @@ import { loadEntries, type ScheduleListing } from '../store/queries';
 import type { EventKind } from '../model';
 import { ConcertRow } from './components/ConcertRow';
 import { SheetFrame, useLingering } from './components/sheet-frame';
-import { BarHold, BottomDock, Screen, TopBar } from './components/layout';
+import { BarHold, BottomDock, Panel, Screen, TopBar } from './components/layout';
+import { ListRowBody, ROW_SHAPE } from './components/rows';
 import { dayText, kindName } from './format';
 import { MESSAGES } from './messages';
 import { lastMove, WHATS_ON } from './nav';
@@ -151,7 +152,7 @@ function placeNow(): Place {
  */
 const rowsHeight = (rows: readonly Concert[]) =>
   rows.reduce(
-    (height, row) => height + 64 + (row.title ? 20 : 0) + (row.accompanists.length > 0 ? 20 : 0),
+    (height, row) => height + 68 + (row.title ? 20 : 0) + (row.accompanists.length > 0 ? 20 : 0),
     0,
   );
 
@@ -296,7 +297,8 @@ function WhatsOnView() {
     <>
       <div data-place="header">
         <TopBar back={{ href: '/', label: MESSAGES.tabs.season }} />
-        <h1 className="pt-2 pb-2 text-heading font-bold">{MESSAGES.spine.whatsOn}</h1>
+        {/* 8px under the bar, then 24px to the strip's text (foundations, 2026-11-16). */}
+        <h1 className="pt-2 pb-3 text-heading font-bold">{MESSAGES.spine.whatsOn}</h1>
       </div>
 
       {/* A new Concert checked on its way out is set aside meanwhile: if it is kept, the Season
@@ -390,7 +392,7 @@ function WhatsOnView() {
               </EmptyHeader>
             </Empty>
           ))}
-        <div className="pb-8">
+        <div>
           {days.map((day) => (
             <DaySection
               key={day.date}
@@ -562,7 +564,8 @@ function DayStrip({
         // change over 250ms, at once with reduced motion.
         className={cn(
           'flex min-h-12 min-w-11 shrink-0 flex-col items-center justify-center rounded-xl px-1 leading-tight text-foreground outline-none transition-[opacity,font-weight] duration-[250ms] ease-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-foreground motion-reduce:transition-none',
-          on ? 'font-medium' : 'font-normal',
+          // The chosen day in 600, as everything selected is (foundations, 2026-11-16).
+          on ? 'font-semibold' : 'font-normal',
         )}
       >
         <span className="text-caption">{small || '\u00a0'}</span>
@@ -574,12 +577,13 @@ function DayStrip({
     <div
       ref={strip}
       data-strip
-      className="sticky top-[var(--app-top-inset,env(safe-area-inset-top))] z-20 mr-[calc(-16px-env(safe-area-inset-right))] ml-[calc(-16px-env(safe-area-inset-left))] flex items-center bg-background"
+      className="sticky top-[var(--app-top-inset,env(safe-area-inset-top))] z-20 mr-[calc(-24px-env(safe-area-inset-right))] ml-[calc(-24px-env(safe-area-inset-left))] flex items-center bg-background"
     >
       <nav aria-label={MESSAGES.season.days} className="min-w-0 flex-1">
         <div
           data-row
-          className="flex gap-2 overflow-x-auto py-2 pr-2 pl-[calc(12px+env(safe-area-inset-left))] [scrollbar-width:none]"
+          // The first stop's text on the 24px column.
+          className="flex gap-2 overflow-x-auto py-2 pr-2 pl-[calc(20px+env(safe-area-inset-left))] [scrollbar-width:none]"
         >
           {hasPast && item('past', '', MESSAGES.season.pastLabel)}
           {item('today', '', MESSAGES.season.today)}
@@ -590,12 +594,12 @@ function DayStrip({
           })}
         </div>
       </nav>
-      {/* Pinned with the strip: days further off, a month at a time. Its mark on the gutter. */}
+      {/* Pinned with the strip: days further off, a month at a time. Its mark's ink on 24. */}
       <Button
         variant="ghost"
         size="icon"
         aria-label={MESSAGES.season.calendar}
-        className="mr-[calc(4px+env(safe-area-inset-right))] shrink-0"
+        className="mr-[calc(7px+env(safe-area-inset-right))] shrink-0"
         // Open on the month of the day in view; from Past or Today, on today's.
         onClick={() => onCalendar(marked === 'today' || marked === 'past' ? todayDate : marked)}
       >
@@ -831,12 +835,8 @@ function SearchBar({
   const shown = Math.min(fit, parts.length);
   const more = parts.length - shown;
   return (
-    <div data-season-bar className="relative flex min-h-12 items-center rounded-xl bg-secondary">
-      {/* The list fades out above the bar, as under the strip, rather than meeting a line. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -inset-x-4 bottom-[calc(100%+8px)] h-6 bg-gradient-to-t from-background to-transparent"
-      />
+    // On the 8px edge with 16px corners; the bottom bar fades the list out above it.
+    <div data-season-bar className="relative flex min-h-12 items-center rounded-fill bg-secondary">
       {/* Out of the button, so its text is never read as the bar's: only measured. */}
       <span
         ref={probe}
@@ -851,7 +851,8 @@ function SearchBar({
             ? MESSAGES.season.filterOn(parts.join(', '))
             : MESSAGES.season.filterLabel
         }
-        className="flex min-h-12 min-w-0 flex-1 items-center gap-2 rounded-xl pl-3 text-left text-body"
+        // Its mark on the 24px column.
+        className="flex min-h-12 min-w-0 flex-1 items-center gap-2 rounded-fill pl-4 text-left text-body"
       >
         <IconSearch aria-hidden className="size-5 shrink-0 text-muted-foreground" />
         {parts.length > 0 ? (
@@ -977,7 +978,7 @@ function SearchSheet({
       header={
         <form
           role="search"
-          className="relative"
+          className="relative fill-edge"
           onSubmit={(event) => {
             event.preventDefault();
             const first = found.find((name) => !picked.has(name.key));
@@ -986,7 +987,7 @@ function SearchSheet({
         >
           <IconSearch
             aria-hidden
-            className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted-foreground"
+            className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground"
           />
           <input
             ref={field}
@@ -999,7 +1000,7 @@ function SearchSheet({
             autoComplete="off"
             autoCorrect="off"
             spellCheck={false}
-            className="min-h-12 w-full rounded-xl bg-secondary py-2 pr-3 pl-10 text-body text-foreground placeholder:text-muted-foreground focus:shadow-[inset_0_0_0_2px_var(--ring)] focus-visible:outline-none"
+            className="min-h-12 w-full rounded-fill bg-secondary py-2 pr-4 pl-11 text-body text-foreground placeholder:text-muted-foreground focus:shadow-[inset_0_0_0_2px_var(--ring)] focus-visible:outline-none"
           />
         </form>
       }
@@ -1023,19 +1024,17 @@ function SearchSheet({
               const on = picked.has(name.key);
               return (
                 <li key={name.key} className={cn(i < rows.length - 1 && 'hairline-b')}>
+                  {/* A List row: its kind word, then its check (the row spec, 2026-11-16). */}
                   <button
                     type="button"
                     aria-pressed={on}
                     onClick={() => toggle(name)}
-                    className="flex min-h-12 w-full items-center gap-3 py-2 text-left text-body"
+                    className={ROW_SHAPE}
                   >
-                    <span className="min-w-0 flex-1 break-words">{name.name}</span>
-                    <span className="shrink-0 text-caption text-muted-foreground">
-                      {MESSAGES.season.nameKind[name.sort]}
-                    </span>
-                    <IconCheck
-                      aria-hidden
-                      className={cn('size-5 shrink-0', on ? 'text-foreground' : 'invisible')}
+                    <ListRowBody
+                      title={name.name}
+                      kindWord={MESSAGES.season.nameKind[name.sort]}
+                      checked={on}
                     />
                   </button>
                 </li>
@@ -1090,38 +1089,47 @@ function DaySection({
   const drawn = earlier ? rows : ahead;
   const style = { containIntrinsicSize: `auto ${rowsHeight(drawn)}px` } as CSSProperties;
   return (
-    <section data-place={day.date} aria-labelledby={`day-${day.date}`} className="group/day">
-      {/* The day goes with the rows under it: its first row's name 4px under it. */}
+    // The first day 16px under the strip's text, then 32px between days (foundations,
+    // 2026-11-16). The gap is the day above's foot, so a day jumped to starts at its label.
+    <section
+      data-place={day.date}
+      aria-labelledby={`day-${day.date}`}
+      className="group/day pb-7 last:pb-0"
+    >
+      {/* The day's label, in body 600 ink, 8px over its panel. */}
       <h2
         id={`day-${day.date}`}
         // Sticks under the pinned strip while its day is on the screen, as a festival
         // schedule's day labels do.
-        className="sticky top-[calc(var(--app-top-inset,env(safe-area-inset-top))+var(--season-strip,0px))] z-10 -mb-1.5 bg-background pt-4 text-sub font-semibold text-muted-foreground after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-6 after:bg-gradient-to-b after:from-background after:to-transparent after:opacity-0 group-data-[stuck]/day:after:opacity-(--under)"
+        className="sticky top-[calc(var(--app-top-inset,env(safe-area-inset-top))+var(--season-strip,0px))] z-10 bg-background pt-1 pb-2 text-body font-semibold text-foreground after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-6 after:bg-gradient-to-b after:from-background after:to-transparent after:opacity-0 group-data-[stuck]/day:after:opacity-(--under)"
       >
         {dayText(day.date)}
       </h2>
-      {over.length > 0 && (
-        // What is over today, as one line (Part 3): open, they are back in their slots.
-        <button
-          type="button"
-          aria-expanded={earlier}
-          onClick={() => setEarlier(!earlier)}
-          className="mt-1.5 flex min-h-12 w-full items-center justify-between gap-2 text-left text-sub text-muted-foreground hairline-b"
-        >
-          <span>{MESSAGES.spine.earlier}</span>
-          <span className="flex items-center gap-1 tabular-nums">
-            {over.length}
-            <IconChevronDown
-              aria-hidden
-              className={cn(
-                'size-5 transition-transform duration-150 motion-reduce:transition-none',
-                earlier && 'rotate-180',
-              )}
-            />
-          </span>
-        </button>
-      )}
-      <ul className="[content-visibility:auto]" style={style}>
+      <Panel className="[content-visibility:auto]" style={style}>
+        {over.length > 0 && (
+          // What is over today, as one `sub` row, first in its day's panel (Part 3): open, they
+          // are back in their slots.
+          <li className="hairline-b">
+            <button
+              type="button"
+              aria-expanded={earlier}
+              onClick={() => setEarlier(!earlier)}
+              className="flex min-h-12 w-full items-center justify-between gap-2 py-3 text-left text-sub text-muted-foreground focus-visible:-outline-offset-2"
+            >
+              <span>{MESSAGES.spine.earlier}</span>
+              <span className="flex items-center gap-1 tabular-nums">
+                {over.length}
+                <IconChevronDown
+                  aria-hidden
+                  className={cn(
+                    '-mr-1 size-5 transition-transform duration-150 motion-reduce:transition-none',
+                    earlier && 'rotate-180',
+                  )}
+                />
+              </span>
+            </button>
+          </li>
+        )}
         {drawn.map((row) => (
           <ConcertRow
             key={row.key}
@@ -1131,7 +1139,7 @@ function DaySection({
             onHint={onHint}
           />
         ))}
-      </ul>
+      </Panel>
     </section>
   );
 }

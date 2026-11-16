@@ -61,6 +61,7 @@ import { useAutosave } from './components/autosave';
 import { useDragOrder } from './components/drag-order';
 import {
   BarHold,
+  Panel,
   BottomDock,
   QuietButton,
   Screen,
@@ -276,14 +277,16 @@ function EventView({ eventId }: { eventId: string }) {
       )}
 
       {items.length > 0 && (
-        <section aria-labelledby="items" className="pt-8">
+        // 24px under the title block (foundations, 2026-11-16).
+        <section aria-labelledby="items" className="mt-6">
           <SectionHead
             id="items"
             headRef={itemsHead}
             action={
               items.length >= 2 &&
               order === null && (
-                <QuietButton className="-my-3 -mr-2" onClick={() => setOrder('items')}>
+                // Its 48px reaches past the label's line and adds nothing to it.
+                <QuietButton className="-my-3.5 -mr-2" onClick={() => setOrder('items')}>
                   Edit order
                 </QuietButton>
               )
@@ -291,7 +294,7 @@ function EventView({ eventId }: { eventId: string }) {
           >
             Items
           </SectionHead>
-          <ol className="hairline-t">
+          <Panel as="ol">
             {(order === 'items'
               ? drag.order.map((id, index) => ({
                   // Numbered as they stand, so a dropped row takes its new number at once.
@@ -317,15 +320,15 @@ function EventView({ eventId }: { eventId: string }) {
                   quiet={[{ table: 'items', id: item.id, field: 'position' }]}
                 >
                   {order === 'items' ? (
-                    // One line each while ordering, so every row is 64px; the full names show
+                    // One line each while ordering, so every row is 68px; the full names show
                     // outside it. At large text the controls wrap under the title.
                     <div
                       className={cn(
-                        'relative -mx-2 flex min-h-16 flex-wrap items-center justify-end rounded-xl py-2 pl-2',
+                        'relative -mx-2 flex flex-wrap items-center justify-end rounded-xl py-3 pl-2',
                         drag.lifted === item.id && 'bg-secondary shadow-lg dark:shadow-none',
                       )}
                     >
-                      <span className="flex min-w-[min(100%,calc(12*var(--text-body)))] flex-1 items-start gap-3">
+                      <span className="flex min-w-[min(100%,calc(12*var(--text-body)))] flex-1 items-start gap-2">
                         <ItemLabel item={item} oneLine />
                       </span>
                       {/* The arrows stay for VoiceOver and the keyboard; the grip is for a finger. */}
@@ -360,7 +363,9 @@ function EventView({ eventId }: { eventId: string }) {
                         if (node) rows.current.set(item.id, node);
                         else rows.current.delete(item.id);
                       }}
-                      className="flex min-h-16 items-start gap-3 py-2.5 text-foreground"
+                      // An Item row (the row spec): 12px above and below, the number in its 24px
+                      // box, then 8px, the title at 56; no chevron.
+                      className="flex min-h-12 items-start gap-2 py-3 text-foreground focus-visible:-outline-offset-2"
                     >
                       <ItemLabel item={item} />
                     </Link>
@@ -368,12 +373,12 @@ function EventView({ eventId }: { eventId: string }) {
                 </Saved>
               </li>
             ))}
-          </ol>
+          </Panel>
         </section>
       )}
 
       {appearances.length > 0 && (
-        <section aria-labelledby="stage" className="pt-8">
+        <section aria-labelledby="stage" className={items.length > 0 ? 'mt-8' : 'mt-6'}>
           <SectionHead
             id="stage"
             headRef={stageHead}
@@ -386,7 +391,8 @@ function EventView({ eventId }: { eventId: string }) {
                   variant="ghost"
                   size="icon"
                   aria-label="Add Artist"
-                  className="-my-3.5 -mr-3.5"
+                  // The +'s ink ends on the column.
+                  className="-my-3.5 -mr-[17px] self-center"
                   onClick={() => setArtistOpen(true)}
                 >
                   <IconPlus aria-hidden />
@@ -396,7 +402,7 @@ function EventView({ eventId }: { eventId: string }) {
           >
             Stage
           </SectionHead>
-          <ul className="hairline-t">
+          <Panel>
             {appearances.map((appearance) => (
               <StageRow
                 key={appearance.id}
@@ -409,7 +415,7 @@ function EventView({ eventId }: { eventId: string }) {
                 onColours={() => setColoursFor(appearance.id)}
               />
             ))}
-          </ul>
+          </Panel>
         </section>
       )}
 
@@ -552,12 +558,13 @@ function ConcertBlock({
 
   return (
     <section className="pt-2">
-      <h1 ref={head} tabIndex={-1} className="text-title font-semibold break-words">
+      {/* The page's title (foundations, 2026-11-16), 8px under the bar. */}
+      <h1 ref={head} tabIndex={-1} className="text-heading font-bold break-words">
         {knownBy !== null && <KindMark kind={kind.kind} className="mr-2" />}
         {knownBy ?? (
           <button
             type="button"
-            className="-my-2.5 inline-flex min-h-12 items-center gap-2 rounded-xl text-left"
+            className="-my-2 inline-flex min-h-12 items-center gap-2 rounded-xl text-left"
             onClick={onAddArtist}
           >
             <IconPlus aria-hidden className="size-5" />
@@ -574,20 +581,21 @@ function ConcertBlock({
           target('title'),
         ]}
       >
-        {/* 56px tall to tap (S11), its text 8px under the title (one step more than the title's
-            own line gap, so it never reads as a third line) and flush above Stage. Under "Add
-            Artist" it starts below that button's 48px, so neither covers the other's tap area. */}
+        {/* 56px tall to tap (S11), its `sub` text 8px under the title (one step more than the
+            title's own line gap, so it never reads as a third line); what follows stands 24px
+            under the text (the title block, foundations). Under "Add Artist" it starts below
+            that button's 48px, so neither covers the other's tap area. */}
         <div
           className={cn(
-            '-mb-4 flex flex-wrap items-center gap-x-4',
-            knownBy === null ? 'mt-2.5' : '-mt-2',
+            '-mb-[18px] flex flex-wrap items-center gap-x-4 text-sub',
+            knownBy === null ? 'mt-2.5' : '-mt-2.5',
           )}
         >
           {!sabhaName && (
             <button
               type="button"
               onClick={() => setSabhaOpen(true)}
-              className="inline-flex min-h-14 items-center gap-2 rounded-xl py-2 text-left text-muted-foreground"
+              className="inline-flex items-center gap-2 rounded-xl py-[18px] text-left text-muted-foreground"
             >
               <IconPlus aria-hidden className="size-5" />
               Add Sabha
@@ -597,7 +605,8 @@ function ConcertBlock({
             type="button"
             onClick={() => setFactsOpen(true)}
             // Underlined as every value is, so it reads as one to change (walkthrough P2).
-            className="min-h-14 rounded-xl py-2 text-left text-muted-foreground underline decoration-border underline-offset-4"
+            // 18px above and below its text, however many lines: 56px tall with one.
+            className="rounded-xl py-[18px] text-left text-muted-foreground underline decoration-border underline-offset-4"
           >
             {/* A Lecdem's, a Dance's or a Harikatha's title reads first, as printed. */}
             {kind.kind !== 'concert' && title && (
@@ -696,7 +705,8 @@ function StageRow({
             type="button"
             ref={rowRef}
             onClick={onOpen}
-            className="flex min-h-16 min-w-[min(100%,calc(9*var(--text-body)))] flex-1 flex-col items-stretch justify-center py-2 text-left"
+            // A List row with the Colours dot as its nested control (the row spec, 2026-11-16).
+            className="flex min-h-12 min-w-[min(100%,calc(9*var(--text-body)))] flex-1 flex-col items-stretch justify-center py-3 text-left focus-visible:-outline-offset-2"
           >
             <span className="break-words">{name}</span>
             {creditName(appearance.role, appearance.support) && (
@@ -844,14 +854,14 @@ function AppearanceSheet({
             void saveRole(appearance.id, role);
           }}
         />
-        <Button variant="outline" onClick={onColours}>
+        <Button variant="outline" className="fill-edge" onClick={onColours}>
           {/* The button carries the mark it sets, as the Stage row does. */}
           {appearance.colourPrimary && (
             <SwatchDot colour={appearance.colourPrimary} second={appearance.colourSecondary} />
           )}
           Colours
         </Button>
-        <Button variant="destructive" onClick={onRemove}>
+        <Button variant="destructive" className="fill-edge" onClick={onRemove}>
           <IconTrash aria-hidden />
           Remove
         </Button>
@@ -872,7 +882,8 @@ function ItemLabel({ item, oneLine = false }: { item: Item; oneLine?: boolean })
   const fit = oneLine ? 'truncate' : 'break-words';
   return (
     <>
-      <span className="min-w-[2ch] text-right text-muted-foreground tabular-nums">
+      {/* Right-aligned in tabular figures in a 24px box on the column (foundations). */}
+      <span className="w-6 shrink-0 text-right text-muted-foreground tabular-nums">
         {item.position}
       </span>
       <span className="flex min-w-0 flex-1 flex-col">
@@ -1039,18 +1050,18 @@ function EventFacts({
             type="button"
             aria-labelledby="facts-sabha facts-sabha-value"
             onClick={onSabha}
-            className="flex min-h-12 items-center justify-between gap-2 rounded-xl bg-secondary px-3 text-left text-body"
+            className="fill-edge flex min-h-12 items-center justify-between gap-2 rounded-fill bg-secondary px-4 text-left text-body"
           >
             <span id="facts-sabha-value">{sabhaName ?? 'Add Sabha'}</span>
-            <IconChevronRight aria-hidden className="size-5 shrink-0 text-muted-foreground" />
+            <IconChevronRight aria-hidden className="-mr-2 size-5 shrink-0 text-muted-foreground" />
           </button>
         </div>
         <label className="flex flex-col gap-1">
           <span className="text-sub text-muted-foreground">Date</span>
           {/* The phone's own picker, transparent over the value as the app writes it. */}
-          <span className="relative flex min-h-12 items-center justify-between gap-2 rounded-xl bg-secondary px-3 text-body has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring">
+          <span className="fill-edge relative flex min-h-12 items-center justify-between gap-2 rounded-fill bg-secondary px-4 text-body has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring">
             <span aria-hidden>{dayText(date)}</span>
-            <IconCalendar aria-hidden className="size-5 shrink-0 text-muted-foreground" />
+            <IconCalendar aria-hidden className="-mr-[3px] size-5 shrink-0 text-muted-foreground" />
             <input
               type="date"
               required
@@ -1063,9 +1074,9 @@ function EventFacts({
         <label className="flex flex-col gap-1">
           <span className="text-sub text-muted-foreground">Start time</span>
           {/* The phone's own picker, transparent over the value as the app writes it. */}
-          <span className="relative flex min-h-12 items-center justify-between gap-2 rounded-xl bg-secondary px-3 text-body has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring">
+          <span className="fill-edge relative flex min-h-12 items-center justify-between gap-2 rounded-fill bg-secondary px-4 text-body has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring">
             <span aria-hidden>{startTime ? timeText(startTime) : ''}</span>
-            <IconClock aria-hidden className="size-5 shrink-0 text-muted-foreground" />
+            <IconClock aria-hidden className="-mr-[2px] size-5 shrink-0 text-muted-foreground" />
             <input
               type="time"
               defaultValue={startTime ?? ''}
@@ -1128,7 +1139,7 @@ function TitleField({
           autoFocus={autoFocus}
           onChange={(e) => title.change(e.target.value)}
           onBlur={title.flush}
-          className="block min-h-12 w-full rounded-xl bg-secondary px-3 text-body"
+          className="fill-edge block min-h-12 w-[calc(100%+32px)] rounded-fill bg-secondary px-4 text-body"
         />
       </Saved>
     </label>
@@ -1154,10 +1165,10 @@ function NoteField({ eventId, stored }: { eventId: string; stored: string | null
   // never folds the field away under the finger.
   const [open, setOpen] = useState(() => note.text !== '');
   return (
-    // The page's last section. No line above it: it follows a list that ends on its own. Its
-    // 48px row holds the label 14px down, so 16px above it sets the label where a section's is.
-    <section aria-label="Note" className="pt-4 pb-4">
-      <Fold title="Note" open={open} onOpenChange={setOpen} line={false}>
+    // The page's last section. Its 48px row holds the label 12px down, so 20px above it sets the
+    // label 32px under what is above, where a section's is (foundations, 2026-11-16).
+    <section aria-label="Note" className="mt-5">
+      <Fold title="Note" open={open} onOpenChange={setOpen} line={false} last>
         <Saved target={target} quiet>
           <textarea
             aria-label="Note"
@@ -1165,7 +1176,8 @@ function NoteField({ eventId, stored }: { eventId: string; stored: string | null
             rows={3}
             onChange={(e) => note.change(e.target.value)}
             onBlur={note.flush}
-            className="block w-full rounded-xl bg-secondary p-3 text-body"
+            // A field on the 8px edge with 16px corners (foundations, 2026-11-16).
+            className="fill-edge block w-[calc(100%+32px)] rounded-fill bg-secondary p-4 text-body"
           />
         </Saved>
       </Fold>

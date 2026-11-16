@@ -8,7 +8,6 @@
 
 import {
   IconAlertCircle,
-  IconChevronRight,
   IconLoader2,
   IconPlaneTilt,
   IconShieldCheck,
@@ -26,12 +25,14 @@ import { READY_KEY } from '../store/offline-ready';
 import { setTheme, useTheme, type Theme } from '../theme';
 import { APP_VERSION, exportSeason, useExportState } from './components/export-file';
 import { ExportIcon } from './components/feedback';
-import { Screen, TabHeader } from './components/layout';
+import { Panel, Screen, TabHeader } from './components/layout';
+import { ListRowBody, ROW_SHAPE } from './components/rows';
 import { shortDayText } from './format';
 import { MESSAGES } from './messages';
 
 const ICON = 'size-5 shrink-0';
-const ROW = 'flex min-h-12 items-center gap-3 py-2 hairline-b';
+/** A Settings row is a List row (the row spec, 2026-11-16): its mark, then its title at 56. */
+const ROW = cn(ROW_SHAPE, 'hairline-b');
 
 // Settings' rows wait on answers: the store (offline readiness, the last Export, the catalog
 // version) and the browser (storage protected). Measured on a 4x-slowed CPU (walkthrough P10),
@@ -88,9 +89,8 @@ function SeasonRow({
   children: ReactNode;
 }) {
   return (
-    <li className={cn(ROW, wrong && 'text-warning')}>
-      {icon}
-      {children}
+    <li className={ROW}>
+      <ListRowBody mark={icon} title={children} warn={wrong} />
     </li>
   );
 }
@@ -155,7 +155,7 @@ function ExportRow() {
       <button
         type="button"
         aria-label={day ? `${action}. ${day}` : action}
-        className={cn(ROW, 'w-full border-b-0 text-left')}
+        className={ROW_SHAPE}
         onClick={async () => {
           if (exporting.current) return;
           exporting.current = true;
@@ -166,9 +166,11 @@ function ExportRow() {
           }
         }}
       >
-        <ExportIcon exported={seasonHandedOver} />
-        <span className="flex-1">{MESSAGES.actions.export}</span>
-        <span className="text-sub text-muted-foreground">{day ?? MESSAGES.neverExported}</span>
+        <ListRowBody
+          mark={<ExportIcon exported={seasonHandedOver} />}
+          title={MESSAGES.actions.export}
+          value={day ?? MESSAGES.neverExported}
+        />
       </button>
     </li>
   );
@@ -235,15 +237,16 @@ function SettingsView() {
     <>
       {/* A tab since 2026-11-13 (the Maintainer): a plain header, with no way back to give. */}
       <TabHeader title={MESSAGES.tabs.settings} />
-      <ul className="mt-2 hairline-t">
+      {/* Each group on its panel, 32px apart (foundations, 2026-11-16). */}
+      <Panel>
         <OfflineRow />
         <StorageRow />
         <ExportRow />
-      </ul>
-      <div role="radiogroup" aria-label="Theme" className="flex flex-col gap-2 pt-8">
-        <span className="text-sub text-muted-foreground">Theme</span>
-        {/* One track holding both choices, so it reads as one choice. */}
-        <div className="flex gap-1 rounded-2xl border border-border p-1">
+      </Panel>
+      <div role="radiogroup" aria-label="Theme" className="mt-8 flex flex-col gap-2">
+        <span className="text-body font-semibold text-foreground">Theme</span>
+        {/* One track holding both choices, so it reads as one choice; on the 8px edge. */}
+        <div className="fill-edge flex gap-1 rounded-fill border border-border p-1">
           {(['dark', 'light'] as Theme[]).map((choice) => (
             <button
               key={choice}
@@ -261,15 +264,16 @@ function SettingsView() {
           ))}
         </div>
       </div>
-      {/* A row like the season's, so it reads as a place to go; the versions close the page. */}
-      <Link
-        href="/admin"
-        className="mt-8 flex min-h-12 items-center justify-between gap-2 text-muted-foreground hairline-y"
-      >
-        Maintainer
-        <IconChevronRight aria-hidden className={ICON} />
-      </Link>
-      <p className="flex flex-col pt-6 text-caption text-muted-foreground">
+      {/* A List row on its own panel, with a chevron, as it opens a page; the versions close
+          the page. */}
+      <Panel className="mt-8">
+        <li>
+          <Link href="/admin" className={ROW_SHAPE}>
+            <ListRowBody title="Maintainer" chevron />
+          </Link>
+        </li>
+      </Panel>
+      <p className="flex flex-col pt-6 text-sub text-muted-foreground">
         <span>
           {MESSAGES.versions.app} {APP_VERSION}
         </span>

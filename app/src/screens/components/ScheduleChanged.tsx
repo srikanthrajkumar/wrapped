@@ -174,7 +174,7 @@ export function ScheduleChangedSheet({
         </dl>
       )}
       <NotSavedLine targets={[target]} />
-      <div className="grid grid-cols-2 gap-2 pt-4">
+      <div className="fill-edge grid grid-cols-2 gap-2 pt-4">
         <Button size="lg" variant="outline" disabled={saving} onClick={() => void keep()}>
           <IconX aria-hidden />
           Keep mine

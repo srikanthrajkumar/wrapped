@@ -11,7 +11,7 @@ import { promptInstall, useInstall } from '../../install';
 import { MESSAGES } from '../messages';
 
 const STRIP =
-  'flex items-center gap-x-2 bg-background text-sub text-muted-foreground hairline-t pr-[calc(16px+env(safe-area-inset-right))] pl-[calc(16px+env(safe-area-inset-left))]';
+  'flex items-center gap-x-2 bg-background text-sub text-muted-foreground hairline-t pr-[calc(24px+env(safe-area-inset-right))] pl-[calc(24px+env(safe-area-inset-left))]';
 
 export function InstallStrip() {
   const { way, canPrompt } = useInstall();

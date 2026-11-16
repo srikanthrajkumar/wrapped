@@ -57,6 +57,7 @@ import { Fold } from './components/fold';
 import {
   BarHold,
   BottomDock,
+  Panel,
   QuietButton,
   Screen,
   TopBar,
@@ -157,7 +158,7 @@ function ItemSearch({
               Android's text zoom), so the results keep their room. The padding, taken back by
               the margin, keeps the focus rings inside the scrolling box. The hairline under them
               sits the chips' own 8px gap below them (walkthrough P5). */}
-          <div className="-m-1 mb-0 flex gap-2 overflow-x-auto overscroll-x-contain p-1">
+          <div className="-m-1 mb-1 flex gap-2 overflow-x-auto overscroll-x-contain p-1">
             {SPECIAL.map(({ form, label }) => (
               <Chip
                 key={form}
@@ -288,8 +289,9 @@ function NewItem({ eventId }: { eventId: string }) {
   const failedLabel =
     failed && failed.status !== 'saved' ? (failed.value as { label?: string }).label : undefined;
   return (
+    // As tall as the screen above the keyboard: the page's 24px of scroll room is taken back.
     <div
-      className="flex flex-col pb-2"
+      className="-mb-6 flex flex-col pb-2"
       style={{
         height: `calc(var(--app-height) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - ${inset}px)`,
       }}
@@ -302,7 +304,8 @@ function NewItem({ eventId }: { eventId: string }) {
           void discardItemDraft(eventId);
         }}
       />
-      <h1 className="pt-1 pb-2 text-title font-semibold">
+      {/* The page's title, 8px under the bar, 24px over what follows (foundations). */}
+      <h1 className="pt-2 pb-6 text-heading font-bold">
         Item {number ?? ''}
         {failedLabel !== undefined && ` · ${failedLabel}`}
       </h1>
@@ -488,7 +491,8 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
         <h1
           ref={head}
           tabIndex={-1}
-          className="flex flex-col items-start pt-3 pb-4 text-title font-semibold break-words"
+          // The block 8px under the bar, its title in heading 700 (foundations, 2026-11-16).
+          className="flex flex-col items-start pt-2 pb-4 text-heading font-bold break-words"
         >
           {/* The Item's number is an eyebrow over its title (walkthrough S10). */}
           <span className="-mb-2 text-caption font-normal text-muted-foreground">
@@ -509,8 +513,8 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
           muted "+" for another: values, not pills (walkthrough P2, FB-42). */}
       <Saved target={target('ragas')} className="pb-2">
         {/* The label and Edit order share one line; the button's 48px reaches past it. */}
-        <div className="flex min-h-4 items-center justify-between">
-          <span className="text-caption text-muted-foreground">
+        <div className="flex min-h-5 items-center justify-between">
+          <span className="text-sub text-muted-foreground">
             {ragas.length > 1 ? 'Ragas' : 'Raga'}
           </span>
           {ragas.length >= 2 && (
@@ -590,16 +594,21 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
 
       {/* One fold for what was improvised, the Laya vinyasam a row like the others (S14). A
           chip's own state shows its save, so none of it plays the highlight (P7). */}
-      <Fold title="Improvised" open={improvisedOpen} onOpenChange={setFoldOpen}>
+      {/* A label over its panel, 32px under the last line above (foundations, 2026-11-16). */}
+      <Fold
+        title="Improvised"
+        open={improvisedOpen}
+        onOpenChange={setFoldOpen}
+        line={false}
+        last
+        className="mt-2.5"
+      >
         <Saved target={[target('improvised'), target('layaVinyasam'), target('layaNote')]} quiet>
-          <ul className="flex flex-col">
+          <Panel>
             {IMPROVISED_KINDS.map((kind) => {
               const heard = improvised.find((entry) => entry.kind === kind);
               return (
-                <li
-                  key={kind}
-                  className="flex min-h-16 flex-wrap items-center gap-2 py-2 hairline-b"
-                >
+                <li key={kind} className="flex flex-wrap items-center gap-2 py-3 hairline-b">
                   <Chip
                     pressed={heard !== undefined}
                     onClick={() =>
@@ -628,7 +637,7 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
                 </li>
               );
             })}
-            <li className="flex flex-col py-2 hairline-b">
+            <li className="flex flex-col py-3 hairline-b">
               <div className="flex min-h-12 flex-wrap items-center gap-2">
                 <Chip
                   pressed={laya !== null}
@@ -691,7 +700,7 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
                 </div>
               )}
             </li>
-          </ul>
+          </Panel>
         </Saved>
       </Fold>
 
@@ -723,7 +732,7 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
             sheet.field === 'tala' ? (
               // The label sits with the chips it names: 24px above, 8px below.
               <div className="flex flex-col gap-2 pt-3">
-                <span className="text-caption text-muted-foreground">Nadai</span>
+                <span className="text-sub text-muted-foreground">Nadai</span>
                 <NadaiChips
                   value={shown('nadai', item.nadai)}
                   allowUnknown
@@ -924,7 +933,7 @@ function DetailCell({
         onClick={onOpen}
         className="flex min-h-16 w-full flex-col items-start justify-center rounded-xl py-2 text-left"
       >
-        <span className="text-caption text-muted-foreground">{name}</span>
+        <span className="text-sub text-muted-foreground">{name}</span>
         <span
           className={cn(
             'break-words underline decoration-border underline-offset-4',
@@ -961,14 +970,14 @@ function LayaNote({
   const note = useAutosave(stored ?? '', onSave, onPending);
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-caption text-muted-foreground">Note</span>
+      <span className="text-sub text-muted-foreground">Note</span>
       <textarea
         ref={fieldRef}
         value={note.text}
         rows={2}
         onChange={(e) => note.change(e.target.value)}
         onBlur={note.flush}
-        className="w-full rounded-xl bg-secondary p-3 text-body"
+        className="w-full rounded-fill bg-secondary p-4 text-body"
       />
     </label>
   );

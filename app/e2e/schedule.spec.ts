@@ -128,10 +128,11 @@ test('an entry Shortlisted from the Schedule is the rasika’s, and stays marked
   await expect(rows).toHaveCount(3);
   await expect(rows.nth(0)).toContainText('Malladi Brothers');
   await expect(rows.nth(0)).toContainText('Pakkala Ramadas');
-  await expect(rows.nth(0)).toContainText('Music Academy · 4:00 pm');
+  await expect(rows.nth(0)).toContainText('4:00 pm · Music Academy');
   await expect(rows.nth(1).getByRole('img', { name: 'Dance' })).toBeVisible();
   await expect(rows.nth(1)).toContainText('Margam');
-  await expect(rows.nth(2).getByRole('img', { name: 'Cancelled' })).toBeVisible();
+  // "Cancelled" in its time's place (the row spec, 2026-11-16).
+  await expect(rows.nth(2).locator('[data-facts]')).toHaveText(/^Cancelled · /);
   await expect(rows.getByRole('button')).toHaveCount(3);
   await listingRow(page, 'T. M. Krishna').click();
   await expect(page.getByRole('dialog').getByRole('button', { name: /Shortlist/ })).toHaveCount(0);
@@ -157,13 +158,13 @@ test('an entry Shortlisted from the Schedule is the rasika’s, and stays marked
     ownRow(page, 'Malladi Brothers').getByRole('img', { name: 'Shortlisted' }),
   ).toBeVisible();
   await expect(
-    ownRow(page, 'Malladi Brothers').getByRole('img', { name: 'Cancelled' }),
+    ownRow(page, 'Malladi Brothers').locator('[data-facts]', { hasText: /^Cancelled/ }),
   ).toHaveCount(0);
 
   // The Sabha cancels: the Shortlisted Event stays in its day, marked, until the rasika removes it.
   await storeEntries(page, [brothers({ version: 2, cancelled: true }), margam, called]);
   await expect(
-    ownRow(page, 'Malladi Brothers').getByRole('img', { name: 'Cancelled' }),
+    ownRow(page, 'Malladi Brothers').locator('[data-facts]', { hasText: /^Cancelled/ }),
   ).toBeVisible();
   await expect
     .poll(async () => (await readTable<{ cancelled: boolean }>(page, 'events'))[0]?.cancelled)
@@ -251,7 +252,8 @@ test('the "schedule changed" hint opens what changed: keep mine, then take a new
   // The Sabha cancels: the row is marked, and its hint still opens, listing the cancellation.
   await storeEntries(page, [brothers({ version: 4, startTime: '18:30', cancelled: true })]);
   const row = next.getByRole('listitem').filter({ hasText: 'Malladi Brothers' });
-  await expect(row.getByRole('img', { name: 'Cancelled' })).toBeVisible();
+  // "Cancelled" in its time's place; the changed hint keeps slot 2 (the row spec, 2026-11-16).
+  await expect(row.locator('[data-facts]')).toHaveText('Cancelled · Music Academy');
   await row.getByRole('button', { name: 'Schedule changed' }).click();
   await expect(sheet.getByRole('img', { name: 'Cancelled', exact: true })).toBeVisible();
   await expect(sheet.getByRole('img', { name: 'On', exact: true })).toBeVisible();

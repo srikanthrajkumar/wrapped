@@ -79,7 +79,7 @@ function TabBar() {
               // as native tab bars do, so four always fit on a 320px phone. A tab that isn't on
               // is a step dimmer than muted text (the council, 2026-11-13: in a dim hall the one
               // that is on hardly stood out).
-              'flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 text-center text-[min(var(--text-caption),18px)] leading-4',
+              'flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 text-center text-[min(var(--text-caption),18px)] leading-4',
               current ? 'font-semibold text-foreground' : 'text-tab-idle',
             )}
           >
@@ -221,7 +221,9 @@ export function App() {
             className="pointer-events-none fixed inset-x-0 top-0 z-30 status-band"
           />
         )}
-        <main className="flex flex-1 flex-col pr-[calc(16px+env(safe-area-inset-right))] pl-[calc(16px+env(safe-area-inset-left))]">
+        {/* The page holds its text 24px from the screen and its last line 24px over the bottom
+            stack (foundations, 2026-11-16); a fill reaches 16px past the text (`fill-edge`). */}
+        <main className="flex flex-1 flex-col pr-[calc(24px+env(safe-area-inset-right))] pb-6 pl-[calc(24px+env(safe-area-inset-left))]">
           {!done ? (
             <FirstLaunch />
           ) : (

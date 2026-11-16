@@ -89,7 +89,9 @@ export function SheetFrame({
             <SheetDescription className="sr-only">{title}</SheetDescription>
           )}
         </SheetHeader>
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-4">{children}</div>
+        {/* Text 24px from the sheet's sides, a fill 8px (`fill-edge`), as on a page
+            (foundations, 2026-11-16). */}
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pb-4">{children}</div>
       </SheetContent>
     </Sheet>
   );
