@@ -274,9 +274,10 @@ const TOP = 'var(--app-top-inset,env(safe-area-inset-top))';
 /**
  * The hub's curtain (DESIGN.md "The motif", "The status bar"): the motif drawn full-bleed from
  * the very top of the screen, under the clock and the Dynamic Island, with the safe area as
- * padding inside it, fading into the page below it (the council, 2026-11-13: no sheet edge, so
- * no corner sits against a panel's). Its content stands on the hub's 24px column, 8px clear of
- * the safe area (the Maintainer, 2026-11-13: more room above and left of the title). While any
+ * padding inside it, and the page drawn up over it as a sheet with 18px top corners (the
+ * Maintainer, 2026-11-14, having seen the council's flat fade live: the sheet edge and the half
+ * fade stay). Its content stands on the hub's 24px column, 8px clear of the safe area (the
+ * Maintainer, 2026-11-13: more room above and left of the title). While any
  * of it is under the status bar the shell's band stays clear (`data-curtain` on the root), so
  * the field shows there; in light, where the clock is white, a rose-ink wash holds it readable.
  */
@@ -289,7 +290,7 @@ export function Curtain({ art, children }: { art: ReactNode; children: ReactNode
       // The field still reaches under the status bar: its foot is below the shell's band.
       const band = document.querySelector<HTMLElement>('[data-status-band]');
       const inset = band?.offsetHeight ?? 0;
-      root.toggleAttribute('data-curtain', node.getBoundingClientRect().bottom - 24 > inset);
+      root.toggleAttribute('data-curtain', node.getBoundingClientRect().bottom - 18 > inset);
     };
     set();
     window.addEventListener('scroll', set, { passive: true });
@@ -306,20 +307,21 @@ export function Curtain({ art, children }: { art: ReactNode; children: ReactNode
       style={{ marginTop: `calc(-1 * ${TOP})` }}
     >
       <div className="absolute inset-0 overflow-hidden">{art}</div>
-      {/* The field fades into the page, and the hero holds its contrast over it. */}
+      {/* The hero holds its contrast: the field fades halfway to the page behind it. */}
       <div
         aria-hidden
-        className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-background to-transparent"
+        className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-background/50 to-transparent"
       />
       <div aria-hidden className="status-wash absolute inset-x-0 top-0" />
       <div
         // From the top down, so the hero's row, with the +, sits at one place in every state
         // (the council, 2026-11-11: it jumped between the title and a concert).
         className="relative flex flex-col pr-[calc(24px+env(safe-area-inset-right))] pb-4 pl-[calc(24px+env(safe-area-inset-left))]"
-        style={{ minHeight: `calc(${TOP} + 72px)`, paddingTop: `calc(${TOP} + 8px)` }}
+        style={{ minHeight: `calc(${TOP} + 96px)`, paddingTop: `calc(${TOP} + 8px)` }}
       >
         {children}
       </div>
+      <div aria-hidden className="relative h-[18px] rounded-t-[18px] bg-background" />
     </div>
   );
 }

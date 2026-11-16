@@ -501,8 +501,22 @@ test('the status band is clear over the hub’s curtain, and painted everywhere 
   const page_ = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
   expect((await band.boundingBox())!.height).toBe(59);
   // The curtain reaches the very top of the screen, under the band, which is clear.
-  expect((await page.locator('[data-curtain-field]').boundingBox())!.y).toBe(0);
+  const curtain = page.locator('[data-curtain-field]');
+  expect((await curtain.boundingBox())!.y).toBe(0);
   await expect.poll(paint).toBe('rgba(0, 0, 0, 0)');
+  // The page is drawn up over it as a sheet: the curtain's last 18px, in the page's colour,
+  // with 18px top corners (the Maintainer, 2026-11-14). Above it, the inset and the title's 96px.
+  const edge = curtain.locator('> :last-child');
+  expect(
+    await edge.evaluate((node) => {
+      const style = getComputedStyle(node);
+      return [style.backgroundColor, style.borderTopLeftRadius, style.borderTopRightRadius];
+    }),
+  ).toEqual([await page_(), '18px', '18px']);
+  const [field, sheetEdge] = [(await curtain.boundingBox())!, (await edge.boundingBox())!];
+  expect(sheetEdge.height).toBe(18);
+  expect(sheetEdge.y + sheetEdge.height).toBe(field.y + field.height);
+  expect(field.height).toBe(59 + 96 + 18);
   // The hero's row sits below the inset, clear of the clock.
   expect(
     (await page.getByRole('button', { name: 'Log a Concert' }).boundingBox())!.y,
