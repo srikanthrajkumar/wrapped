@@ -6,13 +6,10 @@
 // known. They are read again when the page's width changes, when the phone's text size does, and
 // when the font has loaded.
 
-import { createContext, useSyncExternalStore } from 'react';
+// A row's text stands on the page's 24px column whether or not it is on a panel (foundations,
+// 2026-11-16), so the page's column is every row's.
 
-/**
- * How much narrower than the page's column a row's text is where it stands: 0 on the page, 16px
- * on a panel (layout.tsx `Panel`), which holds its text 8px in from the page's gutter each side.
- */
-export const LineInset = createContext(0);
+import { useSyncExternalStore } from 'react';
 
 export interface LineMetrics {
   /** The width of a row's text column: the page inside its gutters. */

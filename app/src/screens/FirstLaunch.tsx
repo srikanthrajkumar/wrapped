@@ -39,7 +39,7 @@ function Screen({ children, action }: { children: React.ReactNode; action: React
       {/* Under the horizon, low, near the thumb. With large text the words rise into the silk,
           so a scrim rises behind them from 192px above, the page's colour by their first line. */}
       <div className="flex flex-1 flex-col justify-end py-8">
-        <div className="relative isolate flex flex-col gap-4 before:absolute before:right-[calc(-16px-env(safe-area-inset-right))] before:left-[calc(-16px-env(safe-area-inset-left))] before:-top-48 before:bottom-0 before:-z-10 before:scrim-rise before:content-['']">
+        <div className="relative isolate flex flex-col gap-4 before:absolute before:right-[calc(-24px-env(safe-area-inset-right))] before:left-[calc(-24px-env(safe-area-inset-left))] before:-top-48 before:bottom-0 before:-z-10 before:scrim-rise before:content-['']">
           {children}
         </div>
       </div>
@@ -53,7 +53,7 @@ function Welcome({ onContinue }: { onContinue(): void }) {
     <Screen
       action={
         // Sign-in arrives with T081; until then this step leads straight to the download.
-        <Button size="lg" className="w-full" onClick={onContinue}>
+        <Button size="lg" className="fill-edge w-[calc(100%+32px)]" onClick={onContinue}>
           {MESSAGES.welcome.action}
         </Button>
       }
@@ -78,18 +78,22 @@ function GettingReady() {
     <Screen
       action={
         ready || unavailable ? (
-          <Button size="lg" className="w-full" onClick={() => void finishFirstLaunch()}>
+          <Button
+            size="lg"
+            className="fill-edge w-[calc(100%+32px)]"
+            onClick={() => void finishFirstLaunch()}
+          >
             {MESSAGES.actions.start}
           </Button>
         ) : stopped ? (
-          <Button size="lg" className="w-full" onClick={retryReadiness}>
+          <Button size="lg" className="fill-edge w-[calc(100%+32px)]" onClick={retryReadiness}>
             {MESSAGES.actions.tryAgain}
           </Button>
         ) : null
       }
     >
       <div role="status" className="flex flex-col gap-4">
-        <h1 className="text-title font-semibold">
+        <h1 className="text-heading font-bold">
           {ready
             ? MESSAGES.gettingReady.done
             : unavailable

@@ -8,6 +8,7 @@ import { IconSearch } from '@tabler/icons-react';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { MESSAGES } from '../messages';
+import { ActionRow, ListRowBody, ROW_SHAPE } from './rows';
 
 export interface SearchRow {
   key: string;
@@ -82,7 +83,8 @@ export function DockedSearch({
       {/* The stack is bottom-aligned: with few results it shrinks and the pinned rows sit just
           above the box; with many, only the results scroll (design D7). */}
       <div aria-hidden className="min-h-0 flex-1" />
-      <div className="flex shrink-0 flex-col gap-1">
+      {/* The pinned rows touch, each 48px between its hairlines (the row spec, 2026-11-16). */}
+      <div className="flex shrink-0 flex-col">
         {note && <p className="px-1 py-2 text-sub text-muted-foreground">{note}</p>}
         {fixed}
         {drawn.length > 0 && <hr className="my-1 border-border" />}
@@ -108,25 +110,18 @@ export function DockedSearch({
                   aria-label={row.label}
                   onClick={row.onPick}
                   className={cn(
-                    // The text sits on the gutter; the best match's fill reaches 8px past it.
-                    '-mx-2 flex w-[calc(100%+16px)] flex-col items-stretch justify-center rounded-xl px-2 py-2 text-left',
-                    // Two lines make a 64px row; one line, 48px.
-                    row.line ? 'min-h-16' : 'min-h-12',
+                    // A List row (the row spec, 2026-11-16): 12px above and below, so 68px with
+                    // two lines and 48px with one. The text sits on the column; the best
+                    // match's fill reaches 8px past it.
+                    ROW_SHAPE,
+                    '-mx-2 w-[calc(100%+16px)] rounded-xl px-2',
                     // The best match is the one filled row, the same in both themes and on a
                     // page or in a sheet: a fill means "this one is different".
                     i === drawn.length - 1 && 'bg-secondary',
                   )}
                 >
-                  <span className="flex flex-wrap items-center gap-2 font-semibold">
-                    {row.title}
-                    {/* A kind word, not a pill: a fill on every row would say nothing. */}
-                    {row.badge && (
-                      <span className="text-caption font-normal text-muted-foreground">
-                        {row.badge}
-                      </span>
-                    )}
-                  </span>
-                  {row.line && <span className="text-sub text-muted-foreground">{row.line}</span>}
+                  {/* Its title in body 400; a kind word, not a pill, in the trailing slot. */}
+                  <ListRowBody title={row.title} line={row.line} kindWord={row.badge} />
                 </button>
               </li>
             ))}
@@ -134,9 +129,10 @@ export function DockedSearch({
         )}
         {lastRow}
       </div>
+      {/* The field on the 8px edge with 16px corners (foundations, 2026-11-16). */}
       <form
         role="search"
-        className="relative"
+        className="relative fill-edge"
         onSubmit={(event) => {
           event.preventDefault();
           onSubmit?.();
@@ -144,7 +140,7 @@ export function DockedSearch({
       >
         <IconSearch
           aria-hidden
-          className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted-foreground"
+          className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground"
         />
         <input
           type="search"
@@ -158,14 +154,17 @@ export function DockedSearch({
           autoComplete="off"
           autoCorrect="off"
           spellCheck={false}
-          className="min-h-12 w-full rounded-xl bg-secondary py-2 pr-3 pl-10 text-body text-foreground placeholder:text-muted-foreground focus:shadow-[inset_0_0_0_2px_var(--ring)] focus-visible:outline-none"
+          className="min-h-12 w-full rounded-fill bg-secondary py-2 pr-4 pl-11 text-body text-foreground placeholder:text-muted-foreground focus:shadow-[inset_0_0_0_2px_var(--ring)] focus-visible:outline-none"
         />
       </form>
     </div>
   );
 }
 
-/** A pinned row above the divider: "? Don't know", "Use what I typed: …", an "Add new" row. */
+/**
+ * A pinned row above the divider: "? Don't know", "Use what I typed: …", an "Add new" row. An
+ * Action row (the row spec, 2026-11-16), with a hairline above it, its text on the column.
+ */
 export function FixedRow({
   children,
   onClick,
@@ -176,15 +175,9 @@ export function FixedRow({
   label?: string;
 }) {
   return (
-    <button
-      type="button"
-      aria-label={label}
-      onClick={onClick}
-      // A row like the results: a hairline above it, its text on the gutter.
-      className="flex min-h-12 w-full items-center py-2 text-left text-body hairline-t"
-    >
+    <ActionRow label={label} onClick={onClick} className="hairline-t">
       {children}
-    </button>
+    </ActionRow>
   );
 }
 

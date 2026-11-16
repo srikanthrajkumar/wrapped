@@ -157,7 +157,8 @@ test('at 3:40 the hub shows today’s next slot, how close it is, and What’s o
   await expect(soon(page).getByRole('listitem').first()).toContainText('Violinist d4');
   // Inside the hour a row says how close it is, in full ink; the clock time is for What's on.
   const first = soon(page).getByRole('listitem').first();
-  await expect(first).toContainText('Sabha d4 · in 20 min');
+  // Time first (the row spec, 2026-11-16).
+  await expect(first).toContainText('in 20 min · Sabha d4');
   await expect(first.getByText('in 20 min')).toHaveCSS(
     'color',
     await first.getByText('Singer d4').evaluate((lead) => getComputedStyle(lead).color),
@@ -184,16 +185,18 @@ test('at 3:40 the hub shows today’s next slot, how close it is, and What’s o
   const today = page.getByRole('region', { name: 'Sun 20 Dec' });
   const earlier = today.getByRole('button', { name: /^Earlier today/ });
   await expect(earlier).toContainText('1');
-  await expect(today.getByRole('listitem')).toHaveCount(7);
+  // "Earlier today" is the first row of its day's panel; then the concerts (the row spec).
+  const concerts = today.locator('[data-row="concert"]');
+  await expect(concerts).toHaveCount(7);
   await expect(today.getByRole('img', { name: 'On now' })).toHaveCount(2);
-  await expect(today.getByRole('listitem').first()).toContainText('Singer a1');
+  await expect(concerts.first()).toContainText('Singer a1');
   // The type, for a concert that isn't vocal, and its accompanists.
   const flute = today.getByRole('listitem').filter({ hasText: 'Flautist i6' });
   await expect(flute).toContainText('Flute');
   await expect(flute).toContainText('Drummer i6');
   await earlier.click();
-  await expect(today.getByRole('listitem')).toHaveCount(8);
-  await expect(today.getByRole('listitem').first()).toContainText('Singer early');
+  await expect(concerts).toHaveCount(8);
+  await expect(concerts.first()).toContainText('Singer early');
 
   // Shortlisted, it is the rasika's: a star by its time, the hero on the hub, first in Starting
   // soon, counted on the tile.
@@ -277,7 +280,7 @@ test('a clash is a choice; the first Item makes a concert Heard; the Diary keeps
   const heard = page.getByRole('main').getByRole('listitem');
   await expect(heard).toHaveCount(1);
   await expect(heard).toContainText('Singer g4');
-  await expect(heard).toContainText('Sabha g4 · Today · 4:00 pm · 1 Item');
+  await expect(heard).toContainText('Today · 4:00 pm · Sabha g4 · 1 Item');
   // The Shortlist no longer holds it; the hub's hero is the concert being logged.
   await tab(page, 'Shortlist').click();
   await expect(page.getByRole('main').getByRole('listitem')).toHaveCount(1);
@@ -354,7 +357,8 @@ test('the lapse card asks once: a tap makes it Heard, the rest are kept as Misse
   });
   await page.reload();
   const card = page.getByRole('region', { name: 'Were you at any of these?' });
-  await expect(card.getByRole('listitem')).toHaveCount(2);
+  // Its concerts, then "None of these" as an Action row in the same panel (the row spec).
+  await expect(card.locator('[data-row="concert"]')).toHaveCount(2);
   await expect(card).toContainText('Sat 19 Dec');
   // Neither is on the Shortlist any more, nor the hero.
   await expect(page.getByRole('region', { name: 'Next' })).toHaveCount(0);
@@ -362,7 +366,7 @@ test('the lapse card asks once: a tap makes it Heard, the rest are kept as Misse
   // Before any answer, the other answer is for all of them; after a "Yes", for the rest.
   await expect(card.getByRole('button', { name: 'None of these' })).toBeVisible();
   await card.getByRole('button', { name: 'I was at Evening Singer' }).click();
-  await expect(card.getByRole('listitem')).toHaveCount(1);
+  await expect(card.locator('[data-row="concert"]')).toHaveCount(1);
   await expect(card.getByRole('button', { name: 'None of these' })).toHaveCount(0);
   await card.getByRole('button', { name: 'None of the rest' }).click();
   await expect(card).toHaveCount(0);
@@ -401,8 +405,9 @@ test('with nothing left today, Tomorrow leads, and a concert under way reads "On
   await openAt(page, at('16:10'));
   expect(await soonRows(page)).toEqual(['Flautist i6Flute', 'Singer g4', 'Singer f4', 'Singer e4']);
   const rows = soon(page).getByRole('listitem');
-  await expect(rows.nth(0)).toContainText('Sabha i6 · 6:00 pm');
-  await expect(rows.nth(1)).toContainText('Sabha g4 On now');
+  await expect(rows.nth(0)).toContainText('6:00 pm · Sabha i6');
+  // The dot and "On now" lead the facts (the row spec, 2026-11-16).
+  await expect(rows.nth(1)).toContainText('On now · Sabha g4');
   await expect(rows.nth(1)).not.toContainText('4:00 pm');
 
   // 9:40 pm: no big empty state. The first section is tomorrow's, with its clock times.
@@ -411,7 +416,7 @@ test('with nothing left today, Tomorrow leads, and a concert under way reads "On
   await page.locator('main h1').waitFor();
   await expect(page.getByText('Nothing more today')).toHaveCount(0);
   expect(await soonRows(page, 'Tomorrow')).toEqual(['Singer z']);
-  await expect(soon(page, 'Tomorrow').getByRole('listitem')).toContainText('Sabha z · 9:00 am');
+  await expect(soon(page, 'Tomorrow').getByRole('listitem')).toContainText('9:00 am · Sabha z');
   // Its header opens What's on, starting at that day.
   await expect(door(page)).toContainText('Tomorrow');
   await door(page).click();
@@ -454,13 +459,15 @@ test('a row keeps its lines: whole names then "+N", the type with the lead, a ti
   await door(page).click();
   const rows = page.getByRole('region', { name: 'Sun 20 Dec' }).getByRole('listitem');
 
-  // Three names don't fit 358px: two whole ones and a count, on one line, never cut.
+  // Two names don't fit a panel's 342px column: one whole name and a count, on one line, never
+  // cut (on the page's 358px, before the panels of 2026-11-16, two fitted).
   const many = rows.filter({ hasText: 'Singer many' });
   const names = many.getByText('Thiruvizha Sri. Viju. S. Anand');
-  await expect(names).toHaveText('Thiruvizha Sri. Viju. S. Anand · R. Sankaranarayanan +1');
+  await expect(names).toHaveText('Thiruvizha Sri. Viju. S. Anand +2');
   expect(await names.evaluate((line) => line.scrollWidth <= line.clientWidth)).toBe(true);
   expect(Math.round((await names.boundingBox())!.height)).toBe(20);
-  expect(Math.round((await many.boundingBox())!.height)).toBe(84);
+  // Three lines, 12px above and below: 88px.
+  expect(Math.round((await many.boundingBox())!.height)).toBe(88);
 
   // The type stays on the line of the lead's last word.
   const type = rows.filter({ hasText: 'Charulatha' }).getByText('Flute', { exact: true });

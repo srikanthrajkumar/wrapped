@@ -23,7 +23,8 @@ import {
   type UndoOffer,
 } from '../undo';
 
-const BAR = 'flex flex-wrap items-center gap-x-1 rounded-xl bg-secondary py-1 pl-3 text-body';
+// On the 8px edge with 16px corners, its text and mark on the 24px column (foundations).
+const BAR = 'flex flex-wrap items-center gap-x-1 rounded-fill bg-secondary py-1 pl-4 text-body';
 
 export function UndoBar() {
   const offers = useSyncExternalStore(subscribeUndo, undoOffers);
@@ -34,7 +35,10 @@ export function UndoBar() {
   const shown = failed.length > 0 ? failed[failed.length - 1 - (back % failed.length)] : undefined;
   return (
     // One background behind the stacked bars, so the page never shows through between them.
-    <div className={shown || live ? 'flex flex-col gap-2 bg-background px-4 pb-2' : undefined}>
+    <div
+      data-undo-bar={shown || live ? '' : undefined}
+      className={shown || live ? 'flex flex-col gap-2 bg-background px-2 pb-2' : undefined}
+    >
       <div aria-live="polite" className="sr-only">
         {live && MESSAGES.undo.spoken(live.message)}
       </div>
@@ -53,7 +57,7 @@ export function UndoBar() {
           onFocus={() => pauseUndo(true)}
           onBlur={() => pauseUndo(false)}
         >
-          <span className="py-2 pl-1">{live.message}</span>
+          <span className="py-2">{live.message}</span>
           <Button variant="ghost" onClick={() => void undo(live.receipt)}>
             {MESSAGES.actions.undo}
           </Button>

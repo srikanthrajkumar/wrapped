@@ -12,6 +12,7 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  type CSSProperties,
   type ReactNode,
   type RefObject,
 } from 'react';
@@ -30,7 +31,6 @@ import {
   WHATS_ON,
 } from '../nav';
 import { SeasonFeedback } from './feedback';
-import { LineInset } from './line-metrics';
 import { UndoBar } from './UndoBar';
 
 /**
@@ -157,13 +157,20 @@ export function ActionBar({ onBar }: { onBar(bar: Bar | null): void }) {
     };
   }, [onBar]);
   return (
-    <div>
+    <div className="group/stack relative">
+      {/* The page fades out over 24px above a fill at the bottom (an Undo bar, the search bar,
+          Add Item), so no row is cut hard against it (foundations, 2026-11-16). */}
+      <div
+        aria-hidden
+        data-bottom-fade
+        className="pointer-events-none absolute inset-x-0 bottom-full hidden h-6 bg-gradient-to-t from-background to-transparent group-has-[[data-undo-bar]]/stack:block group-has-[[data-slot=bar-frame]:not([hidden])]/stack:block"
+      />
       <UndoBar />
       <div
         ref={frame}
         data-slot="bar-frame"
-        // Season's search bar fades the list out above it instead (DESIGN.md "Season").
-        className="relative border-t border-border bg-background px-4 py-2 has-[[data-season-bar]]:border-t-transparent"
+        // Its fill on the 8px edge (foundations, 2026-11-16).
+        className="relative bg-background px-2 py-2"
       >
         <div ref={live} className="bar-slot" />
         <div ref={kept} inert aria-hidden />
@@ -214,8 +221,8 @@ export function TopBar({
           <IconChevronLeft className="size-[22px] shrink-0" stroke={2} aria-hidden />
           <span className="break-words">{back.label}</span>
         </Link>
-        {/* A 48px icon button's mark ends on the gutter, with the content below it. */}
-        {right && <div className="-mr-3.5">{right}</div>}
+        {/* A 48px icon button whose mark's ink (the ⋯) ends on the 24px column. */}
+        {right && <div className="-mr-[17px]">{right}</div>}
       </div>
       <SeasonFeedback />
     </>
@@ -258,7 +265,8 @@ export function TabHeader({
 }) {
   return (
     <>
-      <div className="flex items-center justify-between gap-2 pt-4 pb-2">
+      {/* The title 16px from the top, then 24px to the page's content (foundations). */}
+      <div className="flex items-center justify-between gap-2 pt-4 pb-6">
         <h1 className="text-heading font-bold">{title}</h1>
         {action && <div className="-my-3 -mr-3.5 flex">{action}</div>}
       </div>
@@ -303,7 +311,7 @@ export function Curtain({ art, children }: { art: ReactNode; children: ReactNode
     <div
       ref={field}
       data-curtain-field
-      className="relative mr-[calc(-16px-env(safe-area-inset-right))] ml-[calc(-16px-env(safe-area-inset-left))]"
+      className="relative mr-[calc(-24px-env(safe-area-inset-right))] ml-[calc(-24px-env(safe-area-inset-left))]"
       style={{ marginTop: `calc(-1 * ${TOP})` }}
     >
       <div className="absolute inset-0 overflow-hidden">{art}</div>
@@ -339,8 +347,9 @@ export function useFocusOnOpen<T extends HTMLElement>(key: unknown): RefObject<T
 }
 
 /**
- * A section heading with an optional muted action at its right ("Edit order", given
- * `-my-3 -mr-2` so its tap area reaches past the line and its text ends on the gutter).
+ * A section's label (foundations, 2026-11-16): `body` 600 in ink, 8px over its panel, with an
+ * optional action at its right on the label's baseline ("Edit order", given `-my-3 -mr-2` so its
+ * tap area reaches past the line and its text ends on the 24px column).
  */
 export function SectionHead({
   id,
@@ -356,14 +365,9 @@ export function SectionHead({
   headRef?: RefObject<HTMLHeadingElement | null>;
 }) {
   return (
-    // The label sits 8px above its list; an action's 48px reaches past the line.
-    <div className={cn('flex items-center justify-between gap-2 pb-2', className)}>
-      <h2
-        id={id}
-        ref={headRef}
-        tabIndex={-1}
-        className="text-sub font-semibold text-muted-foreground"
-      >
+    // The label sits 8px above its panel; an action's 48px reaches past the line.
+    <div data-section-label className={cn('flex items-baseline justify-between gap-2', className)}>
+      <h2 id={id} ref={headRef} tabIndex={-1} className="text-body font-semibold text-foreground">
         {children}
       </h2>
       {action}
@@ -372,12 +376,13 @@ export function SectionHead({
 }
 
 /**
- * The section pattern's header (DESIGN.md "The section pattern"; the Maintainer, 2026-11-13): the
- * label at title size, an optional muted line under it, and at the right, on the label's line,
- * a count when above zero and a chevron. With an `href` the whole row is one link that opens the
- * section's page; without one it carries no chevron, as a chevron always means "this opens a
- * page". Its text stands 8px in from the page's gutter, on the column a {@link Panel} holds its
- * rows to, and its chevron's tip ends on the same column at the right.
+ * The section pattern's header (DESIGN.md "The section pattern"; the Maintainer, 2026-11-13;
+ * foundations, 2026-11-16): the label in `body` 600 ink, an optional muted line under it, and at
+ * the right, on the label's baseline, a count when above zero and a chevron. With an `href` the
+ * whole row is one link that opens the section's page; without one it carries no chevron, as a
+ * chevron always means "this opens a page". Its text stands on the 24px column, and its
+ * chevron's tip ends on the same column at the right. Its 48px tap area reaches 24px up into the
+ * gap above it and never adds height; it sits 8px over its panel.
  */
 export function SectionHeader({
   id,
@@ -397,56 +402,67 @@ export function SectionHeader({
 }) {
   const body = (
     <>
-      <span className="flex min-w-0 flex-1 flex-col py-2.5">
-        <h2 id={id} className="text-title font-semibold break-words">
+      <span className="flex min-w-0 flex-1 flex-col">
+        <h2 id={id} className="text-body font-semibold break-words text-foreground">
           {label}
         </h2>
         {line && <span className="text-sub text-muted-foreground">{line}</span>}
       </span>
-      {count > 0 && (
-        <span className="mt-3.5 text-sub text-muted-foreground tabular-nums">{count}</span>
-      )}
+      {count > 0 && <span className="text-sub text-muted-foreground tabular-nums">{count}</span>}
       {href && (
-        <IconChevronRight
-          aria-hidden
-          className="mt-[13px] -mr-[7px] size-[22px] shrink-0 text-muted-foreground"
-        />
+        // Centred on the label's first line; the mark's ink ends on the column.
+        <span className="flex h-6 items-center self-start">
+          <IconChevronRight
+            aria-hidden
+            className="-mr-2 size-[22px] shrink-0 text-muted-foreground"
+          />
+        </span>
       )}
     </>
   );
-  const shape = 'flex min-h-12 items-start px-2';
+  const shape = 'relative -mt-6 flex min-h-12 items-baseline gap-2 pt-6';
   return href ? (
     <Link
       href={href}
       onClick={onClick}
+      data-section-label
       className={cn(shape, 'rounded-xl focus-visible:-outline-offset-2')}
     >
       {body}
     </Link>
   ) : (
-    <div className={shape}>{body}</div>
+    <div data-section-label className={shape}>
+      {body}
+    </div>
   );
 }
 
 /**
- * The section pattern's panel (DESIGN.md "The section pattern"): a quiet surface one step above
- * the page, around a section's rows and nothing else. It reaches 8px past the page's gutter and
- * holds its rows 16px in, so their text stands on the header's column; a row's own hairline
- * divides it from the next, and the last row has none (app.css `.panel`).
+ * The section pattern's panel (DESIGN.md "The section pattern"; foundations, 2026-11-16): a quiet
+ * surface one step above the page, around a group of rows under one label, on every page. It
+ * stands 8px from the screen with 16px corners and holds its rows 16px in, so their text stands
+ * on the 24px column with every label's; a row's own hairline divides it from the next, and the
+ * last row has none (app.css `.panel`).
  */
 export function Panel({
   as: Tag = 'ul',
   className,
+  style,
   children,
 }: {
-  as?: 'ul' | 'div';
+  as?: 'ul' | 'ol' | 'div';
   className?: string;
+  style?: CSSProperties;
   children: ReactNode;
 }) {
   return (
-    <LineInset.Provider value={16}>
-      <Tag className={cn('panel -mx-2 rounded-2xl bg-panel px-4', className)}>{children}</Tag>
-    </LineInset.Provider>
+    <Tag
+      data-panel
+      className={cn('panel fill-edge rounded-fill bg-panel px-4', className)}
+      style={style}
+    >
+      {children}
+    </Tag>
   );
 }
 

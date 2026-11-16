@@ -62,8 +62,13 @@ spacing:
 components:
   touch-target: '48px'
   primary-action-height: '56px'
-  list-row-height: '64px two lines, 48px one'
-  screen-gutter: '16px'
+  list-row-height: '68px two lines, 88px three, 48px one'
+  fill-edge: '8px'
+  text-edge: '24px'
+  fill-radius: '16px'
+  row-padding: '12px'
+  section-gap: '32px'
+  label-gap: '8px'
   motion-press: '100ms ease-out'
   motion-state: '150ms ease-out'
   motion-sheet: '220ms cubic-bezier(0.2, 0, 0, 1)'
@@ -291,12 +296,18 @@ renderer (T088).
 
 | Role      | Size / line height | Weight              | Used for                                                   |
 | --------- | ------------------ | ------------------- | ---------------------------------------------------------- |
-| caption   | 13 / 16            | 400                 | The "Raga" kind word, the "not matched" note, field labels |
-| secondary | 15 / 20            | 400                 | Raga · Composer · Tala lines, Appearance roles, chips      |
-| body      | 17 / 24            | 400, 600 for titles | Everything else; Item titles in 600                        |
-| title     | 20 / 28            | 600                 | Screen headers, the Now card's title                       |
-| heading   | 24 / 32            | 700                 | Section heads on home and the Wrapped                      |
+| caption   | 13 / 16            | 400                 | The instrument after a name, a search row's kind word ("Raga"), the eyebrow, the strip's weekday, tab words; one line |
+| secondary | 15 / 20            | 400                 | Every second line, counts and times, facts, field labels, rows inside a panel, chips |
+| body      | 17 / 24            | 400; 600 "strong"   | Row names and text; strong: every label above a panel, an Item's title, buttons |
+| title     | 20 / 28            | 600                 | Sheet and dialog titles, a hero choice's names             |
+| heading   | 24 / 32            | 700                 | Every page's title, the curtain's "Season" and its hero    |
 | display   | 32 / 40            | 700                 | Wrapped headline numbers ("39 Events · 241 Items")         |
+
+- **Place decides level** (foundations, 2026-11-16, [docs/design/foundations.md](docs/design/foundations.md)): a label above a
+  panel is body 600; a label inside one is a row; a time or count is never a caption.
+- **One emphasis rule:** what is live (under way, within the hour, the hero's word) or selected
+  (the chosen day, the tab that is on, a pressed chip) is 600 in ink at its own size. Weights are
+  400, 600 and 700 only.
 
 - Body is 17px, so every input is above iOS's 16px zoom threshold (base.css keeps the floor).
 - Numbers that line up in a column (Item numbers, counts) use `font-variant-numeric: tabular-nums`.
@@ -318,8 +329,11 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   row is never hidden. Each screen is checked at 320px wide and 200% text with the keyboard
   open.
 
-- **Spacing** on a 4px base: 4, 8, 12, 16, 20, 24, 32, 40, 48. The screen gutter is 16px plus
-  the safe-area inset. Related lines sit 4px apart; rows 8px; sections 24–32px.
+- **Spacing** on an 8px grid with 4px half-steps (foundations, 2026-11-16). Two edges, plus the
+  safe-area inset: every fill (panel, field, bottom button) stands 8px from the screen with 16px
+  corners, and all text 24px from it. Rows have 12px above and below; sections are 32px apart,
+  a label 8px over its panel, the first section 16px under the curtain or strip, a page title
+  24px over its content, all measured between line boxes. A 48px target may reach into a gap.
   - The grid is 8px, with 4px for tight inner gaps (decided 2026-11-04, after the Carbon-like
     2x grid the Maintainer asked for). Two-line rows are 64px and one-line rows 48px; the
     hairline is drawn inside the row (`hairline-t`, `hairline-b`), so it never adds a pixel.
@@ -381,9 +395,10 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     bottom stack and the safe areas.
   - **The section pattern** (the Maintainer, 2026-11-13, from a mockup taken through two
     council rounds, https://claude.ai/artifact/KvyNbu8WzuukzfAmy24Yr8; built for the hub, and
-    the pattern other pages reuse; `SectionHeader` and `Panel` in
+    since the foundations of 2026-11-16 the pattern of every page: each What's on and Shortlist
+    day, the Event's Items and Stage, Settings' groups; `SectionHeader` and `Panel` in
     `app/src/screens/components/layout.tsx`). A section is a header and, below it, its rows.
-    - **The header** is one row, at least 48px: the label in `title` (20/28, 600), and at the
+    - **The header** is one row, at least 48px: the label in `body` 600 (17/24, ink), and at the
       right, on the label's line, a count in `sub`, muted and tabular, when it is above zero,
       then a chevron, muted. The whole row is one link to the section's page. A header that
       opens nothing has no chevron (the hub's "Were you at any of these?").
@@ -397,7 +412,7 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     - **One column.** The page's gutter stays 16px. A panel reaches 8px past it and holds its
       rows 16px in; a header stands 8px in. So every label and every row's text starts 24px
       from the screen's left edge, and every count, chevron tip, star and the hub's + end 24px
-      from its right. Edges and gaps are on the 8px grid: 8, 16, 24; 16px between sections.
+      from its right. Edges and gaps are on the 8px grid: 8, 16, 24; 32px between sections.
     - A row on a panel has 16px less room than one on the page, and its accompanists are fitted
       to that ("The row").
   - **Craft.** Spacing on the 8px grid with 4px half-steps; line heights on the 4px grid;
@@ -613,8 +628,8 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   - **The rasika's rows and the Schedule** (the Maintainer, 2026-11-07; T061): a Shortlisted Event
     whose Schedule entry is cancelled stays in its day until the rasika removes it (Delete
     Event) or its time passes (it then lapses to Missed unasked, ADR 0010),
-    its title muted and a cancelled mark (a calendar with a cross) at the row's right, spoken
-    "Cancelled". One the Schedule changed after the rasika edited it carries a calendar with "!"
+    its title muted, "Cancelled" in its time's place, and a cancelled mark (a calendar with a
+    cross) at the row's right, spoken "Cancelled". One the Schedule changed after the rasika edited it carries a calendar with "!"
     there, spoken "Schedule changed": a 48px button of its own beside the row, which opens what
     changed (2026-11-07), on a cancelled row as on any other. An Attended or Missed Event never
     gets it: it is the rasika's record of what happened. The sheet, titled "Schedule changed",
@@ -627,11 +642,12 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     typed title offers Undo, as a kind change does. A cancelled Event is never
     hidden while it is ahead, and is never on now.
 - **The row** (Part 4; ADR 0011; the shared list row, on the hub, What's on, the
-  Shortlist and the Diary): the lead in `body`, in the text colour, with its kind's mark
-  before it and, when the concert isn't vocal, its type after it in `caption`, muted ("Flute",
+  Shortlist and the Diary): the lead in `body`, in the text colour, then its kind's mark
+  and, when the concert isn't vocal, its type in `caption`, muted, both after it ("Flute",
   "Veena", "Jugalbandi"); a printed title on its own `sub` muted line; the accompanists on a
-  `sub` muted line, joined by " · "; then "Sabha · time" in `sub`, muted. 10px above and below:
-  64px with two lines, 20px more for each line added, the hairline drawn inside. No faces, no
+  `sub` muted line, joined by " · "; then the facts in `sub`, muted, time first, "time · Sabha" (the Maintainer, 2026-11-16; docs/design/row.md), leaving out what its label already says: the day under a day label, the time under a time label. 12px above and below:
+  68px with two lines, 20px more for each line added, the hairline drawn inside; on a panel on
+  every page (foundations, 2026-11-16). No faces, no
   button on the row, and no chevron. **How each line holds its shape** (the Maintainer,
   2026-11-11, from a mockup of every variant, measured on the Season's 542 listings at 390px):
   the **lead** wraps and is never cut, its lines balanced, never broken after an "&" or an
@@ -640,11 +656,11 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   line, as many whole names as fit, in Stage order, then "+N" for the rest ("Thiruvizha Sri.
   Viju. S. Anand · R. Sankaranarayanan +1", option B of three mockups: no name is ever cut and
   the line never wraps; one name always shows; one listing in four with accompanists carries a
-  count, nearly all "+1"); the **last line** breaks only between its facts, so the time never
-  parts from its dot and a long Sabha wraps before it. On a panel the fit is to the panel's
+  count, nearly all "+1"); the **last line** breaks only between its facts (the "·" at a
+  break dropped), takes two lines at most and cuts its second with "…". On a panel the fit is to the panel's
   narrower column. Nothing else is cut: the sheet
-  has it all. The only button a row can carry is the Schedule-changed hint, and the lines give
-  way to it. The rasika's own carry a quiet mark, never bold or a card
+  has it all. A row carries at most one button, at its right (the Schedule-changed hint, the
+  lapse question's "Yes"), and the lines give way to it. The rasika's own carry a quiet mark, never bold or a card
   (SF-D31): a 16px filled star once Shortlisted, spoken "Shortlisted", **at the end of the
   lead's first line in its own column** (the Maintainer, 2026-11-13: after the time it moved
   with the text; in a column the stars can be scanned down a list), the lead wrapping before it
@@ -656,8 +672,13 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   time, which a timeline is read by. **On now is a dot** (the Maintainer, 2026-11-11, option B of
   two mockups, "for now"): a concert under way keeps its start time, in the text colour, with
   an 8px ink dot before it, spoken "On now"; never "Now, since", never rose, and it never
-  moves. A cancelled one is dimmed to 60%, with the cancelled mark at its right. A tap opens
+  moves. A cancelled one is dimmed to 60%, star included, says "Cancelled" in its time's place, and keeps the cancelled mark at its right. A tap opens
   the listing sheet; a Heard row, or one the rasika made by hand, opens its Event.
+  **Four kinds of row** (the row spec, 2026-11-16): Concert (this one), Item (the Event's
+  numbered Items), List (anything else that names a thing: Stage, Settings, search results) and
+  Action (a one-line reply to its group: "None of these", "? Don't know", "Use what I typed").
+  Each is one tap, with at most one nested 48px control at its right. A row's trailing column is
+  48px: the star on the name's first line, the cancelled mark or the one control on its last.
 - **The listing sheet** (Parts 1 and 5; the Maintainer, 2026-11-08 and 2026-11-11, replacing
   "+ Add" and "Planned"): titled by the concert's lead with its kind's mark, every fact led by
   its mark (a "T" for the title, calendar, clock, building, people): the date, time, Sabha and
@@ -837,10 +858,12 @@ Dynamic Island (`apple-mobile-web-app-status-bar-style: black-translucent` in
 ## Shapes
 
 - Radius base 10px (preset `--radius: 0.625rem`), scaled: 6 / 8 / 10 / 14 / 18px.
-- **Lists are rows, not cards** (decided 2026-11-01): Season's timeline, the running order
-  and Stage are rows on the background, divided by the `border` hairline, with no fill and no
-  rounding. A fill means "this one is different": the Now card, the best search match, sheets.
-- Buttons and the Now card: 14–18px, so tap areas read as soft blocks in the dark.
+- **Lists are rows on a panel** (foundations, 2026-11-16, replacing "rows, not cards" of
+  2026-11-01): every group of rows under one label sits on the quiet panel, divided by the
+  `border` hairline inside it; a row itself has no fill. A fill on a row still means "this one
+  is different": the best search match.
+- Every fill on the 8px edge (panels, fields, bottom buttons, the Undo bar): 16px. The curtain's
+  sheet edge: 18px (the Maintainer, 2026-11-14).
 - Chips and the outfit swatches: fully round.
 - Badges: 8px.
 - Icons: Tabler, 20–22px, 2px stroke, always next to a text label unless the meaning is
@@ -932,12 +955,12 @@ Dynamic Island (`apple-mobile-web-app-status-bar-style: black-translucent` in
 - **Search box:** 48px, surface-raised fill, a 2px `ring` inset while focused. It is the one
   element allowed to autofocus on mobile: the Item editor opens with it focused (DD4, the
   recorded exception to T110's rule).
-- **Search result:** a row on the gutter, 64px with two lines and 48px with one, divided by the
-  hairline; title in body 600, then the secondary line. The best match is the one filled row, on
+- **Search result:** a List row (docs/design/row.md), 68px with two lines and 48px with one, divided by the
+  hairline; title in body (400), then the secondary line. The best match is the one filled row, on
   `surface-raised` in both themes, on a page or in a sheet, with no border, its fill reaching 8px
-  into the gutter. The fixed rows above ("? Don't know", "Use what I typed") are hairline rows too;
+  into the gutter. The fixed rows above ("? Don't know", "Use what I typed") are Action rows, in body 600;
   the hairline under the Item kinds' chips sits their own 8px gap below them (walkthrough P5).
-  A Raga result is one line, the word "Raga" after its name in muted caption, not a filled badge (a
+  A Raga result is one line, the word "Raga" at its right in muted caption, not a filled badge (a
   fill on every row says nothing; the line "Start this Item with only its Raga" was also cut on
   2026-11-04: fewer words). Results that scroll up under the fixed rows are gone in the first 12px
   and fade in over the next 20, so a row half under them never shows a second rule.
@@ -1301,3 +1324,5 @@ in the phase that builds it):
 | 2026-11-13 | The tab bar stays at the foot of the screen. On the Maintainer's iPhone it sat a keyboard's height (336pt) up the hub with no keyboard showing: the bottom stack rides on the keyboard's height as the visual viewport reports it, and that number was stale, since a field that leaves the page with its screen fires no blur and nothing read it again. Now a keyboard counts only while a field holds the focus, and while one does the height is read again four times a second (`app/src/hooks/use-keyboard-inset.ts`). |
 | 2026-11-13 | The tab bar off the bottom edge on the Maintainer's iPhone, once the app was added again and drew under the clock: 59pt up, the height of the top inset. An installed iPhone app with `black-translucent` reports 100dvh, 100% and `innerHeight` short of the screen by that inset (reported by several projects on iOS 26 and 27; not in Apple's notes), and only 100lvh is the whole screen. The app now sizes itself by `--app-height`: 100dvh, and 100lvh in an installed iPhone app. Not provable off the phone, so Settings closes with a "Screen" line that says how the phone sized the page. |
 | 2026-11-14 | Maintainer 2026-11-14: the curtain keeps its sheet edge and half fade; the council's flat fade is reverted. Seen live on 2026-11-13 and not liked ("Please bring back the old kind of curtain"). Back: the 18px sheet edge, the fade halfway to the page, and the curtain's 96px. Kept from that round, as the Maintainer's own asks: the 24px column and the 8px more above the title, the 28px +, Settings as a tab. The council's worry, a sheet corner against a panel's, was checked at 375px in dark and light: the section's header stands between them, 66px apart, and they don't meet. |
+| 2026-11-16 | The foundations (docs/design/foundations.md), signed off by the Maintainer one decision at a time, each taken through two council rounds: panels everywhere, every fill 8px from the screen with 16px corners and all text 24px from it; one rhythm, rows 12px top and bottom (68px for two lines), sections 32px apart, a label 8px over its panel; one type scale, every label above a panel in body 600, every page title in heading 700, live or selected in 600 ink, times and counts never in caption, 500 retired. |
+| 2026-11-16 | The list row (docs/design/row.md), signed off by the Maintainer one decision at a time, each through council rounds: four kinds of row (Concert, Item, List, Action), one tap each with at most one nested control; every name on the column, the kind mark after it; the facts line time first, leaving out what its label says; chevrons only on List rows that open a page; a facts line two lines at most, cut with "…"; dividers across the text column; a cancelled row says "Cancelled" in its time's place. |

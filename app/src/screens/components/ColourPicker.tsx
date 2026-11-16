@@ -234,7 +234,7 @@ export function ColourPicker({
               })
             }
           />
-          <Button variant="outline" onClick={() => setSecond(false)}>
+          <Button variant="outline" className="fill-edge" onClick={() => setSecond(false)}>
             First colour
           </Button>
         </div>
@@ -254,12 +254,13 @@ export function ColourPicker({
           />
           {canHaveSecond && (
             <div className="flex flex-col gap-2">
-              <Button variant="outline" onClick={() => setSecond(true)}>
+              <Button variant="outline" className="fill-edge" onClick={() => setSecond(true)}>
                 {secondary ? `Second colour: ${colourName(secondary)}` : 'Second colour'}
               </Button>
               {secondary && (
                 <Button
                   variant="ghost"
+                  className="fill-edge"
                   onClick={() => onChange({ colourPrimary: primary, colourSecondary: null })}
                 >
                   Remove second colour

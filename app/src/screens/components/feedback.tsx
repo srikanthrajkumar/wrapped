@@ -166,7 +166,8 @@ export function SafetyRow({
   return (
     <div
       className={cn(
-        'flex flex-wrap items-center gap-x-1 text-sub',
+        // At least 48px, 8px between the mark and the words (foundations, 2026-11-16).
+        'flex min-h-12 flex-wrap items-center gap-x-2 text-sub',
         waiting ? 'text-muted-foreground' : 'text-destructive',
         className,
       )}
@@ -230,7 +231,7 @@ export function ExportIcon({ exported }: { exported: boolean }) {
       {exported && (
         <IconCircleCheckFilled
           aria-hidden
-          className="absolute -right-1.5 -bottom-1 size-3.5 rounded-full bg-background"
+          className="absolute -right-1.5 -bottom-1 size-3.5 rounded-full bg-background in-data-panel:bg-panel"
         />
       )}
     </span>

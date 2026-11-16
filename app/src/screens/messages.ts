@@ -52,6 +52,8 @@ export const MESSAGES = {
     inMinutes: (minutes: number) => `in ${minutes} min`,
     inCount: (count: number, minutes: number) => `${count} in ${minutes} min`,
     onNow: 'On now',
+    /** A cancelled concert's row, in its time's place (the row spec, 2026-11-16). */
+    cancelled: 'Cancelled',
     shortlist: 'Shortlist',
     shortlisted: 'Shortlisted',
     /** The listing sheet's second button, and for a concert whose time has passed. */

@@ -63,7 +63,8 @@ function SheetContent({
         {children}
         {showCloseButton && (
           <SheetPrimitive.Close data-slot="sheet-close" asChild>
-            <Button variant="ghost" className="absolute top-2 right-0.5" size="icon">
+            {/* Its mark's ink ends 24px from the sheet's side (foundations, 2026-11-16). */}
+            <Button variant="ghost" className="absolute top-2 right-1.5" size="icon">
               <IconX />
               <span className="sr-only">Close</span>
             </Button>
@@ -79,8 +80,8 @@ function SheetHeader({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="sheet-header"
       // The title sits on a 48px row level with the close button (top 8px), whose mark ends
-      // on the 16px gutter; the content starts 8px under that row.
-      className={cn('flex flex-col gap-1 px-4 pt-2 pr-16 pb-2', className)}
+      // 24px from the side, as the title starts; the content starts 8px under that row.
+      className={cn('flex flex-col gap-1 px-6 pt-2 pr-16 pb-2', className)}
       {...props}
     />
   );
