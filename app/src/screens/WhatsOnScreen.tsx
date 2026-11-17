@@ -1100,8 +1100,10 @@ function DaySection({
       <h2
         id={`day-${day.date}`}
         // Sticks under the pinned strip while its day is on the screen, as a festival
-        // schedule's day labels do.
-        className="sticky top-[calc(var(--app-top-inset,env(safe-area-inset-top))+var(--season-strip,0px))] z-10 bg-background pt-1 pb-2 text-body font-semibold text-foreground after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-6 after:bg-gradient-to-b after:from-background after:to-transparent after:opacity-0 group-data-[stuck]/day:after:opacity-(--under)"
+        // schedule's day labels do. Its ground and its fade run to the screen's edges, as the
+        // strip's do, while its text stays on the 24px column (the Maintainer's iPhone,
+        // 2026-11-17: over the panels, a ground only as wide as the column showed their sides).
+        className="sticky top-[calc(var(--app-top-inset,env(safe-area-inset-top))+var(--season-strip,0px))] z-10 pt-1 pb-2 text-body font-semibold text-foreground before:absolute before:inset-y-0 before:right-[calc(-24px-env(safe-area-inset-right))] before:left-[calc(-24px-env(safe-area-inset-left))] before:-z-10 before:bg-background after:pointer-events-none after:absolute after:top-full after:right-[calc(-24px-env(safe-area-inset-right))] after:left-[calc(-24px-env(safe-area-inset-left))] after:h-6 after:bg-gradient-to-b after:from-background after:to-transparent after:opacity-0 group-data-[stuck]/day:after:opacity-(--under)"
       >
         {dayText(day.date)}
       </h2>

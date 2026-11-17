@@ -365,6 +365,59 @@ test('a stuck day label fades only the rows that have passed under it', async ({
   await expect.poll(fade).toBe(1);
 });
 
+// The Maintainer's iPhone, 2026-11-17: a stuck label's ground and fade were only as wide as the
+// 24px column, so the panel under it showed at both sides.
+test('a stuck day label’s ground and fade span the screen, under the strip', async ({ page }) => {
+  await open(page);
+  await storeEntries(page, [
+    ...Array.from({ length: 5 }, (_, d) =>
+      Array.from({ length: 4 }, (_, i) => entry(`e-${d}-${i}`, d + 1, { startTime: `1${i}:00` })),
+    ).flat(),
+  ]);
+  await whatsOn(page);
+  await expect.poll(() => listed(page)).toHaveLength(5);
+  const label = page.locator(`#day-${dayFromToday(2)}`);
+  await bringUnder(page, dayHeadingText(2), 40);
+  await expect.poll(async () => (await label.boundingBox())!.y).toBe(await stripBottom(page));
+  const width = page.viewportSize()!.width;
+  const drawn = await label.evaluate((h) => {
+    const box = h.getBoundingClientRect();
+    const span = (part: '::before' | '::after') => {
+      const style = getComputedStyle(h, part);
+      return [
+        box.left + parseFloat(style.left),
+        box.right - parseFloat(style.right),
+        style.backgroundColor,
+        style.backgroundImage,
+      ] as const;
+    };
+    return { ground: span('::before'), fade: span('::after'), text: box.left };
+  });
+  // The ground, in the page's colour, and the fade, from one edge of the screen to the other.
+  expect(drawn.ground.slice(0, 2)).toEqual([0, width]);
+  expect(drawn.ground[2]).toBe(
+    await page.evaluate(() => getComputedStyle(document.body).backgroundColor),
+  );
+  expect(drawn.fade.slice(0, 2)).toEqual([0, width]);
+  expect(drawn.fade[3]).toContain('gradient');
+  // Its text still on the 24px column.
+  expect(Math.round(drawn.text)).toBe(24);
+  // At either edge, beside the label, nothing of the panel under it shows.
+  const y = (await label.boundingBox())!.y + 8;
+  for (const x of [2, width - 2])
+    expect(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.id, { x, y })).toBe(
+      `day-${dayFromToday(2)}`,
+    );
+  // And it never runs over the strip: the strip's foot is the strip's, drawn above the label.
+  const foot = (await stripBottom(page)) - 2;
+  expect(
+    await page.evaluate(({ y }) => !!document.elementFromPoint(187, y)?.closest('[data-strip]'), {
+      y: foot,
+    }),
+  ).toBe(true);
+  expect((await label.boundingBox())!.y).toBeGreaterThanOrEqual(await stripBottom(page));
+});
+
 // The Maintainer's iPhone, 2026-11-10: on a fast fling from one day to the next, rows ran over
 // the day's label. Safari moves a sticky label inside paint containment (which skipping a day's
 // drawing brings) only once the fling's frame is done; so no label sits in it, and only the rows
