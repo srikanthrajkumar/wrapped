@@ -9,6 +9,7 @@ import {
   lookupOver,
   NO_FILTER,
   noLookup,
+  oftenHeard,
   rowTest,
   seasonNames,
   suggest,
@@ -251,5 +252,107 @@ describe('season filter', () => {
     )[0]!;
     const kept = filterDays(days, rowTest({ ...NO_FILTER, picks: [b] }, noLookup));
     expect(kept.map((day) => day.date)).toEqual(['2026-12-16']);
+  });
+});
+
+describe('often heard (docs/design/search.md, decision 2)', () => {
+  const TODAY = '2026-12-14';
+  const lead = (name: string, group: string | null = null) => ({
+    name,
+    aliases: [],
+    group,
+    lead: true,
+  });
+  const behind = (name: string) => ({ name, aliases: [], group: null, lead: false });
+  const heard = (id: string, date: string, stage: EventSummary['stage'], sabha: string) =>
+    own(id, { date, status: 'attended' }, stage, sabha);
+  const ahead = [
+    listing('tmk-next', { date: '2026-12-15', billed: billed('TM Krishna') }),
+    listing('sanjay-today', {
+      date: TODAY,
+      sabha: 'Krishna Gana Sabha',
+      billed: billed('Sanjay Subrahmanyan'),
+    }),
+    listing('malladi-next', {
+      date: '2026-12-16',
+      sabha: 'Narada Gana Sabha',
+      billed: [
+        { name: 'Malladi Sreeramprasad', role: 'vocal', group: 'Malladi Brothers' },
+        { name: 'Malladi Ravikumar', role: 'vocal', group: 'Malladi Brothers' },
+        { name: 'Patri Satish Kumar', role: 'mridangam', group: null },
+      ],
+    }),
+    // Gone by today, and cancelled: neither leaves anything to hear.
+    listing('ranjani-gone', { date: '2026-12-10', billed: billed('Ranjani') }),
+    listing('bombay-cancelled', {
+      date: '2026-12-20',
+      billed: billed('Bombay Jayashri'),
+      cancelled: true,
+    }),
+  ];
+  const mine = [
+    heard('h1', '2026-12-01', [lead('T M Krishna'), behind('Patri Satish Kumar')], 'Music Academy'),
+    heard('h2', '2026-12-02', [lead('TM Krishna'), behind('Patri Satish Kumar')], 'Music Academy'),
+    heard('h3', '2026-12-03', [lead('Sanjay Subrahmanyan')], 'Krishna Gana Sabha'),
+    heard(
+      'h4',
+      '2026-12-04',
+      [
+        lead('Malladi Sreeramprasad', 'Malladi Brothers'),
+        lead('Malladi Ravikumar', 'Malladi Brothers'),
+        behind('Patri Satish Kumar'),
+      ],
+      'Narada Gana Sabha',
+    ),
+    heard('h5', '2026-12-05', [lead('Ranjani'), behind('Patri Satish Kumar')], 'Music Academy'),
+    heard('h6', '2026-12-06', [lead('Ranjani')], 'Mylapore Fine Arts'),
+    heard('h7', '2026-12-07', [lead('Bombay Jayashri')], 'Mylapore Fine Arts'),
+    // Shortlisted and not yet heard: not counted.
+    own('planned', { date: '2026-12-15' }, [lead('Sanjay Subrahmanyan')], 'Music Academy'),
+  ];
+  const keys = (names: SeasonName[]) => names.map((name) => name.name);
+
+  it('counts leads by the concerts they led, most first, ties to the latest', () => {
+    // Music Academy: 3, TM Krishna: 2, then one each, latest first: Narada (and the Malladi
+    // Brothers) on the 4th, Krishna Gana Sabha and Sanjay on the 3rd.
+    expect(keys(oftenHeard(mine, ahead, lookup, TODAY, [], 10))).toEqual([
+      'Music Academy',
+      'T M Krishna',
+      'Malladi Brothers',
+      'Narada Gana Sabha',
+      'Sanjay Subrahmanyan',
+      'Krishna Gana Sabha',
+    ]);
+  });
+
+  it('leaves out accompanists, however often heard', () => {
+    expect(keys(oftenHeard(mine, ahead, lookup, TODAY, [], 10))).not.toContain(
+      'Patri Satish Kumar',
+    );
+  });
+
+  it('leaves out a name with nothing left to hear: gone, or only cancelled', () => {
+    const found = keys(oftenHeard(mine, ahead, lookup, TODAY, [], 10));
+    expect(found).not.toContain('Ranjani');
+    expect(found).not.toContain('Bombay Jayashri');
+    expect(found).not.toContain('Mylapore Fine Arts');
+  });
+
+  it('counts a group once, in its members’ place', () => {
+    const found = keys(oftenHeard(mine, ahead, lookup, TODAY, [], 10));
+    expect(found).toContain('Malladi Brothers');
+    expect(found).not.toContain('Malladi Sreeramprasad');
+  });
+
+  it('leaves out what is picked, and shows five at most', () => {
+    const academy = find('Music Academy');
+    const found = keys(oftenHeard(mine, ahead, lookup, TODAY, [academy]));
+    expect(found).toHaveLength(5);
+    expect(found).not.toContain('Music Academy');
+    expect(found[0]).toBe('T M Krishna');
+  });
+
+  it('is empty with nothing heard', () => {
+    expect(oftenHeard([], ahead, lookup, TODAY, [])).toEqual([]);
   });
 });

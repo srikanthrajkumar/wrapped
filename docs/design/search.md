@@ -39,9 +39,8 @@ Its rule is part of decision 1 (see "When the room is short").
 **Out of scope:** integration beyond search, the ranking itself, and the catalog. The Composition
 sheet and the Item editor share one search, so they are one row in the mapping.
 
-**Status:** a spec only. No app code has changed. The proposed DESIGN.md change is in
-[search-design-md.diff](search-design-md.diff). It applies on top of main 4e817ac and has not
-been applied. The decisions, with every option shown at 375px, are on the spec's page:
+**Status:** built (2026-11-17), with the DESIGN.md change below applied. The decisions, with
+every option shown at 375px, are on the spec's page:
 https://claude.ai/artifact/87wzk7mxDwMwWbUh9mAv4p
 
 ## 1. Structure: one docked search
@@ -259,7 +258,7 @@ From the council, for later:
 
 ## 8. Proposed DESIGN.md change
 
-In [search-design-md.diff](search-design-md.diff), not applied. It rewrites:
+Applied with the build. It rewrites:
 
 - the search sheet, under "Season";
 - the Item editor's search stack;
@@ -271,3 +270,27 @@ In [search-design-md.diff](search-design-md.diff), not applied. It rewrites:
 
 PR 46's own DESIGN.md text ("When the room is short") is written into "Search states" here, so the
 two land as one.
+
+## 9. Build notes (2026-11-17)
+
+Where the build goes past the words above. The first four were decided on 2026-11-17 (the
+user: "Keep all four") and are in DESIGN.md; the rest stay open to the user's veto.
+
+- **Decided: the page's shading one step brighter in dark**, oklch(0.31 0.011 216.9) over
+  surface-raised's 0.275, the step §4 allows: simulated at low brightness the page's shading read
+  1.33:1 against the sheet's 1.48:1, and reads 1.55:1 with the step.
+- **Decided, light theme:** a light sheet is as white as the page, so the results panel is
+  `--panel` on a sheet too; and surface-raised over that panel measured 1.01:1, so the light
+  shading is oklch(0.9 0.004 214).
+- **Decided, when the room is short:** the fade's soft part shortens to end at the best match's
+  top before the stack scrolls as one, so "Use what I typed" stays on a 664px phone at normal
+  text size.
+- **Decided, Often heard's leads** are those the concert is known by (the app's rule in
+  store/stage.ts), as an own concert has no billing order: a duo counts both, a group whose
+  members lead counts once as the group.
+- **The kind word and the check sit on the title's first line** when a name wraps.
+- **On a sheet the box stands 8px over the keyboard,** as on a page.
+- **What's on's pinned picks and kind toggles keep the box focused** when tapped, so the keyboard
+  stays up and the sheet doesn't move under the thumb.
+- **Decided 2026-11-17:** "Add new" steps aside in the pickers when the room is short, as §1 says.
+  DESIGN.md's wording now matches: only "Use what I typed", in Item search, always stays.

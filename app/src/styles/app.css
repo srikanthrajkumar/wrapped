@@ -36,6 +36,36 @@ main:has(~ footer [data-slot='bar-frame']:not([hidden])) {
   padding-bottom: 16px;
 }
 
+/* The search's results panel and its best match (docs/design/search.md, decision 4): on a
+   page the panel is the panel colour, a step lighter than the page; on a sheet it is the page
+   colour, a step darker than the sheet. The best match is shaded surface-raised. */
+/* On a page the shading takes one step more than surface-raised: dimmed on a phone, the
+   surface-raised step over the lighter panel all but went (2026-11-17; 1.33:1 dimmed against the
+   sheet's 1.48:1, now 1.55:1). Light has no page-coloured panel on a white sheet, so its panel is
+   the panel colour on both and its shading a step darker than surface-raised, which over that
+   panel didn't show at all (1.01:1). */
+.search-on-page {
+  --search-ground: var(--background);
+  --search-panel: var(--panel);
+  --search-best: var(--search-best-page);
+}
+
+.search-on-sheet {
+  --search-ground: var(--popover);
+  --search-panel: var(--search-panel-sheet);
+  --search-best: var(--search-best-sheet);
+}
+
+/* A pinned row in a search has a hairline over it when anything pinned is above it; the first
+   one, under a title, has none. Stepped aside, the rows above it take no line with them. */
+.pinned-row:not(:first-child) {
+  box-shadow: inset 0 1px 0 var(--border);
+}
+
+[data-aside='away'] > [data-pinned]:first-child + .pinned-row {
+  box-shadow: none;
+}
+
 /* The two edges (foundations, 2026-11-16): a page and a sheet hold their text 24px from the
    screen's sides, and a fill (a panel, a field, a button) reaches 16px past that, so it stands
    8px from the screen with its own 16px inset. */
@@ -253,6 +283,10 @@ main:has(~ footer [data-slot='bar-frame']:not([hidden])) {
   /* Amber, for Settings rows when something is wrong ("Storage not protected"): 5.5:1 on the
      background, 4.9:1 on surface-raised. */
   --warning: oklch(0.53 0.12 62);
+  /* The search's results panel on a sheet, and its best match's shading (".search-on-page"). */
+  --search-panel-sheet: var(--panel);
+  --search-best-page: oklch(0.9 0.004 214);
+  --search-best-sheet: oklch(0.9 0.004 214);
   --border: oklch(0.925 0.005 214.3);
   --input: oklch(0.925 0.005 214.3);
   --ring: oklch(0.723 0.014 214.4);
@@ -306,6 +340,9 @@ main:has(~ footer [data-slot='bar-frame']:not([hidden])) {
   --destructive: oklch(0.704 0.191 22.216);
   /* 10.3:1 on the background, 7.8:1 on surface-raised. */
   --warning: oklch(0.8 0.15 75);
+  --search-panel-sheet: var(--background);
+  --search-best-page: oklch(0.31 0.011 216.9);
+  --search-best-sheet: var(--secondary);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.56 0.021 213.5);

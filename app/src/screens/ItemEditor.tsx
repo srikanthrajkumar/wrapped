@@ -121,11 +121,14 @@ function ItemSearch({
   onQuery,
   onPick,
   autoFocus,
+  on = 'page',
 }: {
   query: string;
   onQuery(query: string): void;
   onPick(pick: ItemPick): void;
   autoFocus?: boolean;
+  /** The new Item's page, or the Composition sheet. */
+  on?: 'page' | 'sheet';
 }) {
   const catalog = useCatalog();
   const typed = query.trim();
@@ -135,12 +138,6 @@ function ItemSearch({
     [catalog, typed],
   );
   const results = found.map((result) => resultRow(result, onPick));
-  const note =
-    catalog.status === 'missing'
-      ? MESSAGES.search.noCatalog
-      : typed && catalog.status === 'ready' && results.length === 0
-        ? MESSAGES.search.noMatch
-        : null;
   return (
     <DockedSearch
       label="Search songs and Ragas"
@@ -148,11 +145,13 @@ function ItemSearch({
       query={query}
       onQueryChange={onQuery}
       autoFocus={autoFocus}
-      note={note}
+      on={on}
+      note={catalog.status === 'missing' ? MESSAGES.search.noCatalog : null}
+      noMatch={catalog.status === 'ready'}
       onSubmit={() =>
         results[0] ? results[0].onPick() : typed && onPick({ kind: 'typed', text: typed })
       }
-      fixed={
+      pinned={
         <>
           {/* One row, scrolling sideways when the chips don't fit (large text, a narrow phone,
               Android's text zoom), so the results keep their room. The padding, taken back by
@@ -170,12 +169,14 @@ function ItemSearch({
             ))}
           </div>
           <FixedRow onClick={() => onPick({ kind: 'unknown' })}>? Don’t know</FixedRow>
-          {typed && (
-            <FixedRow onClick={() => onPick({ kind: 'typed', text: typed })}>
-              Use what I typed: “{typed}”
-            </FixedRow>
-          )}
         </>
+      }
+      typedRow={
+        typed && (
+          <FixedRow onClick={() => onPick({ kind: 'typed', text: typed })}>
+            Use what I typed: “{typed}”
+          </FixedRow>
+        )
       }
       results={results}
     />
@@ -822,9 +823,8 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
             setQuery('');
           }}
           title="Composition"
-          tall
         >
-          <ItemSearch query={query} onQuery={setQuery} onPick={repick} />
+          <ItemSearch query={query} onQuery={setQuery} onPick={repick} on="sheet" />
         </SheetFrame>
       )}
     </>

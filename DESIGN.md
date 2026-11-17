@@ -131,9 +131,10 @@ karnatik's "tODi" (catalog-snapshot contract).
   ("Storage not protected", offline logging not available): the `warning` token, oklch(0.8 0.15 75) in dark and oklch(0.53 0.12 62) in light. It is never used for a failure to save, which
   stays `destructive`.
 - **Depth by lightness, not shadow** (dark): background → panel (a section's rows, the
-  quietest step: "The section pattern") → surface (the Now card, the best search result) →
-  surface-raised (chips, the search field, sheets). List rows have no fill
-  (Shapes).
+  quietest step: "The section pattern") → surface (the Now card) → surface-raised (chips, the
+  search field, the best search match, sheets). List rows have no fill (Shapes). On a sheet, the
+  search results' panel is the page colour, one step under the sheet (docs/design/search.md,
+  2026-11-17); in light it is `panel` on a sheet too (decided 2026-11-17).
 
 Contrast, measured (WCAG 2.x ratios):
 
@@ -391,7 +392,7 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     paints that band in its own surface colour, in dark and light.
   - **Empty states** are shadcn's Empty, in our tokens, only where something is truly empty: an
     Event with no Items, the hub with nothing listed ahead, an empty Shortlist or Diary tab, a
-    search with no match.
+    What's on filter that leaves nothing.
   - **Shared parts, built once:** the tab header (plain or curtain), the section header and
     its panel ("The section pattern"), the list row, the listing sheet, the empty state, the
     bottom stack and the safe areas.
@@ -583,28 +584,31 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     alone ends in an ellipsis), and one 48px x at its right, spoken "Clear
     filters", that clears it all. While What's on loads, the bar keeps what it showed, so the page
     never moves under the place it is held at.
-  - **The search sheet** (the Maintainer's review, 2026-11-09; builder's calls marked): opened from
-    the bar with its field focused, so the keyboard rises at once (builder: tapping a search bar
-    says "I'll type", as in Maps; the second recorded exception to no autofocus, after the Item
-    editor's), 85% of the screen tall, sitting above the keyboard (the council, 2026-11-09: the
-    names need room to browse). No title: the 48px field, "Artist or Sabha…", is its first line,
-    level with the close (the council: a title only repeated it); under it the
-    kinds the Schedule has, Dance, Lecdem and Harikatha, as text toggles, 8px apart (Mine went on
-    2026-11-11, SF-D28: the Shortlist is its own tab): off
-    in muted text, on in full contrast and 600 with a check after the word, as on the names under
-    them, never a filled pill. Each is as wide on as off, the check's room and the 600 width held
-    either way, so turning one on moves nothing (the Maintainer's iPhone, 2026-11-09: Harikatha's
-    check and weight pushed into Lecdem), and all fit one line at 390px (the council,
-    2026-11-09: with the check's room held after each, 8px apart sets the words 28px apart). Then the
-    names: before typing, those picked, then every other name in the Season, A to Z, to browse
-    (the council, 2026-11-09); as the rasika types, the suggestions from the names in
-    this Season's Schedule and their own Events, billed Artists, groups by their group name and
-    Sabhas with their Aliases ("KGS" finds Krishna Gana Sabha), ranked as the Artist and Sabha
-    pickers rank names, each a 48px row of the name and its sort ("Artist", "Group", "Sabha") as
-    a muted word, then a check on each one picked, hairlines between rows; typed with no such
-    name, one muted line says so. A name tapped, or the first by Enter, is picked and the sheet
-    closes onto its days (builder: most searches are one name, so one tap from typing to the
-    list); a ticked one tapped is taken off, and a toggle tapped, with the sheet staying open.
+  - **The search sheet** (docs/design/search.md, 2026-11-17, replacing the sheet of
+    2026-11-09): the docked search ("Search box", "Search result", "Search states"), opened from
+    the bar with its field focused at the foot, where the bar was, so the keyboard rises at once
+    (builder, 2026-11-09: tapping a search bar says "I'll type", as in Maps; the second recorded
+    exception to no autofocus, after the Item editor's). The sheet fits its content, standing on
+    the keyboard. No title. Its head is the kinds the Schedule has (Dance, Lecdem, Harikatha) as
+    text toggles, sharing the close's row: off in muted text, on in full contrast and 600 with a
+    check after the word, never a filled pill, each as wide on as off so turning one on moves
+    nothing (the Maintainer, 2026-11-09 and 2026-11-10). Under them, the names picked, pinned rows
+    in the order picked, each its name, its sort ("Artist", "Group", "Sabha") and a check; they
+    stay while the rasika types, and a picked name is not repeated in the results. Before typing,
+    up to five names under the caption "Often heard": the Artists, groups and Sabhas the rasika
+    has heard most often, an Artist counting once per concert they led (accompanists are left
+    out; the leads are those the concert is known by, so a duo counts both and a group whose
+    members lead counts once, as the group: decided 2026-11-17), only names with a listing today
+    or later and none already picked, the most heard next to the field, as many as fit whole;
+    nothing shaded, and Enter does nothing until something is typed. With nothing heard yet, only the toggles and the field. As the rasika types, the
+    suggestions from the names in this Season's Schedule and their own Events, billed Artists
+    (accompanists included), groups by their group name and Sabhas with their Aliases ("KGS"
+    finds Krishna Gana Sabha), ranked as the Artist and Sabha pickers rank names, each a List row
+    of the name and its sort at the right on the text column, with no room kept for a check. A
+    name tapped, or the best match by Enter, is picked and the sheet closes onto its days
+    (builder: most searches are one name); the best match is never a name already picked. A
+    picked row tapped is taken off and stays where it is, unticked, until the sheet closes, so
+    nothing moves under the thumb; a toggle tapped also keeps the sheet open.
     Picks of one sort widen the list (TM Krishna or Sanjay; an Artist and a group are one sort,
     the performers); picks of different sorts narrow it (TM Krishna at the Academy); kinds
     picked together widen each other. Every filter applies to the days ahead and the days gone
@@ -716,7 +720,7 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   `surface-raised` with 14px corners, a `body` 600 title, one `sub` muted line, and at most
   one outline button, centred, 32px above and below. An Event with no Items ("No Items yet",
   where logging starts, Add Item right under it in the bar); an empty Shortlist tab; an empty
-  Diary tab; a search with no match; the hub with nothing listed ahead, where the mark is the
+  Diary tab; a What's on filter that leaves nothing; the hub with nothing listed ahead, where the mark is the
   bare glyph ("Season, the hub"). The hub with nothing left today is not one: its first
   section becomes the next day's (the Maintainer, 2026-11-13).
 - **Event (DD3):** top to bottom, heading → Items → Stage → Note (the Maintainer, 2026-11-11,
@@ -762,13 +766,8 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   "Item 8" as a small muted eyebrow above it in `caption` (walkthrough S10); before a pick, the
   heading is "Item 8". A field's label sits 8px above its chips ("Nadai"; walkthrough
   S11). "Done" goes back to the Concert, "done for now" (walkthrough P1). The search
-  box is docked above the keyboard, results growing upward with the
-  best match nearest the box. The stack is bottom-aligned and reads, top to bottom (decided
-  2026-11-01, as in the approved preview): the special-form chips (RTP, Viruttam / Slokam,
-  Medley), "? Don't know", "Use what I typed: …", a divider, the results from weakest to best,
-  then the box. The fixed rows stay pinned; only the results scroll. With few or no results the
-  stack shrinks, so the fixed rows sit just above the box. The reading order for screen readers
-  is the same top-to-bottom order, and the results list is labelled "best match last". After a pick, the Details as values (see "Values"), then one
+  is the docked search ("Search states"), its pinned rows the special-form chips (RTP,
+  Viruttam / Slokam, Medley), "? Don't know" and "Use what I typed: …". After a pick, the Details as values (see "Values"), then one
   fold, Improvised, holding Alapana, Tanam, Niraval, Kalpana swaram and the Laya vinyasam as
   rows of the same kind (walkthrough S14). Bottom bar: "Done", "Next Item →".
 - **Wrapped (DD5):** headline numbers → the range as a quiet subtitle → a vertical list of 9:16
@@ -920,9 +919,10 @@ Dynamic Island (`apple-mobile-web-app-status-bar-style: black-translucent` in
   Artist billed all Season), after the names the lists hold at the same closeness, an Artist's
   line the Role they are billed in most (the council, 2026-11-09). Picked, such a name becomes
   an own entry, as planning its listing would make it. Each result shows a distinguishing line (an Artist's
-  usual Role, when known), so similar names can be told apart. The last row is always "Add
-  “what you typed” as a new Sabha" (or Artist), so a new entry is a deliberate choice, never a
-  typo's side effect.
+  usual Role, when known), so similar names can be told apart. Once something is typed, "Add
+  “what you typed” as a new Sabha" (or Artist) is a pinned row under the title (2026-11-17; it was
+  the last row, between the best match and the box), so a new entry is a deliberate choice, never
+  a typo's side effect, and the best match sits next to the box.
   - After an Artist is picked, a row of Role chips appears, capitalised like the other chips
     and in Stage order (Vocal, Veena, Flute, Violin, Mridangam, Ghatam, Khanjira, Morsing,
     Other, Presenter, "Not sure"; walkthrough S8). The common Roles show first and the rest sit
@@ -961,23 +961,64 @@ Dynamic Island (`apple-mobile-web-app-status-bar-style: black-translucent` in
     filter has none (2026-11-09): its toggles are text, and what is on reads in its search bar.
   - **Forms** show in sentence case, like the Roles: "Kriti", "Javali", "Varnam" (the catalog
     keeps "kriti"); the project's own keep their names ("RTP", "Slokam").
-- **Search box:** 48px, surface-raised fill, a 2px `ring` inset while focused. It is the one
-  element allowed to autofocus on mobile: the Item editor opens with it focused (DD4, the
-  recorded exception to T110's rule).
-- **Search result:** a List row (docs/design/row.md), 68px with two lines and 48px with one, divided by the
-  hairline; title in body (400), then the secondary line. The best match is the one filled row, on
-  `surface-raised` in both themes, on a page or in a sheet, with no border, its fill reaching 8px
-  into the gutter. The fixed rows above ("? Don't know", "Use what I typed") are Action rows, in body 600;
-  the hairline under the Item kinds' chips sits their own 8px gap below them (walkthrough P5).
-  A Raga result is one line, the word "Raga" at its right in muted caption, not a filled badge (a
-  fill on every row says nothing; the line "Start this Item with only its Raga" was also cut on
-  2026-11-04: fewer words). Results that scroll up under the fixed rows are gone in the first 12px
-  and fade in over the next 20, so a row half under them never shows a second rule.
-- **Search states** (decided 2026-11-01): before anything is typed, only the fixed rows show
-  above the box. With no catalog match, one muted line "No match in the catalog" sits above the
-  fixed rows, so "Use what I typed" is the next tap, and screen readers hear "No matches".
-  Without the catalog on the phone, the box still works and one muted line reads "Catalog not
-  on this phone yet. What you type is kept and can be matched later in Tidy."
+- **Search box:** 48px, surface-raised fill, 16px corners, on the 8px edge, the search mark on
+  the 24px column, a 2px `ring` inset while focused. Its clear mark is a small filled circle with
+  an × in it, muted, 20px in a 48px target, spoken "Clear search", so it is never taken for a
+  sheet's close (2026-11-17). It is the one element allowed to autofocus on mobile: the Item
+  editor opens with it focused (DD4, the recorded exception to T110's rule), and What's on's
+  search sheet is the second.
+- **The docked search** (docs/design/search.md, 2026-11-17): every search in the app is one
+  component. Top to bottom: the sheet's title and close (on What's on, the kind toggles and the
+  close), any note, the pinned rows (chips; the Action rows "? Don't know", "Use what I typed",
+  "Add “…” as a new …"; What's on's picks), the results panel, then the box, standing on the
+  keyboard. Only the results scroll. The sheet fits its content, growing upward to just under
+  the top of the screen; with the keyboard down it stands on the screen's foot, the box its last
+  line, and the list comes back to rest at its foot whenever the room changes, unless the rasika
+  has scrolled it. The reading order for screen readers is the same top-to-bottom order, the
+  results list labelled "best match last".
+- **Search result:** the results sit on a panel, 8px from the screen with 16px corners, its top
+  edge the break from the pinned rows; no divider is drawn above it, and none at all when nothing
+  is pinned. On a page the panel is `panel`; on a sheet it is the page colour, one step under the
+  sheet. Each result is a List row (docs/design/row.md), 68px with two lines and 48px with one,
+  divided by the hairline; title in body (400), then the secondary line; a kind word ("Raga",
+  "Artist") at the right on the title's line, in muted caption, not a filled badge (a fill on
+  every row says nothing; 2026-11-04). The results run from weakest at the top to best at the
+  foot. The best match is the one shaded row, `surface-raised`, the panel's full width as its last
+  row, so it stands 8px from the screen like every fill and shares the panel's bottom corners (a
+  single result takes all four), its text on the 24px column; it must stand out as clearly on a
+  page as on a sheet. On a page it takes one step more, oklch(0.31 0.011 216.9) in dark: dimmed,
+  surface-raised over the lighter panel read 1.33:1 against the sheet's 1.48:1 (decided
+  2026-11-17, from the build). In light, where a sheet is as white as the page, the panel is `panel` on a sheet
+  too and the shading oklch(0.9 0.004 214), a step under surface-raised, which over that panel
+  didn't show (1.01:1; decided 2026-11-17). Enter picks it. Rows scrolled under the panel's top edge fade inside the
+  panel, in its colour: solid for the first 16px, then fading over 24px, only while something is
+  under it. The fixed rows above are Action rows, in body 600; the hairline under the Item kinds'
+  chips sits their own 8px gap below them (walkthrough P5).
+- **Search states** (decided 2026-11-01; revised 2026-11-17): before anything is typed, the
+  Item editor and the Detail pickers show only their pinned rows, the Artist and Sabha pickers
+  the rasika's recent names (the most recent next to the box, shaded), and What's on its "Often
+  heard" names, unshaded. With no match, one muted line, "Nothing matches “…”", sits on the
+  panel in the best match's place, the same words in every search, so "Use what I typed" or
+  "Add new" is one row up; screen readers hear "No matches". Without the catalog on the phone,
+  the box still works and one muted line at the top reads "Catalog not on this phone yet. What
+  you type is kept and can be matched later in Tidy."
+  - **When the room is short** (decided 2026-11-15, from the Maintainer's iPhone): the best
+    match is never the row that is cut. With a keyboard up on a short screen the room left under
+    the pinned rows can be less than one result. Then, once something is typed, every pinned row
+    but "Use what I typed" steps aside: the kind chips and "? Don't know" in the Item editor;
+    the "?", "Not sure" and "N/A" chips, the Nadai chips and a Raga's move and remove in a Detail
+    picker; What's on's picks; "Add new" in the pickers. The best match stands whole and unfaded
+    by the box, "Use what I typed" pinned over the results. The rows come back when the box is
+    cleared or the room returns.
+  - They step aside only for a best match that would otherwise be cut or faded. In the pickers,
+    "Add new" steps aside along with the picks; only "Use what I typed", in Item search, always
+    stays. With room for the best match, nothing changes.
+  - With too little room even then (text at 200%), everything above the box scrolls as one,
+    resting at its foot, with nothing hidden.
+  - Before that, the fade's soft part shortens to end at the best match's top, keeping its solid
+    16px, so the best match is whole and clear of it and "Use what I typed" stays (decided
+    2026-11-17, from the build: on a 664px phone with the keyboard up the Item editor has 152px above the box,
+    and a two-line best match with the full fade and "Use what I typed" needs 164).
 - **Buttons:** primary fills with `primary`; secondary is a 1px border on transparent. Every
   target is at least 48px; the main action on a screen is 56px. Pressed state: opacity 0.6
   (base.css), with no hover styles outside `(hover: hover) and (pointer: fine)`.
@@ -1252,7 +1293,7 @@ from What's on to keep it here.", "Nothing heard yet", "Every concert you log is
 | Any screen, top              | The phone's database is still opening after 10 s; the screen stays                                                                                                                                             | "Still opening your season…"                                                                                                                                                                                              | Export                     |
 | Rescue screen                | The phone's database won't open; the alert mark above the title                                                                                                                                                | "Can't open your season"                                                                                                                                                                                                  | Try again · Export         |
 | Home                         | New catalog (FR-038)                                                                                                                                                                                           | "An updated song catalog is ready."                                                                                                                                                                                       | Update · Later             |
-| Item search                  | No match                                                                                                                                                                                                       | "No match in the catalog"                                                                                                                                                                                                 |                            |
+| Any search                   | No match                                                                                                                                                                                                       | "Nothing matches “…”"                                                                                                                                                                                                     |                            |
 | Item search                  | No catalog                                                                                                                                                                                                     | "Catalog not on this phone yet. What you type is kept and can be matched later in Tidy."                                                                                                                                  |                            |
 | Undo bar                     | After a delete                                                                                                                                                                                                 | "Item 5 deleted" (or "Artist removed", "Concert deleted")                                                                                                                                                                 | Undo                       |
 | Undo bar                     | The Undo itself failed to save. Only the newest failed bar shows, with "+1" for older ones                                                                                                                     | "Undo failed · Concert" (or "Item 5", "Artist") · "Undo failed: Concert. Not saved on this phone." · "+1"                                                                                                                 | Try again · Dismiss        |
@@ -1336,3 +1377,4 @@ in the phase that builds it):
 | 2026-11-16 | The foundations (docs/design/foundations.md), signed off by the Maintainer one decision at a time, each taken through two council rounds: panels everywhere, every fill 8px from the screen with 16px corners and all text 24px from it; one rhythm, rows 12px top and bottom (68px for two lines), sections 32px apart, a label 8px over its panel; one type scale, every label above a panel in body 600, every page title in heading 700, live or selected in 600 ink, times and counts never in caption, 500 retired. |
 | 2026-11-16 | The list row (docs/design/row.md), signed off by the Maintainer one decision at a time, each through council rounds: four kinds of row (Concert, Item, List, Action), one tap each with at most one nested control; every name on the column, the kind mark after it; the facts line time first, leaving out what its label says; chevrons only on List rows that open a page; a facts line two lines at most, cut with "…"; dividers across the text column; a cancelled row says "Cancelled" in its time's place. |
 | 2026-11-17 | The open questions from the foundations and row build, answered by the user: a lapse row opens its concert, with "Yes" its own target; under a Shortlist slot's time a concert under way reads "● On now · Sabha"; a List row's nested control (the Stage colour dot) sits on its last line; on a facts line's second line the Sabha is cut first, so the Item count always shows; the Concert summary's "First Ragas" and "New Composers" labels are `sub`. Kept as built: the fade alone above the bottom bar, the ramped top fade and the tab bar's top line; the 16px gap after a clash; the Laya note field inside its panel, on the text column; the fade starting 24px above the bar. Row height worded as +24 for a wrapped Body line and +20 for each `sub` line. Deferred: the search kind word (search spec) and the Raga row (Item editor spec). |
+| 2026-11-17 | The search (docs/design/search.md, https://claude.ai/artifact/87wzk7mxDwMwWbUh9mAv4p), signed off by the user one decision at a time, each through two council rounds (two Claude reviewers and Codex): one docked search everywhere, What's on included ("Prefer it all look more like Item search"), its field at the foot on the keyboard and the best match shaded next to it; "Add new" a pinned row in the pickers, so the best match always touches the box; before typing, What's on shows up to five names heard most often, under "Often heard" (lead Artists only, names with a listing ahead only, nothing shaded), and the A-to-Z list goes; picked names pinned at the top, kind word then check, the toggles in the close's row, a pick taken off staying in place until the sheet closes; results on a panel (on a sheet, one step darker), the best match's shading the panel's full width at its foot, one no-match line "Nothing matches “…”" in its place, and a filled clear mark. PR 46's rule for a short room is part of it. Not chosen: the field at the foot with the best match at the top; two layouts as built; the A-to-Z list kept; nothing before typing; the toggles in a strip by the field; the kinds as chips (against the Maintainer's call of 2026-11-10); results flat; a second panel for the pinned rows. |

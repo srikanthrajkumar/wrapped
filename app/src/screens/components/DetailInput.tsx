@@ -163,13 +163,9 @@ export function DetailInput({
     onPick: () => choose(catalogValue(option.key, option.display)),
   }));
 
-  const note = !typed
-    ? null
-    : catalogState.status === 'missing' && field !== 'form' && field !== 'nadai'
-      ? MESSAGES.search.noCatalog
-      : results.length === 0
-        ? MESSAGES.search.noMatch
-        : null;
+  // Without the catalog, only the project's own lists (the Forms, the Nadais) can be searched.
+  const searchable = catalogState.status !== 'missing' || field === 'form' || field === 'nadai';
+  const note = typed && !searchable ? MESSAGES.search.noCatalog : null;
 
   const current = detailText(value);
   return (
@@ -181,7 +177,6 @@ export function DetailInput({
       }}
       title={title}
       description={current ? `Now: ${value.guess ? `${current} (?)` : current}` : undefined}
-      tall
     >
       {value.state === 'override' && suggested && (
         <div className="flex flex-wrap items-center gap-x-2 pb-2 text-sub text-muted-foreground">
@@ -197,18 +192,22 @@ export function DetailInput({
         query={query}
         onQueryChange={setQuery}
         note={note}
+        noMatch={searchable}
         onSubmit={() => results[0]?.onPick()}
-        fixed={
-          <div className="flex flex-col gap-3">
+        pinned={
+          // The hairline over "Use what I typed" sits 8px under the chips, as in the Item editor.
+          <div className="flex flex-col gap-3 pb-2">
             <StateChips value={value} onChange={choose} />
             {field === 'nadai' && <NadaiChips value={value} onChange={choose} />}
             {extra}
-            {typed && (
-              <FixedRow onClick={() => choose(unresolvedValue(typed))}>
-                Use what I typed: “{typed}”
-              </FixedRow>
-            )}
           </div>
+        }
+        typedRow={
+          typed && (
+            <FixedRow onClick={() => choose(unresolvedValue(typed))}>
+              Use what I typed: “{typed}”
+            </FixedRow>
+          )
         }
         results={results}
       />

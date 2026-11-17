@@ -11,7 +11,7 @@ import { fold } from '../catalog/fold';
 import type { EventKind, OwnEntry, SharedEntry } from '../model';
 import type { EventSummary, ResolvedEntry, ScheduleListing } from '../store/queries';
 import { rank } from '../store/people';
-import type { TimelineDay } from './timeline';
+import { isHeard, type TimelineDay } from './timeline';
 
 /** An Artist or Sabha as the rasika's and the shared lists know it: its name and Aliases. */
 export interface Known {
@@ -206,6 +206,76 @@ export function suggest(
     )
     .slice(0, limit)
     .map(({ name }) => name);
+}
+
+/**
+ * The names the rasika has heard most (docs/design/search.md, decision 2), for What's on before
+ * typing, the most heard first:
+ * - the Artists, groups and Sabhas of the concerts they heard;
+ * - an Artist counted once for each concert they led (one the concert is known by), a group
+ *   whose members led it once for the group, so accompanists never crowd out the singers;
+ * - only names with something left to hear, a listing (or their own concert) today or later
+ *   that isn't cancelled, so none filters to nothing;
+ * - none already picked, which show as pinned rows.
+ * Ties go to the one heard latest.
+ */
+export function oftenHeard(
+  summaries: readonly EventSummary[],
+  listings: readonly ScheduleListing[],
+  lookup: Lookup,
+  today: string,
+  picked: readonly SeasonName[],
+  limit = 5,
+): SeasonName[] {
+  const tally = new Map<string, { name: SeasonName; count: number; last: string }>();
+  const count = (named: SeasonName, at: string) => {
+    const seen = tally.get(named.key);
+    if (seen) {
+      seen.count += 1;
+      if (at > seen.last) seen.last = at;
+    } else tally.set(named.key, { name: named, count: 1, last: at });
+  };
+  for (const summary of summaries) {
+    if (!isHeard(summary)) continue;
+    const at = `${summary.event.date} ${summary.event.startTime ?? ''}`;
+    const leads = summary.stage.filter((person) => person.lead);
+    // A group shows in its members' place where two or more of them lead, as a row names it.
+    const members = new Map<string, number>();
+    for (const person of leads) {
+      if (person.group) members.set(person.group, (members.get(person.group) ?? 0) + 1);
+    }
+    const counted = new Set<string>();
+    for (const person of leads) {
+      const named =
+        person.group && (members.get(person.group) ?? 0) > 1
+          ? nameOf('group', person.group, lookup)
+          : withAliases(nameOf('artist', person.name, lookup), person.aliases);
+      if (counted.has(named.key)) continue;
+      counted.add(named.key);
+      count(named, at);
+    }
+    if (summary.sabha) {
+      count(withAliases(nameOf('sabha', summary.sabha.name, lookup), summary.sabha.aliases), at);
+    }
+  }
+  const taken = new Set(picked.map((name) => name.key));
+  const ahead = {
+    listings: listings.filter((one) => one.entry.date >= today && !one.entry.cancelled),
+    own: summaries.filter((one) => one.event.date >= today && !one.cancelled),
+  };
+  const leftToHear = (name: SeasonName) => {
+    const test = rowTest({ picks: [name], kinds: [] }, lookup);
+    return ahead.listings.some(test.listing) || ahead.own.some(test.own);
+  };
+  const ranked = [...tally.values()]
+    .filter(({ name }) => !taken.has(name.key))
+    .sort((a, b) => b.count - a.count || b.last.localeCompare(a.last));
+  const found: SeasonName[] = [];
+  for (const { name } of ranked) {
+    if (found.length === limit) break;
+    if (leftToHear(name)) found.push(name);
+  }
+  return found;
 }
 
 /** Whether a row is in: each sort of pick, and each quick chip, must match it (AND across). */

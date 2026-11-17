@@ -67,12 +67,20 @@ export function ListRowBody({
       {value !== undefined && value !== null && (
         <span className="shrink-0 text-sub text-muted-foreground">{value}</span>
       )}
-      {kindWord && <span className="shrink-0 text-caption text-muted-foreground">{kindWord}</span>}
+      {/* On the title's first line, however many lines it wraps to: each in a box one body
+          line tall. */}
+      {kindWord && (
+        <span className="flex h-lh shrink-0 items-center self-start">
+          <span className="text-caption text-muted-foreground">{kindWord}</span>
+        </span>
+      )}
       {checked !== undefined && (
-        <IconCheck
-          aria-hidden
-          className={cn('size-5 shrink-0', checked ? 'text-foreground' : 'invisible')}
-        />
+        <span className="flex h-lh shrink-0 items-center self-start">
+          <IconCheck
+            aria-hidden
+            className={cn('size-5', checked ? 'text-foreground' : 'invisible')}
+          />
+        </span>
       )}
       {chevron && (
         // Its ink ends on the column.
