@@ -171,7 +171,8 @@ function Firsts({ names, one, many }: { names: string[]; one: string; many: stri
   if (names.length === 0) return null;
   return (
     <div className="flex flex-col gap-1">
-      <dt className="text-caption text-muted-foreground">{names.length === 1 ? one : many}</dt>
+      {/* In `sub`, as "Items" and "Ragas" are (the Maintainer, 2026-11-17). */}
+      <dt className="text-sub text-muted-foreground">{names.length === 1 ? one : many}</dt>
       <dd className="break-words">{names.join(', ')}</dd>
     </div>
   );

@@ -16,15 +16,16 @@
 // line only. A cancelled row is at 60%, star included, and says "Cancelled" in its time's place.
 //
 // What follows the clock (the hub's rows of today, `now`): "in 25 min" inside the hour and "On
-// now" once started, led by its dot, both in 600 ink; elsewhere a concert under way keeps its
-// start time, in 600 ink, led by the dot.
+// now" once started, led by its dot, both in 600 ink. Under a slot's time label a concert under
+// way also reads "● On now"; elsewhere it keeps its start time, in 600 ink, led by the dot.
 //
 // How each line holds its shape (the Maintainer, 2026-11-11; the row spec, 2026-11-16):
 // - the name wraps and is never cut, its lines balanced, never broken after an "&" or an initial;
 // - a printed title takes two lines at most, then "…";
 // - the accompanists take one line: as many whole names as fit, then "+N" (fit-names.ts);
 // - the facts break at a "·" first (the "·" dropped there), a fact longer than a line wraps
-//   inside itself, and they stop at two lines, the second cut at its end with "…".
+//   inside itself, and they stop at two lines; on the second the Sabha is shortened with "…"
+//   before anything else, so the Item count always shows (the Maintainer, 2026-11-17).
 
 import { IconCalendarExclamation, IconCalendarX, IconStarFilled } from '@tabler/icons-react';
 import { Fragment, type ReactNode } from 'react';
@@ -84,6 +85,8 @@ interface Fact {
   live?: boolean;
   /** Led by the live dot. */
   dot?: boolean;
+  /** Shortened with "…" first where the facts run past two lines: the Sabha. */
+  cut?: boolean;
 }
 
 const SEPARATOR = ' · ';
@@ -134,10 +137,25 @@ function FactsLine({
       </span>
     );
   }
+  const rest = facts.slice(count);
   return (
     <span data-facts className="flex flex-col text-sub text-muted-foreground">
       <span>{joined(facts.slice(0, count))}</span>
-      {count < facts.length && <span className="truncate">{joined(facts.slice(count))}</span>}
+      {rest.length > 0 &&
+        (rest.some((fact) => fact.cut) ? (
+          // The Sabha gives way first, so what follows it (the Item count) always shows
+          // (the Maintainer, 2026-11-17).
+          <span className="flex min-w-0 whitespace-nowrap">
+            {rest.map((fact, i) => (
+              <Fragment key={i}>
+                {i > 0 && <span className="shrink-0 whitespace-pre">{SEPARATOR}</span>}
+                <span className={fact.cut ? 'min-w-0 truncate' : 'shrink-0'}>{fact.node}</span>
+              </Fragment>
+            ))}
+          </span>
+        ) : (
+          <span className="truncate">{joined(rest)}</span>
+        ))}
     </span>
   );
 }
@@ -151,7 +169,6 @@ export function ConcertRow({
   onOpen,
   onHint,
   star = true,
-  still = false,
   control,
   controlWidth = 0,
 }: {
@@ -170,8 +187,6 @@ export function ConcertRow({
   onHint?: (eventId: string) => void;
   /** Shows the Shortlisted star; the lapse question's rows show none. */
   star?: boolean;
-  /** Opens nothing: the lapse question's rows, answered only by their "Yes". */
-  still?: boolean;
   /** The row's one nested control at its right, as the lapse question's "Yes". */
   control?: ReactNode;
   /** How wide `control` is, with the 8px before it, so the lines give way to it. */
@@ -195,8 +210,9 @@ export function ConcertRow({
   if (concert.cancelled) {
     // "Cancelled" in the time's place (the row spec, 2026-11-16).
     facts.push({ text: MESSAGES.spine.cancelled, node: MESSAGES.spine.cancelled });
-  } else if (on && now !== undefined) {
-    // On the hub a concert under way reads "On now", its dot leading the line.
+  } else if (on && (now !== undefined || timeless)) {
+    // On the hub, and under a slot's time label, a concert under way reads "On now", its dot
+    // leading the line: "● On now · Sabha" (the Maintainer, 2026-11-17).
     facts.push({
       text: MESSAGES.spine.onNow,
       live: true,
@@ -228,7 +244,7 @@ export function ConcertRow({
       ),
     });
   }
-  if (concert.sabha) facts.push({ text: concert.sabha, node: concert.sabha });
+  if (concert.sabha) facts.push({ text: concert.sabha, node: concert.sabha, cut: true });
   // The Item count once it has any (the Maintainer, 2026-11-13: never "0 Items").
   if (stage === 'heard' && own!.itemCount > 0) {
     const count = itemCount(own!.itemCount);
@@ -301,9 +317,7 @@ export function ConcertRow({
   const shape = 'flex min-w-0 flex-1 py-3 text-left focus-visible:-outline-offset-2';
   return (
     <li data-row="concert" className="relative flex items-center gap-2 hairline-b">
-      {still ? (
-        <div className={shape}>{body}</div>
-      ) : onOpen && stage !== 'heard' && concert.listing ? (
+      {onOpen && stage !== 'heard' && concert.listing ? (
         <button type="button" onClick={() => onOpen(concert)} className={shape}>
           {body}
         </button>

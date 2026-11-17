@@ -700,7 +700,9 @@ function StageRow({
           ...(own ? [artistName(own.id)] : []),
         ]}
       >
-        <div className="flex flex-wrap items-center justify-end gap-x-1">
+        {/* The Colours dot on the row's last line, as a Concert row's slot 2 (the Maintainer,
+            2026-11-17): centred on a one-line row, on the role's line under a wrapped name. */}
+        <div className="flex flex-wrap items-end justify-end gap-x-1">
           <button
             type="button"
             ref={rowRef}
@@ -715,7 +717,12 @@ function StageRow({
               </span>
             )}
           </button>
-          <ColoursButton appearance={appearance} onOpen={onColours} />
+          <ColoursButton
+            appearance={appearance}
+            onOpen={onColours}
+            // Centred on a `sub` last line (20px over the row's 12px foot).
+            className={creditName(appearance.role, appearance.support) ? '-mb-0.5' : undefined}
+          />
         </div>
       </Saved>
     </li>
@@ -941,7 +948,15 @@ function MoveButtons({
   );
 }
 
-function ColoursButton({ appearance, onOpen }: { appearance: ResolvedAppearance; onOpen(): void }) {
+function ColoursButton({
+  appearance,
+  onOpen,
+  className,
+}: {
+  appearance: ResolvedAppearance;
+  onOpen(): void;
+  className?: string;
+}) {
   const { colourPrimary: primary, colourSecondary: secondary } = appearance;
   const name = appearance.artist?.name ?? 'Artist';
   const spoken =
@@ -955,7 +970,10 @@ function ColoursButton({ appearance, onOpen }: { appearance: ResolvedAppearance;
       aria-label={spoken}
       // 48px to tap, the dot's edge on the gutter, with the hairline. With no Colours yet it is
       // the same dot, empty (the Maintainer, 2026-11-11, replacing the word "Colours").
-      className="-mr-3.5 flex size-12 shrink-0 items-center justify-center rounded-xl focus-visible:-outline-offset-4"
+      className={cn(
+        '-mr-3.5 flex size-12 shrink-0 items-center justify-center rounded-xl focus-visible:-outline-offset-4',
+        className,
+      )}
     >
       <SwatchDot colour={primary} second={secondary as Colour | null} />
     </button>
