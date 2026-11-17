@@ -170,3 +170,31 @@ export async function openSettings(page: Page): Promise<void> {
   await tab(page, 'Settings').click();
   await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
 }
+
+/**
+ * A stand-in keyboard, from the next page load: the visual viewport reports what the keyboard
+ * covers, as on iOS, where the page keeps its height. Returns the keyboard: `keyboard(336,
+ * true)` covers the bottom 336px, and says so (a resize event) only when `tell` is set.
+ */
+export async function standInKeyboard(
+  page: Page,
+): Promise<(px: number, tell: boolean) => Promise<void>> {
+  await page.addInitScript(() => {
+    let covered = 0;
+    const viewport = window.visualViewport!;
+    Object.defineProperty(viewport, 'height', {
+      configurable: true,
+      get: () => window.innerHeight - covered,
+    });
+    (window as unknown as { keyboard(px: number, tell: boolean): void }).keyboard = (px, tell) => {
+      covered = px;
+      if (tell) viewport.dispatchEvent(new Event('resize'));
+    };
+  });
+  return (px, tell) =>
+    page.evaluate(
+      ([px, tell]) =>
+        (window as unknown as { keyboard(px: number, tell: boolean): void }).keyboard(px, tell),
+      [px, tell] as const,
+    );
+}

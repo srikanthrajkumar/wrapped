@@ -338,9 +338,10 @@ export interface EventSummary {
   knownBy: string | null;
   /**
    * Every Artist on its Stage, each with the names they are found by: their name, their Aliases
-   * and a group they were billed under. Season's filter matches on these (screens/season-filter.ts).
+   * and a group they were billed under, and whether they lead it (one the Event is known by).
+   * Season's filter matches on these (screens/season-filter.ts).
    */
-  stage: { name: string; aliases: string[]; group: string | null }[];
+  stage: { name: string; aliases: string[]; group: string | null; lead?: boolean }[];
   /** Everyone else on its Stage, in Stage order: the accompanists a row lists (ADR 0011). */
   accompanists: string[];
   /** Its type as a row names it, read from its Stage and never stored (ADR 0011). */
@@ -415,6 +416,8 @@ export async function listEventSummaries(db: WrappedDB = defaultDb): Promise<Eve
           name: artist?.name ?? '?',
           aliases: artist?.aliases ?? [],
           group: appearance.group ?? null,
+          // Among those the Event is known by: its leads.
+          lead: known.get(event.id)!.includes(appearance),
         };
       }),
       itemCount: counts.get(event.id) ?? 0,

@@ -1,8 +1,8 @@
 // The Artist and Sabha pickers (T041; DESIGN.md "Artist and Sabha pickers", design D26): the
 // same docked search. Before typing it lists the rasika's recent names; as they type, matches
-// from their own and the shared lists, each with a distinguishing line where known. The last row
-// is always "Add “what you typed” as a new Sabha" (or Artist), so a new entry is a deliberate
-// choice, never a typo's side effect. The matches include the names the Season's Schedule bills,
+// from their own and the shared lists, each with a distinguishing line where known. Once something
+// is typed, "Add “what you typed” as a new Sabha" (or Artist) is pinned under the title, so a new
+// entry is a deliberate choice, never a typo's side effect, and the best match sits by the box. The matches include the names the Season's Schedule bills,
 // so a billed Artist is found before any listing of theirs is planned. A new name that fails to save shows "Not saved on this
 // phone." in the sheet, above the search, with Try again.
 
@@ -127,7 +127,6 @@ export function NamePicker({
         onOpenChange(next);
       }}
       title={kind === 'artist' ? 'Add Artist' : 'Sabha'}
-      tall={!after}
     >
       {after ?? (
         <>
@@ -148,7 +147,9 @@ export function NamePicker({
             resultsLabel={typed ? 'Matches, best match last' : `Recent ${noun}s`}
             onSubmit={() => (rows[0] ? rows[0].onPick() : typed && void addNew())}
             results={rows}
-            lastRow={
+            // A pinned row under the title, once something is typed, so a stray tap by the box
+            // never makes a duplicate (docs/design/search.md, decision 1).
+            pinned={
               typed && (
                 <FixedRow onClick={() => void addNew()}>
                   Add “{typed}” as a new {noun}

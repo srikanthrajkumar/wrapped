@@ -94,7 +94,7 @@ const summariesShown = (page: Page, ids: SeedIds) =>
 /** Season's filter with `query` typed into it. */
 const typed = async (page: Page, query: string) => {
   await page.getByRole('searchbox', { name: 'Find an Artist or Sabha' }).fill(query);
-  await page.getByRole('list', { name: 'Suggestions' }).waitFor();
+  await page.getByRole('list', { name: 'Suggestions, best match last' }).waitFor();
 };
 
 /**
@@ -114,7 +114,12 @@ const searchSheet = async (page: Page) => {
 const pickName = async (page: Page, query: string) => {
   await searchSheet(page);
   await typed(page, query);
-  await page.getByRole('list', { name: 'Suggestions' }).getByRole('button').first().click();
+  // The best match, by the box (docs/design/search.md).
+  await page
+    .getByRole('list', { name: 'Suggestions, best match last' })
+    .getByRole('button')
+    .last()
+    .click();
   await page.getByRole('dialog').waitFor({ state: 'detached' });
 };
 

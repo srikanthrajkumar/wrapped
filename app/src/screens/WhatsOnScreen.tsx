@@ -40,6 +40,7 @@ import type { EventKind } from '../model';
 import { ConcertRow } from './components/ConcertRow';
 import { SheetFrame, useLingering } from './components/sheet-frame';
 import { BarHold, BottomDock, Panel, Screen, TopBar } from './components/layout';
+import { DockedSearch } from './components/DockedSearch';
 import { ListRowBody, ROW_SHAPE } from './components/rows';
 import { dayText, kindName } from './format';
 import { MESSAGES } from './messages';
@@ -51,6 +52,7 @@ import {
   lookupOver,
   NO_FILTER,
   noLookup,
+  oftenHeard,
   QUICK_KINDS,
   rowTest,
   seasonNames,
@@ -253,6 +255,14 @@ function WhatsOnView() {
     () => (data ? seasonNames(data.summaries, data.listings, lookup) : []),
     [data, lookup],
   );
+  // The names heard most, for the search before typing; a few spare for those picked.
+  const heard = useMemo(
+    () =>
+      data
+        ? oftenHeard(data.summaries, data.listings, lookup, data.today, [], OFTEN_HEARD * 3)
+        : [],
+    [data, lookup],
+  );
   // The days with only the filter's rows; a day left with none drops out, from the strip too.
   const shown = useMemo(() => {
     if (!data) return undefined;
@@ -329,6 +339,7 @@ function WhatsOnView() {
             open={searching}
             onOpenChange={setSearching}
             names={names}
+            heard={heard}
             filter={filter}
             onFilter={setFilter}
             kinds={QUICK_KINDS.filter((kind) =>
@@ -882,18 +893,20 @@ function SearchBar({
 }
 
 /**
- * The search sheet (the Maintainer, 2026-11-09; screens/season-filter.ts), opened from the bar,
- * its field focused so the keyboard rises at once. Under the field, Mine and the kinds the
- * Schedule has, as text toggles, a check before each one on. Then the names: before typing, the
- * ones picked; as the rasika types, the suggestions from the names in this Season's Schedule and
- * their own Events (billed Artists, groups by their group name, Sabhas with their Aliases), each
- * picked one ticked. A name picked closes the sheet onto its days; a tick tapped takes it off,
- * the sheet staying open; a toggle stays too.
+ * The search sheet (docs/design/search.md; screens/season-filter.ts), the docked search, opened
+ * from the bar with its field focused at the foot, where the bar was. Its head is the kinds the
+ * Schedule has, as text toggles, in the close's row. Under them the names picked, pinned in the
+ * order picked, each its kind word and a check, staying while the rasika types; one taken off
+ * stays where it is, unticked, until the sheet closes. Before typing, up to five names under
+ * "Often heard", unshaded; as the rasika types, the suggestions from the names in this Season's
+ * Schedule and their own Events. A name picked closes the sheet onto its days; a pinned one
+ * tapped, or a toggle, keeps it open.
  */
 function SearchSheet({
   open,
   onOpenChange,
   names,
+  heard,
   filter,
   onFilter,
   kinds,
@@ -901,6 +914,8 @@ function SearchSheet({
   open: boolean;
   onOpenChange(open: boolean): void;
   names: SeasonName[];
+  /** The names heard most, most first, none left out for being picked. */
+  heard: SeasonName[];
   filter: Filter;
   onFilter(filter: Filter): void;
   /** The kinds the Schedule has. */
@@ -908,31 +923,35 @@ function SearchSheet({
 }) {
   const [query, setQuery] = useState('');
   const field = useRef<HTMLInputElement>(null);
+  // The picks as the sheet opened, each staying in place until it closes, ticked or not, so
+  // nothing moves under the thumb.
+  const [pinnedNames, setPinnedNames] = useState(filter.picks);
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setPinnedNames(filter.picks);
+  }
   const picked = new Set(filter.picks.map((pick) => pick.key));
-  const found = useMemo(() => suggest(names, query, [], 8), [names, query]);
-  // Before typing, the picks first, then every other name in the Season, A to Z, to browse.
-  const rows = useMemo(
-    () =>
-      query.trim() === ''
-        ? [
-            ...filter.picks,
-            ...names
-              .filter((name) => !picked.has(name.key))
-              .sort((a, b) => a.name.localeCompare(b.name)),
-          ]
-        : found,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [query, found, filter.picks, names],
-  );
-  const toggle = (name: SeasonName) => {
-    if (picked.has(name.key)) {
-      onFilter({ ...filter, picks: filter.picks.filter((one) => one.key !== name.key) });
-      return;
-    }
+  const typed = query.trim() !== '';
+  // A pinned name is never repeated below it, so the best match is never one already picked.
+  const found = useMemo(() => suggest(names, query, pinnedNames, 8), [names, query, pinnedNames]);
+  const often = useMemo(() => {
+    const pinnedKeys = new Set(pinnedNames.map((name) => name.key));
+    return heard.filter((name) => !pinnedKeys.has(name.key)).slice(0, OFTEN_HEARD);
+  }, [heard, pinnedNames]);
+  const pick = (name: SeasonName) => {
     onFilter({ ...filter, picks: [...filter.picks, name] });
     setQuery('');
     onOpenChange(false);
   };
+  // A pinned name tapped is taken off, or put back where it was.
+  const togglePinned = (name: SeasonName) =>
+    onFilter({
+      ...filter,
+      picks: picked.has(name.key)
+        ? filter.picks.filter((one) => one.key !== name.key)
+        : pinnedNames.filter((one) => one.key === name.key || picked.has(one.key)),
+    });
   const toggleKind = (kind: EventKind) =>
     onFilter({
       ...filter,
@@ -949,6 +968,8 @@ function SearchSheet({
       type="button"
       aria-pressed={on}
       onClick={onClick}
+      // The box keeps the focus, so the keyboard stays up and the sheet stays where it is.
+      onPointerDown={(event) => event.preventDefault()}
       data-toggle
       className={cn(
         'inline-flex min-h-12 items-center gap-1 text-body',
@@ -964,6 +985,12 @@ function SearchSheet({
       <IconCheck aria-hidden className={cn('size-4 shrink-0', !on && 'invisible')} />
     </button>
   );
+  const rows = (typed ? found : often).map((name) => ({
+    key: name.key,
+    title: name.name,
+    badge: MESSAGES.season.nameKind[name.sort],
+    onPick: () => pick(name),
+  }));
   return (
     <SheetFrame
       open={open}
@@ -972,80 +999,67 @@ function SearchSheet({
         onOpenChange(next);
       }}
       title={MESSAGES.season.filterLabel}
-      // Tall, the names under the field to browse; the field is its first line, level with the
-      // close, with no title over it to say what the field already says (the council).
-      className="data-[side=bottom]:h-[calc(var(--app-height)*0.85)]"
+      // No title: the kinds share the close's row (decision 3).
       header={
-        <form
-          role="search"
-          className="relative fill-edge"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const first = found.find((name) => !picked.has(name.key));
-            if (first) toggle(first);
-          }}
-        >
-          <IconSearch
-            aria-hidden
-            className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground"
-          />
-          <input
-            ref={field}
-            type="search"
-            aria-label={MESSAGES.season.filterLabel}
-            placeholder={MESSAGES.season.filterPlaceholder}
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            enterKeyHint="search"
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-            className="min-h-12 w-full rounded-fill bg-secondary py-2 pr-4 pl-11 text-body text-foreground placeholder:text-muted-foreground focus:shadow-[inset_0_0_0_2px_var(--ring)] focus-visible:outline-none"
-          />
-        </form>
-      }
-      focus={field}
-    >
-      {kinds.length > 0 && (
-        <div className="flex flex-wrap gap-x-2 pt-2">
+        <div className="flex min-h-12 flex-wrap items-center gap-x-2">
           {kinds.map((kind) =>
             textToggle(kind, kindName(kind), filter.kinds.includes(kind), () => toggleKind(kind)),
           )}
         </div>
-      )}
-      {query.trim() !== '' && found.length === 0 ? (
-        <p className="flex min-h-12 items-center text-sub text-muted-foreground">
-          {MESSAGES.season.noName}
-        </p>
-      ) : (
-        rows.length > 0 && (
-          <ul aria-label={MESSAGES.season.suggestions} className="pt-2">
-            {rows.map((name, i) => {
-              const on = picked.has(name.key);
-              return (
-                <li key={name.key} className={cn(i < rows.length - 1 && 'hairline-b')}>
-                  {/* A List row: its kind word, then its check (the row spec, 2026-11-16). */}
-                  <button
-                    type="button"
-                    aria-pressed={on}
-                    onClick={() => toggle(name)}
-                    className={ROW_SHAPE}
-                  >
-                    <ListRowBody
-                      title={name.name}
-                      kindWord={MESSAGES.season.nameKind[name.sort]}
-                      checked={on}
-                    />
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        )
-      )}
+      }
+      focus={field}
+    >
+      <DockedSearch
+        label={MESSAGES.season.filterLabel}
+        placeholder={MESSAGES.season.filterPlaceholder}
+        query={query}
+        onQueryChange={setQuery}
+        field={field}
+        pinned={
+          pinnedNames.length > 0 && (
+            <ul aria-label={MESSAGES.season.picked} className="flex flex-col">
+              {pinnedNames.map((name) => {
+                const on = picked.has(name.key);
+                return (
+                  <li key={name.key} className="pinned-row">
+                    {/* A List row: its kind word, then its check (decision 3). */}
+                    <button
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => togglePinned(name)}
+                      // As a toggle: the keyboard stays up, so nothing moves under the thumb.
+                      onPointerDown={(event) => event.preventDefault()}
+                      className={ROW_SHAPE}
+                    >
+                      <ListRowBody
+                        title={name.name}
+                        kindWord={MESSAGES.season.nameKind[name.sort]}
+                        checked={on}
+                      />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )
+        }
+        caption={typed ? undefined : MESSAGES.season.oftenHeard}
+        results={rows}
+        // Before typing nothing is shaded and Enter does nothing: the keyboard is up from the
+        // start, so a stray Enter must not filter the Season.
+        shade={typed}
+        most={typed ? undefined : OFTEN_HEARD}
+        resultsLabel={typed ? MESSAGES.season.suggestions : MESSAGES.season.oftenHeard}
+        onSubmit={() => {
+          if (typed && found[0]) pick(found[0]);
+        }}
+      />
     </SheetFrame>
   );
 }
+
+/** How many names heard most show before typing, at most. */
+const OFTEN_HEARD = 5;
 
 /**
  * One day of What's on: its label, then every concert that day once, by start time, the

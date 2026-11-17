@@ -57,7 +57,9 @@ function produced(): Set<string> {
     MESSAGES.undo.refusedShort(MESSAGES.undo.subject.item(3), 'its Concert is deleted'),
   ];
   const days = [MESSAGES.lastExport('2 Nov')];
-  return new Set([...all, ...fromStrings, ...twoValues, ...days]);
+  // What was typed, as the table shows it.
+  const typed = [MESSAGES.search.nothingMatches('…')];
+  return new Set([...all, ...fromStrings, ...twoValues, ...days, ...typed]);
 }
 
 describe('messages.ts', () => {

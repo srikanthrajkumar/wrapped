@@ -112,12 +112,14 @@ export const MESSAGES = {
     /** The search bar with a filter on, spoken with what is on. */
     filterOn: (what: string) => `Filter: ${what}`,
     filterPlaceholder: 'Artist or Sabha…',
-    suggestions: 'Suggestions',
+    suggestions: 'Suggestions, best match last',
+    /** The names picked, pinned at the top of the search. */
+    picked: 'Picked',
     remove: (name: string) => `Remove ${name}`,
     /** What a suggestion is, under its name. */
     nameKind: { artist: 'Artist', group: 'Group', sabha: 'Sabha' },
-    /** Typed, with no Artist or Sabha in the Season by that name. */
-    noName: 'No Artist or Sabha by that name.',
+    /** Over the names heard most, before typing (docs/design/search.md, decision 2). */
+    oftenHeard: 'Often heard',
     noMatch: 'Nothing here matches.',
     clear: 'Clear filters',
   },
@@ -200,7 +202,10 @@ export const MESSAGES = {
   /** Not in the table: the app update without a new catalog (T028's wording, kept). */
   appUpdate: 'A new version is ready.',
   search: {
-    noMatch: 'No match in the catalog',
+    /** In the best match's place, the same in every search (docs/design/search.md). */
+    nothingMatches: (typed: string) => `Nothing matches “${typed}”`,
+    /** The box's clear mark. */
+    clear: 'Clear search',
     noCatalog:
       'Catalog not on this phone yet. What you type is kept and can be matched later in Tidy.',
     /** Spoken once typing pauses. */

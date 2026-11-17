@@ -18,7 +18,6 @@ export function SheetFrame({
   onOpenChange,
   title,
   description,
-  tall = false,
   header,
   focus,
   className,
@@ -38,8 +37,6 @@ export function SheetFrame({
   description?: string;
   /** Shown in place of the title, which screen readers still hear (an editable name). */
   header?: ReactNode;
-  /** Full height, for a docked search; otherwise as tall as its content. */
-  tall?: boolean;
   children: ReactNode;
 }) {
   const inset = useKeyboardInset();
@@ -55,7 +52,7 @@ export function SheetFrame({
             ? { bottom: inset, maxHeight: `calc(var(--app-height) - ${inset}px - 24px)` }
             : undefined
         }
-        className={cn(tall && 'h-[calc(var(--app-height)*0.92)]', className)}
+        className={className}
         // Focus goes to the sheet itself, not its search box: only the Item editor's search
         // autofocuses, so no keyboard rises unasked (DESIGN.md "Search box"; design D24).
         onOpenAutoFocus={(event) => {
