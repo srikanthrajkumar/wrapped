@@ -362,7 +362,9 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   in the text colour, its word in 600; the others are a step dimmer than muted text
   (`--tab-idle`, 5.4:1 in dark; the council, 2026-11-13: in a dim hall the one that is on
   hardly stood out). **Settings' tab carries a 10px amber dot** on its mark, spoken "Settings,
-  something to fix", while a Settings row is amber.
+  something to fix", while a Settings row is amber. The tab bar keeps its top line, the one
+  line between the page and the chrome; the bar above it has only its fade (the user,
+  2026-11-17).
 - **The Season spine** (the Maintainer, 2026-11-11, on
   [docs/designs/season-spine.md](docs/designs/season-spine.md), approved 2026-11-10; it
   replaces "Season (home, DD2)" below wherever the two differ):
@@ -488,9 +490,10 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     since 2026-11-13): above Today, when a Shortlisted concert's window ended (four hours after
     its start) with nothing logged. Its header is the question, "Were you at any of these?",
     with no chevron, and under it the day (several days are each said above their own
-    concerts, in `caption`). On its panel each lapsed concert: its name over "Sabha · time",
-    and at its right a 48px outline button with the word "Yes", spoken "Yes, I was at …",
-    which makes it Heard (Items optional). A word, not a tick: three reviewers read a tick in
+    concerts, in `caption`). On its panel each lapsed concert, as a Concert row, and at its
+    right a 48px outline button with the word "Yes", spoken "Yes, I was at …", which makes it
+    Heard (Items optional). The row is one tap: it opens the concert, as a What's on row does,
+    and "Yes" is its own target (the user, 2026-11-17). A word, not a tick: three reviewers read a tick in
     a ring as already answered. Under the last row's line, "None of these" in `body` 600, the
     panel's whole width, lets the rest go (it reads "None of the rest" once one has been
     answered "Yes", so it never sounds like taking that answer back; the Maintainer,
@@ -646,7 +649,8 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   and, when the concert isn't vocal, its type in `caption`, muted, both after it ("Flute",
   "Veena", "Jugalbandi"); a printed title on its own `sub` muted line; the accompanists on a
   `sub` muted line, joined by " · "; then the facts in `sub`, muted, time first, "time · Sabha" (the Maintainer, 2026-11-16; docs/design/row.md), leaving out what its label already says: the day under a day label, the time under a time label. 12px above and below:
-  68px with two lines, 20px more for each line added, the hairline drawn inside; on a panel on
+  68px with two lines, then 24px more for a wrapped lead line and 20px for each `sub` line
+  added, the hairline drawn inside; on a panel on
   every page (foundations, 2026-11-16). No faces, no
   button on the row, and no chevron. **How each line holds its shape** (the Maintainer,
   2026-11-11, from a mockup of every variant, measured on the Season's 542 listings at 390px):
@@ -657,7 +661,9 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   Viju. S. Anand · R. Sankaranarayanan +1", option B of three mockups: no name is ever cut and
   the line never wraps; one name always shows; one listing in four with accompanists carries a
   count, nearly all "+1"); the **last line** breaks only between its facts (the "·" at a
-  break dropped), takes two lines at most and cuts its second with "…". On a panel the fit is to the panel's
+  break dropped), takes two lines at most, and on its second cuts the Sabha with "…" before
+  anything else, so the Item count always shows ("Sun 13 Dec · 6:45 pm" / "Sri Parthasarathy
+  Swami… · 3 Items"; the user, 2026-11-17). On a panel the fit is to the panel's
   narrower column. Nothing else is cut: the sheet
   has it all. A row carries at most one button, at its right (the Schedule-changed hint, the
   lapse question's "Yes"), and the lines give way to it. The rasika's own carry a quiet mark, never bold or a card
@@ -668,8 +674,9 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   nothing when it has none. **On the hub, closeness** (the Maintainer, 2026-11-13): a row of
   today says "in 25 min" in place of the time inside the hour, in full ink, and once started
   the dot and the words "On now", the dot standing where the "·" would. It is worked out from
-  the clock and the start time; nothing is stored. Everywhere else the row keeps the clock
-  time, which a timeline is read by. **On now is a dot** (the Maintainer, 2026-11-11, option B of
+  the clock and the start time; nothing is stored. Under a Shortlist slot's time label,
+  where no time shows, a concert under way reads "● On now · Sabha" (the user, 2026-11-17).
+  Everywhere else the row keeps the clock time, which a timeline is read by. **On now is a dot** (the Maintainer, 2026-11-11, option B of
   two mockups, "for now"): a concert under way keeps its start time, in the text colour, with
   an 8px ink dot before it, spoken "On now"; never "Now, since", never rose, and it never
   moves. A cancelled one is dimmed to 60%, star included, says "Cancelled" in its time's place, and keeps the cancelled mark at its right. A tap opens
@@ -679,6 +686,8 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   Action (a one-line reply to its group: "None of these", "? Don't know", "Use what I typed").
   Each is one tap, with at most one nested 48px control at its right. A row's trailing column is
   48px: the star on the name's first line, the cancelled mark or the one control on its last.
+  A List row's control (the Stage colour dot) sits on its last line too (2026-11-17). A field
+  inside a panel sits on the panel's text column.
 - **The listing sheet** (Parts 1 and 5; the Maintainer, 2026-11-08 and 2026-11-11, replacing
   "+ Add" and "Planned"): titled by the concert's lead with its kind's mark, every fact led by
   its mark (a "T" for the title, calendar, clock, building, people): the date, time, Sabha and
@@ -1326,3 +1335,4 @@ in the phase that builds it):
 | 2026-11-14 | Maintainer 2026-11-14: the curtain keeps its sheet edge and half fade; the council's flat fade is reverted. Seen live on 2026-11-13 and not liked ("Please bring back the old kind of curtain"). Back: the 18px sheet edge, the fade halfway to the page, and the curtain's 96px. Kept from that round, as the Maintainer's own asks: the 24px column and the 8px more above the title, the 28px +, Settings as a tab. The council's worry, a sheet corner against a panel's, was checked at 375px in dark and light: the section's header stands between them, 66px apart, and they don't meet. |
 | 2026-11-16 | The foundations (docs/design/foundations.md), signed off by the Maintainer one decision at a time, each taken through two council rounds: panels everywhere, every fill 8px from the screen with 16px corners and all text 24px from it; one rhythm, rows 12px top and bottom (68px for two lines), sections 32px apart, a label 8px over its panel; one type scale, every label above a panel in body 600, every page title in heading 700, live or selected in 600 ink, times and counts never in caption, 500 retired. |
 | 2026-11-16 | The list row (docs/design/row.md), signed off by the Maintainer one decision at a time, each through council rounds: four kinds of row (Concert, Item, List, Action), one tap each with at most one nested control; every name on the column, the kind mark after it; the facts line time first, leaving out what its label says; chevrons only on List rows that open a page; a facts line two lines at most, cut with "…"; dividers across the text column; a cancelled row says "Cancelled" in its time's place. |
+| 2026-11-17 | The open questions from the foundations and row build, answered by the user: a lapse row opens its concert, with "Yes" its own target; under a Shortlist slot's time a concert under way reads "● On now · Sabha"; a List row's nested control (the Stage colour dot) sits on its last line; on a facts line's second line the Sabha is cut first, so the Item count always shows; the Concert summary's "First Ragas" and "New Composers" labels are `sub`. Kept as built: the fade alone above the bottom bar, the ramped top fade and the tab bar's top line; the 16px gap after a clash; the Laya note field inside its panel, on the text column; the fade starting 24px above the bar. Row height worded as +24 for a wrapped Body line and +20 for each `sub` line. Deferred: the search kind word (search spec) and the Raga row (Item editor spec). |

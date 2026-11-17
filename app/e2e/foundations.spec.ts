@@ -174,6 +174,8 @@ test('an Event: the title, the Items and Stage on panels, the number box', async
     await items.addItem(event.id, { title: 'Mangalam' });
     const artist = await people.createArtist('Singer Event');
     await people.addAppearance(event.id, artist.id, { role: 'vocal' as never });
+    const long = await people.createArtist('Kumbakonam Mahadevan Venkatasubramanian Iyer');
+    await people.addAppearance(event.id, long.id, { role: 'violin' as never });
     return event.id;
   });
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Diary' }).click();
@@ -201,6 +203,15 @@ test('an Event: the title, the Items and Stage on panels, the number box', async
 
   const stage = page.getByRole('region', { name: 'Stage' });
   await onFillEdge(page, stage.locator('[data-panel]'));
+  // The colour dot on the row's last line (the user, 2026-11-17): under a wrapped name, centred
+  // on the role's line, as a Concert row's slot 2.
+  const wrapped = stage.getByRole('listitem').filter({ hasText: 'Kumbakonam' });
+  const role = wrapped.getByText('Violin', { exact: true });
+  const dot = wrapped.getByRole('button', { name: /^Colours for/ });
+  const nameBox = await box(wrapped.getByText(/^Kumbakonam/));
+  expect(nameBox.height).toBeGreaterThan(30);
+  const middle = (b: { y: number; height: number }) => b.y + b.height / 2;
+  expect(Math.abs(middle(await box(dot)) - middle(await box(role)))).toBeLessThanOrEqual(1);
   // Add Item, at the bottom, on the 8px edge with 16px corners.
   await onFillEdge(page, page.getByRole('link', { name: 'Add Item' }));
 });
@@ -221,4 +232,43 @@ test('Settings: groups on panels, rows at least 48px, Theme in body 600', async 
   await strongLabel(page.getByText('Theme', { exact: true }));
   // The versions in `sub`.
   expect(await style(page.locator('[data-screen-facts]').locator('..'), 'font-size')).toBe('15px');
+});
+
+// The user, 2026-11-17: a facts line too long for two lines cuts the Sabha first, so the Item
+// count always shows: "Sun 13 Dec · 6:45 pm" / "Sri Parthasarathy Swami… · 3 Items".
+test('a long facts line cuts the Sabha before the Item count', async ({ page }) => {
+  await open(page);
+  await page.addScriptTag({ content: await harnessScript() });
+  await page.evaluate(async () => {
+    const { events, items, people } = (globalThis as unknown as { harness: Harness }).harness;
+    const sabha = await people.createSabha(
+      'Sri Parthasarathy Swami Sabha, Vidya Bharathi Kalyana Mandapam, Mylapore',
+    );
+    const event = await events.createEvent({
+      kind: 'concert',
+      date: '2026-12-13',
+      startTime: '18:45',
+      sabhaId: sabha.id,
+    });
+    const artist = await people.createArtist('Singer Heard');
+    await people.addAppearance(event.id, artist.id, { role: 'vocal' as never });
+    for (const title of ['Varnam', 'Kriti', 'Tillana']) await items.addItem(event.id, { title });
+  });
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Diary' }).click();
+  await settled(page);
+  const facts = page
+    .locator('main [data-row="concert"]', { hasText: 'Singer Heard' })
+    .locator('[data-facts]');
+  // Two lines, the count whole at the end of the second, the Sabha cut before it.
+  expect(Math.round((await box(facts)).height)).toBe(40);
+  const lines = facts.locator(':scope > span');
+  await expect(lines.first()).toHaveText('Sun 13 Dec · 6:45 pm');
+  await expect(lines.nth(1)).toContainText('· 3 Items');
+  const count = lines.nth(1).getByText('3 Items', { exact: true });
+  await expect(count).toBeInViewport({ ratio: 1 });
+  const cut = lines.nth(1).locator('.truncate');
+  expect(await cut.evaluate((node) => node.scrollWidth > node.clientWidth)).toBe(true);
+  expect(Math.round((await box(count)).x + (await box(count)).width)).toBeLessThanOrEqual(
+    width(page) - 24,
+  );
 });

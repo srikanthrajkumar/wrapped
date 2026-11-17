@@ -398,6 +398,63 @@ test('the lapse card asks once: a tap makes it Heard, the rest are kept as Misse
   await expect(page.getByText('Nothing shortlisted')).toBeVisible();
 });
 
+// The user, 2026-11-17: a lapse row is one tap, as any Concert row; its "Yes" only answers.
+test('a lapse row opens its concert, and its "Yes" only answers', async ({ page }) => {
+  await openAt(page, at('15:40'));
+  await page.addScriptTag({ content: await harnessScript() });
+  const ids = await page.evaluate(async () => {
+    const { events, people } = (globalThis as unknown as { harness: Harness }).harness;
+    const made: string[] = [];
+    for (const [name, startTime] of [
+      ['Morning Singer', '11:00'],
+      ['Evening Singer', '18:45'],
+    ] as const) {
+      const event = await events.createEvent({
+        kind: 'concert',
+        date: '2026-12-19',
+        startTime,
+        source: 'plan',
+      });
+      const artist = await people.createArtist(name);
+      await people.addAppearance(event.id, artist.id, { role: 'vocal' });
+      made.push(event.id);
+    }
+    return made;
+  });
+  await page.reload();
+  const card = page.getByRole('region', { name: 'Were you at any of these?' });
+  const row = (name: string) => card.locator('[data-row="concert"]', { hasText: name });
+  await expect(row('Morning Singer')).toBeVisible();
+  // The row opens its concert.
+  await row('Morning Singer').getByRole('link').click();
+  await expect(page).toHaveURL(new RegExp(`/event/${ids[0]}$`));
+  await tab(page, 'Season').click();
+  await expect(card.locator('[data-row="concert"]')).toHaveCount(2);
+  // "Yes" answers, and opens nothing.
+  await card.getByRole('button', { name: 'I was at Evening Singer' }).click();
+  await expect(card.locator('[data-row="concert"]')).toHaveCount(1);
+  expect(new URL(page.url()).pathname).toBe('/');
+});
+
+// The user, 2026-11-17: under a slot's time, where no time shows, a concert under way says so.
+test('under a Shortlist slot, a concert under way reads "● On now · Sabha"', async ({ page }) => {
+  await openAt(page, at('15:40'));
+  await shortlist(page, 'Singer f4');
+  await shortlist(page, 'Singer g4');
+  await page.clock.setFixedTime(at('16:10'));
+  await page.reload();
+  await page.locator('main h1').waitFor();
+  await tab(page, 'Shortlist').click();
+  const row = page.locator('main [data-row="concert"]', { hasText: 'Singer f4' });
+  const facts = row.locator('[data-facts]');
+  await expect(facts).toHaveText('On now · Sabha f4');
+  // Led by the dot, the words in 600 ink.
+  await expect(facts.locator('.rounded-full')).toHaveCount(1);
+  expect(
+    await facts.getByText('On now').evaluate((node) => getComputedStyle(node).fontWeight),
+  ).toBe('600');
+});
+
 test('with nothing left today, Tomorrow leads, and a concert under way reads "On now"', async ({
   page,
 }) => {

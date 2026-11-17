@@ -35,7 +35,7 @@ import { updateNow, useOfflineState, useUpdate } from '../pwa';
 import { createEvent, today } from '../store/events';
 import { letGo, settleLapsed, wasThere } from '../store/lapse';
 import { isBeingLogged } from '../store/logging-note';
-import { useSeasonRagaKeys, type EventSummary } from '../store/queries';
+import { useSeasonRagaKeys, type EventSummary, type ScheduleListing } from '../store/queries';
 import { ConcertRow } from './components/ConcertRow';
 import { ActionRow } from './components/rows';
 import { saveWith, SeasonFeedback, useSaveFeedback } from './components/feedback';
@@ -282,7 +282,7 @@ function HubView() {
       {/* One rhythm (foundations, 2026-11-16): the first section 16px under the curtain's
           foot, then 32px between sections. */}
       <div className="flex flex-col [&>section]:mt-8 [&>section:first-child]:mt-4">
-        {lapsed.length > 0 && <LapseCard lapsed={lapsed} />}
+        {lapsed.length > 0 && <LapseCard lapsed={lapsed} listings={data.listings} onOpen={open} />}
 
         <FirstSection
           soon={soon}
@@ -406,7 +406,16 @@ function HeroConcert({ hero, word, now }: { hero: Hero; word: string; now: Date 
  * nothing logged, asked about once. A tap on one says the rasika was there, and it is Heard;
  * "None of these" lets the rest go, kept as Missed and shown nowhere.
  */
-function LapseCard({ lapsed }: { lapsed: EventSummary[] }) {
+function LapseCard({
+  lapsed,
+  listings,
+  onOpen,
+}: {
+  lapsed: EventSummary[];
+  listings: readonly ScheduleListing[];
+  onOpen(concert: Concert): void;
+}) {
+  const byEntry = new Map(listings.map((listing) => [listing.entry.id, listing]));
   const target = (summary: EventSummary) => ({
     table: 'events' as const,
     id: summary.event.id,
@@ -457,12 +466,13 @@ function LapseCard({ lapsed }: { lapsed: EventSummary[] }) {
               .filter((summary) => summary.event.date === date)
               .map((summary) => (
                 // A Concert row with no star, its "Yes" the one nested control (the row spec,
-                // 2026-11-16). The row itself opens nothing, as before.
+                // 2026-11-16). The row opens the concert, as a What's on row does; "Yes" is its
+                // own target beside it (the Maintainer, 2026-11-17).
                 <ConcertRow
                   key={summary.event.id}
-                  concert={owned(summary)}
+                  concert={owned(summary, byEntry.get(summary.event.scheduleEntryId ?? '') ?? null)}
                   star={false}
-                  still
+                  onOpen={onOpen}
                   controlWidth={8 + 64}
                   control={
                     // A word, not a tick: three reviewers read a tick in a ring as already

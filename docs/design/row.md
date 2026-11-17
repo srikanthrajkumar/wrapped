@@ -83,13 +83,15 @@ The states decision needed a third round, after mock errors were fixed and check
 | Where the row sits | "When" is | Example facts line |
 | --- | --- | --- |
 | Under a day label (What's on, a Shortlist day, the hub's Today and Tomorrow) | The time | "7:45 pm · Krishna Gana Sabha" |
-| Under a time label (a Shortlist slot) | Nothing | "Music Academy" |
+| Under a time label (a Shortlist slot) | Nothing; once under way, "● On now" | "Music Academy"; "● On now · Music Academy" |
 | No label above (the Diary, the hub's Diary row) | The day and time | "Sun 13 Dec · 6:45 pm · Sri Parthasarathy Swami Sabha · 3 Items" |
 
 - **The hub's rows of today** lead with how close the concert is, in 600 ink: "in 20 min",
   or "● On now". This is unchanged from DESIGN.md.
 - **A live dot leads the line,** 8px before its words: "● 6:00 pm · Music Academy" or
   "● On now · Narada Gana Sabha".
+- **Under a time label,** where no time shows, a concert under way reads "● On now · Sabha"
+  (the user, 2026-11-17).
 
 ### Kind words
 
@@ -106,13 +108,13 @@ The states decision needed a third round, after mock errors were fixed and check
 | Cancelled              | The whole row at 60%, star included. **The word "Cancelled" replaces the time in the facts line: "Cancelled · Music Academy".** The cancelled mark (passive, muted) sits in slot 2. Spoken "Cancelled". Pressed while cancelled: 0.6 on top, while held. |
 | Schedule changed       | Its 48×48 control in slot 2, named "Schedule changed". The star in slot 1.                                                                                                                                                               |
 | Cancelled and changed  | The changed control takes slot 2, because it can be acted on, and keeps its own spoken name. The row keeps "Cancelled" and its 60%.                                                                                                      |
-| Lapsed                 | A Shortlisted concert asked about, under "Were you there". It shows no star, its time and Sabha, and a 48px-tall "Yes" at its right. "None of these" is an Action row under the last one.                                                |
+| Lapsed                 | A Shortlisted concert asked about, under "Were you there". It shows no star, its time and Sabha, and a 48px-tall "Yes" at its right. One tap: the row opens the concert, as any Concert row does, and "Yes" is its own target beside it (the user, 2026-11-17). "None of these" is an Action row under the last one. |
 | Heard, no Items        | No "0 Items". The facts line simply ends.                                                                                                                                                                                                |
 | Long name              | Wraps, never cut, its lines balanced. The star takes 24px (16 and an 8px gap) from its first line only. The instrument word stays with its last word.                                                                                     |
-| Long facts line        | Rules in this order: break at a "·" first; a fact longer than a line wraps inside itself; stop at two lines, cutting the second at its end with "…". Line 1 is the time and any whole facts that fit. The "·" at a break is dropped. Example: "7:00 pm" / "Sri Parthasarathy Swami Sabha, Vidya Bharathi K…". |
+| Long facts line        | Rules in this order: break at a "·" first; a fact longer than a line wraps inside itself; stop at two lines. On the second line the Sabha is cut with "…" before anything else, so the Item count always shows (the user, 2026-11-17). Line 1 is the time and any whole facts that fit. The "·" at a break is dropped. Examples: "7:00 pm" / "Sri Parthasarathy Swami Sabha, Vidya Bharathi K…"; "Sun 13 Dec · 6:45 pm" / "Sri Parthasarathy Swami… · 3 Items". |
 | Accompanists           | One line, whole names, then "+N" (unchanged).                                                                                                                                                                                            |
 | Printed title          | Two lines at most, then "…" (unchanged).                                                                                                                                                                                                 |
-| Row height             | No cap. 68px, plus 20px for each line more: a wrapped name, a printed title, accompanists, a second facts line.                                                                                                                          |
+| Row height             | No cap. 68px with two lines; then +24 for a wrapped name or title line (Body) and +20 for each Sub line (a printed title, accompanists, a second facts line). |
 | No time                | "When" is left out, and the facts line starts with the Sabha.                                                                                                                                                                            |
 | Nobody billed          | The name is the Sabha, so the facts line doesn't repeat it: "9:00 am".                                                                                                                                                                   |
 | No Artist and no Sabha | The name reads "No Sabha yet", and the facts line holds the rest.                                                                                                                                                                        |
@@ -120,6 +122,7 @@ The states decision needed a third round, after mock errors were fixed and check
 | Tap target             | The whole row, at least 48px, with its focus ring inside it. A nested control is a 48×48 box (wider for a word, as with "Yes"), its ink ending on the column.                                                                              |
 | Divider                | The hairline inside each row's foot, across the text column (24px to 24px). The last row in a panel has none.                                                                                                                            |
 | Trailing column        | 48px wide, with its marks' ink on the column. Slot 1: the star, on the name's first line. Slot 2: the cancelled mark or the one nested control, on the row's last line, so a 68px row keeps a line between them. A row with neither has no trailing column; its star ends the name's first line on the column. |
+| List row's control     | A List row's one nested control (the Stage colour dot) sits on the row's last line, as a Concert row's slot 2: centred on a one-line row, on the role's line under a wrapped name (the user, 2026-11-17). |
 
 ## 4. Each current row, mapped
 
@@ -127,10 +130,10 @@ The states decision needed a third round, after mock errors were fixed and check
 | --- | --- | --- | --- | --- |
 | U14 | Concert row | `ConcertRow.tsx:69–218`, used at `HubScreen.tsx:551`, `WhatsOnScreen.tsx:1126`, `ShortlistScreen.tsx:97`, `DiaryScreen.tsx:52` | Concert | See the list after this table. |
 | U15 | Hub Diary row | `HubScreen.tsx:305–326` | Concert, heard | Becomes a ConcertRow. It gains its accompanists and the Diary page's facts line ("day · time · Sabha · N Items"). |
-| U16 | Lapse row | `HubScreen.tsx:470–496` | Concert, with "Yes" as its nested control | Takes the Concert row's lines, fit rules and padding. Shows no star. "Yes" is 48px tall. |
+| U16 | Lapse row | `HubScreen.tsx:470–496` | Concert, with "Yes" as its nested control | Takes the Concert row's lines, fit rules and padding. Shows no star. "Yes" is 48px tall. The row opens the concert (2026-11-17). |
 | U16 | "None of these" | `HubScreen.tsx:501–509` | Action | Becomes a row in the panel instead of a hand-built button. |
 | U17 | Item row | `EventScreen.tsx:357–366`; ordering at `EventScreen.tsx:322–355` | Item | Padding 12. The number box is 24px from 24, then 8, with the title at 56 (was 2ch + 12). No chevron. |
-| U18 | Stage row | `EventScreen.tsx:684–712`; colour button at `EventScreen.tsx:941–950` | List, with the colour dot as nested control | Padding 8 to 12. The role is the second line. The dot's ink ends on the column. |
+| U18 | Stage row | `EventScreen.tsx:684–712`; colour button at `EventScreen.tsx:941–950` | List, with the colour dot as nested control | Padding 8 to 12. The role is the second line. The dot's ink ends on the column, on the row's last line (2026-11-17). |
 | U19 | Settings row | `SettingsScreen.tsx:34` (`ROW`), `:91`, `:154–173` | List, with an icon leading | The text starts at 56. A value at the right ("Last: 2 Nov"). Rows are 48px minimum. Amber for something to fix. |
 | U19 | Maintainer | `SettingsScreen.tsx:265–271` | List, with a chevron (it opens a page) | Sits on its own panel. The title is in ink, not muted. |
 | U24 | Docked search result | `DockedSearch.tsx:104–131` | List | The title goes from 600 to 400. The "Raga" badge moves from after the title to the trailing slot. Two-line rows are 68px, one-line 48px. |
