@@ -1,0 +1,60 @@
+--- a/DESIGN.md
++++ b/DESIGN.md
+@@ -215,9 +215,11 @@
+ - **A Concert** (its summary's edge): its Ragas; mostly ground, one rose glow, toned by the Raga
+   heard most.
+ - **An Artist** (the Schedule tile): the instrument sets the form, the name varies it, all in one
+-  soft rendering. Bowed (violin, dance): one long fold. Plucked (veena, chitravina, mandolin):
+-  ripples. Struck (mridangam, ghatam, khanjira, morsing, thavil, nattuvangam): several small
+-  glows, like beats. Breath (voice, flute, nagaswaram, saxophone, presenter): one soft swell.
++  soft rendering. Bowed (violin, viola, dance): one long fold. Plucked (veena, chitravina,
++  madhuraveena, mandolin, guitar, keyboard, piano, sitar, sarod, santoor, jalatarangam): ripples. Struck
++  (mridangam, ghatam, kanjira, morsing, thavil, tabla, konnakol, nattuvangam): several small
++  glows, like beats. Breath (voice, flute, nagaswaram, saxophone, clarinet, harmonium,
++  presenter): one soft swell.
+ - **First launch's field** (the logo is the kolam, "The mark" below): Silk, one fixed
+   field of long rose-and-ink folds, kept sharp (blur 1.2%, not 7%). Chosen by the Maintainer
+   from four bolder fields on 2026-11-07: the one place the motif may be as wavy and vivid as it
+@@ -924,12 +926,16 @@
+   “what you typed” as a new Sabha" (or Artist) is a pinned row under the title (2026-11-17; it was
+   the last row, between the best match and the box), so a new entry is a deliberate choice, never
+   a typo's side effect, and the best match sits next to the box.
+-  - After an Artist is picked, a row of Role chips appears, capitalised like the other chips
+-    and in Stage order (Vocal, Veena, Flute, Violin, Mridangam, Ghatam, Khanjira, Morsing,
+-    Other, Presenter, "Not sure"; walkthrough S8). The common Roles show first and the rest sit
+-    behind "More" (Maintainer, 2026-11-06): the ten above, then More opening Dancer,
+-    Nattuvangam, Vocal support, Chitravina, Nagaswaram, Saxophone, Mandolin and Thavil, also in
+-    Stage order. At a Dance, Dancer and Nattuvangam join the first row. A Role behind More that
++  - After an Artist is picked, the instrument picker: Role chips, capitalised like the other
++    chips (docs/design/instrument-picker.md, 2026-11-19). Eight show first, the ones the
++    Season's listings bill most, in Stage order: Vocal, Veena, Flute, Violin, Mridangam,
++    Ghatam, Kanjira, Morsing; then "More" and, right after adding, "Not sure". At a Dance,
++    Dancer and Nattuvangam lead the first chips; at a Lecdem or a Harikatha, Presenter ends
++    them. More opens every other Role in place, after the first chips and in Stage order; the
++    first chips never move. Every instrument has its own Role and there is no "Other" chip: an
++    instrument not yet listed is left blank ("Not sure") and added to the list. An Appearance
++    stored as `other` before 2026-11-19 shows "Other" pressed, last, with More open, until
++    another chip changes it. A Role behind More that
+     is the current or usual one shows pressed with More open, so it is never hidden. An Artist
+     logged before has their usual Role chosen and saved at once, shown pressed (walkthrough
+     S6): tapping it or closing the sheet keeps it, another chip changes it, "Not sure" leaves
+@@ -945,9 +951,11 @@
+     (walkthrough S7).
+   - **Stage order** (walkthrough S4, decided 2026-11-04): Stage has no "Edit order". Artists
+     are listed by Role, as in a printed kutcheri listing: dancer, nattuvangam, vocal, vocal
+-    support, veena, chitravina, flute, nagaswaram, saxophone, mandolin, violin, mridangam,
+-    thavil, ghatam, khanjira, morsing, other, presenter, then no Role; within a Role, the order
+-    added. The Roles added on 2026-11-06 slot in without moving the earlier ones. This orders
++    support, veena, chitravina, madhuraveena, flute, nagaswaram, saxophone, clarinet, mandolin,
++    guitar, keyboard, piano, sitar, sarod, santoor, jalatarangam, harmonium, violin, viola,
++    mridangam, thavil, tabla, ghatam, kanjira, morsing, konnakol, other, presenter, then no
++    Role; within a Role, the order added. The Roles added on 2026-11-06 and 2026-11-19 slot in without moving
++    the earlier ones. This orders
+     what is shown; no Role ranks above another in the Wrapped.
+ - **Values** (walkthrough P2 to P4, 2026-11-05; FB-32, FB-33, FB-35, FB-42). Every value is one
+   kind of row: a small muted label (`caption`) over the value as text, underlined in `border`
+@@ -1380,3 +1388,4 @@
+ | 2026-11-17 | The open questions from the foundations and row build, answered by the user: a lapse row opens its concert, with "Yes" its own target; under a Shortlist slot's time a concert under way reads "● On now · Sabha"; a List row's nested control (the Stage colour dot) sits on its last line; on a facts line's second line the Sabha is cut first, so the Item count always shows; the Concert summary's "First Ragas" and "New Composers" labels are `sub`. Kept as built: the fade alone above the bottom bar, the ramped top fade and the tab bar's top line; the 16px gap after a clash; the Laya note field inside its panel, on the text column; the fade starting 24px above the bar. Row height worded as +24 for a wrapped Body line and +20 for each `sub` line. Deferred: the search kind word (search spec) and the Raga row (Item editor spec). |
+ | 2026-11-17 | The search (docs/design/search.md, https://claude.ai/artifact/87wzk7mxDwMwWbUh9mAv4p), signed off by the user one decision at a time, each through two council rounds (two Claude reviewers and Codex): one docked search everywhere, What's on included ("Prefer it all look more like Item search"), its field at the foot on the keyboard and the best match shaded next to it; "Add new" a pinned row in the pickers, so the best match always touches the box; before typing, What's on shows up to five names heard most often, under "Often heard" (lead Artists only, names with a listing ahead only, nothing shaded), and the A-to-Z list goes; picked names pinned at the top, kind word then check, the toggles in the close's row, a pick taken off staying in place until the sheet closes; results on a panel (on a sheet, one step darker), the best match's shading the panel's full width at its foot, one no-match line "Nothing matches “…”" in its place, and a filled clear mark. PR 46's rule for a short room is part of it. Not chosen: the field at the foot with the best match at the top; two layouts as built; the A-to-Z list kept; nothing before typing; the toggles in a strip by the field; the kinds as chips (against the Maintainer's call of 2026-11-10); results flat; a second panel for the pinned rows. |
+ | 2026-11-17 | The band under the clock in light, and the "Screen" line, from the Maintainer's iPhone screenshot of Settings. The band was a dark rose ink and "needs to change"; iOS draws the clock white in an installed app whatever the theme (`black-translucent`), so a lighter band costs the clock's legibility. Four options mocked at 393px in light (a mid rose at 4.6:1, the blush at 2:1, the page's white at 1:1, a mid grey at 4.9:1); the Maintainer chose the blush, `--motif-blush`, for the band and the hub's light wash under the clock. The "Screen" line (2026-11-13) is gone from Settings: the Maintainer's screenshot showed the page the whole screen and the tab bar at its foot, so it had done its work; it was not moved behind the Maintainer page. |
++| 2026-11-19 | The instrument picker (docs/design/instrument-picker.md), decided by the user: every instrument the logger has seen gets its own Role (madhuraveena, clarinet, guitar, keyboard, piano, sitar, sarod, santoor, jalatarangam, harmonium, viola, tabla, konnakol join the eighteen), so none is pushed under "Other"; the list stays closed, and an instrument not yet on it is left blank and added, never typed in. Eight chips show first, the ones the Season bills most (Vocal, Veena, Flute, Violin, Mridangam, Ghatam, Kanjira, Morsing); More opens the rest after them without moving them. "Other" is no longer offered; rows stored as `other` keep it. HandSonic (an electronic pad) and a conductor get no Role and stay blank. The drum shows as "Kanjira", as the listings print it; the stored key stays `khanjira`. |
