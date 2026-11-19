@@ -231,7 +231,7 @@ test('Settings: groups on panels, rows at least 48px, Theme in body 600', async 
   expect(Math.round((await box(exportTitle)).x)).toBe(56);
   await strongLabel(page.getByText('Theme', { exact: true }));
   // The versions in `sub`.
-  expect(await style(page.locator('[data-screen-facts]').locator('..'), 'font-size')).toBe('15px');
+  expect(await style(page.getByText(/^App /).locator('..'), 'font-size')).toBe('15px');
 });
 
 // The user, 2026-11-17: a facts line too long for two lines cuts the Sabha first, so the Item
