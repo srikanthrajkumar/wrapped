@@ -596,22 +596,22 @@ test('the status band is clear over the hub’s curtain, and painted everywhere 
     (await page.getByRole('heading', { name: 'Shortlist', exact: true }).boundingBox())!.y,
   ).toBeGreaterThanOrEqual(59);
 
-  // In light the clock is white, so the band is a rose ink, never the white page.
+  // In light the band is the motif's blush (the Maintainer, 2026-11-17), never the white page.
   await page.evaluate(() => localStorage.setItem('wrapped.theme', 'light'));
   await page.reload();
   await page.locator('main h1').waitFor();
   const white = await page_();
   await expect.poll(paint).not.toBe(white);
   await expect.poll(paint).not.toBe('rgba(0, 0, 0, 0)');
-  // Dark enough for the white clock: its lightness well under a half.
-  const lightness = await band.evaluate((node) => {
-    const probe = document.createElement('canvas').getContext('2d')!;
-    probe.fillStyle = getComputedStyle(node).backgroundColor;
-    probe.fillRect(0, 0, 1, 1);
-    const [r, g, b] = probe.getImageData(0, 0, 1, 1).data;
-    return (0.2126 * r! + 0.7152 * g! + 0.0722 * b!) / 255;
+  const blush = await page.evaluate(() => {
+    const probe = document.createElement('div');
+    probe.style.backgroundColor = 'var(--motif-blush)';
+    document.body.append(probe);
+    const colour = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+    return colour;
   });
-  expect(lightness).toBeLessThan(0.2);
+  await expect.poll(paint).toBe(blush);
 });
 
 // The tab bar stays at the foot of the screen (the Maintainer's iPhone, 2026-11-12: it sat a
@@ -742,8 +742,4 @@ test('an installed iPhone app sizes its page by the whole screen, a browser tab 
   });
   expect(shell[0]).toBeGreaterThanOrEqual(shell[1]!);
   await expectNavAtFoot(page);
-  // Settings says how the phone sized the page, for a screenshot to carry.
-  await tab(page, 'Settings').click();
-  await expect(page.locator('[data-screen-facts]')).toContainText('installed');
-  await expect(page.locator('[data-screen-facts]')).toContainText('· 0 ·');
 });

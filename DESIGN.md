@@ -833,11 +833,13 @@ Dynamic Island (`apple-mobile-web-app-status-bar-style: black-translucent` in
   `--status-band`, above what scrolls, so no row passes under the clock. Over the hub's curtain
   the band is clear, and takes its colour once the sheet has scrolled up to it (150ms).
 - **Dark:** `--status-band` is the page colour, `background`, the screen's own surface.
-- **Light:** iOS draws the clock white whenever the page goes under it, so a white band would
-  hide it. `--status-band` is a rose ink, oklch(0.24 0.045 12), on every screen; and the hub's
-  light curtain takes a wash of the same ink under the clock, fading to clear over 1.6 times
-  the inset (measured on the mockup: the clock holds 4.5:1 or better). This departs, in light
-  only, from "each screen's own surface colour"; the Maintainer saw it on the mockup.
+- **Light:** iOS draws the clock white whenever the page goes under it, and can't draw it dark
+  for one theme only, so a white band would hide it. `--status-band` is the motif's blush,
+  oklch(0.8 0.1 12) (`--motif-blush`), on every screen; and the hub's light curtain takes a
+  wash of the same blush under the clock, fading to clear over 1.6 times the inset. The white
+  clock is faint on it (2:1): the Maintainer chose the soft rose over a darker band that reads
+  well (2026-11-17, from four options at 393px). This departs, in light only, from "each
+  screen's own surface colour".
 - Nothing is drawn where there is no top inset: a browser tab, Android, a desktop.
 - **The page is as tall as the whole screen** (2026-11-13). An installed iPhone app that
   draws under the clock is sized a status bar short by iOS: 100dvh, 100% and `innerHeight` all
@@ -846,9 +848,8 @@ Dynamic Island (`apple-mobile-web-app-status-bar-style: black-translucent` in
   app sizes itself by `--app-height` (`app/src/styles/base.css`): 100dvh, and 100lvh in an
   installed iPhone app (`data-ios-app` on the root, set in `app/index.html` before anything
   draws), which has no browser chrome to track. Everything sized to the screen uses it: the
-  shell, the Item editor, the sheets, First launch. Settings closes with a small "Screen" line
-  under the versions, saying how the phone sized the page, for a screenshot to carry when the
-  app sits wrongly on a phone no test can stand in for.
+  shell, the Item editor, the sheets, First launch. A "Screen" line under Settings' versions
+  said how the phone sized the page until the fix was seen on the phone (removed 2026-11-17).
 - iOS reads the setting when the app is added to the Home Screen: an app added before
   2026-11-11 keeps its black bar until it is removed and added again. On an iOS that reports
   no top inset to an installed app (WebKit bug 301994, seen on 26.1), the curtain simply
@@ -1378,3 +1379,4 @@ in the phase that builds it):
 | 2026-11-16 | The list row (docs/design/row.md), signed off by the Maintainer one decision at a time, each through council rounds: four kinds of row (Concert, Item, List, Action), one tap each with at most one nested control; every name on the column, the kind mark after it; the facts line time first, leaving out what its label says; chevrons only on List rows that open a page; a facts line two lines at most, cut with "…"; dividers across the text column; a cancelled row says "Cancelled" in its time's place. |
 | 2026-11-17 | The open questions from the foundations and row build, answered by the user: a lapse row opens its concert, with "Yes" its own target; under a Shortlist slot's time a concert under way reads "● On now · Sabha"; a List row's nested control (the Stage colour dot) sits on its last line; on a facts line's second line the Sabha is cut first, so the Item count always shows; the Concert summary's "First Ragas" and "New Composers" labels are `sub`. Kept as built: the fade alone above the bottom bar, the ramped top fade and the tab bar's top line; the 16px gap after a clash; the Laya note field inside its panel, on the text column; the fade starting 24px above the bar. Row height worded as +24 for a wrapped Body line and +20 for each `sub` line. Deferred: the search kind word (search spec) and the Raga row (Item editor spec). |
 | 2026-11-17 | The search (docs/design/search.md, https://claude.ai/artifact/87wzk7mxDwMwWbUh9mAv4p), signed off by the user one decision at a time, each through two council rounds (two Claude reviewers and Codex): one docked search everywhere, What's on included ("Prefer it all look more like Item search"), its field at the foot on the keyboard and the best match shaded next to it; "Add new" a pinned row in the pickers, so the best match always touches the box; before typing, What's on shows up to five names heard most often, under "Often heard" (lead Artists only, names with a listing ahead only, nothing shaded), and the A-to-Z list goes; picked names pinned at the top, kind word then check, the toggles in the close's row, a pick taken off staying in place until the sheet closes; results on a panel (on a sheet, one step darker), the best match's shading the panel's full width at its foot, one no-match line "Nothing matches “…”" in its place, and a filled clear mark. PR 46's rule for a short room is part of it. Not chosen: the field at the foot with the best match at the top; two layouts as built; the A-to-Z list kept; nothing before typing; the toggles in a strip by the field; the kinds as chips (against the Maintainer's call of 2026-11-10); results flat; a second panel for the pinned rows. |
+| 2026-11-17 | The band under the clock in light, and the "Screen" line, from the Maintainer's iPhone screenshot of Settings. The band was a dark rose ink and "needs to change"; iOS draws the clock white in an installed app whatever the theme (`black-translucent`), so a lighter band costs the clock's legibility. Four options mocked at 393px in light (a mid rose at 4.6:1, the blush at 2:1, the page's white at 1:1, a mid grey at 4.9:1); the Maintainer chose the blush, `--motif-blush`, for the band and the hub's light wash under the clock. The "Screen" line (2026-11-13) is gone from Settings: the Maintainer's screenshot showed the page the whole screen and the tab bar at its foot, so it had done its work; it was not moved behind the Maintainer page. |
