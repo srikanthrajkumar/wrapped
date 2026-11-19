@@ -45,7 +45,7 @@ These DESIGN.md rules stay as they are:
 - The Event page.
 
 **Status:** a spec only. No app code has changed. The DESIGN.md change is in
-[item-editor-design-md.diff](item-editor-design-md.diff), not applied. The decisions, with every
+[item-editor-design-md.diff](item-editor-design-md.diff), applied to DESIGN.md on 2026-11-19. The decisions, with every
 option shown at 393px, are on the spec's page: https://claude.ai/artifact/9yR1gM5UBA1KbUS9p54EVS
 
 The council scored the recommended option of each decision:
@@ -439,7 +439,7 @@ From the council, for later:
 
 ## 9. Proposed DESIGN.md change
 
-[item-editor-design-md.diff](item-editor-design-md.diff), not applied. It rewrites:
+[item-editor-design-md.diff](item-editor-design-md.diff), applied to DESIGN.md on 2026-11-19. It rewrites:
 
 - "Item editor (DD4)": the Details panel, Manodharma, a part's sheet and the Layavinyasam;
 - "Detail input": a ragamalika's Ragas, moved and removed in their sheet; the Nadai chips in

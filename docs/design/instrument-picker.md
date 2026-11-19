@@ -27,7 +27,7 @@ show in the Add Artist sheet right after a name is picked, and in an Artist's sh
 **Out of scope:** Colours, the name search, and the Artist's sheet around the chips.
 
 **Status:** a spec only. No app code or logger code has changed. The DESIGN.md change is in
-[instrument-picker-design-md.diff](instrument-picker-design-md.diff), not applied.
+[instrument-picker-design-md.diff](instrument-picker-design-md.diff), applied to DESIGN.md on 2026-11-19.
 
 ## 1. Today's picker, mapped
 
@@ -270,7 +270,7 @@ on launch make this unlikely. Shipping the app before the feed closes it.
 
 ## 10. Proposed DESIGN.md change
 
-[instrument-picker-design-md.diff](instrument-picker-design-md.diff), not applied. It rewrites:
+[instrument-picker-design-md.diff](instrument-picker-design-md.diff), applied to DESIGN.md on 2026-11-19. It rewrites:
 
 - "Artist and Sabha pickers": the Role chips, now the instrument picker;
 - "Stage order": the thirty-one Roles;
