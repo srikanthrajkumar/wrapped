@@ -108,6 +108,15 @@ async function openSearch(page: Page) {
 const names = (list: Locator) =>
   list.getByRole('button').evaluateAll((all) => all.map((b) => b.firstElementChild?.textContent));
 
+/**
+ * Once a sheet has finished rising, so two rows measured in turn are measured where they rest: on
+ * a fast runner the steps after opening one can land inside its 220ms slide.
+ */
+const settled = (dialog: Locator) =>
+  dialog.evaluate((rising) =>
+    Promise.all(rising.getAnimations().map((slide) => slide.finished.catch(() => undefined))),
+  );
+
 /** Where the best match is drawn, against the box under it. */
 const byTheBox = (row: Locator) =>
   row.evaluate((row) => {
@@ -278,11 +287,7 @@ test('picks stay pinned at the top, also while typing, and one taken off stays p
 
   // Taken off, it stays where it is, unticked; put back, ticked again.
   const first = picked.getByRole('button', { name: 'TM Krishna Artist' });
-  // Measured once the sheet has finished rising: on a fast runner the steps above can all land
-  // inside its 220ms slide.
-  await sheet(page).evaluate((rising) =>
-    Promise.all(rising.getAnimations().map((slide) => slide.finished.catch(() => undefined))),
-  );
+  await settled(sheet(page));
   const before = await first.boundingBox();
   await first.click();
   await expect(first).toHaveAttribute('aria-pressed', 'false');
@@ -327,6 +332,7 @@ test('one no-match line, by the box, in every search', async ({ page }) => {
   await expect(line(form)).toBeVisible();
   expect(await byTheBox(line(form))).toBeLessThanOrEqual(16);
   const typed = form.getByRole('button', { name: 'Use what I typed: “zzqx”' });
+  await settled(form);
   expect((await typed.boundingBox())!.y).toBeLessThan((await line(form).boundingBox())!.y);
   await page.keyboard.press('Escape');
 
@@ -338,6 +344,7 @@ test('one no-match line, by the box, in every search', async ({ page }) => {
   await expect(line(picker)).toBeVisible();
   expect(await byTheBox(line(picker))).toBeLessThanOrEqual(16);
   const add = picker.getByRole('button', { name: 'Add “zzqx” as a new Artist' });
+  await settled(picker);
   expect((await add.boundingBox())!.y).toBeLessThan((await line(picker).boundingBox())!.y);
   // The old wordings are gone.
   await expect(page.getByText('No match in the catalog')).toHaveCount(0);
