@@ -1,0 +1,165 @@
+--- a/DESIGN.md
++++ b/DESIGN.md
+@@ -342,7 +342,7 @@
+     beside it (Edit order) keeps its 48px tap area by reaching past the line, not by pushing it.
+   - Text sits on the 16px gutter. A fill that marks one row (the best search match) reaches
+     8px past the text into the gutter instead of pushing the text in, and a text button's
+-    label (Remove Laya vinyasam, Edit order) starts or ends on the gutter.
++    label (Remove Layavinyasam, Edit order) starts or ends on the gutter.
+ - **Thumb zone.** Primary actions sit in the bottom third: the fixed "Add Item" bar, the
+   docked search box, "Done" and "Next Item →". What's on's bottom bar holds its search bar
+   (2026-11-09); Season's + sits at the hero's right. The page keeps room for everything docked at the
+@@ -690,8 +690,10 @@
+   Action (a one-line reply to its group: "None of these", "? Don't know", "Use what I typed").
+   Each is one tap, with at most one nested 48px control at its right. A row's trailing column is
+   48px: the star on the name's first line, the cancelled mark or the one control on its last.
+-  A List row's control (the Stage colour dot) sits on its last line too (2026-11-17). A field
+-  inside a panel sits on the panel's text column.
++  A List row's control (the Stage colour dot) sits on its last line too (2026-11-17). A check
++  may be a List row's nested control, meaning "on; tap to turn off" (the Item editor's
++  Manodharma and Layavinyasam rows, 2026-11-19); a trailing check without a target means
++  "picked". A field inside a panel sits on the panel's text column.
+ - **The listing sheet** (Parts 1 and 5; the Maintainer, 2026-11-08 and 2026-11-11, replacing
+   "+ Add" and "Planned"): titled by the concert's lead with its kind's mark, every fact led by
+   its mark (a "T" for the title, calendar, clock, building, people): the date, time, Sabha and
+@@ -767,9 +769,43 @@
+   heading is "Item 8". A field's label sits 8px above its chips ("Nadai"; walkthrough
+   S11). "Done" goes back to the Concert, "done for now" (walkthrough P1). The search
+   is the docked search ("Search states"), its pinned rows the special-form chips (RTP,
+-  Viruttam / Slokam, Medley), "? Don't know" and "Use what I typed: …". After a pick, the Details as values (see "Values"), then one
+-  fold, Improvised, holding Alapana, Tanam, Niraval, Kalpana swaram and the Laya vinyasam as
+-  rows of the same kind (walkthrough S14). Bottom bar: "Done", "Next Item →".
++  Viruttam / Slokam, Medley), "? Don't know" and "Use what I typed: …". After a pick
++  (docs/design/item-editor.md, 2026-11-19), the Details sit on one panel, 24px under the title
++  block, with no lines inside: the Raga line full width, then Tala | Composer, Language |
++  Subject, and Form, each a value cell (see "Values"). The Raga line has no "Edit order": a
++  Raga's order and removal are in its sheet ("Detail input").
++  - **Manodharma** (the user, 2026-11-19, replacing the fold "Improvised"; walkthrough S14): a
++    fold holding Alapana, Tanam, Niraval and Kalpanaswaram as List rows with a check, open when
++    the Item has any. Off, one line a tap turns on. On, a part silently follows the Item's Raga
++    (its first, the main one, live): one line, its name and the check, no Raga shown, since a
++    Raga beyond the Item's is rare ("1 in every 10-15 compositions", mostly RTPs). A part with
++    its own Ragas shows them as a second line in ink, plain text ("Kharaharapriya, Kalyani,
++    Kanada"). In an RTP every part that is on shows its Raga line, muted while it follows. The
++    first time on a phone that a part is turned on, its row reads "Kharaharapriya · tap to
++    change" until a part's sheet is opened or the Item is left, then never again. The row's tap
++    opens the part's one sheet; the check, on the row's last line, is its one nested control,
++    turning it off with Undo every time ("Alapana removed · Undo"). For 500ms after a row turns
++    on, another tap on it does nothing; a row grows over `motion-grow`. Screen readers meet one
++    switch per part: the row while off ("Tanam, off"), its check while on ("Alapana, on").
++  - **A part's sheet:** following, "Item’s Raga: Kharaharapriya", "?" and "Not sure", a quiet
++    "+ Another Raga" and the box "Change Raga…": changing is the box, adding the lesser act, and
++    adding starts the part's list with the Item's Raga, kept live ("Kharaharapriya (Item’s)")
++    until changed in its slot. With its own Ragas, they stand in a line, one selected (600, ink,
++    underlined; the first by default), then "?" and "Not sure", then "← Earlier", "Later →" and
++    "Remove" for the selected one, a quiet "+ Another Raga", the Action row "Use the Item’s Raga
++    only" (with Undo), and the box "Change Kalyani…". A list cut back to the Item's Raga alone
++    goes back to following.
++  - **The Layavinyasam** (one word; out of Manodharma, the user, 2026-11-19): its own one-row
++    panel, 32px under Manodharma, always shown, a List row with a check. On, its nadais show more
++    plainly than a part's Ragas: "Chatusra   + Nadai" (the Tala's muted, "+ Nadai" in ink) while
++    none is set, "+ Nadai" alone with no Tala, then the nadais it moved through besides the
++    Tala's, in ink ("Khanda, Tisra"). Its Note opens under the row at one line and grows. Its
++    sheet shows "Tala’s nadai: Chatusra", the nadais in a line with one selected, the Nadai
++    chips (a chip changes the selected nadai; picking only the Tala's own leaves the list empty;
++    "?" records a nadai that changed and couldn't be named), "← Earlier", "Later →" and
++    "Remove" (with Undo), and a quiet "+ Another nadai" whose next chip appends one.
++
++  Bottom bar: "Done", "Next Item →".
+ - **Wrapped (DD5):** headline numbers → the range as a quiet subtitle → a vertical list of 9:16
+   Card previews, each with its own Share. Not built yet: it joins the Diary, at its top (the
+   Season spine, 2026-11-11).
+@@ -876,8 +912,8 @@
+ - Chips and the outfit swatches: fully round.
+ - Badges: 8px.
+ - Icons: Tabler, 20–22px, 2px stroke, always next to a text label unless the meaning is
+-  universal (back chevron, search). One exception (FB-27): an Item row marks its Laya vinyasam
+-  with the muted metronome mark, named "Laya vinyasam" to screen readers, in place of the pill.
++  universal (back chevron, search). One exception (FB-27): an Item row marks its Layavinyasam
++  with the muted metronome mark, named "Layavinyasam" to screen readers, in place of the pill.
+ 
+ ## Components
+ 
+@@ -899,20 +935,31 @@
+     editor shows "catalog: Todi" with "Use catalog value" under it.
+   - "Use what I typed" gives Unresolved, as in the Item search.
+   - A ragamalika's Ragas show as values in the order sung, "Kalyani, Kanada", then a muted "+"
+-    for another; each opens the same sheet, and the row has its own move controls.
+-  - Tala opens its search, then a row of Nadai chips: "?", the five nadais and "Other…".
++    for another, its ink 8px after the last; each opens the same sheet, spoken "Kanada, Raga 2
++    of 3". Wrapped lines step 48px, so every target is whole. A Raga's order and removal live
++    in its sheet (docs/design/item-editor.md, 2026-11-19; "Edit order" leaves the Item editor):
++    with two or more, its chips are "?" and "Not sure" ("N/A" means nothing for one Raga of
++    several), then "← Earlier", "Later →" and "Remove" share a line, in fixed places, one dimmed
++    and aria-disabled at either end; "Remove" at the right, on its own line at 200% text. After
++    a move the sheet stays open, its title and placeholder following ("Raga 2" becomes "Raga
++    1"), the Raga reordering behind with the save highlight, and screen readers hear "Kanada,
++    now Raga 1 of 3". "Remove" closes it and offers Undo ("Raga removed · Undo"), focus going to
++    the Raga that took its place, or to the "+". A lone Raga's sheet, and one being added, have
++    none of the three.
++  - Tala opens its search, then a row of Nadai chips: "?", the five nadais and "Other…", in
++    sentence case like the Roles ("Tisra"; 2026-11-19).
+     With none picked, the Nadai stays Not applicable, which means the Tala's usual nadai (the
+     store's default) and shows nothing extra: "Adi", not "Adi (chatusra nadai)". "Other…"
+     opens the Nadai's own sheet, the same pattern as every Detail ("?", "Not sure", "N/A",
+-    free text), as the Laya vinyasam's Nadai does (2026-11-02).
+-  - The Improvised fold uses the same sheet for each Detail inside it.
+-  - **The Laya vinyasam** is one more row of the Improvised fold (walkthrough S14, decided
+-    2026-11-05): a "Laya vinyasam" chip, pressed while there is one, like Alapana's. Pressed,
+-    "+ Nadai" sits beside it and its Note grows open under the row; tapped again, it is removed,
+-    as Alapana takes its Raga with it, but never with a note typed under it: one tap would lose
+-    the text, so the tap goes to the note instead, to clear it first. Its Nadai stays the Tala's usual nadai until
+-    "+ Nadai" is tapped, since many rasikas won't know it; once set, it shows in that place as
+-    "khanda nadai" (FB-29).
++    free text), as the Layavinyasam's does (2026-11-02).
++  - Manodharma and the Layavinyasam use one sheet each for their Ragas and nadais (see "Item
++    editor (DD4)").
++  - **The Layavinyasam** (walkthrough S14, decided 2026-11-05; its own row since 2026-11-19, see
++    "Item editor (DD4)"): its check removes it, with Undo bringing back its nadais and note, but
++    never with a note typed under it: one tap would lose the text, so the tap goes to the note
++    instead, its text selected, to clear it first, and the check is spoken "Clear the note to
++    turn off Layavinyasam". Its nadais start as the Tala's usual nadai, since many rasikas won't
++    know them (FB-29).
+ - **Artist and Sabha pickers** (decided 2026-11-01; T041, FR-004, FR-005): the same docked
+   search. Before typing it lists the rasika's recent Sabhas or Artists; as they type, matches
+   from their own and the shared lists, and the names the Season's Schedule prints that no list
+@@ -950,15 +997,21 @@
+     added. The Roles added on 2026-11-06 slot in without moving the earlier ones. This orders
+     what is shown; no Role ranks above another in the Wrapped.
+ - **Values** (walkthrough P2 to P4, 2026-11-05; FB-32, FB-33, FB-35, FB-42). Every value is one
+-  kind of row: a small muted label (`caption`) over the value as text, underlined in `border`
+-  with a 4px offset, so everything that can be changed reads as such. The Concert's facts line
++  kind of cell: a muted label (`sub`) tight over the value as text, underlined in `border`
++  with a 4px offset, so everything that can be changed reads as such. In the Item editor
++  (docs/design/item-editor.md, 2026-11-19) the cells sit on one panel with no lines inside:
++  12px, the label, the value, 12px, 68px at least, growing 24px for each wrapped value line and
++  16px for a note ("not matched", "catalog: Todi"); two equal columns 16px apart, one column
++  once a column would be narrower than 8 em. A cell is one target and one spoken element
++  ("Composer, Tyagaraja"), the two targets of a line splitting at the middle of the gap; screen
++  readers read them row by row. The Concert's facts line
+   takes the same underline. Importance is weight and contrast, never a fill: the Composition in
+   600, Raga and Tala in full contrast, Composer, Language, Subject and Form muted. Adding a value
+   is a muted "+" (with its word only where the "+" alone wouldn't say what, as "+ Nadai"), never
+   an "Add" pill.
+   - **Chips** are only for picking from a short fixed set: the Item kinds (RTP, Viruttam /
+-    Slokam, Medley), the improvised parts and the Laya vinyasam, Roles, Nadais, and "?", "Not
+-    sure", "N/A". A chip always means "pick one of these"; a Raga is never a chip. Season's
++    Slokam, Medley), Roles, Nadais, and "?", "Not sure", "N/A". Manodharma's parts and the
++    Layavinyasam are List rows with a check (2026-11-19). A chip always means "pick one of these"; a Raga is never a chip. Season's
+     filter has none (2026-11-09): its toggles are text, and what is on reads in its search bar.
+   - **Forms** show in sentence case, like the Roles: "Kriti", "Javali", "Varnam" (the catalog
+     keeps "kriti"); the project's own keep their names ("RTP", "Slokam").
+@@ -1192,7 +1245,7 @@
+   the same curve and closing shrinks back, so what's below slides rather than jumps; the chevron
+   turns with it. A fold opens with what's in it when its screen opens; from then on only a tap
+   opens or closes it, so emptying it never folds it away under the finger.
+-- **Something opening in place** (the Laya vinyasam's note under its row) grows to its height
++- **Something opening in place** (the Layavinyasam's note under its row) grows to its height
+   over 200ms as it fades in.
+ - **The "⋯" menu** fades and scales in from its button and out again (shadcn's 100ms), from a
+   ghost icon button. **The Concert summary** fades and scales in the same way.
+@@ -1380,3 +1433,4 @@
+ | 2026-11-17 | The open questions from the foundations and row build, answered by the user: a lapse row opens its concert, with "Yes" its own target; under a Shortlist slot's time a concert under way reads "● On now · Sabha"; a List row's nested control (the Stage colour dot) sits on its last line; on a facts line's second line the Sabha is cut first, so the Item count always shows; the Concert summary's "First Ragas" and "New Composers" labels are `sub`. Kept as built: the fade alone above the bottom bar, the ramped top fade and the tab bar's top line; the 16px gap after a clash; the Laya note field inside its panel, on the text column; the fade starting 24px above the bar. Row height worded as +24 for a wrapped Body line and +20 for each `sub` line. Deferred: the search kind word (search spec) and the Raga row (Item editor spec). |
+ | 2026-11-17 | The search (docs/design/search.md, https://claude.ai/artifact/87wzk7mxDwMwWbUh9mAv4p), signed off by the user one decision at a time, each through two council rounds (two Claude reviewers and Codex): one docked search everywhere, What's on included ("Prefer it all look more like Item search"), its field at the foot on the keyboard and the best match shaded next to it; "Add new" a pinned row in the pickers, so the best match always touches the box; before typing, What's on shows up to five names heard most often, under "Often heard" (lead Artists only, names with a listing ahead only, nothing shaded), and the A-to-Z list goes; picked names pinned at the top, kind word then check, the toggles in the close's row, a pick taken off staying in place until the sheet closes; results on a panel (on a sheet, one step darker), the best match's shading the panel's full width at its foot, one no-match line "Nothing matches “…”" in its place, and a filled clear mark. PR 46's rule for a short room is part of it. Not chosen: the field at the foot with the best match at the top; two layouts as built; the A-to-Z list kept; nothing before typing; the toggles in a strip by the field; the kinds as chips (against the Maintainer's call of 2026-11-10); results flat; a second panel for the pinned rows. |
+ | 2026-11-17 | The band under the clock in light, and the "Screen" line, from the Maintainer's iPhone screenshot of Settings. The band was a dark rose ink and "needs to change"; iOS draws the clock white in an installed app whatever the theme (`black-translucent`), so a lighter band costs the clock's legibility. Four options mocked at 393px in light (a mid rose at 4.6:1, the blush at 2:1, the page's white at 1:1, a mid grey at 4.9:1); the Maintainer chose the blush, `--motif-blush`, for the band and the hub's light wash under the clock. The "Screen" line (2026-11-13) is gone from Settings: the Maintainer's screenshot showed the page the whole screen and the tab bar at its foot, so it had done its work; it was not moved behind the Maintainer page. |
++| 2026-11-19 | The Item editor (docs/design/item-editor.md, https://claude.ai/artifact/9yR1gM5UBA1KbUS9p54EVS), signed off by the user one decision at a time, each through council rounds (two Claude reviewers and Codex): the Details on one panel with no lines inside, each value a 68px label-over-value cell, the whole cell its target, the Raga's value as tight under its label as the rest (the Raga row deferred on 2026-11-17); no "Edit order" on the Raga line: a Raga's order and removal in its sheet, "← Earlier", "Later →" and "Remove" in fixed places, the sheet staying open after a move, Undo after a removal, no "N/A" for one Raga of several; "Improvised" becomes Manodharma (Alapana, Tanam, Niraval, Kalpanaswaram) as List rows with a check (the user's choice over the council's chips), reopened by the user the same day: a part can go through several Ragas but silently follows the Item's, since a Raga beyond it is rare ("1 in every 10-15 compositions"), shown once by a hint and always in an RTP, changing before adding in one sheet per part; the Layavinyasam (one word) leaves it for its own one-row panel, its nadais a list shown more plainly ("Chatusra   + Nadai", then "Khanda, Tisra"); every turn-off offers Undo. Parts' Raga lists and the Layavinyasam's nadai list need a store change and an ADR. Not chosen: the Details flat on the page, the panel with hairlines, label-column rows; "Edit order" turning the Ragas into rows, the arrows inline as built; a row per part with its chip, the chips together; no hint, a "Ragas" mode on the fold's label; the Layavinyasam in its own fold or as a cell beside Form. For later: a check in every pressed chip (all three reviewers), the phase-4 contrast pass on underlines and muted values, the Layavinyasam's note rule now that every turn-off offers Undo. |
