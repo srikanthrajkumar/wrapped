@@ -278,6 +278,11 @@ test('picks stay pinned at the top, also while typing, and one taken off stays p
 
   // Taken off, it stays where it is, unticked; put back, ticked again.
   const first = picked.getByRole('button', { name: 'TM Krishna Artist' });
+  // Measured once the sheet has finished rising: on a fast runner the steps above can all land
+  // inside its 220ms slide.
+  await sheet(page).evaluate((rising) =>
+    Promise.all(rising.getAnimations().map((slide) => slide.finished.catch(() => undefined))),
+  );
   const before = await first.boundingBox();
   await first.click();
   await expect(first).toHaveAttribute('aria-pressed', 'false');
