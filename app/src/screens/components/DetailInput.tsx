@@ -45,7 +45,9 @@ function StateChips({
   na?: boolean;
 }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    // Chips are fills: their outlines on the 8px edge, their words on the 24px column
+    // (the Maintainer, 2026-11-20).
+    <div className="fill-edge flex flex-wrap gap-2">
       <Chip
         pressed={value.state === 'unknown'}
         aria-label="Unknown"
@@ -99,7 +101,7 @@ export function NadaiChips({
 }) {
   const typed = value?.state === 'unresolved';
   return (
-    <div role="group" aria-label="Nadai" className="flex flex-wrap gap-2">
+    <div role="group" aria-label="Nadai" className="fill-edge flex flex-wrap gap-2">
       {allowUnknown && (
         <Chip
           pressed={value?.state === 'unknown'}

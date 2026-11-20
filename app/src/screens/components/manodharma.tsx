@@ -24,19 +24,20 @@ import { AnotherButton, MoveLine, PickLine } from './values';
 /** For 500ms after a row turns on, another tap on it does nothing (§4). */
 const GUARD_MS = 500;
 
-/** The check on an on row's last line: its ink ends on the 24px column (row.md). */
+/**
+ * The check on an on row, centred on the row's text (the Maintainer, 2026-11-20): its ink ends
+ * on the 24px column (row.md).
+ */
 function Check({
   name,
   label,
   onClick,
-  twoLine,
   ref,
 }: {
   name: string;
   /** Spoken in place of "<name>, on", as the Layavinyasam's with a note typed. */
   label?: string;
   onClick(): void;
-  twoLine: boolean;
   ref?: React.Ref<HTMLButtonElement>;
 }) {
   return (
@@ -47,11 +48,7 @@ function Check({
       aria-checked="true"
       aria-label={label ?? name}
       onClick={onClick}
-      // Centred on a one-line row; on a two-line row, on its `sub` last line.
-      className={cn(
-        '-mr-3.5 flex size-12 shrink-0 items-center justify-center rounded-xl focus-visible:-outline-offset-2',
-        twoLine && '-mb-0.5',
-      )}
+      className="-mr-3.5 flex size-12 shrink-0 items-center justify-center rounded-xl focus-visible:-outline-offset-2"
     >
       <IconCheck aria-hidden className="size-5 text-foreground" />
     </button>
@@ -148,7 +145,7 @@ export function ManodharmaRows({
           ? `${part.ragas.length > 1 ? 'Ragas' : 'Raga'} ${ownText}`
           : `Raga ${itemText}, the Item’s`;
         return (
-          <li key={kind} className="flex items-end hairline-b">
+          <li key={kind} className="flex items-center hairline-b">
             <button
               type="button"
               aria-label={`${name}, ${spokenRagas}, change`}
@@ -169,12 +166,7 @@ export function ManodharmaRows({
                 </span>
               )}
             </button>
-            <Check
-              ref={checks.ref(kind)}
-              name={name}
-              twoLine={line !== null}
-              onClick={() => onTurnOff(kind)}
-            />
+            <Check ref={checks.ref(kind)} name={name} onClick={() => onTurnOff(kind)} />
           </li>
         );
       })}
@@ -373,7 +365,7 @@ export function LayavinyasamRow({
       : 'No nadai. Add a nadai';
   return (
     <li className="flex flex-col hairline-b">
-      <div className="flex items-end">
+      <div className="flex items-center">
         <button
           type="button"
           aria-label={`Layavinyasam, ${spoken}`}
@@ -399,7 +391,6 @@ export function LayavinyasamRow({
           ref={checks.ref('laya')}
           name="Layavinyasam"
           label={noteTyped ? 'Clear the note to turn off Layavinyasam' : undefined}
-          twoLine
           onClick={() => (noteTyped ? onNote() : onTurnOff())}
         />
       </div>

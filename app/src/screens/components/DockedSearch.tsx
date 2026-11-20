@@ -478,7 +478,10 @@ export function FixedRow({
   );
 }
 
-/** A fully round chip (DESIGN.md "Shapes"), pressed when `pressed` is set. */
+/**
+ * A fully round chip (DESIGN.md "Shapes"), pressed when `pressed` is set. Its border and padding
+ * make a 16px inset, so a chip row on the 8px edge has its first word on the 24px column.
+ */
 export function Chip({
   pressed,
   className,
@@ -489,7 +492,7 @@ export function Chip({
       type="button"
       aria-pressed={pressed}
       className={cn(
-        'inline-flex min-h-12 min-w-12 items-center justify-center rounded-full border border-border px-4 py-2 text-sub',
+        'inline-flex min-h-12 min-w-12 items-center justify-center rounded-full border border-border px-[15px] py-2 text-sub',
         pressed && 'border-foreground bg-secondary font-semibold',
         className,
       )}

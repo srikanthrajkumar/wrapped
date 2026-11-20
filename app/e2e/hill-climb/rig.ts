@@ -267,12 +267,12 @@ const VIEWS: View[] = [
     },
   },
   {
-    // The instrument picker with More open (instrument-picker.md §5).
+    // The instrument picker with every Role shown (instrument-picker.md §5).
     name: 'artist-more',
     open: async (page, ids) => {
       await concert(page, ids);
       await stageRow(page, /^Gayatri/).click();
-      await page.getByRole('button', { name: 'More' }).click();
+      await page.getByRole('button', { name: 'More Roles' }).click();
     },
   },
   {

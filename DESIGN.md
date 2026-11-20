@@ -692,7 +692,8 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   Action (a one-line reply to its group: "None of these", "? Don't know", "Use what I typed").
   Each is one tap, with at most one nested 48px control at its right. A row's trailing column is
   48px: the star on the name's first line, the cancelled mark or the one control on its last.
-  A List row's control (the Stage colour dot) sits on its last line too (2026-11-17). A check
+  A List row's control (the Stage colour dot) is centred on the row's text, however many lines
+  it takes (the Maintainer, 2026-11-20, in place of the last line of 2026-11-17). A check
   may be a List row's nested control, meaning "on; tap to turn off" (the Item editor's
   Manodharma and Layavinyasam rows, 2026-11-19); a trailing check without a target means
   "picked". A field inside a panel sits on the panel's text column.
@@ -785,7 +786,7 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     Kanada"). In an RTP every part that is on shows its Raga line, muted while it follows. The
     first time on a phone that a part is turned on, its row reads "Kharaharapriya · tap to
     change" until a part's sheet is opened or the Item is left, then never again. The row's tap
-    opens the part's one sheet; the check, on the row's last line, is its one nested control,
+    opens the part's one sheet; the check, centred on the row's text, is its one nested control,
     turning it off with Undo every time ("Alapana removed · Undo"). For 500ms after a row turns
     on, another tap on it does nothing; a row grows over `motion-grow`. Screen readers meet one
     switch per part: the row while off ("Tanam, off"), its check while on ("Alapana, on").
@@ -911,7 +912,9 @@ Dynamic Island (`apple-mobile-web-app-status-bar-style: black-translucent` in
   is different": the best search match.
 - Every fill on the 8px edge (panels, fields, bottom buttons, the Undo bar): 16px. The curtain's
   sheet edge: 18px (the Maintainer, 2026-11-14).
-- Chips and the outfit swatches: fully round.
+- Chips and the outfit swatches: fully round. A chip is a fill: a row of chips stands on the 8px
+  edge, its first chip's word on the 24px column (a 1px border and 15px padding), in a sheet as
+  on a page (the Maintainer, 2026-11-20).
 - Badges: 8px.
 - Icons: Tabler, 20–22px, 2px stroke, always next to a text label unless the meaning is
   universal (back chevron, search). One exception (FB-27): an Item row marks its Layavinyasam
@@ -976,14 +979,17 @@ Dynamic Island (`apple-mobile-web-app-status-bar-style: black-translucent` in
   - After an Artist is picked, the instrument picker: Role chips, capitalised like the other
     chips (docs/design/instrument-picker.md, 2026-11-19). Eight show first, the ones the
     Season's listings bill most, in Stage order: Vocal, Veena, Flute, Violin, Mridangam,
-    Ghatam, Kanjira, Morsing; then "More" and, right after adding, "Not sure". At a Dance,
-    Dancer and Nattuvangam lead the first chips; at a Lecdem or a Harikatha, Presenter ends
-    them. More opens every other Role in place, after the first chips and in Stage order; the
-    first chips never move. Every instrument has its own Role and there is no "Other" chip: an
+    Ghatam, Kanjira, Morsing; right after adding, "Not sure"; then "More Roles ⌄", a quiet
+    text line (not a chip) with its word on the 24px column. At a Dance, Dancer and Nattuvangam
+    lead the first chips; at a Lecdem or a Harikatha, Presenter ends them. More Roles opens every
+    other Role below it, in Stage order, and stays where it is as "Fewer Roles ⌃", which folds
+    them again (the Maintainer, 2026-11-20): the first chips never move, and focus stays on the
+    line. Every instrument has its own Role and there is no "Other" chip: an
     instrument not yet listed is left blank ("Not sure") and added to the list. An Appearance
-    stored as `other` before 2026-11-19 shows "Other" pressed, last, with More open, until
-    another chip changes it. A Role behind More that
-    is the current or usual one shows pressed with More open, so it is never hidden. An Artist
+    stored as `other` before 2026-11-19 shows "Other" pressed, last, with every Role shown,
+    until another chip changes it. A Role behind More Roles that
+    is the current or usual one shows pressed with every Role shown and no fold, so it is never
+    hidden. An Artist
     logged before has their usual Role chosen and saved at once, shown pressed (walkthrough
     S6): tapping it or closing the sheet keeps it, another chip changes it, "Not sure" leaves
     the Role blank. A new Artist's chips start with none pressed, and can be skipped.
@@ -1444,3 +1450,4 @@ in the phase that builds it):
 | 2026-11-19 | The Item editor (docs/design/item-editor.md, https://claude.ai/artifact/9yR1gM5UBA1KbUS9p54EVS), signed off by the user one decision at a time, each through council rounds (two Claude reviewers and Codex): the Details on one panel with no lines inside, each value a 68px label-over-value cell, the whole cell its target, the Raga's value as tight under its label as the rest (the Raga row deferred on 2026-11-17); no "Edit order" on the Raga line: a Raga's order and removal in its sheet, "← Earlier", "Later →" and "Remove" in fixed places, the sheet staying open after a move, Undo after a removal, no "N/A" for one Raga of several; "Improvised" becomes Manodharma (Alapana, Tanam, Niraval, Kalpanaswaram) as List rows with a check (the user's choice over the council's chips), reopened by the user the same day: a part can go through several Ragas but silently follows the Item's, since a Raga beyond it is rare ("1 in every 10-15 compositions"), shown once by a hint and always in an RTP, changing before adding in one sheet per part; the Layavinyasam (one word) leaves it for its own one-row panel, its nadais a list shown more plainly ("Chatusra   + Nadai", then "Khanda, Tisra"); every turn-off offers Undo. Parts' Raga lists and the Layavinyasam's nadai list need a store change and an ADR. Not chosen: the Details flat on the page, the panel with hairlines, label-column rows; "Edit order" turning the Ragas into rows, the arrows inline as built; a row per part with its chip, the chips together; no hint, a "Ragas" mode on the fold's label; the Layavinyasam in its own fold or as a cell beside Form. For later: a check in every pressed chip (all three reviewers), the phase-4 contrast pass on underlines and muted values, the Layavinyasam's note rule now that every turn-off offers Undo. |
 | 2026-11-19 | The instrument picker (docs/design/instrument-picker.md), decided by the user: every instrument the logger has seen gets its own Role (madhuraveena, clarinet, guitar, keyboard, piano, sitar, sarod, santoor, jalatarangam, harmonium, viola, tabla, konnakol join the eighteen), so none is pushed under "Other"; the list stays closed, and an instrument not yet on it is left blank and added, never typed in. Eight chips show first, the ones the Season bills most (Vocal, Veena, Flute, Violin, Mridangam, Ghatam, Kanjira, Morsing); More opens the rest after them without moving them. "Other" is no longer offered; rows stored as `other` keep it. HandSonic (an electronic pad) and a conductor get no Role and stay blank. The drum shows as "Kanjira", as the listings print it; the stored key stays `khanjira`. |
 | 2026-11-20 | The Item editor's build (docs/design/item-editor.md §6), two choices the spec left open, answered by the user: the Tala's nadai is shown as Chatusra for every known Tala with no Nadai set, chapu talas included ("Keep Chatusra"); and in a Manodharma part's sheet, "Remove" on one of its own Ragas offers "Raga removed · Undo", and "Use the Item’s Raga only" offers "Ragas removed · Undo". |
+| 2026-11-20 | The Maintainer's alignment fixes from iPhone shots of the Composer, Tala and Artist sheets and the Stage row, measured on 0.4.0 at 393px and decided one at a time from mocks, the council split on the first two: a chip is a fill, so a chip row stands on the 8px edge with its first word on the 24px column (a 1px border and 15px padding), as the search field and the Colours button do, on every chip row (the Detail sheets, the Layavinyasam's, the Role picker, the Event's kinds, the Item editor's form chips); a List row's one control (the Stage colour dot, the Manodharma and Layavinyasam checks) centred on the row's text rather than its last line; the Role label 8px above its chips, as "Nadai". More becomes "More Roles ⌄", a quiet text line under the first chips that stays in place as "Fewer Roles ⌃" and folds the other Roles again (council 9, 8, 8 over "Fewer" at the end, and over a toggle beside "Role"); "Not sure" moves before it; a pressed Role behind it shows every Role with no fold. Not chosen: the field and Colours pulled in to the 24px column; the dot kept on the last line; a "Fewer" chip at the list's end or in More's place. |

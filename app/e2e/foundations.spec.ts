@@ -203,15 +203,16 @@ test('an Event: the title, the Items and Stage on panels, the number box', async
 
   const stage = page.getByRole('region', { name: 'Stage' });
   await onFillEdge(page, stage.locator('[data-panel]'));
-  // The colour dot on the row's last line (the user, 2026-11-17): under a wrapped name, centred
-  // on the role's line, as a Concert row's slot 2.
-  const wrapped = stage.getByRole('listitem').filter({ hasText: 'Kumbakonam' });
-  const role = wrapped.getByText('Violin', { exact: true });
-  const dot = wrapped.getByRole('button', { name: /^Colours for/ });
-  const nameBox = await box(wrapped.getByText(/^Kumbakonam/));
-  expect(nameBox.height).toBeGreaterThan(30);
+  // The colour dot centred on the row's text, however many lines it takes (the Maintainer,
+  // 2026-11-20, in place of the last line).
   const middle = (b: { y: number; height: number }) => b.y + b.height / 2;
-  expect(Math.abs(middle(await box(dot)) - middle(await box(role)))).toBeLessThanOrEqual(1);
+  for (const name of ['Singer Event', 'Kumbakonam']) {
+    const each = stage.getByRole('listitem').filter({ hasText: name });
+    const text = each.getByRole('button', { name: new RegExp(`^${name}`) });
+    const dot = each.getByRole('button', { name: /^Colours for/ });
+    expect(Math.abs(middle(await box(dot)) - middle(await box(text)))).toBeLessThanOrEqual(1);
+  }
+  expect((await box(stage.getByText(/^Kumbakonam/))).height).toBeGreaterThan(30);
   // Add Item, at the bottom, on the 8px edge with 16px corners.
   await onFillEdge(page, page.getByRole('link', { name: 'Add Item' }));
 });

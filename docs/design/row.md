@@ -122,7 +122,7 @@ The states decision needed a third round, after mock errors were fixed and check
 | Tap target             | The whole row, at least 48px, with its focus ring inside it. A nested control is a 48×48 box (wider for a word, as with "Yes"), its ink ending on the column.                                                                              |
 | Divider                | The hairline inside each row's foot, across the text column (24px to 24px). The last row in a panel has none.                                                                                                                            |
 | Trailing column        | 48px wide, with its marks' ink on the column. Slot 1: the star, on the name's first line. Slot 2: the cancelled mark or the one nested control, on the row's last line, so a 68px row keeps a line between them. A row with neither has no trailing column; its star ends the name's first line on the column. |
-| List row's control     | A List row's one nested control (the Stage colour dot) sits on the row's last line, as a Concert row's slot 2: centred on a one-line row, on the role's line under a wrapped name (the user, 2026-11-17). |
+| List row's control     | A List row's one nested control (the Stage colour dot, a Manodharma check) is centred on the row's text, however many lines it takes (the Maintainer, 2026-11-20, in place of the role's line of 2026-11-17). A Concert row's slot 2 stays on its last line. |
 
 ## 4. Each current row, mapped
 
