@@ -56,6 +56,19 @@ describe('nextSummary', () => {
     expect(nextSummary([past], filled, none, counts('past'), at('21:01'))).toBe('past');
   });
 
+  it('shows nothing for a Concert still ahead, however long ago it was logged', () => {
+    // Logged on 20 Nov into a Concert on 15 Dec at 6:30 pm: out of its window, but not past it.
+    const ahead = event('ahead', { date: '2026-12-15', startTime: '18:30' });
+    const early = new Map([
+      ['ahead', { eventId: 'ahead', lastLoggedAt: new Date('2026-11-20T10:00:00').toISOString() }],
+    ]);
+    const nov = new Date('2026-11-20T11:30:00');
+    expect(nextSummary([ahead], early, none, counts('ahead'), nov)).toBe(null);
+    expect(nextSummary([ahead], early, none, counts('ahead'), at('18:00', 15))).toBe(null);
+    expect(nextSummary([ahead], early, none, counts('ahead'), at('22:30', 15))).toBe(null);
+    expect(nextSummary([ahead], early, none, counts('ahead'), at('22:31', 15))).toBe('ahead');
+  });
+
   it('shows nothing already shown, with no Items, never logged here, or not Attended', () => {
     const now = at('23:00');
     const logged = notes(note('a', '20:00'), note('b', '20:00'), note('c', '20:00'));
@@ -215,6 +228,19 @@ describe('dueSummary and markSummaryShown', () => {
     const now = later(HOUR + 1000);
     expect([await open(db, now), await open(db, now)]).toEqual([first.id, second.id]);
     expect(await open(db, now)).toBe(null);
+  });
+
+  it('neither shows nor marks a Concert still ahead, on its first run or after', async () => {
+    const db = freshDb();
+    const ahead = await createEvent(
+      { kind: 'concert', date: '2099-12-15', startTime: '18:30' },
+      { db },
+    );
+    await addItem(ahead.id, {}, { db });
+    expect(await open(db, later(2 * HOUR))).toBe(null);
+    expect(await summaryShown(ahead.id, db)).toBe(false);
+    expect(await open(db, later(3 * HOUR))).toBe(null);
+    expect(await summaryShown(ahead.id, db)).toBe(false);
   });
 
   it('shows nothing for a Planned Event never started', async () => {
