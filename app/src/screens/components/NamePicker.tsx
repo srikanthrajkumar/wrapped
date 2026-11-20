@@ -7,8 +7,8 @@
 // phone." in the sheet, above the search, with Try again.
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useRef, useState, type ReactNode } from 'react';
-import { IconChevronDown } from '@tabler/icons-react';
+import { useId, useRef, useState, type ReactNode } from 'react';
+import { IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import { newId, type EventKind, type Role } from '../../model';
 import {
   createArtist,
@@ -184,15 +184,16 @@ const FIRST_ROLES: Record<EventKind, ReadonlySet<Role>> = {
 };
 
 /**
- * The instrument picker (docs/design/instrument-picker.md): the first chips, then "More", which
- * opens every other Role in place, after them in Stage order, so the chips the thumb was on never
- * move. Nobody is put under "Other": the picker never offers it. A Role stored as `other` before
- * 2026-11-19 shows pressed after the last Role, with More open; another chip replaces it, and
- * tapping it clears it. The current Role shows pressed, and tapping it again clears it; one
- * behind More shows pressed with More open, so it is never hidden. More stays open until the
- * sheet closes. Right after an Artist is added (`skippable`), the pressed one is the Artist's
- * usual Role, chosen for them (walkthrough S6): tapping it keeps it, and "Not sure" leaves the
- * Role blank.
+ * The instrument picker (docs/design/instrument-picker.md): the first chips, then "More Roles",
+ * a quiet line under them that opens every other Role below it, in Stage order (the Maintainer,
+ * 2026-11-20). It stays where it is as "Fewer Roles", so a second tap in the same place folds
+ * them again; the chips the thumb was on never move. Nobody is put under "Other": the picker
+ * never offers it. A Role stored as `other` before 2026-11-19 shows pressed after the last Role,
+ * unfolded; another chip replaces it, and tapping it clears it. The current Role shows pressed,
+ * and tapping it again clears it; one behind More Roles shows pressed with every Role shown and
+ * no fold, so it is never hidden. Right after an Artist is added (`skippable`), the pressed one is
+ * the Artist's usual Role, chosen for them (walkthrough S6): tapping it keeps it, and "Not sure",
+ * after the first chips, leaves the Role blank.
  */
 export function RoleChips({
   value = null,
@@ -207,55 +208,69 @@ export function RoleChips({
   onRole(role: Role | null): void;
 }) {
   const first = FIRST_ROLES[kind] ?? COMMON_ROLES;
-  const hidden = value !== null && !first.has(value);
-  const [moreOpen, setMoreOpen] = useState(hidden);
-  if (hidden && !moreOpen) setMoreOpen(true);
-  // Focus goes to the first chip revealed, so a screen reader reads on from there.
-  const revealing = useRef(false);
-  const focusRevealed = (element: HTMLButtonElement | null) => {
-    if (element && revealing.current) {
-      revealing.current = false;
-      element.focus();
-    }
-  };
+  // A pressed Role behind the fold, or one stored as `other`: every Role shows, with no fold.
+  const pinned = value !== null && !first.has(value);
+  const [open, setOpen] = useState(false);
+  const restId = useId();
   const playable = STAGE_ORDER.filter((role) => role !== 'other');
   const firstChips = playable.filter((role) => first.has(role));
-  const rest = moreOpen ? playable.filter((role) => !first.has(role)) : [];
-  const chip = (role: Role, revealed = false) => (
+  const rest = playable.filter((role) => !first.has(role));
+  const chip = (role: Role) => (
     <Chip
       key={role}
-      ref={revealed ? focusRevealed : undefined}
       pressed={value === role}
       onClick={() => onRole(value === role && !skippable ? null : role)}
     >
       {roleName(role)}
     </Chip>
   );
+  // Stored before every instrument had its Role: kept, never offered (2026-11-19).
+  const other = value === 'other' && (
+    <Chip pressed onClick={() => onRole(null)}>
+      {roleName('other')}
+    </Chip>
+  );
+  const notSure = skippable && <Chip onClick={() => onRole(null)}>Not sure</Chip>;
   return (
-    <div className="flex flex-col gap-3">
+    // The label 8px above its chips, as a field's label is ("Nadai"; DESIGN.md).
+    <div className="flex flex-col gap-2">
       <p className="text-sub text-muted-foreground">Role</p>
-      <div role="group" aria-label="Role" className="flex flex-wrap gap-2">
-        {firstChips.map((role) => chip(role))}
-        {rest.map((role, index) => chip(role, index === 0))}
-        {/* Stored before every instrument had its Role: kept, never offered (2026-11-19). */}
-        {value === 'other' && (
-          <Chip pressed onClick={() => onRole(null)}>
-            {roleName('other')}
-          </Chip>
+      {/* Chips are fills: their outlines on the 8px edge, their words on the 24px column
+          (the Maintainer, 2026-11-20). */}
+      <div role="group" aria-label="Role" className="flex flex-col gap-2">
+        {pinned ? (
+          <div className="fill-edge flex flex-wrap gap-2">
+            {firstChips.map(chip)}
+            {rest.map(chip)}
+            {other}
+            {notSure}
+          </div>
+        ) : (
+          <>
+            <div className="fill-edge flex flex-wrap gap-2">
+              {firstChips.map(chip)}
+              {notSure}
+            </div>
+            {/* A quiet line, not a chip, so it never reads as a Role; its word on the column. */}
+            <button
+              type="button"
+              aria-expanded={open}
+              aria-controls={restId}
+              onClick={() => setOpen(!open)}
+              className="-ml-2 inline-flex min-h-12 items-center gap-1 self-start rounded-xl px-2 text-sub text-muted-foreground focus-visible:-outline-offset-2"
+            >
+              {open ? 'Fewer Roles' : 'More Roles'}
+              {open ? (
+                <IconChevronUp aria-hidden className="size-4" />
+              ) : (
+                <IconChevronDown aria-hidden className="size-4" />
+              )}
+            </button>
+            <div id={restId} hidden={!open} className="fill-edge flex flex-wrap gap-2">
+              {open && rest.map(chip)}
+            </div>
+          </>
         )}
-        {!moreOpen && (
-          <Chip
-            aria-expanded={false}
-            onClick={() => {
-              revealing.current = true;
-              setMoreOpen(true);
-            }}
-          >
-            More
-            <IconChevronDown aria-hidden className="-mr-1 ml-1 size-4" />
-          </Chip>
-        )}
-        {skippable && <Chip onClick={() => onRole(null)}>Not sure</Chip>}
       </div>
     </div>
   );

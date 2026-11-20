@@ -41,6 +41,7 @@ The grid is 8px, with 4px half-steps (IBM Carbon's 2x grid). Every number below 
 | Screen chrome         | Full-bleed, not on the 8px edge: the curtain, the status band, the tab bar, sheets and the dialog. Inside a sheet or dialog the same two edges apply, measured from its sides.                                          |
 | Over a bottom fill    | The page fades out over 24px above anything fixed at the bottom, so no row is cut hard.                                                                                                                                 |
 | A field in a panel    | Sits on the panel's text column (24 from the screen), not on the 8px edge: the panel is its fill's edge (the user, 2026-11-17).                                                                                         |
+| Chips                 | A chip is a fill: a row of chips stands on the 8px edge, and its 1px border and 15px padding put the first chip's word on 24, in a sheet as on a page (the Maintainer, 2026-11-20). |
 
 The 16px "screen gutter" is retired as a design value. The `<main>` padding that produces the
 two edges is a build detail.

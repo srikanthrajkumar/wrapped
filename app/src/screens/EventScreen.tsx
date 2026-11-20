@@ -700,9 +700,9 @@ function StageRow({
           ...(own ? [artistName(own.id)] : []),
         ]}
       >
-        {/* The Colours dot on the row's last line, as a Concert row's slot 2 (the Maintainer,
-            2026-11-17): centred on a one-line row, on the role's line under a wrapped name. */}
-        <div className="flex flex-wrap items-end justify-end gap-x-1">
+        {/* The Colours dot centred on the row's text, however many lines it takes (the
+            Maintainer, 2026-11-20, in place of the last line of 2026-11-17). */}
+        <div className="flex flex-wrap items-center justify-end gap-x-1">
           <button
             type="button"
             ref={rowRef}
@@ -717,12 +717,7 @@ function StageRow({
               </span>
             )}
           </button>
-          <ColoursButton
-            appearance={appearance}
-            onOpen={onColours}
-            // Centred on a `sub` last line (20px over the row's 12px foot).
-            className={creditName(appearance.role, appearance.support) ? '-mb-0.5' : undefined}
-          />
+          <ColoursButton appearance={appearance} onOpen={onColours} />
         </div>
       </Saved>
     </li>
@@ -1026,7 +1021,7 @@ function EventFacts({
       title={kindName(shownKind)}
     >
       <div className="flex flex-col gap-4">
-        <div role="group" aria-label="Kind" className="flex flex-wrap gap-2">
+        <div role="group" aria-label="Kind" className="fill-edge flex flex-wrap gap-2">
           {EVENT_KINDS.map((each) => (
             <Chip
               key={each}

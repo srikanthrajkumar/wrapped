@@ -22,7 +22,7 @@ function journalled(page: Page, id: string, field: string) {
   );
 }
 
-test('a kind and its title, the Undo of a title taken, and the Roles behind More', async ({
+test('a kind and its title, the Undo of a title taken, and the Roles under More Roles', async ({
   page,
 }) => {
   await page.goto('/');
@@ -30,7 +30,7 @@ test('a kind and its title, the Undo of a title taken, and the Roles behind More
   await page.getByRole('button', { name: 'Log a Concert' }).click();
   const heading = page.getByRole('heading', { level: 1 });
 
-  // At a Dance, Dancer is in the first row; the rest wait behind More.
+  // At a Dance, Dancer is in the first row; the rest wait under More Roles.
   await page.getByRole('button', { name: /Sat|Sun|Mon|Tue|Wed|Thu|Fri/ }).click();
   const facts = page.getByRole('dialog');
   await facts.getByRole('button', { name: 'Dance' }).click();
@@ -49,12 +49,12 @@ test('a kind and its title, the Undo of a title taken, and the Roles behind More
   await expect(heading.getByRole('img', { name: 'Dance' })).toBeVisible();
   await expect(page.getByRole('button', { name: /^Margam/ })).toBeVisible();
 
-  // A Role behind More shows pressed with More open.
+  // A Role behind the fold shows pressed, every Role shown and no fold.
   await page
     .getByRole('region', { name: 'Stage' })
     .getByRole('button', { name: /^Alarmel Valli/ })
     .click();
-  await page.getByRole('button', { name: 'More' }).click();
+  await page.getByRole('button', { name: 'More Roles' }).click();
   await page.getByRole('button', { name: 'Vocal support' }).click();
   await page
     .getByRole('region', { name: 'Stage' })
@@ -64,7 +64,7 @@ test('a kind and its title, the Undo of a title taken, and the Roles behind More
     'aria-pressed',
     'true',
   );
-  await expect(page.getByRole('button', { name: 'More' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^(More|Fewer) Roles$/ })).toHaveCount(0);
   await page.keyboard.press('Escape');
 
   // A change to Concert takes the title, and Undo brings it back.

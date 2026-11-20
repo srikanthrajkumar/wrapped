@@ -154,6 +154,13 @@ leaves the picker altogether.
 
 ## 5. More
 
+**Changed on 2026-11-20 (the Maintainer, DESIGN.md's Decisions Log):** More is no longer a chip.
+"More Roles ⌄" is a quiet text line under the first chips (and "Not sure"), its word on the 24px
+column. It opens every other Role below it in Stage order and stays where it is as "Fewer Roles
+⌃", which folds them again; focus stays on it (a disclosure, `aria-expanded`). A pressed Role
+behind it shows every Role with no fold. The chips stand on the 8px edge. The rest of this
+section is as signed off on 2026-11-19.
+
 One tap on "More ⌄" opens every other Role in place.
 
 - **The first chips never move.** The rest follow them in Stage order, and More goes. "Not sure",

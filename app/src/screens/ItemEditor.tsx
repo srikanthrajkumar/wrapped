@@ -160,8 +160,9 @@ function ItemSearch({
           {/* One row, scrolling sideways when the chips don't fit (large text, a narrow phone,
               Android's text zoom), so the results keep their room. The padding, taken back by
               the margin, keeps the focus rings inside the scrolling box. The hairline under them
-              sits the chips' own 8px gap below them (walkthrough P5). */}
-          <div className="-m-1 mb-1 flex gap-2 overflow-x-auto overscroll-x-contain p-1">
+              sits the chips' own 8px gap below them (walkthrough P5). Their outlines on the 8px
+              edge, their words on the 24px column (the Maintainer, 2026-11-20). */}
+          <div className="-mx-5 -mt-1 mb-1 flex gap-2 overflow-x-auto overscroll-x-contain p-1">
             {SPECIAL.map(({ form, label }) => (
               <Chip
                 key={form}
