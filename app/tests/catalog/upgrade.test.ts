@@ -183,4 +183,25 @@ describe('catalog upgrade (required)', () => {
     const event = (await db.events.toArray())[0]!;
     expect(remapPulledRow('events', event, v2.remap)).toBe(event);
   });
+
+  it('remaps every Raga in a Manodharma part’s list, and leaves its Item’s-Raga slots (ADR 0012)', () => {
+    const merged = catalogValue('Sankarabharanam', 'Sankarabharanam');
+    const kept = catalogValue('Kalyani', 'Kalyani');
+    const item = {
+      ragas: [kept],
+      composer: catalogValue('Tyagaraja', 'Tyagaraja'),
+      compositionKey: null,
+      improvised: [
+        { kind: 'alapana', ragas: [null, merged, kept] },
+        { kind: 'tanam', ragas: [] },
+      ],
+    } as unknown as Item;
+    const remapped = remapPulledRow('items', item, v2.remap);
+    expect(remapped.improvised[0]!.ragas).toEqual([
+      null,
+      { ...merged, key: 'Dheerasankarabharanam' },
+      kept,
+    ]);
+    expect(remapped.improvised[1]).toBe(item.improvised[1]);
+  });
 });

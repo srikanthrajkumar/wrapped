@@ -132,10 +132,25 @@ export function itemProblems(item: Item): string[] {
     ...detail('language', item.language),
     ...detail('subject', item.subject),
   );
-  if (item.layaVinyasam) problems.push(...nadai('laya vinyasam nadai', item.layaVinyasam.nadai));
+  // A Manodharma part's Ragas and the Layavinyasam's nadais are lists (ADR 0012).
+  if (item.layaVinyasam) {
+    const { nadais } = item.layaVinyasam;
+    if (!Array.isArray(nadais)) problems.push('layavinyasam nadais must be a list');
+    else
+      nadais.forEach((value, i) => problems.push(...nadai(`layavinyasam nadai ${i + 1}`, value)));
+  }
   for (const heard of item.improvised) {
     if (!IMPROVISED_KINDS.includes(heard.kind)) problems.push('unknown improvised kind');
-    if (heard.raga) problems.push(...detail(`${heard.kind} raga`, heard.raga));
+    if (!Array.isArray(heard.ragas)) {
+      problems.push(`${heard.kind} ragas must be a list`);
+      continue;
+    }
+    heard.ragas.forEach((raga, i) => {
+      if (raga !== null) problems.push(...detail(`${heard.kind} raga ${i + 1}`, raga));
+    });
+    if (heard.ragas.length === 1 && heard.ragas[0] === null) {
+      problems.push(`${heard.kind} holding only the Item's Raga is stored as following it`);
+    }
   }
   // An RTP has no Composition and one or more Ragas (US1 scenario 7).
   if (isRtp(item)) {

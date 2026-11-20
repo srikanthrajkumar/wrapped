@@ -409,25 +409,25 @@ describe('Items', () => {
     ).rejects.toThrow(RuleError);
   });
 
-  it('records a Laya vinyasam on the Item it followed, and improvised Details in concert order', async () => {
+  it('records a Layavinyasam on the Item it followed, and Manodharma parts in concert order', async () => {
     const { db, item } = await concertWithItem();
     await repickItem(item.id, { kind: 'song', song: song('c0001') }, { db });
     const laya = await setLayaVinyasam(
       item.id,
-      { nadai: catalogValue('khanda', 'khanda'), note: 'with ghatam' },
+      { nadais: [catalogValue('khanda', 'khanda')], note: 'with ghatam' },
       { db },
     );
     expect(laya.layaVinyasam).toEqual({
-      nadai: catalogValue('khanda', 'khanda'),
+      nadais: [catalogValue('khanda', 'khanda')],
       note: 'with ghatam',
     });
 
     const heard = await setImprovised(
       item.id,
       [
-        { kind: 'kalpana_swaram', raga: null },
-        { kind: 'alapana', raga: null },
-        { kind: 'niraval', raga: catalogValue('Kalyani', 'Kalyani') },
+        { kind: 'kalpana_swaram', ragas: [] },
+        { kind: 'alapana', ragas: [] },
+        { kind: 'niraval', ragas: [catalogValue('Kalyani', 'Kalyani')] },
       ],
       { db },
     );
@@ -594,7 +594,7 @@ describe("changing an Item's pick (repickItem)", () => {
     const db = freshDb();
     const event = await createEvent({ kind: 'concert' }, { db });
     const item = await addItemFrom(event.id, { kind: 'song', song: song('c0004') }, { db });
-    await setLayaVinyasam(item.id, { nadai: notApplicableValue(), note: 'tisram' }, { db });
+    await setLayaVinyasam(item.id, { nadais: [], note: 'tisram' }, { db });
     return { db, event, item: (await db.items.get(item.id))! };
   }
 
@@ -612,7 +612,7 @@ describe("changing an Item's pick (repickItem)", () => {
     });
     // The song's Raga came from the catalog; the RTP starts with "?" in its place.
     expect(rtp.ragas).toEqual([unknownValue()]);
-    expect(rtp.layaVinyasam).toEqual({ nadai: notApplicableValue(), note: 'tisram' });
+    expect(rtp.layaVinyasam).toEqual({ nadais: [], note: 'tisram' });
     // One transaction: one outbox entry replaced, nothing half-written.
     expect(await db.outbox.count()).toBe(before);
   });

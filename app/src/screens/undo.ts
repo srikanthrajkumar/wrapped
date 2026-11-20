@@ -10,11 +10,12 @@
 import { browserStorage as storage } from '../browser-storage';
 import { readyCatalog } from '../catalog/use-catalog';
 import { restoreEvent, restoreTitle } from '../store/events';
-import { restoreItem } from '../store/items';
+import { restoreItem, restorePiece } from '../store/items';
 import { restoreAppearance } from '../store/people';
 import { dropReceipt, type DeletionReceipt } from '../store/receipts';
 import { EVENT_DELETED, RuleError } from '../store/rules';
 import { db } from '../store/db';
+import { PART_NAMES } from './item-words';
 import { MESSAGES } from './messages';
 
 export const UNDO_MS = 5000;
@@ -114,9 +115,20 @@ function notify() {
   listeners.forEach((listener) => listener());
 }
 
+/** What a removed piece of an Item is called: "Raga", "Alapana", "Nadai", "Layavinyasam". */
+export function pieceName(receipt: DeletionReceipt): string {
+  const piece = receipt.piece;
+  if (piece?.field === 'ragas') return 'Raga';
+  if (piece?.field === 'partRagas') return piece.index === null ? 'Ragas' : 'Raga';
+  if (piece?.field === 'improvised') return PART_NAMES[piece.kind];
+  if (piece?.field === 'nadais') return 'Nadai';
+  return 'Layavinyasam';
+}
+
 /** The bar's words for a receipt. */
 export function undoMessage(receipt: DeletionReceipt): string {
   if (receipt.kind === 'item') return MESSAGES.undo.itemDeleted(receipt.position ?? 0);
+  if (receipt.kind === 'piece') return MESSAGES.undo.pieceRemoved(pieceName(receipt));
   if (receipt.kind === 'appearance') return MESSAGES.undo.artistRemoved;
   if (receipt.kind === 'title') return MESSAGES.undo.titleRemoved;
   return MESSAGES.undo.concertDeleted;
@@ -125,6 +137,7 @@ export function undoMessage(receipt: DeletionReceipt): string {
 /** What a failed Undo's bar names. */
 function undoSubject(receipt: DeletionReceipt): string {
   if (receipt.kind === 'item') return MESSAGES.undo.subject.item(receipt.position ?? 0);
+  if (receipt.kind === 'piece') return pieceName(receipt);
   if (receipt.kind === 'appearance') return MESSAGES.undo.subject.artist;
   if (receipt.kind === 'title') return MESSAGES.undo.subject.title;
   return MESSAGES.undo.subject.concert;
@@ -237,16 +250,19 @@ export async function undo(receipt: DeletionReceipt): Promise<boolean> {
     const restored =
       receipt.kind === 'item'
         ? await restoreItem(receipt.id, { catalog: await readyCatalog() })
-        : receipt.kind === 'appearance'
-          ? await restoreAppearance(receipt.id)
-          : receipt.kind === 'title'
-            ? await restoreTitle(receipt.id)
-            : await restoreEvent(receipt.id, { catalog: await readyCatalog() });
+        : receipt.kind === 'piece'
+          ? await restorePiece(receipt.id, { catalog: await readyCatalog() })
+          : receipt.kind === 'appearance'
+            ? await restoreAppearance(receipt.id)
+            : receipt.kind === 'title'
+              ? await restoreTitle(receipt.id)
+              : await restoreEvent(receipt.id, { catalog: await readyCatalog() });
     if (live?.receipt.id === receipt.id) live = null;
     failed = failed.filter((offer) => offer.receipt.id !== receipt.id);
     forgetFailed(receipt.id);
     arm();
     notify();
+    if (restored !== null) restoredListeners.forEach((listener) => listener(receipt));
     return restored !== null;
   } catch (error) {
     const refused = error instanceof RuleError ? error.problems.join('; ') : undefined;
@@ -298,6 +314,14 @@ export function failedUndoReceipts(): Set<string> {
 export function canRetryUndo(offer: UndoOffer, { eventLive }: { eventLive: boolean }): boolean {
   if (offer.inFlight) return false;
   return offer.refused !== EVENT_DELETED || eventLive;
+}
+
+const restoredListeners = new Set<(receipt: DeletionReceipt) => void>();
+
+/** Told after an Undo brought something back, so a screen can focus it (ADR 0012). */
+export function onUndone(listener: (receipt: DeletionReceipt) => void): () => void {
+  restoredListeners.add(listener);
+  return () => void restoredListeners.delete(listener);
 }
 
 export function subscribeUndo(listener: () => void): () => void {

@@ -15,6 +15,7 @@ import type {
   SharedArtist,
   SharedSabha,
 } from '../model';
+import { upgradeItemShape } from '../model/item-shape';
 import type { RejectCode } from '../model/sync-payloads';
 
 export const DB_NAME = 'carnatic-wrapped';
@@ -147,6 +148,42 @@ export class WrappedDB extends Dexie {
         if (stored && typeof stored.value === 'object' && stored.value !== null) {
           await meta.put({ key: 'schedule', value: { ...stored.value, tag: null } });
         }
+      });
+    // 5: a Manodharma part's Ragas and the Layavinyasam's nadais become lists, and thirteen
+    // Roles join (ADR 0012). Every stored copy of an Item that may still be written or read back
+    // is rewritten in this one transaction: the Items themselves, tombstones included (an Undo
+    // restores them); outbox entries never sent; rejected ops in "needs attention"; and held
+    // server versions. An entry sent at least once is never changed (eng review D8): the server
+    // may hold it under its opId, and it goes out as it was. Pulled rows are upgraded as they
+    // arrive (store/sync.ts), so an old row on the server is never stored in its old shape.
+    this.version(5)
+      .stores({})
+      .upgrade(async (tx) => {
+        await tx
+          .table<Item, string>('items')
+          .toCollection()
+          .modify((item, ref) => {
+            const upgraded = upgradeItemShape(item);
+            if (upgraded !== item) ref.value = upgraded;
+          });
+        await tx
+          .table<OutboxEntry, number>('outbox')
+          .filter((entry) => entry.table === 'items' && entry.firstSentAt === null)
+          .modify((entry) => {
+            entry.row = upgradeItemShape(entry.row as Item);
+          });
+        await tx
+          .table<AttentionEntry, string>('attention')
+          .filter((entry) => entry.table === 'items')
+          .modify((entry) => {
+            entry.row = upgradeItemShape(entry.row as Item);
+          });
+        await tx
+          .table<ServerSeq, [RasikaTable, string]>('serverSeqs')
+          .filter((known) => known.table === 'items' && known.held !== null)
+          .modify((known) => {
+            known.held = { ...known.held!, row: upgradeItemShape(known.held!.row as Item) };
+          });
       });
 
     // A newer build is opening the store: close it for good, with no auto-open, so this build

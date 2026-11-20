@@ -19,7 +19,7 @@
 // - screens say which targets they show, so the failures shown nowhere get the season-wide line.
 
 import { browserStorage, type BrowserStorage as Storage } from '../browser-storage';
-import type { RasikaTable } from '../model';
+import { upgradeItemFieldValue, type RasikaTable } from '../model';
 
 /** One field of one record, as the screens edit it. `field` '*' is a whole new record. */
 export interface Target {
@@ -108,7 +108,15 @@ function parseCopy(text: string | null): Copy | null {
     const strings = [copy.table, copy.id, copy.field, copy.enteredAt];
     if (!strings.every((value) => typeof value === 'string')) return null;
     const states = ['typed', 'saving', 'failed', 'unconfirmed'];
-    return { ...(copy as Copy), state: states.includes(copy.state!) ? copy.state : undefined };
+    // An Item's Manodharma parts and Layavinyasam journalled before 0.4.0 are read in the new
+    // shape, so they are shown, compared with the store and exported as it holds them (ADR 0012).
+    const value =
+      copy.table === 'items' ? upgradeItemFieldValue(copy.field!, copy.value) : copy.value;
+    return {
+      ...(copy as Copy),
+      value,
+      state: states.includes(copy.state!) ? copy.state : undefined,
+    };
   } catch {
     return null;
   }

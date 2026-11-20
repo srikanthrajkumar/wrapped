@@ -19,6 +19,7 @@ export function SheetFrame({
   title,
   description,
   header,
+  below,
   focus,
   className,
   children,
@@ -37,6 +38,8 @@ export function SheetFrame({
   description?: string;
   /** Shown in place of the title, which screen readers still hear (an editable name). */
   header?: ReactNode;
+  /** In the header, under the title and its description: a line of values to pick from. */
+  below?: ReactNode;
   children: ReactNode;
 }) {
   const inset = useKeyboardInset();
@@ -85,6 +88,8 @@ export function SheetFrame({
           ) : (
             <SheetDescription className="sr-only">{title}</SheetDescription>
           )}
+          {/* Under the close button's row, so it takes the sheet's full width. */}
+          {below && <div className={description ? '-mr-10 pt-1' : '-mr-10 -mt-2'}>{below}</div>}
         </SheetHeader>
         {/* Text 24px from the sheet's sides, a fill 8px (`fill-edge`), as on a page
             (foundations, 2026-11-16). */}

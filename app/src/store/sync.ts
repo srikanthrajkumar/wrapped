@@ -12,7 +12,15 @@
 // - a pulled row never replaces a record that still has a pending or rejected op (eng review D4);
 //   the server's version is held aside instead, because the cursor has moved past it.
 
-import { newId, PULL_PAGE_LIMIT, RASIKA_TABLES, type RasikaRow, type RasikaTable } from '../model';
+import {
+  newId,
+  PULL_PAGE_LIMIT,
+  RASIKA_TABLES,
+  upgradeItemShape,
+  type Item,
+  type RasikaRow,
+  type RasikaTable,
+} from '../model';
 import type { PullChange, PullResponse, PushOp, PushResponse } from '../model/sync-payloads';
 import { remapPulledRow } from '../catalog/upgrade';
 import type { Remap } from '../catalog/load';
@@ -143,7 +151,9 @@ async function setAside(db: WrappedDB, entry: OutboxEntry, code: AttentionCode, 
     queueSeq: queued.seq,
     table: queued.table,
     recordId: queued.recordId,
-    row: queued.row,
+    // An op sent before 0.4.0 went out in the old shape, unchanged (eng review D8); "needs
+    // attention" holds it in the new one, as it holds every Item (ADR 0012).
+    row: queued.table === 'items' ? upgradeItemShape(queued.row as Item) : queued.row,
     code,
     message,
     rejectedAt: new Date().toISOString(),
@@ -208,9 +218,12 @@ async function applyOwn(
   db: WrappedDB,
   table: RasikaTable,
   seq: number,
-  row: RasikaRow,
+  pulled: RasikaRow,
   remap: Remap | undefined,
 ) {
+  // The server keeps each row as sent, so an Item pushed before 0.4.0 comes back in the old
+  // shape: it is upgraded before it is stored or held (ADR 0012).
+  const row = table === 'items' ? upgradeItemShape(pulled as Item) : pulled;
   const known: ServerSeq | undefined = await db.serverSeqs.get([table, row.id]);
   if (known && known.seq >= seq) return;
   if (await hasLocalChanges(db, table, row.id)) {

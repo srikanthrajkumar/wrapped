@@ -54,8 +54,8 @@ export function remapItem(item: Item, remap: Remap): Item {
   const ragas = remapList(item.ragas, remap.ragas);
   const composer = remapValue(item.composer, remap.composers);
   const improvised = item.improvised.map((heard) => {
-    const raga = heard.raga && remapValue(heard.raga, remap.ragas);
-    return raga === heard.raga ? heard : { ...heard, raga };
+    const ragas = heard.ragas.map((raga) => raga && remapValue(raga, remap.ragas));
+    return ragas.every((raga, i) => raga === heard.ragas[i]) ? heard : { ...heard, ragas };
   });
   const unchanged =
     (composition === undefined || composition === item.compositionKey) &&

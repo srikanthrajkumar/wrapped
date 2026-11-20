@@ -92,19 +92,19 @@ function fieldHolds(table: string, field: string, value: unknown, row: Row): boo
     if (field === 'pick') return holdsPick(row, (value as { pick?: Record<string, string> }).pick);
     if (DETAILS.has(field)) return sameDetail(row[field], value);
     if (field === 'ragas') return sameDetails(row.ragas, value);
-    const laya = row.layaVinyasam as { nadai: DetailValue; note: string | null } | null;
-    // The Laya vinyasam's own entry is whether there is one, and its Nadai; the note is apart.
+    const laya = row.layaVinyasam as { nadais: DetailValue[]; note: string | null } | null;
+    // The Layavinyasam's own entry is whether there is one, and its nadais; the note is apart.
     if (field === 'layaVinyasam') {
-      const entered = value as { nadai: DetailValue } | null;
+      const entered = value as { nadais: DetailValue[] } | null;
       if (!laya || !entered) return !laya && !entered;
-      return sameDetail(laya.nadai, entered.nadai);
+      return sameDetails(laya.nadais, entered.nadais);
     }
     if (field === 'layaNote') return (laya?.note ?? '') === ((value as string | null) ?? '');
     if (field === 'improvised') {
       const kinds = (list: unknown) =>
-        ((list ?? []) as { kind: string; raga: DetailValue | null }[]).map((heard) => ({
+        ((list ?? []) as { kind: string; ragas: (DetailValue | null)[] }[]).map((heard) => ({
           kind: heard.kind,
-          raga: chosen(heard.raga),
+          ragas: heard.ragas.map((raga) => chosen(raga)),
         }));
       const sorted = (list: ReturnType<typeof kinds>) =>
         [...list].sort((a, b) => a.kind.localeCompare(b.kind));

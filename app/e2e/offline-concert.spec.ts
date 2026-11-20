@@ -1,6 +1,6 @@
 // Required test (constitution IV, "offline capture surviving a forced close"; T034, SC-001).
 // In airplane mode, a full Concert is logged in the installed app's page: 5 Appearances with
-// Colours, 8 Items, one Laya vinyasam and notes. The browser is then closed and relaunched on
+// Colours, 8 Items, one Layavinyasam and notes. The browser is then closed and relaunched on
 // the same profile, still offline, and every Detail must be there.
 //
 // The screens (T040 to T044) are still being designed, so the logging goes through the same
@@ -147,13 +147,13 @@ test('a Concert logged offline survives closing the browser (SC-001)', async ({
     await items.setDetail(rtp.id, 'tala', catalogValue('adi', 'Adi'), options);
     await items.setDetail(rtp.id, 'nadai', catalogValue('khanda', 'khanda'), options);
     await items.setDetail(rtp.id, 'language', unresolvedValue('Sanskrit?'), options);
-    // 6. Kamakshi, followed by the Laya vinyasam, with a note.
+    // 6. Kamakshi, followed by the Layavinyasam, with a note.
     const kamakshi = await items.repickItem((await add()).id, {
       kind: 'song',
       song: song('c0004'),
     });
     await items.setLayaVinyasam(kamakshi.id, {
-      nadai: catalogValue('tisra', 'tisra'),
+      nadais: [catalogValue('tisra', 'tisra')],
       note: 'Tisra korvai to close',
     });
     await items.editItem(kamakshi.id, { note: 'Slow, deliberate niraval' });
@@ -215,7 +215,7 @@ test('a Concert logged offline survives closing the browser (SC-001)', async ({
   });
   expect(rtp?.ragas.map((raga) => raga.key)).toEqual(['Todi', 'Kalyani']);
   expect(kamakshi?.layaVinyasam).toEqual({
-    nadai: { state: 'catalog', key: 'tisra', text: 'tisra', guess: false },
+    nadais: [{ state: 'catalog', key: 'tisra', text: 'tisra', guess: false }],
     note: 'Tisra korvai to close',
   });
   expect(tillana?.subject.state).toBe('na');

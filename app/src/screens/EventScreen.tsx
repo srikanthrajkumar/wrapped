@@ -900,7 +900,7 @@ function ItemLabel({ item, oneLine = false }: { item: Item; oneLine?: boolean })
           {item.layaVinyasam && (
             <IconMetronome
               role="img"
-              aria-label="Laya vinyasam"
+              aria-label="Layavinyasam"
               className="size-5 shrink-0 text-muted-foreground"
             />
           )}

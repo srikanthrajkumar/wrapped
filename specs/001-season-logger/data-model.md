@@ -122,8 +122,8 @@ support) counts as support too. Derived each time, never stored.
 | `composer` | DetailValue | For an RTP: `na` by default; the rasika may fill in whoever wrote the pallavi (FR-041) |
 | `language` | DetailValue | |
 | `subject` | DetailValue | Rolled up to a Topic at Wrapped time |
-| `layaVinyasam` | `{ nadai: DetailValue, note: string \| null }` \| null | The Laya vinyasam that followed this Item (FR-011) |
-| `improvised` | `{ kind: alapana \| tanam \| niraval \| kalpana_swaram, raga: DetailValue \| null }[]` | Improvised Details heard (FR-051). Shown in the usual concert order, not the order heard; `raga` is null when it is the Item's Raga. Entry design is open (T044) |
+| `layaVinyasam` | `{ nadais: DetailValue[], note: string \| null }` \| null | The Layavinyasam that followed this Item (FR-011). `nadais` are the nadais it moved through besides the Tala's, in order (keys from the Nadai list; "?" for one that couldn't be named); empty when only the Tala's was heard (ADR 0012) |
+| `improvised` | `{ kind: alapana \| tanam \| niraval \| kalpana_swaram, ragas: (DetailValue \| null)[] }[]` | The Manodharma parts heard (FR-051), in the usual concert order, not the order heard. `ragas` is empty while the part follows the Item's Raga; a null slot holds the Item's first Raga, live; never exactly `[null]` (ADR 0012) |
 | `note` | string \| null | Erased on deletion requests |
 | timestamps | | as Event |
 

@@ -7,7 +7,6 @@ import { readFileSync } from 'node:fs';
 import {
   failWritesOnDemand,
   finishFirstLaunch,
-  openFold,
   readTable,
   setFailingWrites,
   setHangingWrites,
@@ -73,15 +72,14 @@ test('a double tap on "Log a Concert" makes one Concert', async ({ page }) => {
   expect(await readTable(page, 'events')).toHaveLength(1);
 });
 
-test('A6: the Laya vinyasam note is saved when the page is hidden, before any blur', async ({
+test('A6: the Layavinyasam note is saved when the page is hidden, before any blur', async ({
   page,
 }) => {
   await newConcert(page);
   await page.getByRole('link', { name: 'Add Item' }).click();
   await page.getByRole('button', { name: '? Don’t know' }).click();
-  // One fold for what was improvised; the Laya vinyasam is a chip in it (walkthrough S14).
-  await openFold(page, 'Improvised');
-  await page.getByRole('button', { name: 'Laya vinyasam' }).click();
+  // Its own row, outside Manodharma: one tap turns it on (docs/design/item-editor.md §5).
+  await page.getByRole('switch', { name: 'Layavinyasam' }).click();
   const note = page.getByRole('textbox', { name: 'Note' });
   // Time stands still, so the autosave's pause never ends: only pagehide can save the note.
   await page.clock.install();
@@ -106,7 +104,7 @@ test('A6: the Laya vinyasam note is saved when the page is hidden, before any bl
   await expect(note).toBeFocused();
 });
 
-test('a tap on a chip as it shows, while the fold still grows, marks it', async ({ page }) => {
+test('a tap on a part as it shows, while the fold still grows, turns it on', async ({ page }) => {
   await newConcert(page);
   await page.getByRole('link', { name: 'Add Item' }).click();
   await page.getByRole('button', { name: '? Don’t know' }).click();
@@ -115,15 +113,15 @@ test('a tap on a chip as it shows, while the fold still grows, marks it', async 
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Animation.enable');
   await cdp.send('Animation.setPlaybackRate', { playbackRate: 0.1 });
-  await page.getByRole('button', { name: 'Improvised', exact: true }).click();
+  await page.getByRole('button', { name: 'Manodharma', exact: true }).click();
 
-  // As a rasika would: scroll down after the growing fold, and tap the chip near its top edge
+  // As a rasika would: scroll down after the growing fold, and tap the row near its top edge
   // as soon as that edge shows, inside the fold and above the bottom bar.
   const tap = await page.waitForFunction(
     () => {
       window.scrollTo(0, document.documentElement.scrollHeight);
       const chip = [...document.querySelectorAll('button')].find(
-        (button) => button.textContent === 'Laya vinyasam',
+        (button) => button.textContent === 'Kalpanaswaram',
       );
       const fold = document.querySelector('[data-slot=accordion-content]');
       if (!chip || !fold) return null;
@@ -140,14 +138,13 @@ test('a tap on a chip as it shows, while the fold still grows, marks it', async 
   expect(growing).toBe(true);
   await page.mouse.click(x, y);
 
-  await expect(page.getByRole('button', { name: 'Laya vinyasam' })).toHaveAttribute(
-    'aria-pressed',
+  await expect(page.getByRole('switch', { name: 'Kalpanaswaram' })).toHaveAttribute(
+    'aria-checked',
     'true',
   );
-  await expect(page.getByRole('textbox', { name: 'Note' })).toBeVisible();
   await expect
-    .poll(async () => (await readTable<{ layaVinyasam: unknown }>(page, 'items'))[0]?.layaVinyasam)
-    .toBeTruthy();
+    .poll(async () => (await readTable<{ improvised: unknown[] }>(page, 'items'))[0]?.improvised)
+    .toEqual([{ kind: 'kalpana_swaram', ragas: [] }]);
 });
 
 test('A8: the note keeps focus and every keystroke across its autosave', async ({ page }) => {
@@ -517,28 +514,28 @@ test('a grip held near the top of the screen moves nothing', async ({ page }) =>
   expect(await storedTitles(page)).toEqual(titles);
 });
 
-test('a Laya note typed over a failed Nadai keeps the Nadai entered', async ({ page }) => {
+test('a Layavinyasam note typed over a failed nadai keeps the nadai entered', async ({ page }) => {
   await failWritesOnDemand(page);
   await newConcert(page);
   await page.getByRole('link', { name: 'Add Item' }).click();
   await page.getByRole('button', { name: '? Don’t know' }).click();
-  // One fold for what was improvised; the Laya vinyasam is a chip in it (walkthrough S14).
-  await openFold(page, 'Improvised');
-  await page.getByRole('button', { name: 'Laya vinyasam' }).click();
+  await page.getByRole('switch', { name: 'Layavinyasam' }).click();
   await expect(page.getByRole('textbox', { name: 'Note' })).toBeVisible();
-  // The screen shows the Laya vinyasam as entered, before it is stored: wait for the store.
+  // The screen shows the Layavinyasam as entered, before it is stored: wait for the store.
   await expect
     .poll(async () => (await readTable<{ layaVinyasam: unknown }>(page, 'items'))[0]?.layaVinyasam)
     .toBeTruthy();
 
   await setFailingWrites(page, true);
-  await page.getByRole('button', { name: /^Nadai/ }).click();
-  await page.getByRole('group', { name: 'Nadai' }).getByRole('button', { name: 'khanda' }).click();
+  // For 500ms after it turns on, a second tap on the row does nothing (item-editor.md §5).
+  await page.waitForTimeout(600);
+  await page.getByRole('button', { name: /^Layavinyasam, / }).click();
+  await page.getByRole('group', { name: 'Nadai' }).getByRole('button', { name: 'Khanda' }).click();
   await page.keyboard.press('Escape');
   await expect(page.getByText('Not saved', { exact: true })).toBeVisible();
   await setFailingWrites(page, false);
 
-  // Typed key by key, as on a phone, after the failed Nadai.
+  // Typed key by key, as on a phone, after the failed nadai.
   await page.getByRole('textbox', { name: 'Note' }).click();
   await page.keyboard.type('tisram');
   await page.getByRole('textbox', { name: 'Note' }).blur();
@@ -551,15 +548,16 @@ test('a Laya note typed over a failed Nadai keeps the Nadai entered', async ({ p
     .toBe('tisram');
 
   // Khanda is still there to save: in the store, or in the journal as entered.
-  const [item] = await readTable<{ id: string; layaVinyasam: { nadai: { key: string | null } } }>(
-    page,
-    'items',
-  );
+  const [item] = await readTable<{
+    id: string;
+    layaVinyasam: { nadais: { key: string | null }[] };
+  }>(page, 'items');
   const journalled = await page.evaluate(
     (id) => localStorage.getItem(`wrapped.notSaved.v1:items:${id}:layaVinyasam`),
     item!.id,
   );
-  const kept = item!.layaVinyasam.nadai.key === 'khanda' || (journalled ?? '').includes('khanda');
+  const kept =
+    item!.layaVinyasam.nadais[0]?.key === 'khanda' || (journalled ?? '').includes('khanda');
   expect(kept).toBe(true);
 });
 
@@ -606,8 +604,7 @@ test('a value only memory holds survives a newer build taking the store: Reload 
   await newConcert(page);
   await page.getByRole('link', { name: 'Add Item' }).click();
   await page.getByRole('button', { name: '? Don’t know' }).click();
-  await openFold(page, 'Improvised');
-  await page.getByRole('button', { name: 'Laya vinyasam' }).click();
+  await page.getByRole('switch', { name: 'Layavinyasam' }).click();
   // Time stands still, so the autosave's pause never ends: only memory holds the note.
   await page.clock.install();
   await page.clock.pauseAt(Date.now() + 1000);

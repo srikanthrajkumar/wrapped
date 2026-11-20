@@ -3,11 +3,43 @@
 // Undo checks that every record is still the tombstone that delete made, then consumes the
 // receipt, so a receipt survives a crash and a stale or replayed Undo restores nothing.
 
-import { newId, type EventKind, type RasikaTable } from '../model';
+import {
+  newId,
+  type DetailValue,
+  type EventKind,
+  type ImprovisedKind,
+  type LayaVinyasam,
+  type RasikaTable,
+} from '../model';
 import type { MetaEntry, WrappedDB } from './db';
 
-/** `title`: a kind change to Concert took a typed title away (T122). */
-export type DeletionKind = 'item' | 'appearance' | 'event' | 'title';
+/**
+ * `title`: a kind change to Concert took a typed title away (T122). `piece`: one piece of a live
+ * Item was removed, a Raga, a Manodharma part, a nadai or the Layavinyasam (ADR 0012).
+ */
+export type DeletionKind = 'item' | 'appearance' | 'event' | 'title' | 'piece';
+
+/** What a `piece` receipt took out of its Item, and from where, for Undo to put back. */
+export type RemovedPiece =
+  | {
+      field: 'ragas';
+      index: number;
+      value: DetailValue;
+      /** The Item's Composition when it was removed: Undo leaves another song's Ragas be. */
+      song?: string | null;
+    }
+  | { field: 'improvised'; kind: ImprovisedKind; value: (DetailValue | null)[] }
+  | {
+      /** A part's Raga (`index`), or all its own (`index` null, "Use the Item's Raga only"). */
+      field: 'partRagas';
+      kind: ImprovisedKind;
+      index: number | null;
+      /** The part's list before and after the removal. */
+      before: (DetailValue | null)[];
+      after: (DetailValue | null)[];
+    }
+  | { field: 'nadais'; index: number; value: DetailValue }
+  | { field: 'layaVinyasam'; value: LayaVinyasam };
 
 export interface DeletionReceipt {
   id: string;
@@ -26,6 +58,8 @@ export interface DeletionReceipt {
   records: { table: RasikaTable; id: string; deletedAt: string | null }[];
   /** For a `title` receipt: the kind and title the Event had before it became a Concert. */
   title?: { kind: EventKind; title: string };
+  /** For a `piece` receipt: what was removed. Its one record is the Item, live (`deletedAt` null). */
+  piece?: RemovedPiece;
   at: string;
 }
 
@@ -77,8 +111,15 @@ async function allReceipts(db: WrappedDB): Promise<DeletionReceipt[]> {
   return rows.map((row) => row.value as DeletionReceipt);
 }
 
-/** An Event's receipts for its Items and Appearances, newest first ("Recently deleted"). */
+/**
+ * An Event's receipts for its Items and Appearances, newest first ("Recently deleted"). A piece of
+ * an Item is never listed there: its Undo lives only as long as its bar.
+ */
 export async function listReceipts(eventId: string, db: WrappedDB): Promise<DeletionReceipt[]> {
+  return (await eventReceipts(eventId, db)).filter((receipt) => receipt.kind !== 'piece');
+}
+
+async function eventReceipts(eventId: string, db: WrappedDB): Promise<DeletionReceipt[]> {
   return (await allReceipts(db))
     .filter((receipt) => receipt.eventId === eventId && receipt.kind !== 'event')
     .sort((a, b) => b.at.localeCompare(a.at));
@@ -93,7 +134,7 @@ export async function clearReceipts(
   db: WrappedDB,
   keep: ReadonlySet<string> = new Set(),
 ): Promise<void> {
-  const keys = (await listReceipts(eventId, db))
+  const keys = (await eventReceipts(eventId, db))
     .filter((receipt) => !keep.has(receipt.id))
     .map((receipt) => keyOf(receipt.id));
   await db.meta.bulkDelete(keys);

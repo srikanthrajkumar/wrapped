@@ -44,7 +44,7 @@ Built entirely from the phone store, then handed to the share sheet or saved.
   | `items` / `*` | A new Item's first pick | `{ "eventId", "pick", "label" }` |
   | `items` / `pick` | A changed pick (not retried; kept for Export) | `{ "eventId", "pick", "label" }` |
   | `items` / `draft` | A new Item's search text, before any pick | `{ "eventId", "text" }` |
-  | `items` / `layaVinyasam` | A Laya vinyasam added (with its Nadai), its Nadai changed, or removed (`null`) | `{ "nadai" }` or `null` |
+  | `items` / `layaVinyasam` | A Layavinyasam added, its nadais changed, or removed (`null`); an entry from before 0.4.0 reads `{ "nadai" }` and is exported as `{ "nadais" }` (ADR 0012) | `{ "nadais" }` or `null` |
   | `items` / `layaNote` | The Laya vinyasam's note, kept apart from its Nadai | the note as typed |
   | `appearances` / `*` | An Artist added to a Concert | `{ "eventId", "artistId", "name" }` |
   | `artists` / `*`, `sabhas` / `*` | A new own Artist or Sabha | the name as typed |

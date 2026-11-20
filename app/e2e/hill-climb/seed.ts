@@ -16,10 +16,12 @@ export interface SeedIds {
   long: string;
   /** Attended, with no Artist and no Sabha yet. */
   bare: string;
-  /** The Item with the Laya vinyasam and its note, in `full`. */
+  /** The Item with the Layavinyasam and its note, in `full`. */
   laya: string;
   /** An Item with two Ragas, in `full`. */
   rtp: string;
+  /** A song with no Manodharma and no Layavinyasam, in `full`. */
+  plain: string;
 }
 
 export function seed(page: Page, catalogFile: string): Promise<SeedIds> {
@@ -118,13 +120,26 @@ export function seed(page: Page, catalogFile: string): Promise<SeedIds> {
       note: 'Packed hall; the thani after Chakkani Raja was the highlight.',
     });
     await songItem(full.id, 'Sarasiruha Lochanim');
-    await songItem(full.id, 'Vatapi');
+    const plain = await songItem(full.id, 'Vatapi');
     const nagumomu = await songItem(full.id, 'Nagumomu Ganaleni');
     await items.setDetail(nagumomu.id, 'tala', { ...nagumomu.tala, guess: true }, options);
     await songItem(full.id, 'Endaro Mahanubhavu');
     await songItem(full.id, 'Kapaliye Karunaikkadale');
     const laya = await songItem(full.id, 'Chakkani Raja');
-    await items.setLayaNadai(laya.id, model.notApplicableValue());
+    const raga = (name: string) => {
+      const found = catalog.ragas.find((r) => r.display === name);
+      if (!found) throw new Error(`no raga ${name}`);
+      return catalogValue(found.key, found.display);
+    };
+    // An alapana in the Item's Raga, and kalpanaswaram through two Ragas beyond it (ADR 0012).
+    await items.setImprovised(laya.id, [
+      { kind: 'alapana', ragas: [] },
+      { kind: 'kalpana_swaram', ragas: [null, raga('Kalyani'), raga('Kanada')] },
+    ]);
+    await items.setLayaNadais(laya.id, [
+      catalogValue('khanda', 'khanda'),
+      catalogValue('tisra', 'tisra'),
+    ]);
     await items.setLayaNote(laya.id, 'Khanda nadai korvai; the khanjira took the last round.');
     await songItem(full.id, 'Kaddanuvariki');
     await songItem(full.id, 'Paluke Bangaramayena');
@@ -138,10 +153,23 @@ export function seed(page: Page, catalogFile: string): Promise<SeedIds> {
       }),
       options,
     );
+    // In an RTP, a part that is on always shows its Raga line.
+    await items.setImprovised(rtp.id, [
+      { kind: 'alapana', ragas: [] },
+      { kind: 'tanam', ragas: [] },
+      { kind: 'kalpana_swaram', ragas: [raga('Kanada'), raga('Behag')] },
+    ]);
     await songItem(full.id, 'Entha Balavantano');
     await items.addItem(full.id, { title: 'Tillana' });
 
-    return { full: full.id, long: long.id, bare: bare.id, laya: laya.id, rtp: rtp.id };
+    return {
+      full: full.id,
+      long: long.id,
+      bare: bare.id,
+      laya: laya.id,
+      rtp: rtp.id,
+      plain: plain.id,
+    };
   }, catalogFile);
 }
 
