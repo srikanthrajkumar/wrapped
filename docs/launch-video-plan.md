@@ -39,8 +39,17 @@ The video follows `DESIGN.md`, not a separate style.
   No whooshes, zooms that bounce, or UI sound effects.
 - **Words on screen:** as few as possible. The voice carries the story; the app's own screens
   carry the rest. Captions are the one exception (below).
-- **The motif:** first launch's Silk field (the only mark that moves), the Concert summary's
-  edge, and the season's curtain growing rose as Ragas are heard, drawn with `app/src/motif/`.
+- **The motif:** Paper's static mesh gradient, the app's own copy
+  (`app/src/motif/paper-shaders.ts`), with the app's tones, seeds and 7% blur, and no grain. It
+  appears where the app shows it (first launch's Silk, Season's curtain, the Concert summary's
+  edge), recorded from the app, and twice more, drawn in Remotion with the same shader:
+  - **Silk under the title and the end card** (the Maintainer, 2026-11-20). Laid out as first
+    launch is: Silk over the top of the frame, dissolving into the page, with the kolam and the
+    words low on the dark ground beneath it, outside Instagram's bottom 20%. Its folds drift on
+    the app's periods (11, 14 and 19 seconds), drawn frame by frame from the same sway as
+    `animateMotif`, so the video's Silk and the app's are one field.
+  - **The season's field growing** (shot 11). The one place the video moves a mark the app
+    holds still: it eases from one seed's field to the next, slowly.
 - **The kolam:** drawn as the single closed line it is (geometry from `brand/kolam.mjs`), round its
   13 dots, once at the title and once on the end card.
 
@@ -59,7 +68,7 @@ About 80 seconds. Times are a starting point; the voice-over sets the final cut.
 | #   | Time      | Shot                                                                                                                                                                                         | Source                          | Voice says (beat, not lines)                                    |
 | --- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- | --------------------------------------------------------------- |
 | 1   | 0:00–0:08 | Last season's spreadsheet. A slow pan along its rows: kriti names, ragas, a "?" or two, a typo.                                                                                            | The Maintainer's sheet, Remotion | Every December, three of us logged our concerts in this.        |
-| 2   | 0:08–0:12 | The kolam draws itself as one line round its 13 dots, on the dark ground. The name beneath it.                                                                                              | Remotion                        | (Breath. Music comes up.)                                       |
+| 2   | 0:08–0:12 | Silk drifting at the top of the frame. Beneath it, the kolam draws itself as one line round its 13 dots; the name below. Silk carries straight on into shot 3, the same field.              | Remotion                        | (Breath. Music comes up.)                                       |
 | 3   | 0:12–0:18 | First launch: Silk drifting above the words, then "Ready to log offline."                                                                                                                   | Rig                             | So we made it an app for the phone.                             |
 | 4   | 0:18–0:24 | Season at 6 pm, Mon 14 Dec: the curtain, the Music Academy concert as the hero. "I'm here" is tapped.                                                                                     | Rig                             | You arrive, and the concert is already there.                   |
 | 5   | 0:24–0:36 | Add Item. "chakani raja" typed letter by letter, cropped close; Chakkani Raja comes first. Picked: Kharaharapriya, Adi, Tyagaraja filled in.                                               | Rig                             | Type what you hear, even misspelt. The raga and composer follow. |
@@ -69,7 +78,7 @@ About 80 seconds. Times are a starting point; the voice-over sets the final cut.
 | 9   | 0:54–1:00 | An Item saved with no signal: a small no-signal mark in the corner (the video's, not the app's), the save highlight on the row.                                                            | Rig, with a Remotion mark        | Sabha halls have no signal. It doesn't need one.                |
 | 10  | 1:00–1:08 | Three hours on: the Concert summary, its rose edge.                                                                                                                                         | Rig                             | At the end, the evening, seen whole.                            |
 | 11  | 1:08–1:16 | The season's curtain growing: ink, then one rose, then a second as more Ragas are heard.                                                                                                    | Remotion, with `app/src/motif/`  | Your season adds up. The Wrapped arrives on 20 December.        |
-| 12  | 1:16–1:20 | The kolam and carnatic.live.                                                                                                                                                                | Remotion                        | (Music out.)                                                    |
+| 12  | 1:16–1:20 | Silk again, as in shot 2: the kolam and carnatic.live beneath it.                                                                                                                           | Remotion                        | (Music out.)                                                    |
 
 The right-hand column is what each shot has to get across, so the trimmed script can be checked
 against it. It is not the script.
@@ -130,8 +139,8 @@ recordings are gitignored.
    prove; if it stutters, the fallback is stepping the animations frame by frame.
 3. **Remotion** (`video/`). One composition per shot, 1080 × 1920 at 30 fps. It reads the font
    and the colour tokens from `app/src/`, draws the kolam from `brand/kolam.mjs` and the motif
-   from `app/src/motif/`. The spreadsheet, title, no-signal mark, season field and end card are
-   made here.
+   from `app/src/motif/`. The spreadsheet, the title and end card on Silk, the no-signal mark and
+   the season's field are made here.
 4. **Rough cut** with the temp drone and no voice. Sent to the Maintainer as an MP4.
 5. **Talk-overs** from the Maintainer, then transcript, trim and approval (Script, above).
 6. **Final voice** comes in; the music is already in hand.
