@@ -10,7 +10,7 @@
 
 import type { Event } from '../model';
 import { db as defaultDb, type WrappedDB } from './db';
-import { inWindow, LOGGING_HOLD_MS, readLoggingNotes, type LoggingNote } from './logging-note';
+import { LOGGING_HOLD_MS, readLoggingNotes, windowEnd, type LoggingNote } from './logging-note';
 
 const SHOWN_PREFIX = 'summaryShown:';
 const shownKey = (eventId: string) => `${SHOWN_PREFIX}${eventId}`;
@@ -29,9 +29,14 @@ function loggedLately(note: LoggingNote | undefined, now: Date): boolean {
   return now.getTime() - at <= LOGGING_HOLD_MS;
 }
 
-/** A Concert's summary is due: logged on this phone, its last Item over an hour ago, its window past. */
+/**
+ * A Concert's summary is due: logged on this phone, its last Item over an hour ago, its window
+ * past. Past, not just out of it: a Concert still ahead is out of its window too.
+ */
 function summaryDue(event: Timed, note: LoggingNote | undefined, now: Date): boolean {
-  return !!note?.lastLoggedAt && !loggedLately(note, now) && !inWindow(event, now);
+  return (
+    !!note?.lastLoggedAt && !loggedLately(note, now) && now.getTime() > windowEnd(event).getTime()
+  );
 }
 
 /**
