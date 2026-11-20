@@ -11,6 +11,7 @@ import { chromium, devices, type Browser, type BrowserContext, type Page } from 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { harnessScript } from '../harness/build';
+import type { Harness } from '../harness/entry';
 import { measure, type Measures } from './measure';
 import { seed, seedSchedule, SEASON_NOW, type SeedIds } from './seed';
 
@@ -266,6 +267,15 @@ const VIEWS: View[] = [
     },
   },
   {
+    // The instrument picker with More open (instrument-picker.md §5).
+    name: 'artist-more',
+    open: async (page, ids) => {
+      await concert(page, ids);
+      await stageRow(page, /^Gayatri/).click();
+      await page.getByRole('button', { name: 'More' }).click();
+    },
+  },
+  {
     name: 'colour-sheet',
     open: async (page, ids) => {
       await concert(page, ids);
@@ -286,11 +296,76 @@ const VIEWS: View[] = [
     open: (page, ids) => go(page, `/event/${ids.full}/item/${ids.laya}`),
   },
   { name: 'item-rtp', open: (page, ids) => go(page, `/event/${ids.full}/item/${ids.rtp}`) },
+  { name: 'item-plain', open: (page, ids) => go(page, `/event/${ids.full}/item/${ids.plain}`) },
+  {
+    // The first part ever turned on on a phone carries the hint, once (item-editor.md §4).
+    name: 'item-hint',
+    open: async (page, ids) => {
+      // Each look starts from the part off and the hint not yet shown on this phone.
+      await page.goto(BASE + '/');
+      await page.addScriptTag({ content: await harnessScript() });
+      await page.evaluate(async (id) => {
+        localStorage.removeItem('wrapped.manodharmaHint.v1');
+        await (globalThis as unknown as { harness: Harness }).harness.items.setImprovised(id, []);
+      }, ids.plain);
+      await go(page, `/event/${ids.full}/item/${ids.plain}`);
+      const fold = page.getByRole('button', { name: 'Manodharma', exact: true });
+      await fold.click();
+      await page.getByRole('switch', { name: 'Tanam' }).click();
+    },
+    release: async (page) => {
+      await page.evaluate(() => localStorage.setItem('wrapped.manodharmaHint.v1', 'shown'));
+    },
+  },
+  {
+    // The Layavinyasam on with no nadai set: "Chatusra   + Nadai" (item-editor.md §5).
+    name: 'item-laya-empty',
+    open: async (page, ids) => {
+      await page.goto(BASE + '/');
+      await page.addScriptTag({ content: await harnessScript() });
+      await page.evaluate(async (id) => {
+        const { items } = (globalThis as unknown as { harness: Harness }).harness;
+        await items.setImprovised(id, []);
+        await items.setLayaVinyasam(id, { nadais: [], note: null });
+      }, ids.plain);
+      await go(page, `/event/${ids.full}/item/${ids.plain}`);
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    },
+  },
   {
     name: 'raga-sheet',
     open: async (page, ids) => {
       await go(page, `/event/${ids.full}/item/${ids.laya}`);
-      await page.getByRole('button', { name: /^Raga 1/ }).click();
+      await page.getByRole('button', { name: /, Raga 1 of 1/ }).click();
+    },
+  },
+  {
+    // One Raga of several: "← Earlier", "Later →" and "Remove" (item-editor.md §3).
+    name: 'raga-sheet-move',
+    open: async (page, ids) => {
+      await go(page, `/event/${ids.full}/item/${ids.rtp}`);
+      await page.getByRole('button', { name: /, Raga 2 of 2/ }).click();
+    },
+  },
+  {
+    name: 'part-sheet',
+    open: async (page, ids) => {
+      await go(page, `/event/${ids.full}/item/${ids.laya}`);
+      await page.getByRole('button', { name: /^Alapana, / }).click();
+    },
+  },
+  {
+    name: 'part-sheet-own',
+    open: async (page, ids) => {
+      await go(page, `/event/${ids.full}/item/${ids.laya}`);
+      await page.getByRole('button', { name: /^Kalpanaswaram, / }).click();
+    },
+  },
+  {
+    name: 'laya-sheet',
+    open: async (page, ids) => {
+      await go(page, `/event/${ids.full}/item/${ids.laya}`);
+      await page.getByRole('button', { name: /^Layavinyasam, / }).click();
     },
   },
   {
@@ -526,10 +601,9 @@ async function motion(out: string) {
       before: async (theme) => {
         await concert(page, ids);
         await page.getByRole('link', { name: theme === 'dark' ? /Vatapi/ : /Endaro/ }).click();
-        await page.getByRole('button', { name: 'Improvised', exact: true }).click();
         await settle(page);
       },
-      act: () => page.getByRole('button', { name: 'Laya vinyasam', exact: true }).click(),
+      act: () => page.getByRole('switch', { name: 'Layavinyasam', exact: true }).click(),
     },
     {
       // A sheet slides back down the way it came (walkthrough P8, FB-44).

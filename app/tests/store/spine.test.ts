@@ -96,8 +96,9 @@ describe('the stored status (ADR 0010)', () => {
     expect(await again.events.toArray()).toEqual(expect.arrayContaining(rows));
     expect(await again.events.count()).toBe(3);
     expect(await again.outbox.toArray()).toEqual(queued);
-    // No record changed shape, so the store's version is the one 0.2.0 opened.
-    expect(again.verno).toBe(4);
+    // No Event changed shape: the store's version is 0.2.0's, but for ADR 0012's version 5,
+    // which rewrites Items only.
+    expect(again.verno).toBe(5);
   });
 
   it('keeps a Missed Event in the store, the summaries and the Export', async () => {

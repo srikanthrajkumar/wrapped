@@ -148,15 +148,24 @@ export interface Appearance extends Timestamps {
   position: number;
 }
 
+/** The Layavinyasam that followed an Item (FR-011; ADR 0012). */
 export interface LayaVinyasam {
-  nadai: DetailValue;
+  /**
+   * The nadais it moved through besides the Tala's, in order, keyed by NADAIS when matched; "?"
+   * is one that couldn't be named. Empty when only the Tala's was heard.
+   */
+  nadais: DetailValue[];
   note: string | null;
 }
 
+/** A Manodharma part heard (FR-051; ADR 0012). */
 export interface Improvised {
   kind: ImprovisedKind;
-  /** Null when it is the Item's own Raga. */
-  raga: DetailValue | null;
+  /**
+   * The Ragas it went through, in order. Empty while it follows the Item's Raga; a null slot
+   * holds the Item's first Raga, live. Never exactly `[null]`: that is stored as `[]`.
+   */
+  ragas: (DetailValue | null)[];
 }
 
 export interface Item extends Timestamps {
@@ -178,9 +187,9 @@ export interface Item extends Timestamps {
   language: DetailValue;
   /** Rolled up to a Topic when the Wrapped is computed. */
   subject: DetailValue;
-  /** The Laya vinyasam that followed this Item (FR-011). */
+  /** The Layavinyasam that followed this Item (FR-011). */
   layaVinyasam: LayaVinyasam | null;
-  /** Improvised Details heard (FR-051). */
+  /** The Manodharma parts heard (FR-051). */
   improvised: Improvised[];
   note: string | null;
 }

@@ -3,7 +3,7 @@
 // column the way the store keeps it, so an entry is neither dropped too soon nor kept forever.
 
 import { describe, expect, it } from 'vitest';
-import { catalogValue, notApplicableValue, unresolvedValue } from '../../src/model';
+import { catalogValue, unresolvedValue, type Improvised } from '../../src/model';
 import type { JournalEntry } from '../../src/screens/save-feedback';
 import { createEvent, editEvent, setStatus } from '../../src/store/events';
 import {
@@ -14,7 +14,7 @@ import {
   saveItemDraft,
   setDetail,
   setImprovised,
-  setLayaNadai,
+  setLayaNadais,
   setLayaNote,
   setLayaVinyasam,
   setRagas,
@@ -121,7 +121,7 @@ describe('the journal, checked against each writer (fourth review)', () => {
     expect(await holdsValue(entry('items', item.id, '*', unknown), db)).toBe(true);
   });
 
-  it('Ragas, Improvised in any order, the Laya vinyasam and its note, a delete', async () => {
+  it('Ragas, Improvised in any order, the Layavinyasam and its note, a delete', async () => {
     const db = freshDb();
     const event = await createEvent({ kind: 'concert' }, { db });
     const item = await addItemFrom(event.id, { kind: 'unknown' }, { db });
@@ -134,19 +134,19 @@ describe('the journal, checked against each writer (fourth review)', () => {
 
     // Entered tanam first; the store keeps the concert order.
     const heard = [
-      { kind: 'tanam', raga: null },
-      { kind: 'alapana', raga: unresolvedValue('Todi') },
-    ] as const;
+      { kind: 'tanam', ragas: [] },
+      { kind: 'alapana', ragas: [unresolvedValue('Todi'), null] },
+    ] satisfies Improvised[];
     await heldOnlyAfter(
       entry('items', item.id, 'improvised', heard),
-      () => setImprovised(item.id, [...heard], { db }),
+      () => setImprovised(item.id, heard, { db }),
       db,
     );
 
-    const nadai = { nadai: notApplicableValue() };
+    const nadais = { nadais: [] };
     await heldOnlyAfter(
-      entry('items', item.id, 'layaVinyasam', nadai),
-      () => setLayaNadai(item.id, notApplicableValue(), { db }),
+      entry('items', item.id, 'layaVinyasam', nadais),
+      () => setLayaNadais(item.id, [], { db }),
       db,
     );
     await heldOnlyAfter(
@@ -154,13 +154,13 @@ describe('the journal, checked against each writer (fourth review)', () => {
       () => setLayaNote(item.id, 'tisram', { db }),
       db,
     );
-    // An emptied note is stored as null; a note never changes the Nadai, nor the Nadai the note.
+    // An emptied note is stored as null; a note never changes the nadais, nor the nadais the note.
     await setLayaNote(item.id, '', { db });
     expect(await holdsValue(entry('items', item.id, 'layaNote', ''), db)).toBe(true);
     await setLayaNote(item.id, 'khanda', { db });
-    await setLayaNadai(item.id, unresolvedValue('khanda'), { db });
+    await setLayaNadais(item.id, [unresolvedValue('khanda')], { db });
     expect((await db.items.get(item.id))?.layaVinyasam).toEqual({
-      nadai: unresolvedValue('khanda'),
+      nadais: [unresolvedValue('khanda')],
       note: 'khanda',
     });
     await heldOnlyAfter(
@@ -240,8 +240,8 @@ describe('the journal, checked against each writer (fourth review)', () => {
     expect(storedHolds(target, tala, { ...tala, state: 'override' })).toBe(true);
     expect(storedHolds(target, tala, unresolvedValue('Adi'))).toBe(false);
     const heard = { table: 'items', id: 'i1', field: 'improvised' } as const;
-    const tanam = { kind: 'tanam', raga: null };
-    const alapana = { kind: 'alapana', raga: null };
+    const tanam = { kind: 'tanam', ragas: [] };
+    const alapana = { kind: 'alapana', ragas: [] };
     expect(storedHolds(heard, [tanam, alapana], [alapana, tanam])).toBe(true);
   });
 

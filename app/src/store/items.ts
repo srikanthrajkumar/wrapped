@@ -12,9 +12,11 @@ import {
   newId,
   notApplicableValue,
   unknownValue,
+  settlePartRagas,
   type DetailValue,
   type Event,
   type Improvised,
+  type ImprovisedKind,
   type Item,
   type LayaVinyasam,
   type RasikaRows,
@@ -22,7 +24,13 @@ import {
 import { db as defaultDb, type WrappedDB } from './db';
 import { noteLogging } from './logging-note';
 import { getLive, newTimestamps, remove, save, type WriteOptions } from './mutate';
-import { peekReceipt, takeReceipt, writeReceipt, type DeletionReceipt } from './receipts';
+import {
+  peekReceipt,
+  takeReceipt,
+  writeReceipt,
+  type DeletionReceipt,
+  type RemovedPiece,
+} from './receipts';
 import { check, EVENT_DELETED, isRtp, itemProblems, RTP_FORM, RuleError } from './rules';
 
 /** The single-valued Details of an Item. Ragas are a list and have their own action. */
@@ -207,7 +215,7 @@ export function setRagas(
   );
 }
 
-/** The Laya vinyasam that followed this Item, with its Nadai and note (FR-011); null clears it. */
+/** The Layavinyasam that followed this Item, with its nadais and note (FR-011); null clears it. */
 export function setLayaVinyasam(
   id: string,
   layaVinyasam: LayaVinyasam | null,
@@ -217,24 +225,25 @@ export function setLayaVinyasam(
 }
 
 /**
- * The Laya vinyasam's Nadai alone, adding the Laya vinyasam if there is none: a note written
- * meanwhile stays (the note has its own write, setLayaNote).
+ * The Layavinyasam's nadais alone, in order, adding the Layavinyasam if there is none: a note
+ * written meanwhile stays (the note has its own write, setLayaNote). Empty, only the Tala's
+ * nadai was heard (ADR 0012).
  */
-export function setLayaNadai(
+export function setLayaNadais(
   id: string,
-  nadai: DetailValue,
+  nadais: DetailValue[],
   { db = defaultDb }: WriteOptions = {},
 ): Promise<Item> {
   return changeItem(
     id,
-    (item) => ({ ...item, layaVinyasam: { note: null, ...item.layaVinyasam, nadai } }),
+    (item) => ({ ...item, layaVinyasam: { note: null, ...item.layaVinyasam, nadais } }),
     db,
   );
 }
 
 /**
- * The Laya vinyasam's note alone (emptied, it is stored as null), adding the Laya vinyasam with
- * the Tala's usual nadai if there is none: a Nadai written meanwhile stays.
+ * The Layavinyasam's note alone (emptied, it is stored as null), adding the Layavinyasam with no
+ * nadai beyond the Tala's if there is none: nadais written meanwhile stay.
  */
 export function setLayaNote(
   id: string,
@@ -246,7 +255,7 @@ export function setLayaNote(
     (item) => ({
       ...item,
       layaVinyasam: {
-        nadai: item.layaVinyasam?.nadai ?? notApplicableValue(),
+        nadais: item.layaVinyasam?.nadais ?? [],
         note: note === '' ? null : note,
       },
     }),
@@ -254,15 +263,268 @@ export function setLayaNote(
   );
 }
 
-/** The improvised Details heard (FR-051), kept in the usual concert order, not the order heard. */
+/**
+ * The Manodharma parts heard (FR-051), kept in the usual concert order, not the order heard. A
+ * part's list cut back to only the Item's Raga is stored as following it (ADR 0012).
+ */
 export function setImprovised(
   id: string,
   improvised: Improvised[],
   { db = defaultDb }: WriteOptions = {},
 ): Promise<Item> {
   const order = (heard: Improvised) => IMPROVISED_KINDS.indexOf(heard.kind);
-  const sorted = [...improvised].sort((a, b) => order(a) - order(b));
+  const sorted = [...improvised]
+    .sort((a, b) => order(a) - order(b))
+    .map((heard) => ({ ...heard, ragas: settlePartRagas(heard.ragas) }));
   return changeItem(id, (item) => ({ ...item, improvised: sorted }), db);
+}
+
+/**
+ * One piece of an Item to remove, with Undo (ADR 0012). A Raga or nadai names its place and,
+ * optionally, the value seen there: a Try again after the list changed then removes that value
+ * where it now is, or nothing, never its neighbour.
+ */
+export type PieceToRemove =
+  | { field: 'ragas'; index: number; value?: DetailValue }
+  | { field: 'improvised'; kind: ImprovisedKind }
+  | { field: 'nadais'; index: number; value?: DetailValue }
+  | { field: 'layaVinyasam' };
+
+/** Where a part's slot holding `value` (null: the Item's Raga) is now, or -1. */
+function slotOf(list: readonly (DetailValue | null)[], index: number, value: DetailValue | null) {
+  const same = (other: DetailValue | null | undefined) =>
+    other !== undefined &&
+    (other === null || value === null ? other === value : sameValue(other, value));
+  if (same(list[index])) return index;
+  return list.findIndex(same);
+}
+
+/**
+ * The same Detail value, field by field: a row pulled from the server (jsonb) may hold its keys
+ * in another order, so whole-object text never decides it.
+ */
+const sameValue = (a: DetailValue, b: DetailValue) =>
+  a.state === b.state && a.key === b.key && a.text === b.text && a.guess === b.guess;
+
+/** Where `value` is in `list`: at `index` if it is still there, else its first place, or -1. */
+function placeOf(list: readonly DetailValue[], index: number, value?: DetailValue): number {
+  if (!value) return index < list.length ? index : -1;
+  const same = (other: DetailValue | undefined) => other !== undefined && sameValue(other, value);
+  if (same(list[index])) return index;
+  return list.findIndex(same);
+}
+
+/** Why an Undo of a removed part or Layavinyasam leaves it be: it was turned on again since. */
+export const ON_AGAIN = 'it is on again';
+
+/** Why an Undo of a removed Raga leaves it be: the Item was repicked as another song since. */
+export const SONG_CHANGED = 'its song changed since';
+
+/**
+ * Remove one piece of a live Item, a Raga, a Manodharma part with its Ragas, a nadai, or the
+ * Layavinyasam with its nadais and note, and write a receipt for Undo, in one transaction.
+ * Returns undefined when there is nothing there to remove.
+ */
+export async function removePiece(
+  id: string,
+  piece: PieceToRemove,
+  { db = defaultDb }: WriteOptions = {},
+): Promise<{ item: Item; receipt: DeletionReceipt } | undefined> {
+  return db.transaction('rw', [db.items, db.outbox, db.meta], async () => {
+    const item = await getLive('items', id, { db });
+    let removed: RemovedPiece;
+    let changed: Item;
+    switch (piece.field) {
+      case 'ragas': {
+        const index = placeOf(item.ragas, piece.index, piece.value);
+        const value = item.ragas[index];
+        if (!value) return undefined;
+        removed = { field: 'ragas', index, value, song: item.compositionKey };
+        changed = { ...item, ragas: item.ragas.filter((_, i) => i !== index) };
+        break;
+      }
+      case 'improvised': {
+        const part = item.improvised.find((heard) => heard.kind === piece.kind);
+        if (!part) return undefined;
+        removed = { field: 'improvised', kind: piece.kind, value: part.ragas };
+        changed = { ...item, improvised: item.improvised.filter((heard) => heard !== part) };
+        break;
+      }
+      case 'nadais': {
+        const laya = item.layaVinyasam;
+        const index = laya ? placeOf(laya.nadais, piece.index, piece.value) : -1;
+        const value = laya?.nadais[index];
+        if (!laya || !value) return undefined;
+        removed = { field: 'nadais', index, value };
+        const nadais = laya.nadais.filter((_, i) => i !== index);
+        changed = { ...item, layaVinyasam: { ...laya, nadais } };
+        break;
+      }
+      case 'layaVinyasam': {
+        if (!item.layaVinyasam) return undefined;
+        removed = { field: 'layaVinyasam', value: item.layaVinyasam };
+        changed = { ...item, layaVinyasam: null };
+        break;
+      }
+    }
+    check(itemProblems(changed));
+    await noteLogging(db, item.eventId);
+    const stored = await save('items', changed, { db });
+    const receipt = await writeReceipt(db, {
+      kind: 'piece',
+      eventId: item.eventId,
+      position: item.position,
+      records: [{ table: 'items', id, deletedAt: null }],
+      piece: removed,
+    });
+    return { item: stored, receipt };
+  });
+}
+
+/**
+ * Remove one of a Manodharma part's own Ragas (its place), or all of them (`'all'`, "Use the
+ * Item's Raga only"), with a receipt for Undo, in one transaction. A list cut back to only the
+ * Item's Raga follows it again. Returns undefined when there is nothing there to remove.
+ */
+export async function removePartRagas(
+  id: string,
+  kind: ImprovisedKind,
+  target: { index: number; value: DetailValue | null } | 'all',
+  { db = defaultDb }: WriteOptions = {},
+): Promise<{ item: Item; receipt: DeletionReceipt } | undefined> {
+  return db.transaction('rw', [db.items, db.outbox, db.meta], async () => {
+    const item = await getLive('items', id, { db });
+    const part = item.improvised.find((heard) => heard.kind === kind);
+    if (!part || part.ragas.length === 0) return undefined;
+    // The Raga seen in that place, found where it now is: a Try again after the list changed
+    // removes it, or nothing, never its neighbour.
+    const slot = target === 'all' ? 'all' : slotOf(part.ragas, target.index, target.value);
+    if (slot === -1) return undefined;
+    const after = slot === 'all' ? [] : settlePartRagas(part.ragas.filter((_, i) => i !== slot));
+    const changed: Item = {
+      ...item,
+      improvised: item.improvised.map((heard) =>
+        heard === part ? { ...heard, ragas: after } : heard,
+      ),
+    };
+    check(itemProblems(changed));
+    await noteLogging(db, item.eventId);
+    const stored = await save('items', changed, { db });
+    const receipt = await writeReceipt(db, {
+      kind: 'piece',
+      eventId: item.eventId,
+      position: item.position,
+      records: [{ table: 'items', id, deletedAt: null }],
+      piece: {
+        field: 'partRagas',
+        kind,
+        index: slot === 'all' ? null : slot,
+        before: part.ragas,
+        after,
+      },
+    });
+    return { item: stored, receipt };
+  });
+}
+
+/** `list` with `value` put back at `index`, or at the end when the list is now shorter. */
+const insertAt = <T>(list: readonly T[], index: number, value: T): T[] => {
+  const at = Math.min(Math.max(index, 0), list.length);
+  return [...list.slice(0, at), value, ...list.slice(at)];
+};
+
+/**
+ * Undo a `removePiece`: put the piece back into the Item as it is now, not the whole field as it
+ * was, so nothing done since is lost (ADR 0012). A Raga or nadai goes back at its place. A part
+ * comes back with its list; one turned on again since that still follows takes the removed list,
+ * and one with Ragas of its own is left, refused with ON_AGAIN. The Layavinyasam likewise. A used
+ * or stale receipt restores nothing and returns null.
+ */
+export async function restorePiece(
+  receiptId: string,
+  { db = defaultDb, catalog }: RestoreOptions = {},
+): Promise<Item | null> {
+  return db.transaction('rw', [db.items, db.outbox, db.meta], async () => {
+    const pending = await peekReceipt(db, receiptId);
+    const piece = pending?.piece;
+    const record = pending?.records[0];
+    if (!pending || pending.kind !== 'piece' || !piece || !record) return null;
+    const item = await db.items.get(record.id);
+    if (!item || item.deletedAt !== null) {
+      await takeReceipt(db, receiptId, 'piece');
+      return null;
+    }
+    let changed: Item;
+    switch (piece.field) {
+      case 'ragas':
+        // Repicked since, it is another song: its Ragas are not the removed one's place.
+        if (piece.song !== undefined && piece.song !== item.compositionKey) {
+          throw new RuleError([SONG_CHANGED]);
+        }
+        changed = { ...item, ragas: insertAt(item.ragas, piece.index, piece.value) };
+        break;
+      case 'improvised': {
+        const now = item.improvised.find((heard) => heard.kind === piece.kind);
+        if (now && now.ragas.length > 0) throw new RuleError([ON_AGAIN]);
+        const others = item.improvised.filter((heard) => heard.kind !== piece.kind);
+        const order = (heard: Improvised) => IMPROVISED_KINDS.indexOf(heard.kind);
+        changed = {
+          ...item,
+          improvised: [...others, { kind: piece.kind, ragas: piece.value }].sort(
+            (a, b) => order(a) - order(b),
+          ),
+        };
+        break;
+      }
+      case 'partRagas': {
+        const now = item.improvised.find((heard) => heard.kind === piece.kind);
+        const sameList = (a: (DetailValue | null)[], b: (DetailValue | null)[]) =>
+          a.length === b.length &&
+          a.every((value, i) => {
+            const other = b[i]!;
+            return value === null || other === null ? value === other : sameValue(value, other);
+          });
+        let ragas: (DetailValue | null)[];
+        if (!now || sameList(now.ragas, piece.after)) ragas = piece.before;
+        else if (piece.index === null) {
+          if (now.ragas.length > 0) throw new RuleError([ON_AGAIN]);
+          ragas = piece.before;
+        } else {
+          ragas = settlePartRagas(insertAt(now.ragas, piece.index, piece.before[piece.index]!));
+        }
+        const others = item.improvised.filter((heard) => heard.kind !== piece.kind);
+        const order = (heard: Improvised) => IMPROVISED_KINDS.indexOf(heard.kind);
+        changed = {
+          ...item,
+          improvised: [...others, { kind: piece.kind, ragas }].sort((a, b) => order(a) - order(b)),
+        };
+        break;
+      }
+      case 'nadais': {
+        const laya = item.layaVinyasam ?? { nadais: [], note: null };
+        changed = {
+          ...item,
+          layaVinyasam: { ...laya, nadais: insertAt(laya.nadais, piece.index, piece.value) },
+        };
+        break;
+      }
+      case 'layaVinyasam': {
+        const now = item.layaVinyasam;
+        if (now && (now.nadais.length > 0 || now.note !== null)) {
+          throw new RuleError([ON_AGAIN]);
+        }
+        changed = { ...item, layaVinyasam: piece.value };
+        break;
+      }
+    }
+    // A piece kept from before a catalog upgrade comes back under the catalog in use, as a
+    // restored Item does (outside voice 9).
+    if (catalog) changed = remapItem(changed, catalog.remap);
+    check(itemProblems(changed));
+    await takeReceipt(db, receiptId, 'piece');
+    await noteLogging(db, item.eventId);
+    return save('items', changed, { db });
+  });
 }
 
 /** Change an Item's title or note. */
@@ -527,7 +789,7 @@ function leaveComposition(item: Item, catalog: Catalog | undefined): Item {
  * A song fills in its title and every Detail the catalog knows, as `catalog` values (FR-007);
  * an RTP has no Composition, so picking a song makes it an ordinary Item. A Raga, a special
  * form, typed text or "?" leaves the Composition (its Details go back to "?") and starts from
- * the pick as a new Item would. The Nadai, Laya vinyasam, improvised Details and note are the
+ * the pick as a new Item would. The Nadai, the Layavinyasam, the Manodharma parts and note are the
  * rasika's and stay; an RTP gets "?" for its first Raga and Nadai where it has none. A failed
  * repick is never retried (docs/adr/0007): the rasika picks again.
  */

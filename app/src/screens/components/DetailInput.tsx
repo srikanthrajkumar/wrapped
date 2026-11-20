@@ -20,6 +20,7 @@ import {
   type DetailValue,
 } from '../../model';
 import { detailText } from '../format';
+import { nadaiName } from '../item-words';
 import { MESSAGES } from '../messages';
 import { Chip, DockedSearch, FixedRow, type SearchRow } from './DockedSearch';
 import { SheetFrame } from './sheet-frame';
@@ -30,13 +31,18 @@ export type DetailField = DetailKind;
 const guessable = (value: DetailValue) =>
   value.state === 'catalog' || value.state === 'override' || value.state === 'unresolved';
 
-/** The three pinned chips: "?", "Not sure", "N/A". */
+/**
+ * The pinned chips: "?", "Not sure" and "N/A"; without `na`, only the first two (one Raga of
+ * several, a Manodharma part's: "Remove" does N/A's job there).
+ */
 function StateChips({
   value,
   onChange,
+  na = true,
 }: {
   value: DetailValue;
   onChange(value: DetailValue): void;
+  na?: boolean;
 }) {
   return (
     <div className="flex flex-wrap gap-2">
@@ -55,61 +61,72 @@ function StateChips({
       >
         Not sure
       </Chip>
-      <Chip
-        pressed={value.state === 'na'}
-        aria-label="Not applicable"
-        onClick={() => onChange(notApplicableValue())}
-      >
-        N/A
-      </Chip>
+      {na && (
+        <Chip
+          pressed={value.state === 'na'}
+          aria-label="Not applicable"
+          onClick={() => onChange(notApplicableValue())}
+        >
+          N/A
+        </Chip>
+      )}
     </div>
   );
 }
 
 /**
- * A Nadai, from chips: none picked means the Tala's usual nadai (Not applicable). With
- * `allowUnknown`, "?" leads; with `onOther`, "Other…" opens the Nadai's own Detail input, for
- * "Not sure" and free text.
+ * A Nadai, from chips in sentence case: none picked means the Tala's usual nadai (Not
+ * applicable). With `allowUnknown`, "?" leads; with `onOther`, "Other…" opens the Nadai's own
+ * Detail input, for "Not sure" and free text. With `toggle` off, tapping the pressed chip picks
+ * it again rather than clearing it (the Layavinyasam's list, where Remove clears).
  */
 export function NadaiChips({
   value,
   onChange,
   allowUnknown = false,
+  unknownLabel = 'Nadai unknown',
   onOther,
+  toggle = true,
 }: {
-  value: DetailValue;
+  /** The pressed chip; null for none. */
+  value: DetailValue | null;
   onChange(value: DetailValue): void;
   allowUnknown?: boolean;
+  /** "?"'s spoken name. */
+  unknownLabel?: string;
   onOther?: () => void;
+  toggle?: boolean;
 }) {
-  const typed = value.state === 'unresolved';
+  const typed = value?.state === 'unresolved';
   return (
     <div role="group" aria-label="Nadai" className="flex flex-wrap gap-2">
       {allowUnknown && (
         <Chip
-          pressed={value.state === 'unknown'}
-          aria-label="Nadai unknown"
+          pressed={value?.state === 'unknown'}
+          aria-label={unknownLabel}
           onClick={() => onChange(unknownValue())}
         >
           ?
         </Chip>
       )}
       {NADAIS.map((nadai) => {
-        const picked = value.key === nadai;
+        const picked = value?.key === nadai;
         return (
           <Chip
             key={nadai}
             pressed={picked}
-            onClick={() => onChange(picked ? notApplicableValue() : catalogValue(nadai, nadai))}
+            onClick={() =>
+              onChange(picked && toggle ? notApplicableValue() : catalogValue(nadai, nadai))
+            }
           >
-            {nadai}
-            {picked && value.guess && ' (?)'}
+            {nadaiName(nadai)}
+            {picked && value?.guess && ' (?)'}
           </Chip>
         );
       })}
       {onOther && (
         <Chip pressed={typed} onClick={onOther}>
-          {typed ? `${value.text}${value.guess ? ' (?)' : ''}` : 'Other…'}
+          {typed ? `${value!.text}${value!.guess ? ' (?)' : ''}` : 'Other…'}
         </Chip>
       )}
     </div>
@@ -125,12 +142,27 @@ export function DetailInput({
   suggested,
   onChange,
   extra,
+  head,
+  na = true,
+  placeholder,
+  description,
+  spokenTitle,
 }: {
   open: boolean;
   onOpenChange(open: boolean): void;
   field: DetailField;
   /** The Detail's name: "Raga", "Tala"… */
   title: string;
+  /** What screen readers hear for the title, when it says more ("Raga 2 of 3"). */
+  spokenTitle?: string;
+  /** The box's placeholder; the title's by default ("Raga 2…"). */
+  placeholder?: string;
+  /** The line under the title; "Now: …" by default, nothing when null. */
+  description?: string | null;
+  /** Shown under the title, in the "Now:" line's place: a Manodharma part's Ragas in a line. */
+  head?: ReactNode;
+  /** Offer "N/A"; off for one Raga of several and a Manodharma part. */
+  na?: boolean;
   value: DetailValue;
   /** What the Composition says, to offer "Use catalog value" on an Override. */
   suggested?: DetailValue | null;
@@ -168,6 +200,7 @@ export function DetailInput({
   const note = typed && !searchable ? MESSAGES.search.noCatalog : null;
 
   const current = detailText(value);
+  const now = current ? `Now: ${value.guess ? `${current} (?)` : current}` : undefined;
   return (
     <SheetFrame
       open={open}
@@ -175,8 +208,19 @@ export function DetailInput({
         if (!next) setQuery('');
         onOpenChange(next);
       }}
-      title={title}
-      description={current ? `Now: ${value.guess ? `${current} (?)` : current}` : undefined}
+      title={spokenTitle ?? title}
+      header={
+        spokenTitle ? (
+          <span
+            aria-hidden
+            className="flex min-h-12 items-center font-heading text-title font-semibold text-foreground"
+          >
+            {title}
+          </span>
+        ) : undefined
+      }
+      description={description === null ? undefined : (description ?? now)}
+      below={head}
     >
       {value.state === 'override' && suggested && (
         <div className="flex flex-wrap items-center gap-x-2 pb-2 text-sub text-muted-foreground">
@@ -188,7 +232,7 @@ export function DetailInput({
       )}
       <DockedSearch
         label={`Search ${title}`}
-        placeholder={`${title}…`}
+        placeholder={placeholder ?? `${title}…`}
         query={query}
         onQueryChange={setQuery}
         note={note}
@@ -197,7 +241,7 @@ export function DetailInput({
         pinned={
           // The hairline over "Use what I typed" sits 8px under the chips, as in the Item editor.
           <div className="flex flex-col gap-3 pb-2">
-            <StateChips value={value} onChange={choose} />
+            <StateChips value={value} onChange={choose} na={na} />
             {field === 'nadai' && <NadaiChips value={value} onChange={choose} />}
             {extra}
           </div>

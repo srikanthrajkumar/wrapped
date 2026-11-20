@@ -73,7 +73,7 @@ One piece performed at an Event, in its place in the running order. An Item may 
 _Avoid_: song, piece, number, track
 
 **Detail**:
-Any fact the rasika records about an Item: its Composition, Raga, Tala, Nadai, Composer, language, Subject and form, and the improvised parts heard, such as the alapana, tanam, niraval, kalpana swaram and Laya vinyasam.
+Any fact the rasika records about an Item: its Composition, Raga, Tala, Nadai, Composer, language, Subject and form, the Manodharma parts heard (alapana, tanam, niraval and kalpanaswaram, each through one or more Ragas, by default the Item's), and the Layavinyasam.
 _Avoid_: field, attribute, property
 
 **Composition**:
@@ -83,12 +83,12 @@ _Avoid_: song, kriti (as a general word)
 **Kriti**:
 One form of Composition, alongside varnam, thillana, javali and the others. It is never the general word for a Composition.
 
-**Laya vinyasam**:
-The percussion solo in a Concert, played after an Item and in that Item's tala. It belongs to the Item it follows, but is not itself an Item.
-_Avoid_: tani avartanam, tani, percussion solo
+**Layavinyasam**:
+The percussion solo in a Concert, played after an Item and in that Item's tala. It belongs to the Item it follows, but is not itself an Item. It may move through several nadais besides the Tala's.
+_Avoid_: Laya vinyasam (two words), tani avartanam, tani, percussion solo
 
 **Nadai**:
-The subdivision of the beat that a Tala is played in: tisra, chatusra, khanda, misra or sankeerna. It qualifies the Tala of an Item, as in "Adi (khanda nadai)", and the Laya vinyasam.
+The subdivision of the beat that a Tala is played in: tisra, chatusra, khanda, misra or sankeerna. It qualifies the Tala of an Item, as in "Adi (khanda nadai)", and the Layavinyasam.
 _Avoid_: gati
 
 ### Ragas

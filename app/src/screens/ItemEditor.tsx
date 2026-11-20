@@ -1,14 +1,16 @@
-// The Item editor (T044; DESIGN.md "Item editor (DD4)", design D7, D12, D13, D25). A new Item
-// opens on its search box, focused and docked at the bottom; the Item exists from its first pick
-// (a song, a Raga, a special form, "? Don't know" or "Use what I typed"), and typed text that
-// was not picked survives the phone locking. After a pick, the Details show as rows of values,
-// each a muted label over its value underlined (walkthrough P2), with the improvised parts and
-// the Laya vinyasam in one fold underneath (S14). Each change saves at once; the bottom bar holds
-// "Next Item →" and, filled at the right, "Done", which goes back to the Concert (P1).
+// The Item editor (T044; DESIGN.md "Item editor (DD4)", design D7, D12, D13, D25;
+// docs/design/item-editor.md). A new Item opens on its search box, focused and docked at the
+// bottom; the Item exists from its first pick (a song, a Raga, a special form, "? Don't know" or
+// "Use what I typed"), and typed text that was not picked survives the phone locking. After a
+// pick, the Details sit on one panel with no lines inside, each a 68px label-over-value cell,
+// the Raga line full width; Manodharma follows as a fold of List rows with a check, then the
+// Layavinyasam on its own one-row panel. A Raga's order and removal are in its sheet. Each change
+// saves at once, and every removal offers Undo; the bottom bar holds "Next Item →" and, filled
+// at the right, "Done", which goes back to the Concert (P1).
 
-import { IconArrowLeft, IconArrowRight, IconDots, IconPlus } from '@tabler/icons-react';
+import { IconArrowRight, IconDots } from '@tabler/icons-react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,9 +25,8 @@ import { formName, suggestedDetails, type Suggested } from '../catalog/details';
 import type { SearchResult } from '../catalog/search';
 import { currentCatalog, readyCatalog, useCatalog } from '../catalog/use-catalog';
 import {
-  IMPROVISED_KINDS,
   newId,
-  notApplicableValue,
+  settlePartRagas,
   unknownValue,
   type DetailValue,
   type ImprovisedKind,
@@ -39,10 +40,11 @@ import {
   repickItem,
   saveItemDraft,
   setDetail,
+  removePartRagas,
+  removePiece,
   setImprovised,
-  setLayaNadai,
+  setLayaNadais,
   setLayaNote,
-  setLayaVinyasam,
   setRagas,
   type DetailField as ItemField,
   type ItemPick,
@@ -55,16 +57,18 @@ import { useAutosave } from './components/autosave';
 import { NotSavedLine, saveWith, Saved, useSaveFeedback } from './components/feedback';
 import { Fold } from './components/fold';
 import {
-  BarHold,
-  BottomDock,
-  Panel,
-  QuietButton,
-  Screen,
-  TopBar,
-  useFocusOnOpen,
-} from './components/layout';
+  LayavinyasamRow,
+  LayavinyasamSheet,
+  ManodharmaRows,
+  PartSheet,
+} from './components/manodharma';
+import { hintShown, markHintShown, talaNadaiName } from './item-words';
+import { AddButton, MoveLine, ValueButton, ValueNotes, ValueText } from './components/values';
+import { BarHold, BottomDock, Panel, Screen, TopBar, useFocusOnOpen } from './components/layout';
 import { SheetFrame, useLingering } from './components/sheet-frame';
 import { deleteItem } from './deletes';
+import { isRtp } from '../store/rules';
+import { offerUndo, onUndone } from './undo';
 import { WriteGate } from './write-gate';
 import { detailText, ragasText, spokenDetail, talaText } from './format';
 import { MESSAGES } from './messages';
@@ -326,8 +330,10 @@ function NewItem({ eventId }: { eventId: string }) {
 type Open =
   | { kind: 'detail'; field: ItemField }
   | { kind: 'raga'; index: number }
-  | { kind: 'improvised'; heard: ImprovisedKind }
+  | { kind: 'part'; part: ImprovisedKind }
   | { kind: 'laya' }
+  /** The Nadai's own sheet, from the Layavinyasam's "Other…". */
+  | { kind: 'layaOther' }
   | { kind: 'composition' }
   | null;
 
@@ -340,13 +346,6 @@ const FIELD_NAMES: Record<ItemField, string> = {
   subject: 'Subject',
 };
 
-const IMPROVISED_NAMES: Record<ImprovisedKind, string> = {
-  alapana: 'Alapana',
-  tanam: 'Tanam',
-  niraval: 'Niraval',
-  kalpana_swaram: 'Kalpana swaram',
-};
-
 function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
   const item = useItem(itemId);
   const back = useBack(eventId);
@@ -356,15 +355,34 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
   // The sheet last opened, kept while it slides closed.
   const [sheet, sheetOpen] = useLingering(open);
   const [query, setQuery] = useState('');
-  // Open when the Item opens with anything in it; a tap decides from then on, so clearing the
-  // last chip never folds it away under the finger.
+  // Open when the Item opens with any part; a tap decides from then on, so turning the last part
+  // off never folds it away under the finger.
   const [foldOpen, setFoldOpen] = useState<boolean | null>(null);
   const layaNoteField = useRef<HTMLTextAreaElement>(null);
-  const [ragaOrder, setRagaOrder] = useState(false);
+  // The Layavinyasam's selected nadai, kept while its "Other…" sheet is open.
+  const [layaSelected, setLayaSelected] = useState<number | 'add'>(0);
+  // The one-time hint, on the first part ever turned on on this phone (§4): it stays until a
+  // part's sheet opens or the Item is left.
+  const [hint, setHint] = useState<ImprovisedKind | null>(null);
+  const [announcement, setAnnouncement] = useState('');
+  // A Raga put back by Undo, or the one that took a removed Raga's place (the "+" if the last
+  // went), takes focus once drawn (§3).
+  const pendingRaga = useRef<number | null>(null);
   const head = useFocusOnOpen<HTMLHeadingElement>(itemId);
   const feedback = useSaveFeedback();
   // Details set while a repick is written are written after it (screens/write-gate.ts).
   const [gate] = useState(() => new WriteGate());
+
+  useEffect(
+    () =>
+      onUndone((receipt) => {
+        const piece = receipt.piece;
+        if (receipt.records[0]?.id === itemId && piece?.field === 'ragas') {
+          pendingRaga.current = piece.index;
+        }
+      }),
+    [itemId],
+  );
 
   if (item === undefined) return <BarHold />;
   if (item === null) {
@@ -382,6 +400,15 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
   // A value waiting to save, or not saved, is shown as entered (design D15).
   const shown = <T,>(field: string, stored: T): T => feedback.shown(target(field), stored);
   const ragas = shown('ragas', item.ragas);
+  const announce = (text: string) => setAnnouncement(text);
+  const takeFocus = (place: number | 'add') => (element: HTMLButtonElement | null) => {
+    const pending = pendingRaga.current;
+    if (!element || pending === null) return;
+    if ((pending < ragas.length ? pending : 'add') !== place) return;
+    if (document.querySelector('[role="dialog"][data-state="open"]')) return;
+    pendingRaga.current = null;
+    element.focus({ preventScroll: true });
+  };
 
   const save = (field: ItemField, value: DetailValue) =>
     void saveWith(
@@ -397,6 +424,22 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
       next,
       gate.after(() => setRagas(item.id, next, { catalog: currentCatalog() ?? undefined })),
     );
+  const removeRaga = (index: number) => {
+    const value = ragas[index];
+    if (!value) return;
+    setOpen(null);
+    pendingRaga.current = index;
+    void saveWith(
+      target('ragas'),
+      ragas.filter((_, i) => i !== index),
+      gate.after(async () => {
+        const removed = await removePiece(item.id, { field: 'ragas', index, value });
+        if (removed) offerUndo(removed.receipt);
+        return removed;
+      }),
+    );
+  };
+
   const improvised = shown('improvised', item.improvised);
   const saveImprovised = (next: Item['improvised']) =>
     void saveWith(
@@ -404,22 +447,101 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
       next,
       gate.after(() => setImprovised(item.id, next)),
     );
-  // The Laya vinyasam is whether there is one, with its Nadai; its note has its own target and
-  // write, so typing the note never rebuilds the Nadai from a value not yet saved.
-  const laya = shown<{ nadai: DetailValue } | null>('layaVinyasam', item.layaVinyasam);
+  const setPart = (kind: ImprovisedKind, partRagas: (DetailValue | null)[]) =>
+    saveImprovised(
+      improvised.map((part) =>
+        part.kind === kind ? { ...part, ragas: settlePartRagas(partRagas) } : part,
+      ),
+    );
+  // A part turned off, or its own Ragas removed, offers Undo, Ragas and all (§4).
+  const turnOffPart = (kind: ImprovisedKind) =>
+    void saveWith(
+      target('improvised'),
+      improvised.filter((part) => part.kind !== kind),
+      gate.after(async () => {
+        const removed = await removePiece(item.id, { field: 'improvised', kind });
+        if (removed) offerUndo(removed.receipt);
+        return removed;
+      }),
+    );
+  const removePartRaga = (kind: ImprovisedKind, slot: number | 'all') => {
+    const part = improvised.find((heard) => heard.kind === kind);
+    if (!part) return;
+    setOpen(null);
+    void saveWith(
+      target('improvised'),
+      improvised.map((heard) =>
+        heard === part
+          ? {
+              ...heard,
+              ragas:
+                slot === 'all' ? [] : settlePartRagas(heard.ragas.filter((_, i) => i !== slot)),
+            }
+          : heard,
+      ),
+      gate.after(async () => {
+        const removed = await removePartRagas(
+          item.id,
+          kind,
+          slot === 'all' ? 'all' : { index: slot, value: part.ragas[slot] ?? null },
+        );
+        if (removed) offerUndo(removed.receipt);
+        return removed;
+      }),
+    );
+  };
+  const turnOnPart = (kind: ImprovisedKind) => {
+    if (!hintShown()) {
+      markHintShown();
+      setHint(kind);
+    }
+    saveImprovised([...improvised, { kind, ragas: [] }]);
+  };
+  const openPart = (kind: ImprovisedKind) => {
+    setHint(null);
+    setOpen({ kind: 'part', part: kind });
+  };
+
+  // The Layavinyasam is whether there is one, with its nadais; its note has its own target and
+  // write, so typing the note never rebuilds the nadais from a value not yet saved.
+  const laya = shown<{ nadais: DetailValue[] } | null>('layaVinyasam', item.layaVinyasam);
   const layaNote = shown('layaNote', item.layaVinyasam?.note ?? null);
-  const saveLayaNadai = (nadai: DetailValue) =>
+  const nadais = laya?.nadais ?? [];
+  const saveNadais = (next: DetailValue[]) =>
     void saveWith(
       target('layaVinyasam'),
-      { nadai },
-      gate.after(() => setLayaNadai(item.id, nadai)),
+      { nadais: next },
+      gate.after(() => setLayaNadais(item.id, next)),
     );
+  const removeNadai = (index: number) => {
+    const value = nadais[index];
+    if (!value) return;
+    setLayaSelected(Math.max(0, Math.min(index, nadais.length - 2)));
+    void saveWith(
+      target('layaVinyasam'),
+      { nadais: nadais.filter((_, i) => i !== index) },
+      gate.after(async () => {
+        const removed = await removePiece(item.id, { field: 'nadais', index, value });
+        if (removed) offerUndo(removed.receipt);
+        return removed;
+      }),
+    );
+  };
   const removeLaya = () =>
     void saveWith(
       target('layaVinyasam'),
       null,
-      gate.after(() => setLayaVinyasam(item.id, null)),
+      gate.after(async () => {
+        const removed = await removePiece(item.id, { field: 'layaVinyasam' });
+        if (removed) offerUndo(removed.receipt);
+        return removed;
+      }),
     );
+  const tala = shown('tala', item.tala);
+  const nadai = shown('nadai', item.nadai);
+  const talaNadai = talaNadaiName(tala, nadai);
+  const talaNadaiKey =
+    talaNadai === null ? null : nadai.state === 'na' ? 'chatusra' : (nadai.key ?? null);
 
   // One write: the pick, the Details it clears and the logging note (store/items.ts repickItem).
   // It waits for the catalog (for a while at most), so a Guess is never taken for the old song's
@@ -460,9 +582,13 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
       onOpen={() => setOpen({ kind: 'detail', field })}
     />
   );
-  const improvisedOpen = foldOpen ?? (improvised.length > 0 || laya !== null);
-  if (foldOpen === null) setFoldOpen(improvisedOpen);
+  const manodharmaOpen = foldOpen ?? improvised.length > 0;
+  if (foldOpen === null) setFoldOpen(manodharmaOpen);
   const form = shown('form', item.form);
+  const itemRaga = ragas[0] ?? null;
+  const rtp = isRtp({ form });
+  const openPartKind = sheet?.kind === 'part' ? sheet.part : null;
+  const openPartValue = improvised.find((part) => part.kind === openPartKind);
 
   return (
     <>
@@ -487,6 +613,9 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
           </DropdownMenu>
         }
       />
+      <p aria-live="polite" className="sr-only">
+        {announcement}
+      </p>
 
       <Saved target={[target('*'), target('pick'), target('deletedAt')]}>
         <h1
@@ -510,200 +639,138 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
         </h1>
       </Saved>
 
-      {/* Ragas first, as values in the order sung (design D25), each tapped to change, and a
-          muted "+" for another: values, not pills (walkthrough P2, FB-42). */}
-      <Saved target={target('ragas')} className="pb-2">
-        {/* The label and Edit order share one line; the button's 48px reaches past it. */}
-        <div className="flex min-h-5 items-center justify-between">
-          <span className="text-sub text-muted-foreground">
+      {/* The Details on one panel, with no lines inside (§2): the Raga line full width, then
+          Tala | Composer, Language | Subject, and Form, each a 68px label-over-value cell. */}
+      {/* Under the title block, as the signed-off mock places it (§2, §6). */}
+      <Panel as="div">
+        <Saved target={target('ragas')} className="-mx-2 px-2 py-3">
+          <span className="block text-sub text-muted-foreground">
             {ragas.length > 1 ? 'Ragas' : 'Raga'}
           </span>
-          {ragas.length >= 2 && (
-            <QuietButton className="-my-4 -mr-2" onClick={() => setRagaOrder(!ragaOrder)}>
-              {ragaOrder ? 'Done' : 'Edit order'}
-            </QuietButton>
-          )}
-        </div>
-        <div role="list" aria-label="Ragas, in order" className="flex flex-wrap items-center">
-          {ragas.map((raga, index) => (
-            <span role="listitem" key={index} className="flex items-center">
-              {ragaOrder && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  disabled={index === 0}
-                  aria-label={`Move ${detailText(raga) || 'Raga'} earlier`}
-                  onClick={() => saveRagas(swap(ragas, index, index - 1))}
+          {/* Each Raga is its own 48px target and a comma stays with its Raga; wrapped lines
+              step 48px, so every target is whole and none overlap (§3). */}
+          <div role="list" aria-label="Ragas, in order" className="-my-3 flex flex-wrap">
+            {ragas.map((raga, index) => (
+              <span role="listitem" key={index} className="flex items-center">
+                <ValueButton
+                  ref={takeFocus(index)}
+                  aria-label={`${detailText(raga) || 'Raga'}, Raga ${index + 1} of ${ragas.length}${raga.guess ? ', guess' : ''}`}
+                  onClick={() => setOpen({ kind: 'raga', index })}
+                  className="min-w-0 no-underline"
                 >
-                  <IconArrowLeft aria-hidden />
-                </Button>
-              )}
-              <ValueButton
-                aria-label={spokenDetail(`Raga ${index + 1}`, raga)}
-                onClick={() => setOpen({ kind: 'raga', index })}
-              >
-                <ValueText value={raga} />
-              </ValueButton>
-              {ragaOrder ? (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  disabled={index === ragas.length - 1}
-                  aria-label={`Move ${detailText(raga) || 'Raga'} later`}
-                  onClick={() => saveRagas(swap(ragas, index, index + 1))}
-                >
-                  <IconArrowRight aria-hidden />
-                </Button>
-              ) : (
-                index < ragas.length - 1 && (
-                  <span aria-hidden className="mr-2 text-muted-foreground">
-                    ,
+                  <span className="underline decoration-border underline-offset-4">
+                    <ValueText value={raga} />
                   </span>
-                )
-              )}
-            </span>
-          ))}
-          {ragas.length === 0 && (
-            <ValueButton
-              aria-label="Raga, unknown"
-              onClick={() => setOpen({ kind: 'raga', index: 0 })}
-            >
-              ?
-            </ValueButton>
-          )}
-          {ragas.length > 0 && !ragaOrder && (
-            <AddButton
-              label="Add Raga"
-              onClick={() => setOpen({ kind: 'raga', index: ragas.length })}
-            />
-          )}
+                  {index < ragas.length - 1 && (
+                    <span aria-hidden className="text-muted-foreground">
+                      ,
+                    </span>
+                  )}
+                </ValueButton>
+                {index < ragas.length - 1 && <span aria-hidden className="w-2" />}
+              </span>
+            ))}
+            {ragas.length === 0 && (
+              <ValueButton
+                ref={takeFocus(0)}
+                aria-label="Raga, unknown"
+                onClick={() => setOpen({ kind: 'raga', index: 0 })}
+              >
+                ?
+              </ValueButton>
+            )}
+            {ragas.length > 0 && (
+              <AddButton
+                ref={takeFocus('add')}
+                label="Add Raga"
+                // Its ink 8px after the word, as a comma's 8px.
+                className="-ml-1.5"
+                onClick={() => setOpen({ kind: 'raga', index: ragas.length })}
+              />
+            )}
+          </div>
+          <ValueNotes value={ragas[0] ?? unknownValue()} suggested={suggested.ragas?.[0]} />
+        </Saved>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(max(calc(8*var(--text-body)),calc(50%-8px)),1fr))] gap-x-4">
+          {cell('tala', item.tala, talaText({ tala, nadai }))}
+          {cell('composer', item.composer)}
+          {cell('language', item.language)}
+          {cell('subject', item.subject)}
+          {cell('form', item.form, formText(form))}
         </div>
-        <ValueNotes value={ragas[0] ?? unknownValue()} suggested={suggested.ragas?.[0]} />
-      </Saved>
+      </Panel>
 
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,calc(8*var(--text-body))),1fr))] gap-x-4">
-        {cell(
-          'tala',
-          item.tala,
-          talaText({ tala: shown('tala', item.tala), nadai: shown('nadai', item.nadai) }),
-        )}
-        {cell('composer', item.composer)}
-        {cell('language', item.language)}
-        {cell('subject', item.subject)}
-        {cell('form', item.form, formText(form))}
-      </div>
-
-      {/* One fold for what was improvised, the Laya vinyasam a row like the others (S14). A
-          chip's own state shows its save, so none of it plays the highlight (P7). */}
-      {/* A label over its panel, 32px under the last line above (foundations, 2026-11-16). */}
+      {/* Manodharma: one fold of List rows with a check (§4). A part's own state shows its save,
+          so none of it plays the highlight (P7). A label over its panel, 32px under the panel
+          above (foundations, 2026-11-16). */}
       <Fold
-        title="Improvised"
-        open={improvisedOpen}
+        title="Manodharma"
+        open={manodharmaOpen}
         onOpenChange={setFoldOpen}
         line={false}
-        last
-        className="mt-2.5"
+        className="mt-4"
       >
-        <Saved target={[target('improvised'), target('layaVinyasam'), target('layaNote')]} quiet>
+        <Saved target={target('improvised')} quiet>
           <Panel>
-            {IMPROVISED_KINDS.map((kind) => {
-              const heard = improvised.find((entry) => entry.kind === kind);
-              return (
-                <li key={kind} className="flex flex-wrap items-center gap-2 py-3 hairline-b">
-                  <Chip
-                    pressed={heard !== undefined}
-                    onClick={() =>
-                      saveImprovised(
-                        heard
-                          ? improvised.filter((entry) => entry.kind !== kind)
-                          : [...improvised, { kind, raga: null }],
-                      )
-                    }
-                  >
-                    {IMPROVISED_NAMES[kind]}
-                  </Chip>
-                  {heard && (
-                    <ValueButton
-                      onClick={() => setOpen({ kind: 'improvised', heard: kind })}
-                      aria-label={
-                        heard.raga
-                          ? spokenDetail(`${IMPROVISED_NAMES[kind]} Raga`, heard.raga)
-                          : `${IMPROVISED_NAMES[kind]} Raga, the Item’s Raga`
-                      }
-                      className="text-sub text-muted-foreground"
-                    >
-                      {heard.raga ? <ValueText value={heard.raga} /> : 'In the Item’s Raga'}
-                    </ValueButton>
-                  )}
-                </li>
-              );
-            })}
-            <li className="flex flex-col py-3 hairline-b">
-              <div className="flex min-h-12 flex-wrap items-center gap-2">
-                <Chip
-                  pressed={laya !== null}
-                  // Tapped again it is removed, like the others, but never with a note typed
-                  // under it: one tap would lose the text, so the tap goes to the note instead,
-                  // to clear it first.
-                  onClick={() =>
-                    !laya
-                      ? saveLayaNadai(notApplicableValue())
-                      : layaNote
-                        ? layaNoteField.current?.focus()
-                        : removeLaya()
-                  }
-                >
-                  Laya vinyasam
-                </Chip>
-                {/* The Tala's usual nadai until asked for (FB-29): many rasikas won't know it. */}
-                {laya &&
-                  (laya.nadai.state === 'na' ? (
-                    <AddButton label="Nadai" onClick={() => setOpen({ kind: 'laya' })} text />
-                  ) : (
-                    <ValueButton
-                      aria-label={spokenDetail('Laya vinyasam nadai', laya.nadai)}
-                      onClick={() => setOpen({ kind: 'laya' })}
-                      className="text-sub text-muted-foreground"
-                    >
-                      {laya.nadai.state === 'unknown' ? '?' : detailText(laya.nadai)} nadai
-                      {laya.nadai.guess && ' (?)'}
-                    </ValueButton>
-                  ))}
-              </div>
-              {laya && (
-                // Grows open under its row rather than appearing at full height.
-                <div className="grow-in">
-                  <div>
-                    <div className="pt-2">
-                      <LayaNote
-                        fieldRef={layaNoteField}
-                        stored={layaNote}
-                        onSave={(note) => {
-                          // A note still pending when the Laya vinyasam is removed goes with it.
-                          if (shown('layaVinyasam', item.layaVinyasam) === null) {
-                            feedback.release(target('layaNote'));
-                            return;
-                          }
-                          void saveWith(
-                            target('layaNote'),
-                            note,
-                            gate.after(() => setLayaNote(item.id, note)),
-                          );
-                        }}
-                        onPending={(note) =>
-                          note === null
-                            ? feedback.release(target('layaNote'))
-                            : feedback.hold(target('layaNote'), note)
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </li>
+            <ManodharmaRows
+              parts={improvised}
+              itemRaga={itemRaga}
+              rtp={rtp}
+              hint={hint}
+              onTurnOn={turnOnPart}
+              onTurnOff={turnOffPart}
+              onOpen={openPart}
+            />
           </Panel>
         </Saved>
       </Fold>
+
+      {/* The Layavinyasam: its own one-row panel, 32px under Manodharma, always shown (§5). */}
+      <Saved target={[target('layaVinyasam'), target('layaNote')]} quiet className="mt-4">
+        <Panel>
+          <LayavinyasamRow
+            on={laya !== null}
+            nadais={nadais}
+            talaNadai={talaNadai}
+            noteTyped={!!layaNote}
+            onTurnOn={() => saveNadais([])}
+            onTurnOff={removeLaya}
+            onNote={() => {
+              // The decided rule (2026-11-05): with a note typed, the tap goes to the note, its
+              // text selected, to clear it first.
+              layaNoteField.current?.focus();
+              layaNoteField.current?.select();
+            }}
+            onOpen={() => {
+              setLayaSelected(0);
+              setOpen({ kind: 'laya' });
+            }}
+            note={
+              <LayaNote
+                fieldRef={layaNoteField}
+                stored={layaNote}
+                onSave={(note) => {
+                  // A note still pending when the Layavinyasam is removed goes with it.
+                  if (shown('layaVinyasam', item.layaVinyasam) === null) {
+                    feedback.release(target('layaNote'));
+                    return;
+                  }
+                  void saveWith(
+                    target('layaNote'),
+                    note,
+                    gate.after(() => setLayaNote(item.id, note)),
+                  );
+                }}
+                onPending={(note) =>
+                  note === null
+                    ? feedback.release(target('layaNote'))
+                    : feedback.hold(target('layaNote'), note)
+                }
+              />
+            }
+          />
+        </Panel>
+      </Saved>
 
       <BottomDock>
         <div className="flex flex-wrap gap-2">
@@ -735,7 +802,7 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
               <div className="flex flex-col gap-2 pt-3">
                 <span className="text-sub text-muted-foreground">Nadai</span>
                 <NadaiChips
-                  value={shown('nadai', item.nadai)}
+                  value={nadai}
                   allowUnknown
                   onChange={(value) => save('nadai', value)}
                   onOther={() => setOpen({ kind: 'detail', field: 'nadai' })}
@@ -746,72 +813,77 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
         />
       )}
       {sheet?.kind === 'raga' && (
-        <DetailInput
+        <RagaSheet
           open={sheetOpen}
           onOpenChange={(next) => !next && setOpen(null)}
-          field="raga"
-          title={ragas.length > 1 || sheet.index > 0 ? `Raga ${sheet.index + 1}` : 'Raga'}
-          value={ragas[sheet.index] ?? unknownValue()}
+          ragas={ragas}
+          index={sheet.index}
           suggested={suggested.ragas?.[sheet.index]}
           onChange={(value) => {
             const next = [...ragas];
             next[sheet.index] = value;
             saveRagas(next);
           }}
-          extra={
-            ragas.length > 1 && sheet.index < ragas.length ? (
-              <QuietButton
-                className="-ml-2 self-start"
-                onClick={() => {
-                  setOpen(null);
-                  saveRagas(ragas.filter((_, i) => i !== sheet.index));
-                }}
-              >
-                Remove this Raga
-              </QuietButton>
-            ) : undefined
-          }
+          onMove={(by) => {
+            const to = sheet.index + by;
+            const moving = ragas[sheet.index]!;
+            const next = [...ragas];
+            [next[sheet.index], next[to]] = [next[to]!, moving];
+            saveRagas(next);
+            // The sheet stays open, its title following the Raga (§3).
+            setOpen({ kind: 'raga', index: to });
+            announce(`${detailText(moving) || 'Raga'}, now Raga ${to + 1} of ${ragas.length}`);
+          }}
+          onRemove={() => removeRaga(sheet.index)}
         />
       )}
-      {sheet?.kind === 'improvised' && (
-        <DetailInput
+      {sheet?.kind === 'part' && openPartValue && (
+        <PartSheet
           open={sheetOpen}
           onOpenChange={(next) => !next && setOpen(null)}
-          field="raga"
-          title={`${IMPROVISED_NAMES[sheet.heard]} Raga`}
-          value={improvised.find((entry) => entry.kind === sheet.heard)?.raga ?? unknownValue()}
-          onChange={(value) =>
-            saveImprovised(
-              improvised.map((entry) =>
-                entry.kind === sheet.heard ? { ...entry, raga: value } : entry,
-              ),
-            )
-          }
-          extra={
-            <QuietButton
-              className="-ml-2 self-start"
-              onClick={() => {
-                setOpen(null);
-                saveImprovised(
-                  improvised.map((entry) =>
-                    entry.kind === sheet.heard ? { ...entry, raga: null } : entry,
-                  ),
-                );
-              }}
-            >
-              In the Item’s Raga
-            </QuietButton>
-          }
+          part={openPartValue}
+          itemRaga={itemRaga}
+          onSave={(next) => setPart(openPartValue.kind, next)}
+          onRemove={(index) => removePartRaga(openPartValue.kind, index)}
+          onFollow={() => removePartRaga(openPartValue.kind, 'all')}
+          onAnnounce={announce}
         />
       )}
       {sheet?.kind === 'laya' && laya && (
+        <LayavinyasamSheet
+          open={sheetOpen}
+          onOpenChange={(next) => !next && setOpen(null)}
+          nadais={nadais}
+          talaNadai={talaNadai}
+          talaNadaiKey={talaNadaiKey}
+          selected={layaSelected}
+          onSelect={setLayaSelected}
+          onSave={saveNadais}
+          onRemove={removeNadai}
+          onOther={() => setOpen({ kind: 'layaOther' })}
+          onAnnounce={announce}
+        />
+      )}
+      {sheet?.kind === 'layaOther' && laya && (
         <DetailInput
           open={sheetOpen}
           onOpenChange={(next) => !next && setOpen(null)}
           field="nadai"
-          title="Laya vinyasam nadai"
-          value={laya.nadai}
-          onChange={(nadai) => saveLayaNadai(nadai)}
+          title="Nadai"
+          value={
+            layaSelected === 'add' || nadais.length === 0
+              ? unknownValue()
+              : (nadais[Math.min(layaSelected, nadais.length - 1)] ?? unknownValue())
+          }
+          onChange={(value) => {
+            if (value.state === 'na') return;
+            if (nadais.length === 0) saveNadais([value]);
+            else if (layaSelected === 'add') saveNadais([...nadais, value]);
+            else {
+              const at = Math.min(layaSelected, nadais.length - 1);
+              saveNadais(nadais.map((old, index) => (index === at ? value : old)));
+            }
+          }}
         />
       )}
       {sheet?.kind === 'composition' && (
@@ -831,79 +903,58 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
   );
 }
 
-function swap<T>(list: readonly T[], a: number, b: number): T[] {
-  const next = [...list];
-  [next[a], next[b]] = [next[b]!, next[a]!];
-  return next;
-}
-
-/** A value with its state (DESIGN.md "Detail values and their six states"). */
-function ValueText({ value, text }: { value: DetailValue; text?: string }) {
-  if (value.state === 'na' && !text)
-    return <span className="text-muted-foreground">Not applicable</span>;
-  const shown = text ?? detailText(value);
-  return (
-    <span>
-      {shown}
-      {value.guess && <span className="text-muted-foreground"> (?)</span>}
-    </span>
-  );
-}
-
-/** The muted line under a value: "not matched", or "catalog: Todi" on an Override. */
-function ValueNotes({ value, suggested }: { value: DetailValue; suggested?: DetailValue }) {
-  if (value.state === 'unresolved')
-    return <span className="block text-caption text-muted-foreground">not matched</span>;
-  if (value.state === 'override' && suggested) {
-    return (
-      <span className="block text-caption text-muted-foreground">
-        catalog: {detailText(suggested)}
-      </span>
-    );
-  }
-  return null;
-}
-
-/** A value tapped to change it, underlined as every value is (walkthrough P2, FB-33). */
-function ValueButton({ className, ...props }: React.ComponentProps<'button'>) {
-  return (
-    <button
-      type="button"
-      className={cn(
-        'min-h-12 min-w-12 rounded-xl text-left underline decoration-border underline-offset-4',
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
 /**
- * Adding a value: a muted "+", not a pill (walkthrough P2, FB-32). Alone, the mark carries the
- * meaning and `label` is its name; with `text`, the label shows after it ("+ Nadai").
+ * A Raga's sheet (§3): "Raga 2", spoken "Raga 2 of 3", then "Now: Kanada", the chips ("?" and
+ * "Not sure" with two or more; "N/A" too for a lone Raga), "← Earlier", "Later →" and "Remove"
+ * with two or more, and the box. A Raga being added (from the +) has none of the three.
  */
-function AddButton({
-  label,
-  onClick,
-  text = false,
+function RagaSheet({
+  open,
+  onOpenChange,
+  ragas,
+  index,
+  suggested,
+  onChange,
+  onMove,
+  onRemove,
 }: {
-  label: string;
-  onClick(): void;
-  text?: boolean;
+  open: boolean;
+  onOpenChange(open: boolean): void;
+  ragas: DetailValue[];
+  index: number;
+  suggested?: DetailValue;
+  onChange(value: DetailValue): void;
+  onMove(by: -1 | 1): void;
+  onRemove(): void;
 }) {
+  const adding = index >= ragas.length;
+  const several = ragas.length > 1 || (adding && ragas.length > 0);
+  const title = several || index > 0 ? `Raga ${index + 1}` : 'Raga';
+  const count = adding ? ragas.length + 1 : ragas.length;
+  const value = ragas[index] ?? unknownValue();
   return (
-    <button
-      type="button"
-      aria-label={text ? undefined : label}
-      onClick={onClick}
-      className={cn(
-        'inline-flex min-h-12 items-center gap-1 rounded-xl text-sub text-muted-foreground',
-        text ? 'px-2' : 'min-w-12 justify-center',
-      )}
-    >
-      <IconPlus aria-hidden className="size-5" />
-      {text && label}
-    </button>
+    <DetailInput
+      open={open}
+      onOpenChange={onOpenChange}
+      field="raga"
+      title={title}
+      spokenTitle={several ? `Raga ${index + 1} of ${count}` : undefined}
+      value={value}
+      suggested={suggested}
+      na={!several}
+      onChange={onChange}
+      extra={
+        !adding && ragas.length > 1 ? (
+          <MoveLine
+            index={index}
+            count={ragas.length}
+            name={detailText(value) || 'Raga'}
+            onMove={onMove}
+            onRemove={onRemove}
+          />
+        ) : undefined
+      }
+    />
   );
 }
 
@@ -926,12 +977,14 @@ function DetailCell({
   onOpen(): void;
 }) {
   return (
-    <Saved target={target}>
+    // Each cell is one target and one spoken element, its full height; across the 16px gap the
+    // two targets meet at its middle, so no strip is dead (§2).
+    <Saved target={target} className="-mx-2">
       <button
         type="button"
         aria-label={spokenDetail(name, value)}
         onClick={onOpen}
-        className="flex min-h-16 w-full flex-col items-start justify-center rounded-xl py-2 text-left"
+        className="flex min-h-[68px] w-full flex-col items-start rounded-xl px-2 py-3 text-left focus-visible:-outline-offset-2"
       >
         <span className="text-sub text-muted-foreground">{name}</span>
         <span
@@ -955,7 +1008,10 @@ function formText(value: DetailValue): string | undefined {
     : undefined;
 }
 
-/** The Laya vinyasam's note, saved as the rasika pauses, leaves the field or the app. */
+/**
+ * The Layavinyasam's note, saved as the rasika pauses, leaves the field or the app. Its label
+ * sits 8px over it, tied to it; it starts at one line (48px) and grows with its text (§5).
+ */
 function LayaNote({
   fieldRef,
   stored,
@@ -968,16 +1024,23 @@ function LayaNote({
   onPending(note: string | null): boolean | void;
 }) {
   const note = useAutosave(stored ?? '', onSave, onPending);
+  useLayoutEffect(() => {
+    const field = fieldRef.current;
+    if (!field) return;
+    field.style.height = 'auto';
+    field.style.height = `${field.scrollHeight}px`;
+  }, [fieldRef, note.text]);
   return (
-    <label className="flex flex-col gap-1">
+    <label className="flex flex-col gap-2">
       <span className="text-sub text-muted-foreground">Note</span>
       <textarea
         ref={fieldRef}
         value={note.text}
-        rows={2}
+        rows={1}
         onChange={(e) => note.change(e.target.value)}
         onBlur={note.flush}
-        className="w-full rounded-fill bg-secondary p-4 text-body"
+        // A fill a step from the panel's, so it reads as a field on it.
+        className="min-h-12 w-full resize-none overflow-hidden rounded-fill bg-input px-4 py-3 text-body dark:bg-secondary"
       />
     </label>
   );

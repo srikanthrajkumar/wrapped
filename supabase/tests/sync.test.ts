@@ -647,3 +647,40 @@ describe('a support mark round-trips (2026-11-10)', () => {
     expect(own.get(`appearances:${legacy.id}`)).not.toHaveProperty('support');
   });
 });
+
+describe('Manodharma Ragas and Layavinyasam nadais as lists round-trip (ADR 0012)', () => {
+  it('pushes Items in the new shape and one in the old, and pulls each back as sent', async () => {
+    const rasika = await signUpWriter();
+    const concert = newEvent({ kind: 'concert', title: null });
+    const kanada = { state: 'catalog', key: 'kanada', text: 'Kanada', guess: false } as const;
+    const khanda = { state: 'catalog', key: 'khanda', text: 'khanda', guess: true } as const;
+    const unknown = { state: 'unknown', key: null, text: '?', guess: false } as const;
+    const lists = newItem(concert.id, 1, {
+      improvised: [
+        // A null slot holds the Item's Raga, live.
+        { kind: 'alapana', ragas: [null, kanada, unknown] },
+        { kind: 'kalpana_swaram', ragas: [] },
+      ],
+      layaVinyasam: { nadais: [khanda, unknown], note: 'koraippu' },
+    });
+    const tala = newItem(concert.id, 2, { layaVinyasam: { nadais: [], note: null } });
+    // A row a phone stored before 0.4.0: kept as sent, for the phone to upgrade as it pulls.
+    const legacy = {
+      ...newItem(concert.id, 3),
+      improvised: [{ kind: 'tanam', raga: kanada }],
+      layaVinyasam: { nadai: khanda, note: null },
+    } as unknown as Item;
+    const sent: PushOp[] = [
+      op('events', concert),
+      op('items', lists),
+      op('items', tala),
+      op('items', legacy),
+    ];
+    expect((await pushOk(rasika, sent)).rejected).toEqual([]);
+
+    const own = latestRows(
+      (await pullAll(rasika)).changes.filter((c) => !c.table.startsWith('shared')),
+    );
+    for (const o of sent) expect(own.get(`${o.table}:${o.row.id}`)).toEqual(o.row);
+  });
+});

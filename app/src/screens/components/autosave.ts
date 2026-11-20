@@ -1,4 +1,4 @@
-// Free text that saves as the rasika types (the Event note, the Laya vinyasam note): saved once
+// Free text that saves as the rasika types (the Event note, the Layavinyasam note): saved once
 // typing pauses, when the field loses focus, when the page is hidden (iOS does not reliably blur
 // a field on lock, app switch or kill, but does fire pagehide and visibilitychange) and when the
 // field goes away. A newer stored value replaces the text only while nothing typed is pending.

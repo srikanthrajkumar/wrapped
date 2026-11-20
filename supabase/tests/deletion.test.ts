@@ -52,7 +52,7 @@ async function rasikaWithSeason(seasonReports: boolean | null) {
     newItem(event.id, 1, { note: notes[1]! }),
     newItem(event.id, 2, {
       layaVinyasam: {
-        nadai: { state: 'catalog', key: 'khanda', text: 'Khanda', guess: false },
+        nadais: [{ state: 'catalog', key: 'khanda', text: 'Khanda', guess: false }],
         note: notes[2]!,
       },
     }),

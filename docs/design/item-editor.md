@@ -364,7 +364,13 @@ Settled here and not asked; open to the user's veto.
   edit page focuses its title block.
 - **Delete** is unchanged: ⋯ → "Delete Item", back to the Concert, with the Undo bar.
 - **Undo copy:** "Raga removed", "Alapana removed" (the part's name), "Layavinyasam removed" and
-  "Nadai removed", on the existing Undo bar.
+  "Nadai removed", on the existing Undo bar. In a part's sheet, "Remove" on one of its own Ragas
+  reads "Raga removed", and "Use the Item’s Raga only" reads "Ragas removed" (the user,
+  2026-11-20, at the build).
+- **The Tala's nadai** ("Tala’s nadai: Chatusra", "Chatusra   + Nadai") is the Tala's Nadai when
+  one is set, and otherwise Chatusra for every known Tala, chapu talas included (the user,
+  2026-11-20, at the build: "Keep Chatusra"). With the Tala "?" or "N/A", or its Nadai "?", none
+  is shown.
 - **The Nadai chips** read in sentence case ("Tisra", "Khanda"), as the Roles do, in the
   Layavinyasam's sheet and the Tala's. Today the Tala's read "tisra". Values in running text stay
   lower case ("Adi (khanda nadai)").

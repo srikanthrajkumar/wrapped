@@ -218,6 +218,8 @@ export const MESSAGES = {
     concertDeleted: 'Concert deleted',
     /** A change to Concert took the Event's title away (T122). */
     titleRemoved: 'Title removed',
+    /** A piece of an Item (ADR 0012): "Raga removed", "Alapana removed", "Nadai removed". */
+    pieceRemoved: (name: string) => `${name} removed`,
     /** What a screen reader hears after a delete. */
     spoken: (bar: string) => `${bar}. Undo available.`,
     /** What a failed Undo's bar names: the Item, Artist or Concert it would bring back. */

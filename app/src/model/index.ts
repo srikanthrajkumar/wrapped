@@ -3,5 +3,6 @@
 // (eng review D1); eslint.config.js enforces it.
 export * from './detail-value';
 export * from './ids';
+export * from './item-shape';
 export * from './records';
 export * from './sync-payloads';

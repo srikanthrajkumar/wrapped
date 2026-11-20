@@ -45,6 +45,9 @@ export function ragasText(ragas: readonly DetailValue[]): string | null {
 export function talaText(item: Pick<Item, 'tala' | 'nadai'>): string {
   const tala = detailText(item.tala);
   if (item.nadai.state === 'na') return tala;
+  // A Nadai it can't name is left out of a Tala it can't name: "?", not "? (? nadai)"
+  // (docs/design/item-editor.md §6). A known Tala keeps it: "Adi (? nadai)".
+  if (item.nadai.state === 'unknown' && item.tala.state === 'unknown') return tala;
   const nadai = item.nadai.state === 'unknown' ? '? nadai' : `${item.nadai.text} nadai`;
   return tala ? `${tala} (${nadai})` : `(${nadai})`;
 }
