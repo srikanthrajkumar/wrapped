@@ -134,7 +134,8 @@ the catalog, the same day (ADR 0009).
   by name or Alias, as it does a typed name.
 - **`role`** is a hint, not a fact: one of the Role values in [data-model.md](../data-model.md),
   or null when the listing doesn't say (about half of the billed people in the first dev feed).
-  The logger maps printed roles to these values rather than to `other` wherever one fits.
+  The logger maps printed roles to these values, never to `other` (2026-11-19): an instrument
+  with no Role yet is billed with none, and added to the list.
   - In a Lecdem, a person billed without a role is billed as `presenter`.
   - In a Harikatha, the performer is billed as `presenter`, with the accompanists in their Roles.
   - In a Dance, the dancers are `dancer`, the nattuvanar `nattuvangam`, and the musicians in

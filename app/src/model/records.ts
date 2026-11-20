@@ -23,7 +23,9 @@ export type Colour = (typeof COLOURS)[number];
 
 /**
  * What an Artist did at one Event. No Role ranks above another (FR-004). `support` is vocal
- * support. The last eight were added with the schedule feed (T057, 2026-11-06).
+ * support. Eight were added with the schedule feed (T057, 2026-11-06), and the last thirteen
+ * with the instrument picker (2026-11-19), so no instrument is put under `other`. `other` stays
+ * a valid stored value, but the picker never offers it (docs/design/instrument-picker.md).
  */
 export const ROLES = [
   'vocal',
@@ -44,6 +46,19 @@ export const ROLES = [
   'thavil',
   'dancer',
   'nattuvangam',
+  'madhuraveena',
+  'clarinet',
+  'guitar',
+  'keyboard',
+  'piano',
+  'sitar',
+  'sarod',
+  'santoor',
+  'jalatarangam',
+  'harmonium',
+  'viola',
+  'tabla',
+  'konnakol',
 ] as const;
 export type Role = (typeof ROLES)[number];
 

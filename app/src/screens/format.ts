@@ -97,7 +97,8 @@ export function eventLine(event: Pick<Event, 'date' | 'startTime'>, sabha?: stri
 }
 
 // Roles whose stored key is not their name (T057): `support` is vocal support.
-const ROLE_NAMES: Partial<Record<Role, string>> = { support: 'Vocal support' };
+/** The words a Role shows as where capitalising its key isn't how a rasika says it (2026-11-19). */
+const ROLE_NAMES: Partial<Record<Role, string>> = { support: 'Vocal support', khanjira: 'Kanjira' };
 
 /** A Role as shown, capitalised like the other chips: "Vocal". Stored lower case (FR-004). */
 export const roleName = (role: Role) =>
