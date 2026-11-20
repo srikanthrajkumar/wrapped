@@ -15,7 +15,7 @@ import {
 } from '../../src/store/people';
 import { listEventSummaries } from '../../src/store/queries';
 import { RuleError } from '../../src/store/rules';
-import { byStage, knownBy, STAGE_ORDER } from '../../src/store/stage';
+import { byStage, concertType, knownBy, STAGE_ORDER } from '../../src/store/stage';
 import type { WrappedDB } from '../../src/store/db';
 import { freshDb, reopen } from '../helpers';
 
@@ -28,6 +28,20 @@ const NEW_ROLES: Role[] = [
   'thavil',
   'dancer',
   'nattuvangam',
+  // The instrument picker's thirteen (2026-11-19).
+  'madhuraveena',
+  'clarinet',
+  'guitar',
+  'keyboard',
+  'piano',
+  'sitar',
+  'sarod',
+  'santoor',
+  'jalatarangam',
+  'harmonium',
+  'viola',
+  'tabla',
+  'konnakol',
 ];
 
 async function outboxRow(db: WrappedDB, id: string) {
@@ -147,7 +161,8 @@ describe('new kinds, Roles and group names are kept (required)', () => {
       createEvent({ kind: 'upanyasam' as Event['kind'] }, { db }),
     ).rejects.toBeInstanceOf(RuleError);
     await expect(
-      addAppearance(event.id, artist.id, { role: 'tabla' as Role }, { db }),
+      // A HandSonic pad has no Role (docs/design/instrument-picker.md §9).
+      addAppearance(event.id, artist.id, { role: 'handsonic' as Role }, { db }),
     ).rejects.toBeInstanceOf(RuleError);
     await expect(
       addAppearance(event.id, artist.id, { group: '  ' }, { db }),
@@ -202,6 +217,41 @@ describe('the Stage and the names an Event is known by', () => {
       'other',
       'presenter',
     ]);
+    // As a printed kutcheri listing places them (docs/design/instrument-picker.md §3).
+    expect(STAGE_ORDER).toEqual([
+      'dancer',
+      'nattuvangam',
+      'vocal',
+      'support',
+      'veena',
+      'chitravina',
+      'madhuraveena',
+      'flute',
+      'nagaswaram',
+      'saxophone',
+      'clarinet',
+      'mandolin',
+      'guitar',
+      'keyboard',
+      'piano',
+      'sitar',
+      'sarod',
+      'santoor',
+      'jalatarangam',
+      'harmonium',
+      'violin',
+      'viola',
+      'mridangam',
+      'thavil',
+      'tabla',
+      'ghatam',
+      'khanjira',
+      'morsing',
+      'konnakol',
+      'other',
+      'presenter',
+    ]);
+    expect(STAGE_ORDER).toHaveLength(31);
     const placed = (role: Role | null, position: number) => ({ role, position });
     expect(byStage(placed('nattuvangam', 2), placed('vocal', 1))).toBeLessThan(0);
     expect(byStage(placed('thavil', 1), placed(null, 2))).toBeLessThan(0);
@@ -222,6 +272,34 @@ describe('the Stage and the names an Event is known by', () => {
     }
     // Vocal support is not who a Concert is known by.
     expect(knownBy('concert', stage('vocal', 'support')).map((a) => a.role)).toEqual(['vocal']);
+  });
+
+  it('names a Concert by the new lead instruments, never by those that accompany (2026-11-19)', () => {
+    const stage = (...roles: Role[]) => roles.map((role, i) => ({ role, position: i + 1 }));
+    const leads: Role[] = [
+      'madhuraveena',
+      'clarinet',
+      'guitar',
+      'keyboard',
+      'piano',
+      'sitar',
+      'sarod',
+      'santoor',
+      'jalatarangam',
+    ];
+    for (const lead of leads) {
+      expect(knownBy('concert', stage(lead, 'tabla', 'harmonium')).map((a) => a.role)).toEqual([
+        lead,
+      ]);
+      expect(concertType('concert', stage(lead, 'tabla'))).toBe(lead);
+    }
+    // Harmonium, viola, tabla and konnakol accompany; the violin rule stays violin's own.
+    expect(knownBy('concert', stage('vocal', 'harmonium', 'viola', 'tabla', 'konnakol'))).toEqual([
+      { role: 'vocal', position: 1 },
+    ]);
+    expect(knownBy('concert', stage('viola', 'tabla')).map((a) => a.role)).toEqual(['viola']);
+    // A sitar and a veena on one Stage are a Jugalbandi (ADR 0011).
+    expect(concertType('concert', stage('sitar', 'veena', 'tabla'))).toBe('jugalbandi');
   });
 
   it('shows a Group by its name, once, and each member alone by their own (T121)', async () => {

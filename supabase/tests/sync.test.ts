@@ -572,6 +572,20 @@ describe('the kinds, Roles and group names of the schedule feed round-trip (T119
       'thavil',
       'dancer',
       'nattuvangam',
+      // The instrument picker's thirteen (2026-11-19).
+      'madhuraveena',
+      'clarinet',
+      'guitar',
+      'keyboard',
+      'piano',
+      'sitar',
+      'sarod',
+      'santoor',
+      'jalatarangam',
+      'harmonium',
+      'viola',
+      'tabla',
+      'konnakol',
     ] as const;
     const appearances = [
       ...roles.map((role, i) => ({ ...newAppearance(dance.id, artist.id, i + 1), role })),

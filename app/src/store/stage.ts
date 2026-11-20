@@ -7,7 +7,9 @@ import type { Appearance, EventKind, Role } from '../model';
 
 /**
  * The Roles in Stage order (DESIGN.md, "Stage order"); an Appearance with no Role comes after
- * them all. The Roles added on 2026-11-06 slot in without moving the earlier ones.
+ * them all. The Roles added on 2026-11-06 and 2026-11-19 slot in without moving the earlier ones,
+ * as a printed kutcheri listing places them: melody before percussion, lead melody before its
+ * accompaniment (docs/design/instrument-picker.md §3).
  */
 export const STAGE_ORDER = [
   'dancer',
@@ -16,16 +18,29 @@ export const STAGE_ORDER = [
   'support',
   'veena',
   'chitravina',
+  'madhuraveena',
   'flute',
   'nagaswaram',
   'saxophone',
+  'clarinet',
   'mandolin',
+  'guitar',
+  'keyboard',
+  'piano',
+  'sitar',
+  'sarod',
+  'santoor',
+  'jalatarangam',
+  'harmonium',
   'violin',
+  'viola',
   'mridangam',
   'thavil',
+  'tabla',
   'ghatam',
   'khanjira',
   'morsing',
+  'konnakol',
   'other',
   'presenter',
 ] as const satisfies readonly Role[];
@@ -52,7 +67,24 @@ export function byStage(a: Placed, b: Placed): number {
  * Roles, a Lecdem or a Harikatha by its presenters, a Dance by its dancers.
  */
 const KNOWN_BY: Record<EventKind, readonly Role[]> = {
-  concert: ['vocal', 'veena', 'chitravina', 'flute', 'nagaswaram', 'saxophone', 'mandolin'],
+  concert: [
+    'vocal',
+    'veena',
+    'chitravina',
+    'madhuraveena',
+    'flute',
+    'nagaswaram',
+    'saxophone',
+    'clarinet',
+    'mandolin',
+    'guitar',
+    'keyboard',
+    'piano',
+    'sitar',
+    'sarod',
+    'santoor',
+    'jalatarangam',
+  ],
   lecdem: ['presenter'],
   dance: ['dancer'],
   harikatha: ['presenter'],
@@ -130,16 +162,29 @@ export type ConcertType = Role | 'jugalbandi';
 const TYPED: readonly Role[] = [
   'veena',
   'chitravina',
+  'madhuraveena',
   'flute',
   'nagaswaram',
   'saxophone',
+  'clarinet',
   'mandolin',
+  'guitar',
+  'keyboard',
+  'piano',
+  'sitar',
+  'sarod',
+  'santoor',
+  'jalatarangam',
+  'harmonium',
   'violin',
+  'viola',
   'mridangam',
   'thavil',
+  'tabla',
   'ghatam',
   'khanjira',
   'morsing',
+  'konnakol',
 ];
 
 /**

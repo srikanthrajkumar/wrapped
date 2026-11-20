@@ -163,7 +163,9 @@ export function NamePicker({
   );
 }
 
-// The common Roles, shown first (DESIGN.md, "Artist and Sabha pickers"; Maintainer, 2026-11-06).
+// The first chips (docs/design/instrument-picker.md §4): the eight instruments billed most in
+// the 2026-27 feed, in Stage order. A Dance adds its dancers and nattuvanar; a Lecdem and a
+// Harikatha their presenters. Every other Role is behind "More" (2026-11-19).
 const COMMON_ROLES: ReadonlySet<Role> = new Set<Role>([
   'vocal',
   'veena',
@@ -173,18 +175,24 @@ const COMMON_ROLES: ReadonlySet<Role> = new Set<Role>([
   'ghatam',
   'khanjira',
   'morsing',
-  'other',
-  'presenter',
 ]);
-// At a Dance, the dancers and the nattuvanar join them.
-const DANCE_ROLES: ReadonlySet<Role> = new Set<Role>([...COMMON_ROLES, 'dancer', 'nattuvangam']);
+const FIRST_ROLES: Record<EventKind, ReadonlySet<Role>> = {
+  concert: COMMON_ROLES,
+  dance: new Set<Role>([...COMMON_ROLES, 'dancer', 'nattuvangam']),
+  lecdem: new Set<Role>([...COMMON_ROLES, 'presenter']),
+  harikatha: new Set<Role>([...COMMON_ROLES, 'presenter']),
+};
 
 /**
- * The Role chips, in Stage order: the common Roles first, the rest behind "More" (T120). The
- * current Role shows pressed, and tapping it again clears it; one behind More shows pressed
- * with More open, so it is never hidden. Right after an Artist is added (`skippable`), the
- * pressed one is the Artist's usual Role, chosen for them (walkthrough S6): tapping it keeps
- * it, and "Not sure" leaves the Role blank.
+ * The instrument picker (docs/design/instrument-picker.md): the first chips, then "More", which
+ * opens every other Role in place, after them in Stage order, so the chips the thumb was on never
+ * move. Nobody is put under "Other": the picker never offers it. A Role stored as `other` before
+ * 2026-11-19 shows pressed after the last Role, with More open; another chip replaces it, and
+ * tapping it clears it. The current Role shows pressed, and tapping it again clears it; one
+ * behind More shows pressed with More open, so it is never hidden. More stays open until the
+ * sheet closes. Right after an Artist is added (`skippable`), the pressed one is the Artist's
+ * usual Role, chosen for them (walkthrough S6): tapping it keeps it, and "Not sure" leaves the
+ * Role blank.
  */
 export function RoleChips({
   value = null,
@@ -193,31 +201,56 @@ export function RoleChips({
   onRole,
 }: {
   value?: Role | null;
-  /** The Event's kind: at a Dance, Dancer and Nattuvangam are in the first row. */
+  /** The Event's kind, which sets the first chips. */
   kind?: EventKind;
   skippable?: boolean;
   onRole(role: Role | null): void;
 }) {
-  const [moreOpen, setMoreOpen] = useState(false);
-  const first = kind === 'dance' ? DANCE_ROLES : COMMON_ROLES;
+  const first = FIRST_ROLES[kind] ?? COMMON_ROLES;
   const hidden = value !== null && !first.has(value);
-  const shown = STAGE_ORDER.filter((role) => first.has(role) || moreOpen || hidden);
+  const [moreOpen, setMoreOpen] = useState(hidden);
+  if (hidden && !moreOpen) setMoreOpen(true);
+  // Focus goes to the first chip revealed, so a screen reader reads on from there.
+  const revealing = useRef(false);
+  const focusRevealed = (element: HTMLButtonElement | null) => {
+    if (element && revealing.current) {
+      revealing.current = false;
+      element.focus();
+    }
+  };
+  const playable = STAGE_ORDER.filter((role) => role !== 'other');
+  const firstChips = playable.filter((role) => first.has(role));
+  const rest = moreOpen ? playable.filter((role) => !first.has(role)) : [];
+  const chip = (role: Role, revealed = false) => (
+    <Chip
+      key={role}
+      ref={revealed ? focusRevealed : undefined}
+      pressed={value === role}
+      onClick={() => onRole(value === role && !skippable ? null : role)}
+    >
+      {roleName(role)}
+    </Chip>
+  );
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sub text-muted-foreground">Role</p>
       <div role="group" aria-label="Role" className="flex flex-wrap gap-2">
-        {shown.map((role) => (
-          <Chip
-            key={role}
-            pressed={value === role}
-            onClick={() => onRole(value === role && !skippable ? null : role)}
-          >
-            {roleName(role)}
+        {firstChips.map((role) => chip(role))}
+        {rest.map((role, index) => chip(role, index === 0))}
+        {/* Stored before every instrument had its Role: kept, never offered (2026-11-19). */}
+        {value === 'other' && (
+          <Chip pressed onClick={() => onRole(null)}>
+            {roleName('other')}
           </Chip>
-        ))}
-        {!moreOpen && !hidden && (
-          // Opens in place: the chips it held follow the common ones, in Stage order.
-          <Chip aria-expanded={false} onClick={() => setMoreOpen(true)}>
+        )}
+        {!moreOpen && (
+          <Chip
+            aria-expanded={false}
+            onClick={() => {
+              revealing.current = true;
+              setMoreOpen(true);
+            }}
+          >
             More
             <IconChevronDown aria-hidden className="-mr-1 ml-1 size-4" />
           </Chip>

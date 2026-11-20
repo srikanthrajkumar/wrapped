@@ -49,7 +49,7 @@ describe('reading the feed (contracts/schedule-feed.md)', () => {
   it('reads a Role it does not know as none, ignores fields it does not know, and accepts billed [] and no time', () => {
     const [entry] = readScheduleFile(
       fileOf([
-        raw({ billed: [{ name: 'A', role: 'tabla', since: 2027 }], startTime: null, extra: 1 }),
+        raw({ billed: [{ name: 'A', role: 'handsonic', since: 2027 }], startTime: null, extra: 1 }),
       ]),
     )!.entries;
     expect(entry).toMatchObject({
