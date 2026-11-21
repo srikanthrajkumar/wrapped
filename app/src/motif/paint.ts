@@ -175,11 +175,10 @@ export function paintMotif(
   const ratio = Math.min(window.devicePixelRatio || 1, 2);
   const w = Math.round(width * ratio);
   const h = Math.round(height * ratio);
-  // The mesh weighs each colour by 1/distance, which leaves a sharp point at every colour's
-  // centre: a streak or a pinhole where two tones meet. A blur scaled to the mark smooths them.
-  // It is a CSS filter (Safari has no canvas filter), on a field drawn larger than the mark and
-  // scaled up past its box, so the blur's soft edge falls outside and the caller's overflow
-  // clips it.
+  // A blur scaled to the mark smooths the seams where two tones meet (the shader already
+  // softens each colour's centre, paper-shaders.ts). It is a CSS filter (Safari has no canvas
+  // filter), on a field drawn larger than the mark and scaled up past its box, so the blur's
+  // soft edge falls outside and the caller's overflow clips it.
   const blur = Math.max(2, Math.round(Math.min(w, h) * soft));
   const pad = blur * 2;
   const W = w + pad * 2;
