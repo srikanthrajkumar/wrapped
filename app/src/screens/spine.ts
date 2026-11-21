@@ -167,19 +167,21 @@ export interface Soon {
  * concerts under way or in the next slot qualify: the next start time today and any within 30
  * minutes of it, however far off. Up to four rows: the rasika's Shortlisted ones among them
  * first, then the rest of the next slot, then the others under way, the latest to start first,
- * so the 3:40 pick is never pushed out by concerts long under way. `hero` is the Event the hero
- * already shows as being logged, left out. With nothing left today the section is the next
- * day's, its first four in start order: the star marks a Shortlisted one where it falls.
+ * so the 3:40 pick is never pushed out by concerts long under way. With nothing left today the
+ * section is the next day's, its first four in start order: the star marks a Shortlisted one
+ * where it falls. `hero` is the Events the hero shows, its one or a choice's two: they are left
+ * out first, today and any other day, so the hub never shows one concert twice (the hub spec's
+ * decision 1, the user, 2026-11-21). The count is still the day's, the hero's included.
  */
 export function startingSoon(
   all: readonly Concert[],
   notes: Notes,
   now: Date,
-  hero: string | null = null,
+  hero: readonly string[] = [],
 ): Soon {
   const today = isoDay(now);
   const live = all.filter((concert) => !concert.cancelled);
-  const open = live.filter((concert) => hero === null || concert.own?.event.id !== hero);
+  const open = live.filter((concert) => !hero.includes(concert.own?.event.id ?? ''));
   const on = open.filter((concert) => underWay(concert, notes, now));
   const ahead = open.filter(
     (concert) => concert.date === today && (startMs(concert) ?? 0) > now.getTime(),
@@ -202,9 +204,13 @@ export function startingSoon(
       ).length,
     };
   }
-  const day = live.find((concert) => concert.date > today)?.date ?? null;
-  const ofDay = day === null ? [] : live.filter((concert) => concert.date === day);
-  return { day, rows: ofDay.slice(0, SOON_ROWS), count: ofDay.length };
+  const day = open.find((concert) => concert.date > today)?.date ?? null;
+  if (day === null) return { day, rows: [], count: 0 };
+  return {
+    day,
+    rows: open.filter((concert) => concert.date === day).slice(0, SOON_ROWS),
+    count: live.filter((concert) => concert.date === day).length,
+  };
 }
 
 /** A concert reads as near from this long before its start (the Maintainer, 2026-11-13). */

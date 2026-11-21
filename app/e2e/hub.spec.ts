@@ -198,8 +198,7 @@ test('at 3:40 the hub shows today’s next slot, how close it is, and What’s o
   await expect(concerts).toHaveCount(8);
   await expect(concerts.first()).toContainText('Singer early');
 
-  // Shortlisted, it is the rasika's: a star by its time, the hero on the hub, first in Starting
-  // soon, counted on the tile.
+  // Shortlisted, it is the rasika's: a star by its time, the hero on the hub, counted on the tile.
   await shortlist(page, 'Singer f4');
   await expect(
     today.getByRole('listitem').filter({ hasText: 'Singer f4' }).getByRole('img', {
@@ -213,17 +212,17 @@ test('at 3:40 the hub shows today’s next slot, how close it is, and What’s o
   await page.getByRole('main').getByRole('link', { name: 'Season', exact: true }).click();
   const next = page.getByRole('region', { name: 'Next' });
   await expect(next.getByRole('link')).toContainText('Singer f4');
-  await expect(next).toContainText('Sabha f4 · in 20 min');
+  // Time first, as a row says it (the hub spec's decision 3): "in 20 min" leads, in 600.
+  await expect(next).toContainText('in 20 min · Sabha f4');
+  expect(
+    await next.getByText('in 20 min').evaluate((node) => getComputedStyle(node).fontWeight),
+  ).toBe('600');
   // No chevron on the hero.
   await expect(next.locator('.tabler-icon-chevron-right')).toHaveCount(0);
-  expect((await soonRows(page))[0]).toBe('Singer f4');
-  // Its star ends the lead's line, in its own column at the row's right edge.
-  const mine = soon(page).getByRole('listitem').first();
-  const star = (await mine.getByRole('img', { name: 'Shortlisted' }).boundingBox())!;
-  const lead = (await mine.getByText('Singer f4').boundingBox())!;
-  expect(star.y).toBeGreaterThanOrEqual(lead.y);
-  expect(star.y + star.height).toBeLessThanOrEqual(lead.y + lead.height);
-  expect(Math.round(star.x + star.width)).toBeGreaterThanOrEqual(390 - 24 - 1);
+  // The hero's concert is not shown again under Today (the hub spec's decision 1): the rest of
+  // its slot, then the latest under way. The count is still the day's.
+  expect(await soonRows(page)).toEqual(['Singer d4', 'Singer e4', 'Singer g4', 'Singer b3']);
+  await expect(door(page)).toContainText('7');
   const tile = page.locator('main a[href="/shortlist"]');
   await expect(tile).toContainText('1 in 20 min');
   await tile.click();
@@ -251,7 +250,9 @@ test('a clash is a choice; the first Item makes a concert Heard; the Diary keeps
   const pick = page.getByRole('region', { name: 'Pick your dusk' });
   await expect(pick.getByRole('link')).toHaveCount(2);
   await expect(pick.getByRole('link').first()).toContainText('Singer f4');
-  await expect(pick.getByRole('link').first()).toContainText('Sabha f4 · in 20 min');
+  await expect(pick.getByRole('link').first()).toContainText('in 20 min · Sabha f4');
+  // Neither is shown again under Today: the next of the slot, then those under way.
+  expect(await soonRows(page)).toEqual(['Singer d4', 'Singer e4', 'Singer b3', 'Singer a1']);
 
   // One chosen: it opens ready for its first Item, which makes it Heard.
   await pick.getByRole('link').nth(1).click();
@@ -292,6 +293,19 @@ test('a clash is a choice; the first Item makes a concert Heard; the Diary keeps
   await expect(page.getByRole('region', { name: 'Now' }).getByRole('link')).toContainText(
     'Singer g4',
   );
+  // The one being logged is not shown again, neither under Today nor as the Diary's row; the
+  // other Shortlisted one leads Today, starred.
+  expect(await soonRows(page)).toEqual(['Singer f4', 'Singer d4', 'Singer e4', 'Singer b3']);
+  const diary = page.getByRole('region', { name: 'Diary', exact: true });
+  await expect(diary.locator('a[href="/diary"]')).toContainText('1');
+  await expect(diary.getByRole('listitem')).toHaveCount(0);
+  // Its star ends the lead's line, in its own column at the row's right edge.
+  const mine = soon(page).getByRole('listitem').first();
+  const star = (await mine.getByRole('img', { name: 'Shortlisted' }).boundingBox())!;
+  const lead = (await mine.getByText('Singer f4').boundingBox())!;
+  expect(star.y).toBeGreaterThanOrEqual(lead.y);
+  expect(star.y + star.height).toBeLessThanOrEqual(lead.y + lead.height);
+  expect(Math.round(star.x + star.width)).toBeGreaterThanOrEqual(390 - 24 - 1);
 });
 
 test('each tab keeps its own back stack, and the tab that is on returns to its top', async ({
@@ -444,6 +458,11 @@ test('under a Shortlist slot, a concert under way reads "● On now · Sabha"', 
   await page.clock.setFixedTime(at('16:10'));
   await page.reload();
   await page.locator('main h1').waitFor();
+  // In the hero, under way is the start time with no dot: its word says it (the hub spec's
+  // decision 3).
+  const pick = page.getByRole('region', { name: 'Pick your dusk' });
+  await expect(pick.getByRole('link').first()).toContainText('4:00 pm · Sabha f4');
+  await expect(pick.locator('.rounded-full')).toHaveCount(0);
   await tab(page, 'Shortlist').click();
   const row = page.locator('main [data-row="concert"]', { hasText: 'Singer f4' });
   const facts = row.locator('[data-facts]');
@@ -472,6 +491,7 @@ test('with nothing left today, Tomorrow leads, and a concert under way reads "On
   await page.reload();
   await page.locator('main h1').waitFor();
   await expect(page.getByText('Nothing more today')).toHaveCount(0);
+  await expect(page.getByText('Nothing else ahead')).toHaveCount(0);
   expect(await soonRows(page, 'Tomorrow')).toEqual(['Singer z']);
   await expect(soon(page, 'Tomorrow').getByRole('listitem')).toContainText('9:00 am · Sabha z');
   // Its header opens What's on, starting at that day.
@@ -480,6 +500,58 @@ test('with nothing left today, Tomorrow leads, and a concert under way reads "On
   await expect(page.getByRole('heading', { name: "What's on", exact: true })).toBeVisible();
   const first = page.locator('[data-list] section[data-place]').first();
   await expect(first).toHaveAttribute('data-place', NEXT_DAY);
+});
+
+// The hub spec's decisions 1 to 3 (docs/design/screens/hub.md; the user, 2026-11-21): one word
+// for one day, the hero written as a row, and its concert never shown twice.
+test('the hub names tomorrow "Tomorrow" everywhere, and never shows the hero twice', async ({
+  page,
+}) => {
+  await openAt(page, at('16:10'));
+  // A flute concert at 6:00, Shortlisted: Next, its name on the column, its instrument after it.
+  await shortlist(page, 'Flautist i6');
+  const next = page.getByRole('region', { name: 'Next' });
+  const link = next.getByRole('link');
+  await expect(link).toContainText('Today · 6:00 pm · Sabha i6');
+  // The name starts on the column; "Flute" follows its last word, on the same line.
+  const [nameLeft, lastRight, lastTop, wordLeft, wordTop] = await link
+    .getByText('Flute', { exact: true })
+    .evaluate((word) => {
+      const kept = word.parentElement!;
+      const range = document.createRange();
+      range.selectNodeContents(kept.parentElement!);
+      const first = range.getClientRects()[0]!;
+      range.selectNodeContents(kept.firstChild!);
+      const last = range.getBoundingClientRect();
+      const box = word.getBoundingClientRect();
+      return [first.left, last.right, last.top, box.left, box.top];
+    });
+  expect(Math.round(nameLeft)).toBe(24);
+  expect(wordLeft).toBeGreaterThan(lastRight);
+  expect(Math.abs(wordTop - lastTop)).toBeLessThan(12);
+  expect(await soonRows(page)).toEqual(['Singer g4', 'Singer f4', 'Singer e4', 'Singer d4']);
+
+  // 10:10 pm: four hours on and not answered, so the lapse question names today "Today".
+  await page.clock.setFixedTime(at('22:10'));
+  await page.reload();
+  await page.locator('main h1').waitFor();
+  const card = page.getByRole('region', { name: 'Were you at any of these?' });
+  await expect(card).toContainText('Today');
+  await expect(card).not.toContainText('Sun 20 Dec');
+  await card.getByRole('button', { name: 'None of these' }).click();
+  await expect(card).toHaveCount(0);
+
+  // Tomorrow's only concert Shortlisted: the hero says "Tomorrow", the Shortlist line "1
+  // tomorrow", and with nothing else ahead the first section says so.
+  await shortlist(page, 'Singer z');
+  await expect(next.getByRole('link')).toContainText('Tomorrow · 9:00 am · Sabha z');
+  await expect(page.locator('main a[href="/shortlist"]')).toContainText('1 tomorrow');
+  await expect(page.getByRole('main').getByRole('heading', { level: 2 })).toHaveText([
+    'Today',
+    'Nothing else ahead',
+    'Shortlist',
+    'Diary',
+  ]);
 });
 
 // The row's lines hold their shape (the Maintainer, 2026-11-11; DESIGN.md "The row").

@@ -42,7 +42,7 @@ import { saveWith, SeasonFeedback, useSaveFeedback } from './components/feedback
 import { KindMark } from './components/kind-mark';
 import { Curtain, Panel, Screen, SectionHeader, useKeptScroll } from './components/layout';
 import { useReloadGuard } from './components/reload-guard';
-import { dayText, itemCount, nameBreaks, nowTime, timeText } from './format';
+import { dayText, itemCount, nameBreaks, nowTime, timeText, typeName } from './format';
 import { MESSAGES } from './messages';
 import { WHATS_ON } from './nav';
 import { saveFeedback } from './save-feedback';
@@ -90,6 +90,14 @@ let updateLater = false;
 // this page's life, by Event, so a later day's question starts as "None of these" again.
 const askedWithAYes = new Set<string>();
 
+/** The Events the hero shows: its one, or a choice's two or more. */
+const heroIdsOf = (hero: Hero | null) =>
+  hero === null
+    ? []
+    : hero.kind === 'pick'
+      ? hero.summaries.map((s) => s.event.id)
+      : [hero.summary.event.id];
+
 export function HubScreen() {
   return (
     <Screen>
@@ -98,22 +106,52 @@ export function HubScreen() {
   );
 }
 
-/** The Artists an Event is known by, else its Sabha (walkthrough S2), its kind's mark before. */
-const Title = ({ summary }: { summary: EventSummary }) => (
-  <>
-    <KindMark kind={summary.event.kind} className="mr-1.5" />
-    {summary.knownBy ? nameBreaks(summary.knownBy) : (summary.sabha?.name ?? 'No Sabha yet')}
-  </>
-);
+/**
+ * The Artists an Event is known by, else its Sabha (walkthrough S2), as a row names it (the hub
+ * spec's decision 3): the name on the column, its kind's mark and instrument word after it, kept
+ * with its last word so neither starts a line alone. The word is Sub, not the row's Caption,
+ * beside a 24px name.
+ */
+function Title({ summary }: { summary: EventSummary }) {
+  const lead = summary.knownBy
+    ? nameBreaks(summary.knownBy)
+    : (summary.sabha?.name ?? 'No Sabha yet');
+  const last = lead.lastIndexOf(' ') + 1;
+  return (
+    <>
+      {lead.slice(0, last)}
+      <span className="whitespace-nowrap">
+        {lead.slice(last)}
+        <KindMark kind={summary.event.kind} className="ml-2" />
+        {summary.type && (
+          <span className="ml-2 text-sub font-normal opacity-80">{typeName(summary.type)}</span>
+        )}
+      </span>
+    </>
+  );
+}
 
-/** A day as the hub says it: "Today", else "Mon 21 Dec". */
-const dayName = (date: string, now: Date) =>
-  date === isoDay(now) ? MESSAGES.season.today : dayText(date);
+/** The day after `now`'s, by the phone's calendar. */
+const tomorrowOf = (now: Date) =>
+  isoDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
 
 /**
- * The hero's line under a name: the Sabha, then when. Inside the hour that is "in 20 min", in
- * full ink, as its row says it (the council, 2026-11-13: the most urgent fact on the screen had
- * the least weight); else the day unless it is on now, and the time; then the Items, once any.
+ * A day as the hub says it, one word for one day wherever it names it (the hub spec's decision
+ * 2): "Today", "Tomorrow", else "Mon 21 Dec". No "Yesterday": it keeps its date.
+ */
+const dayName = (date: string, now: Date) =>
+  date === isoDay(now)
+    ? MESSAGES.season.today
+    : date === tomorrowOf(now)
+      ? MESSAGES.spine.tomorrow
+      : dayText(date);
+
+/**
+ * The hero's line under a name, time first as a row's (the hub spec's decision 3): inside the hour
+ * "in 20 min", leading in 600 at full ink (the council, 2026-11-13: the most urgent fact on the
+ * screen had the least weight); else the day unless it is on now, and the time; then the Sabha,
+ * then the Items, once any. Under way it is the start time with no dot: the hero's word says
+ * "Now" (a named exception to "On now is a dot").
  */
 function HeroLine({
   summary,
@@ -128,23 +166,21 @@ function HeroLine({
 }) {
   const { event } = summary;
   const near = on ? null : minutesTo(event, now);
-  const quiet = [
-    summary.knownBy && summary.sabha?.name,
-    // A choice for today is named by its slot, so its lines carry no "Today".
-    near === null && !on && !(choice && event.date === isoDay(now)) && dayName(event.date, now),
-    near === null && event.startTime && timeText(event.startTime),
-    event.status === 'attended' && summary.itemCount > 0 && itemCount(summary.itemCount),
-  ]
-    .filter(Boolean)
-    .join(' · ');
+  const day =
+    near === null && !on && !(choice && event.date === isoDay(now)) && dayName(event.date, now);
+  const time = near === null && event.startTime && timeText(event.startTime);
+  const sabha = summary.knownBy && summary.sabha?.name;
+  const items =
+    event.status === 'attended' && summary.itemCount > 0 && itemCount(summary.itemCount);
+  const rest = [day, time, sabha, items].filter(Boolean).join(' · ');
   return (
     <span className="text-sub text-foreground">
-      <span className="opacity-80">
-        {quiet}
-        {quiet && near !== null && ' · '}
-      </span>
       {/* Live, in 600 (foundations' emphasis rule). */}
       {near !== null && <span className="font-semibold">{MESSAGES.spine.inMinutes(near)}</span>}
+      <span className="opacity-80">
+        {near !== null && rest && ' · '}
+        {rest}
+      </span>
     </span>
   );
 }
@@ -219,12 +255,13 @@ function HubView() {
   const logging =
     hero?.kind === 'now' &&
     isBeingLogged(hero.summary.event, data.notes.get(hero.summary.event.id), data.now);
-  const soon = startingSoon(data.all, data.notes, data.now, logging ? hero.summary.event.id : null);
+  // The hero's concerts are never shown twice: not under Today or another day, not as the Diary's
+  // row (the hub spec's decision 1, the user, 2026-11-21).
+  const heroIds = heroIdsOf(hero);
+  const soon = startingSoon(data.all, data.notes, data.now, heroIds);
   const mine = shortlist(data.all);
   const allHeard = diary(data.summaries);
-  const heard = allHeard.find(
-    (summary) => !(logging && summary.event.id === hero.summary.event.id),
-  );
+  const heard = allHeard.find((summary) => !heroIds.includes(summary.event.id));
   const showUpdate = offersUpdate({
     available: update.available,
     later,
@@ -253,7 +290,8 @@ function HubView() {
       <SeasonFeedback />
       {showUpdate && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-y border-border py-1">
-          <span className="py-2">
+          {/* Sub, as every feedback row (foundations U45). */}
+          <span className="py-2 text-sub">
             {update.newCatalog ? MESSAGES.newCatalog : MESSAGES.appUpdate}
           </span>
           {updating.asking && (
@@ -282,11 +320,14 @@ function HubView() {
       {/* One rhythm (foundations, 2026-11-16): the first section 16px under the curtain's
           foot, then 32px between sections. */}
       <div className="flex flex-col [&>section]:mt-8 [&>section:first-child]:mt-4">
-        {lapsed.length > 0 && <LapseCard lapsed={lapsed} listings={data.listings} onOpen={open} />}
+        {lapsed.length > 0 && (
+          <LapseCard lapsed={lapsed} listings={data.listings} now={data.now} onOpen={open} />
+        )}
 
         <FirstSection
           soon={soon}
           bare={data.all.length === 0}
+          afterHero={hero !== null}
           notes={data.notes}
           now={data.now}
           onOpen={open}
@@ -409,10 +450,12 @@ function HeroConcert({ hero, word, now }: { hero: Hero; word: string; now: Date 
 function LapseCard({
   lapsed,
   listings,
+  now,
   onOpen,
 }: {
   lapsed: EventSummary[];
   listings: readonly ScheduleListing[];
+  now: Date;
   onOpen(concert: Concert): void;
 }) {
   const byEntry = new Map(listings.map((listing) => [listing.entry.id, listing]));
@@ -451,7 +494,7 @@ function LapseCard({
       <SectionHeader
         id="hub-lapse"
         label={MESSAGES.spine.lapse.question}
-        line={days.length === 1 ? dayText(days[0]!) : undefined}
+        line={days.length === 1 ? dayName(days[0]!, now) : undefined}
       />
       <Panel>
         {days.map((date) => (
@@ -459,7 +502,7 @@ function LapseCard({
             {days.length > 1 && (
               // A day's caption, inside the panel: 12px under what is above, 8px over its row.
               <li aria-hidden className="pt-3 pb-2 text-sub text-muted-foreground">
-                {dayText(date)}
+                {dayName(date, now)}
               </li>
             )}
             {lapsed
@@ -513,6 +556,7 @@ function LapseCard({
 function FirstSection({
   soon,
   bare,
+  afterHero = false,
   notes,
   now,
   onOpen,
@@ -520,6 +564,8 @@ function FirstSection({
 }: {
   soon: ReturnType<typeof startingSoon>;
   bare: boolean;
+  /** The hero shows a concert: with nothing else ahead, the Empty says so. */
+  afterHero?: boolean;
   notes: Notes;
   now: Date;
   onOpen(concert: Concert): void;
@@ -531,7 +577,7 @@ function FirstSection({
     <section aria-labelledby="hub-first">
       <SectionHeader
         id="hub-first"
-        label={day === today ? MESSAGES.season.today : nextDayName(day, now)}
+        label={dayName(day, now)}
         count={soon.count}
         href={WHATS_ON}
         onClick={day === today ? undefined : () => startWhatsOnAt(day)}
@@ -558,7 +604,11 @@ function FirstSection({
               <IconMoon aria-hidden className="size-7 text-muted-foreground" />
             </EmptyMedia>
             <EmptyTitle>
-              {bare ? MESSAGES.spine.empty.season.title : MESSAGES.spine.empty.today.title}
+              {bare
+                ? MESSAGES.spine.empty.season.title
+                : afterHero
+                  ? MESSAGES.spine.empty.nothingElse.title
+                  : MESSAGES.spine.empty.today.title}
             </EmptyTitle>
             {bare && <EmptyDescription>{MESSAGES.spine.empty.season.line}</EmptyDescription>}
           </EmptyHeader>
@@ -566,12 +616,6 @@ function FirstSection({
       )}
     </section>
   );
-}
-
-/** "Tomorrow" for the day after today, else the day's own name. */
-function nextDayName(date: string, now: Date): string {
-  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-  return date === isoDay(tomorrow) ? MESSAGES.spine.tomorrow : dayText(date);
 }
 
 /** A day ahead as the tile says it: its weekday within the week ("Mon"), else "28 Dec". */
@@ -621,7 +665,13 @@ function ShortlistSection({
       }
     } else {
       const count = day.slots.reduce((sum, slot) => sum + slot.length, 0);
-      parts.push({ text: MESSAGES.spine.onDay(count, nearDayName(day.date, now)), near: false });
+      parts.push({
+        text:
+          day.date === tomorrowOf(now)
+            ? MESSAGES.spine.tomorrowCount(count)
+            : MESSAGES.spine.onDay(count, nearDayName(day.date, now)),
+        near: false,
+      });
     }
   }
   // Three parts at most; the rest as one mark, so the line stays one line.
