@@ -31,14 +31,18 @@ function AccordionItem({
 function AccordionTrigger({
   className,
   children,
+  row = false,
   ...props
-}: React.ComponentProps<typeof AccordionPrimitive.Trigger>) {
+}: React.ComponentProps<typeof AccordionPrimitive.Trigger> & {
+  /** The first row of its own panel, rather than a label over one: no reach into what follows. */
+  row?: boolean;
+}) {
   return (
     // An h2, as the section heads around it are (Radix's default h3 would skip a level).
     <AccordionPrimitive.Header asChild>
       {/* Its 48px row reaches 4px into what follows, so the label stands 8px over it, as a
           label stands over its panel (foundations, 2026-11-16). */}
-      <h2 className="-mb-1 flex">
+      <h2 className={row ? 'flex' : '-mb-1 flex'}>
         <AccordionPrimitive.Trigger
           data-slot="accordion-trigger"
           className={cn(

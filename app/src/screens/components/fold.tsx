@@ -2,6 +2,7 @@
 // open or closed by its owner, growing open and shrinking closed over 200ms.
 
 import type { ReactNode } from 'react';
+import { cn } from '@/lib/utils';
 import {
   Accordion,
   AccordionContent,
@@ -45,6 +46,49 @@ export function Fold({
       >
         <AccordionTrigger>{title}</AccordionTrigger>
         <AccordionContent className={last ? 'pb-0' : undefined}>{children}</AccordionContent>
+      </AccordionItem>
+    </Accordion>
+  );
+}
+
+/**
+ * A fold that is its own panel (docs/design/manodharma-panel.md): closed, a one-row panel with
+ * the title and its chevron; open, the same panel grown to hold the rows under the title, a
+ * hairline between. The rows are a list of List rows; the last ends on the panel's edge.
+ */
+export function PanelFold({
+  title,
+  open,
+  onOpenChange,
+  className,
+  children,
+}: {
+  title: string;
+  open: boolean;
+  onOpenChange(open: boolean): void;
+  className?: string;
+  /** The rows, each an `li`. */
+  children: ReactNode;
+}) {
+  return (
+    <Accordion
+      type="single"
+      collapsible
+      value={open ? 'open' : ''}
+      onValueChange={(value) => onOpenChange(value === 'open')}
+      className={cn('panel fill-edge rounded-fill bg-panel px-4', className)}
+      data-panel
+    >
+      <AccordionItem value="open" line={false}>
+        <AccordionTrigger
+          row
+          className="focus-visible:-outline-offset-2 data-[state=open]:hairline-b"
+        >
+          {title}
+        </AccordionTrigger>
+        <AccordionContent className="pb-0">
+          <ul className="[&>li:last-child]:shadow-none">{children}</ul>
+        </AccordionContent>
       </AccordionItem>
     </Accordion>
   );
