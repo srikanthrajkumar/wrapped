@@ -8,7 +8,12 @@
 // Changes from the original: the vertex shader keeps only the object sizing the mesh reads
 // (v_objectUV); the helper snippets are inlined; and the mesh runs at highp, since at sharp
 // mixing its weights pass 65,504 near each colour's centre, which overflows the 16-bit mediump
-// of phone GPUs (WebGL2 guarantees highp in fragment shaders).
+// of phone GPUs (WebGL2 guarantees highp in fragment shaders). And each colour's distance is
+// softened at its centre, sqrt(d² + 0.03²) for d: the original's weight spikes to a point there,
+// and where a centre drifts onto the edge of one of the waves' folds, the point shows as a pinch,
+// a bright dot under a dark notch (Silk's sway, 2026-11-21). The softened distance rounds the
+// spike off smoothly, so it leaves no edge; across Silk's sway it changes 0.5% of pixels by more
+// than 3 levels in 255. A hard floor, max(d, r), was tried and left a visible disc.
 
 export const MAX_COLORS = 10;
 
@@ -157,7 +162,8 @@ void main() {
     if (i >= int(u_colorsCount)) break;
 
     vec2 pos = getPosition(i, positionSeed) + mixerGrain;
-    float dist = length(uv - pos);
+    vec2 toCentre = uv - pos;
+    float dist = sqrt(dot(toCentre, toCentre) + .0009);
 
     vec3 colorFraction = u_colors[i].rgb * u_colors[i].a;
     float opacityFraction = u_colors[i].a;

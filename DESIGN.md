@@ -185,9 +185,11 @@ mesh gradient, its two shader strings copied into `app/src/motif/` with Paper's 
 licence and notice (no package). One shared WebGL2 context draws every mark once into a still
 canvas, so a Schedule of forty cards opens one context, and nothing animates or keeps running.
 Each mark is softened by a CSS blur of 7% of its shorter side (Safari has no canvas filter),
-drawn larger than its box and clipped, since the mesh leaves a sharp point at every colour's
-centre (a streak or a pinhole where two tones meet). The shader runs at `highp`: at sharp mixing
-its weights overflow a phone GPU's 16-bit `mediump`. No grain. With no WebGL2 nothing is drawn and the surface under it shows. About 4.5 KB of the first
+drawn larger than its box and clipped, to smooth the seams where two tones meet. Each colour's
+distance is softened at its centre (√(d² + 0.03²)), since Paper's mesh spikes to a sharp point
+there, which showed as a pinch, a bright dot under a dark notch, wherever Silk's folds swept over
+a centre (2026-11-21). The shader runs at `highp`: at sharp mixing its weights overflow a phone
+GPU's 16-bit `mediump`. No grain. With no WebGL2 nothing is drawn and the surface under it shows. About 4.5 KB of the first
 install.
 
 **Tones: Ink and rose.** Six theme tokens, each defined in both themes: neutral greys and one
