@@ -183,7 +183,8 @@ curves and a hand-drawn mist were each turned down). The full board history is i
 **What a mark is.** A soft mesh of light: [Paper Shaders](https://shaders.paper.design)' static
 mesh gradient, its two shader strings copied into `app/src/motif/` with Paper's Apache-2.0
 licence and notice (no package). One shared WebGL2 context draws every mark once into a still
-canvas, so a Schedule of forty cards opens one context, and nothing animates or keeps running.
+canvas, so a Schedule of forty cards opens one context, and nothing else animates or keeps
+running (first launch's Silk is the one moving mark).
 Each mark is softened by a CSS blur of 7% of its shorter side (Safari has no canvas filter),
 drawn larger than its box and clipped, to smooth the seams where two tones meet. Each colour's
 distance is softened at its centre (√(d² + 0.03²)), since Paper's mesh spikes to a sharp point
