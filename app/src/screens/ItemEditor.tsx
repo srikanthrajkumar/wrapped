@@ -55,7 +55,7 @@ import { DetailInput, NadaiChips, type DetailField } from './components/DetailIn
 import { Chip, DockedSearch, FixedRow, type SearchRow } from './components/DockedSearch';
 import { useAutosave } from './components/autosave';
 import { NotSavedLine, saveWith, Saved, useSaveFeedback } from './components/feedback';
-import { Fold } from './components/fold';
+import { PanelFold } from './components/fold';
 import {
   LayavinyasamRow,
   LayavinyasamSheet,
@@ -702,32 +702,24 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
       </Panel>
 
       {/* Manodharma: one fold of List rows with a check (§4). A part's own state shows its save,
-          so none of it plays the highlight (P7). A label over its panel, 32px under the panel
-          above (foundations, 2026-11-16). */}
-      <Fold
-        title="Manodharma"
-        open={manodharmaOpen}
-        onOpenChange={setFoldOpen}
-        line={false}
-        className="mt-4"
-      >
-        <Saved target={target('improvised')} quiet>
-          <Panel>
-            <ManodharmaRows
-              parts={improvised}
-              itemRaga={itemRaga}
-              rtp={rtp}
-              hint={hint}
-              onTurnOn={turnOnPart}
-              onTurnOff={turnOffPart}
-              onOpen={openPart}
-            />
-          </Panel>
-        </Saved>
-      </Fold>
+          so none of it plays the highlight (P7). The fold is its own panel, 32px under the
+          Details: closed, one row like the Layavinyasam's (docs/design/manodharma-panel.md). */}
+      <Saved target={target('improvised')} quiet className="mt-8">
+        <PanelFold title="Manodharma" open={manodharmaOpen} onOpenChange={setFoldOpen}>
+          <ManodharmaRows
+            parts={improvised}
+            itemRaga={itemRaga}
+            rtp={rtp}
+            hint={hint}
+            onTurnOn={turnOnPart}
+            onTurnOff={turnOffPart}
+            onOpen={openPart}
+          />
+        </PanelFold>
+      </Saved>
 
       {/* The Layavinyasam: its own one-row panel, 32px under Manodharma, always shown (§5). */}
-      <Saved target={[target('layaVinyasam'), target('layaNote')]} quiet className="mt-4">
+      <Saved target={[target('layaVinyasam'), target('layaNote')]} quiet className="mt-8">
         <Panel>
           <LayavinyasamRow
             on={laya !== null}
