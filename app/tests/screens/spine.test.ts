@@ -185,7 +185,7 @@ describe('the hub’s first section', () => {
     expect(keys(startingSoon(all, notes(), at('15:40')).rows)).not.toContain('i6');
     const off = concerts([], [listing('x', '16:00', { cancelled: true })], at('15:40'));
     expect(startingSoon(off, notes(), at('15:40')).rows).toEqual([]);
-    expect(keys(startingSoon(all, notes(), at('15:40'), 'sowmya').rows)).not.toContain('f4');
+    expect(keys(startingSoon(all, notes(), at('15:40'), ['sowmya']).rows)).not.toContain('f4');
   });
 
   it('becomes the next day’s once nothing is left today: its first four, in start order', () => {
@@ -219,6 +219,176 @@ describe('the hub’s first section', () => {
     const gone = concerts([], [listing('a', '09:00')], at('21:00'));
     expect(startingSoon(gone, notes(), at('21:00'))).toEqual({ day: null, rows: [], count: 0 });
     expect(startingSoon([], notes(), at('21:00'))).toEqual({ day: null, rows: [], count: 0 });
+  });
+});
+
+// The hub spec's decision 1, B (docs/design/screens/hub.md; the user, 2026-11-21): the hero's
+// concerts are left out of the first section, then its own rules run on what is left.
+describe('the hub’s first section leaves out the hero’s concerts', () => {
+  const NEXT = '2026-12-21';
+  const AFTER = '2026-12-22';
+
+  it('moves on from a choice to the next concert of the day', () => {
+    const one = own('one', { scheduleEntryId: 'p1' });
+    const two = own('two', { scheduleEntryId: 'p2' });
+    const all = concerts(
+      [one, two],
+      [
+        listing('p1', '16:00', {}, one),
+        listing('p2', '16:00', {}, two),
+        listing('dance', '18:30', { kind: 'dance' }),
+      ],
+      at('15:00'),
+    );
+    const soon = startingSoon(all, notes(), at('15:00'), ['one', 'two']);
+    expect(soon.day).toBe(DAY);
+    expect(keys(soon.rows)).toEqual(['dance']);
+    // The count is the day's, as What's on holds it: the hero's concerts included.
+    expect(soon.count).toBe(3);
+  });
+
+  it('keeps the rest of the hero’s slot when the hero is Next today', () => {
+    const sowmya = own('sowmya', { scheduleEntryId: 'f4' });
+    const all = concerts(
+      [sowmya],
+      [
+        listing('c3', '15:30'),
+        listing('d4', '16:00'),
+        listing('f4', '16:00', {}, sowmya),
+        listing('h4', '16:20'),
+        listing('i6', '18:00'),
+      ],
+      at('15:40'),
+    );
+    const soon = startingSoon(all, notes(), at('15:40'), ['sowmya']);
+    expect(keys(soon.rows)).toEqual(['d4', 'h4', 'c3']);
+    expect(soon.count).toBe(5);
+  });
+
+  it('becomes the next day’s once only the hero is left today', () => {
+    const mine = own('mine', { scheduleEntryId: 'h', startTime: '20:00' });
+    const all = concerts(
+      [mine],
+      [
+        listing('a', '09:00'),
+        listing('h', '20:00', {}, mine),
+        listing('z', '09:00', { date: NEXT }),
+      ],
+      at('19:00'),
+    );
+    expect(keys(startingSoon(all, notes(), at('19:00')).rows)).toEqual(['h']);
+    const soon = startingSoon(all, notes(), at('19:00'), ['mine']);
+    expect(soon.day).toBe(NEXT);
+    expect(keys(soon.rows)).toEqual(['z']);
+    expect(soon.count).toBe(1);
+  });
+
+  it('is not held open today by a concert with no time', () => {
+    const mine = own('mine', { scheduleEntryId: 'h', startTime: '20:00' });
+    const all = concerts(
+      [mine],
+      [
+        listing('untimed', null),
+        listing('h', '20:00', {}, mine),
+        listing('z', '09:00', { date: NEXT }),
+      ],
+      at('19:00'),
+    );
+    const soon = startingSoon(all, notes(), at('19:00'), ['mine']);
+    expect(soon.day).toBe(NEXT);
+    expect(keys(soon.rows)).toEqual(['z']);
+  });
+
+  it('takes the hero out of another day first, then shows that day’s first four', () => {
+    const pick = own('pick', { scheduleEntryId: 'm2', date: NEXT, startTime: '09:30' });
+    const all = concerts(
+      [pick],
+      [
+        listing('m1', '09:00', { date: NEXT }),
+        listing('m2', '09:30', { date: NEXT }, pick),
+        listing('m3', '10:00', { date: NEXT }),
+        listing('m4', '11:00', { date: NEXT }),
+        listing('m5', '16:00', { date: NEXT }),
+        listing('m6', '18:00', { date: NEXT }),
+      ],
+      at('21:00'),
+    );
+    const soon = startingSoon(all, notes(), at('21:00'), ['pick']);
+    expect(soon.day).toBe(NEXT);
+    expect(keys(soon.rows)).toEqual(['m1', 'm3', 'm4', 'm5']);
+    expect(soon.count).toBe(6);
+  });
+
+  it('goes on to the day after when the hero is the next day’s only concert', () => {
+    const pick = own('pick', { scheduleEntryId: 'p', date: NEXT, startTime: '09:00' });
+    const all = concerts(
+      [pick],
+      [listing('p', '09:00', { date: NEXT }, pick), listing('q', '10:00', { date: AFTER })],
+      at('21:00'),
+    );
+    const soon = startingSoon(all, notes(), at('21:00'), ['pick']);
+    expect(soon.day).toBe(AFTER);
+    expect(keys(soon.rows)).toEqual(['q']);
+    expect(soon.count).toBe(1);
+  });
+
+  it('has no day with nothing besides the hero ahead', () => {
+    const pick = own('pick', { scheduleEntryId: 'p', date: NEXT, startTime: '09:00' });
+    const all = concerts([pick], [listing('p', '09:00', { date: NEXT }, pick)], at('21:00'));
+    expect(startingSoon(all, notes(), at('21:00'), ['pick'])).toEqual({
+      day: null,
+      rows: [],
+      count: 0,
+    });
+  });
+
+  it('never shows a cancelled concert of a choice, nor the one left in the hero', () => {
+    const one = own('one', { scheduleEntryId: 'p1' });
+    const two = own('two', { scheduleEntryId: 'p2' }, { cancelled: true });
+    const all = concerts(
+      [one, two],
+      [
+        listing('p1', '16:00', {}, one),
+        listing('p2', '16:00', { cancelled: true }, two),
+        listing('dance', '18:30', { kind: 'dance' }),
+      ],
+      at('15:00'),
+    );
+    // The hero holds the one left; the cancelled one is never a row.
+    const soon = startingSoon(all, notes(), at('15:00'), ['one']);
+    expect(keys(soon.rows)).toEqual(['dance']);
+    expect(soon.count).toBe(2);
+  });
+
+  it('leaves out a hero with no time on another day', () => {
+    const pick = own('pick', { scheduleEntryId: 'p', date: NEXT, startTime: null });
+    const all = concerts(
+      [pick],
+      [listing('p', null, { date: NEXT }, pick), listing('q', '09:00', { date: NEXT })],
+      at('21:00'),
+    );
+    const soon = startingSoon(all, notes(), at('21:00'), ['pick']);
+    expect(soon.day).toBe(NEXT);
+    expect(keys(soon.rows)).toEqual(['q']);
+  });
+
+  it('keeps the hero out across midnight, as Tomorrow becomes Today', () => {
+    const pick = own('pick', { scheduleEntryId: 'p', date: NEXT, startTime: '09:00' });
+    const all = concerts(
+      [pick],
+      [
+        listing('p', '09:00', { date: NEXT }, pick),
+        listing('q', '09:00', { date: NEXT }),
+        listing('r', '11:00', { date: NEXT }),
+      ],
+      at('23:59'),
+    );
+    const before = startingSoon(all, notes(), at('23:59'), ['pick']);
+    expect(before.day).toBe(NEXT);
+    expect(keys(before.rows)).toEqual(['q', 'r']);
+    const after = startingSoon(all, notes(), at('00:00', NEXT), ['pick']);
+    expect(after.day).toBe(NEXT);
+    expect(keys(after.rows)).toEqual(['q']);
   });
 });
 
