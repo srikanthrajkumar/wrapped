@@ -442,12 +442,17 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     48px row, 8px clear of the safe area, holding the hero's word in `sub` 600 at the left
     ("Now", "Next", or for a choice "Pick your dusk") and at the right the +. Under it the
     concert: its title in `heading` 700, the Artists it is known by (else its Sabha, else "No
-    Sabha yet") with its kind's mark, its lines balanced and never broken after an "&" or an
-    initial; 4px under it a line in `sub` at 80% of the text colour: the Sabha, the day (for
-    Next, "Today" when it is today, so it never reads as on now), the time, and once Heard the
-    Item count when it has any. **Inside the hour the day and time give way to "in 20 min", in
-    full ink**, as its row says it (the council, 2026-11-13: the most urgent fact on the screen
-    had the least weight). **No chevron**: the whole
+    Sabha yet"), its lines balanced and never broken after an "&" or an initial, starting on the
+    column; **after the name, as a row has them** (docs/design/screens/hub.md, decision 3, the
+    user, 2026-11-21), its kind's 20px mark and its instrument word ("Flute") in `sub` at 80%,
+    kept with the name's last word. 4px under it a line in `sub` at 80% of the text colour,
+    **time first, as a row's**: the day ("Today", "Tomorrow", else its date; none for a choice
+    of today, named by its slot), the time, the Sabha, and once Heard the Item count when it has
+    any. **Inside the hour "in 20 min" leads, in 600 at full ink**, as its row says it (the
+    council, 2026-11-13: the most urgent fact on the screen had the least weight). **Under way
+    it is the start time with no dot**, an exception to "On now is a dot": the hero's word
+    already says "Now". The line breaks at a "·" first; one fact wider than the line wraps
+    between its words, never cut. **No chevron**: the whole
     concert opens its Event, ready for its first Item. A long name wraps at the same size,
     never cut or shrunk. Which concert: the one the rasika is logging now; else one of theirs
     under way (a Heard one before a Shortlisted one; under way is from its start until 2½
@@ -473,27 +478,40 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     (at 4:10 it shows the 6:00 to 6:30 slot, never nothing while today has one). The rasika's
     Shortlisted ones among them come first, then the rest of the next slot by time and Sabha,
     then the others under way, the latest to start first, so the pick at 3:40 is never pushed
-    out by concerts long under way. The concert the hero shows as being logged is left out.
+    out by concerts long under way. **The hero's concerts are left out**, its one or a choice's
+    two (docs/design/screens/hub.md, decision 1, the user, 2026-11-21, over the Maintainer's
+    "always labelled Today" of 2026-11-13): the hub never shows one concert twice. Once nothing
+    besides the hero is left today, the section is the next day's, as it was already while the
+    hero was being logged. The header's count is still the day's, the hero's included.
   - **Tomorrow** (the Maintainer, 2026-11-13): once nothing is left today the first section is
     the next day's with a concert, labelled "Tomorrow", or by its day when it is further off:
     its first four rows in start order, with their clock times, a Shortlisted one marked where
-    it falls; the header counts that day's concerts and opens What's on at that day. No large
-    empty state stands there.
+    it falls; **the hero's concerts taken out first** (decision 1, 2026-11-21), and a day whose
+    only concert is the hero's passed over for the next. The header counts that day's concerts
+    and opens What's on at that day. No large empty state stands there.
   - **Shortlist**: its header alone, as it has no rows ("The section pattern"). Its count, and
     under its label when: today's by slot ("1 in 20 min" and "1 on now" in full ink, "2 at
-    6:45 pm"), the days ahead by day ("1 on Mon"); three parts at most. With nothing
+    6:45 pm"), tomorrow's as "1 tomorrow", the days further ahead by day ("1 on Wed"); three
+    parts at most. With nothing
     Shortlisted, "Nothing yet" and no count. It opens the Shortlist.
   - **Diary**: its header, with the count of concerts heard, opening the Diary; on its panel
-    the last concert heard as one row, its name over "Sabha · day · N Items" (nothing about
-    Items when it has none), opening its Event. With nothing heard it is the header alone,
+    the last concert heard as one row, its name over "day · time · Sabha · N Items" (nothing
+    about Items when it has none), opening its Event; never the hero's own (decision 1,
+    2026-11-21), so with only the hero heard it is the header and its count alone. With nothing heard it is the header alone,
     saying "Nothing heard yet", so the hub is the same three sections on day one (the council,
     2026-11-13). No graph and no stats (the Maintainer, 2026-11-11).
   - **Three chevrons, and no more**: one on each of the three headers.
+  - **One word for one day** (docs/design/screens/hub.md, decision 2, the user, 2026-11-21):
+    wherever the hub names today or tomorrow, it says "Today" or "Tomorrow" (the hero, the
+    first section's header, the lapse question, the Shortlist line, the Diary row). Other days
+    keep their date or weekday; there is no "Yesterday". A day is the phone's calendar day, the
+    clock every start time is read by; the hub redraws every 30 seconds and on coming back into
+    view. Other screens keep their own words until phase 4.
   - **The question about lapsed concerts** (SF-D24, SF-D39; ADR 0010; in the section pattern
     since 2026-11-13): above Today, when a Shortlisted concert's window ended (four hours after
     its start) with nothing logged. Its header is the question, "Were you at any of these?",
     with no chevron, and under it the day (several days are each said above their own
-    concerts, in `caption`). On its panel each lapsed concert, as a Concert row, and at its
+    concerts, in `sub`); today is "Today", any other its date, never "Yesterday". On its panel each lapsed concert, as a Concert row, and at its
     right a 48px outline button with the word "Yes", spoken "Yes, I was at …", which makes it
     Heard (Items optional). The row is one tap: it opens the concert, as a What's on row does,
     and "Yes" is its own target (the user, 2026-11-17). A word, not a tick: three reviewers read a tick in
@@ -504,7 +522,8 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     the same slot as a concert the rasika heard, or cancelled, goes without being asked.
   - **Empty** ("Empty states"): kept for when there is truly nothing. With no Schedule and
     nothing of the rasika's, under the "Today" header: "Nothing listed yet" over its one line.
-    With a Schedule that has nothing ahead, "Nothing more today". Its mark is the bare glyph,
+    With a Schedule that has nothing ahead, "Nothing more today"; with nothing ahead but the
+    hero's concert, "Nothing else ahead" (decision 1, 2026-11-21). Its mark is the bare glyph,
     28px, muted: on a filled tile it read as a button (the council, 2026-11-13).
   - **New catalog prompt** (decided 2026-11-01; FR-038): one row at the top of the hub's sheet, under
     the status rows: "An updated song catalog is ready." with "Update" and "Later". It never
@@ -685,7 +704,8 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   Everywhere else the row keeps the clock time, which a timeline is read by. **On now is a dot** (the Maintainer, 2026-11-11, option B of
   two mockups, "for now"): a concert under way keeps its start time, in the text colour, with
   an 8px ink dot before it, spoken "On now"; never "Now, since", never rose, and it never
-  moves. A cancelled one is dimmed to 60%, star included, says "Cancelled" in its time's place, and keeps the cancelled mark at its right. A tap opens
+  moves. One exception: the hub's hero under way shows its start time with no dot, as its word
+  says "Now" (the hub spec, 2026-11-21). A cancelled one is dimmed to 60%, star included, says "Cancelled" in its time's place, and keeps the cancelled mark at its right. A tap opens
   the listing sheet; a Heard row, or one the rasika made by hand, opens its Event.
   **Four kinds of row** (the row spec, 2026-11-16): Concert (this one), Item (the Event's
   numbered Items), List (anything else that names a thing: Stage, Settings, search results) and
@@ -1451,3 +1471,4 @@ in the phase that builds it):
 | 2026-11-19 | The instrument picker (docs/design/instrument-picker.md), decided by the user: every instrument the logger has seen gets its own Role (madhuraveena, clarinet, guitar, keyboard, piano, sitar, sarod, santoor, jalatarangam, harmonium, viola, tabla, konnakol join the eighteen), so none is pushed under "Other"; the list stays closed, and an instrument not yet on it is left blank and added, never typed in. Eight chips show first, the ones the Season bills most (Vocal, Veena, Flute, Violin, Mridangam, Ghatam, Kanjira, Morsing); More opens the rest after them without moving them. "Other" is no longer offered; rows stored as `other` keep it. HandSonic (an electronic pad) and a conductor get no Role and stay blank. The drum shows as "Kanjira", as the listings print it; the stored key stays `khanjira`. |
 | 2026-11-20 | The Item editor's build (docs/design/item-editor.md §6), two choices the spec left open, answered by the user: the Tala's nadai is shown as Chatusra for every known Tala with no Nadai set, chapu talas included ("Keep Chatusra"); and in a Manodharma part's sheet, "Remove" on one of its own Ragas offers "Raga removed · Undo", and "Use the Item’s Raga only" offers "Ragas removed · Undo". |
 | 2026-11-20 | The Maintainer's alignment fixes from iPhone shots of the Composer, Tala and Artist sheets and the Stage row, measured on 0.4.0 at 393px and decided one at a time from mocks, the council split on the first two: a chip is a fill, so a chip row stands on the 8px edge with its first word on the 24px column (a 1px border and 15px padding), as the search field and the Colours button do, on every chip row (the Detail sheets, the Layavinyasam's, the Role picker, the Event's kinds, the Item editor's form chips); a List row's one control (the Stage colour dot, the Manodharma and Layavinyasam checks) centred on the row's text rather than its last line; the Role label 8px above its chips, as "Nadai". More becomes "More Roles ⌄", a quiet text line under the first chips that stays in place as "Fewer Roles ⌃" and folds the other Roles again (council 9, 8, 8 over "Fewer" at the end, and over a toggle beside "Role"); "Not sure" moves before it; a pressed Role behind it shows every Role with no fold. Not chosen: the field and Colours pulled in to the 24px column; the dot kept on the last line; a "Fewer" chip at the list's end or in More's place. |
+| 2026-11-21 | The Hub, the first screen of phase 3 (docs/design/screens/hub.md, https://claude.ai/artifact/EPYctkjFMgsjTmFBqMDYyf), signed off by the user one decision at a time, each through two council rounds (two Claude reviewers and Codex) with real renders at 390 × 844: the hero's concerts are never shown again under Today, another day or as the Diary's row (B, over two of the Maintainer's rules of 2026-11-13; "Nothing else ahead" when only the hero is ahead); "Today" and "Tomorrow" wherever the hub names those days, no "Yesterday" (B); the hero written as a row, time first, its kind's mark and instrument word after the name, under way its start time with no dot (B). Applied from foundations U45: the update row's words in Sub. Left for phase 4: the "Yes" pill, the Empty's spacing, the 28px +, real lines against hairlines, and day words on other screens. |

@@ -64,6 +64,8 @@ export const MESSAGES = {
     at: (count: number, time: string) => `${count} at ${time}`,
     onDay: (count: number, day: string) => `${count} on ${day}`,
     onNowCount: (count: number) => `${count} on now`,
+    /** Tomorrow, as the hub names it everywhere (the hub spec's decision 2). */
+    tomorrowCount: (count: number) => `${count} tomorrow`,
     /** Earlier today, folded to one line on What's on. */
     earlier: 'Earlier today',
     /** The lapse card (SF-D24). */
@@ -79,6 +81,8 @@ export const MESSAGES = {
       today: {
         title: 'Nothing more today',
       },
+      /** Nothing ahead but the hero's own concert (the hub spec's decision 1). */
+      nothingElse: { title: 'Nothing else ahead' },
       season: { title: 'Nothing listed yet', line: 'Concerts show here once the Schedule is out.' },
       shortlist: {
         title: 'Nothing shortlisted',
