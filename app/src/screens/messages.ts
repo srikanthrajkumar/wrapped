@@ -132,6 +132,19 @@ export const MESSAGES = {
     clear: 'Clear filters',
     /** An empty list from today, when the days gone hold something (What's on decision 3). */
     showPast: 'Show Past',
+    /** Over a What's on search that finds nothing (E2, docs/design/log-entry.md). */
+    notListedStart: 'Not listed? Start a Concert',
+  },
+  /** A blank Concert offering the listings near its time (G, docs/design/log-entry.md). */
+  offer: {
+    title: 'Is it one of these?',
+    onNow: 'On now or within the hour · tap to fill it in',
+    near: (time: string) => `Near ${time} · tap to fill it in`,
+    search: "Search What's on…",
+    searchLabel: "Search What's on",
+    results: 'Listings, best match last',
+    /** Pinned over a search of What's on that finds nothing: back to the blank Concert. */
+    notListed: 'Not listed? Fill it in yourself',
   },
   /** Home, while the app isn't ready for offline; Settings shows it always. */
   offline: {

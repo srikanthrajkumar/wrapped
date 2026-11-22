@@ -41,6 +41,7 @@ import { ConcertRow, OnNowDot } from './components/ConcertRow';
 import { SheetFrame, useLingering } from './components/sheet-frame';
 import { BarHold, BottomDock, Panel, Screen, TopBar } from './components/layout';
 import { DockedSearch } from './components/DockedSearch';
+import { QuietAction } from './components/ListingOffer';
 import { ListRowBody, ROW_SHAPE } from './components/rows';
 import { dayLabel } from './day-words';
 import { dayText, kindName } from './format';
@@ -63,6 +64,7 @@ import {
   type SeasonName,
 } from './season-filter';
 import { byStart, listed, owned, underWay, type Concert, type Notes } from './spine';
+import { startConcert } from './start-concert';
 import { timeline, type TimelineDay } from './timeline';
 import { onlyEarlier, todayParts } from './today-folds';
 import { useConcertSheets, useSeason } from './use-season';
@@ -1005,6 +1007,14 @@ function SearchSheet({
     const pinnedKeys = new Set(pinnedNames.map((name) => name.key));
     return heard.filter((name) => !pinnedKeys.has(name.key)).slice(0, OFTEN_HEARD);
   }, [heard, pinnedNames]);
+  const [, navigate] = useLocation();
+  const startHere = async () => {
+    const event = await startConcert();
+    if (!event) return;
+    setQuery('');
+    onOpenChange(false);
+    navigate(`/event/${event.id}`);
+  };
   const pick = (name: SeasonName) => {
     onFilter({ ...filter, picks: [...filter.picks, name] });
     setQuery('');
@@ -1107,6 +1117,16 @@ function SearchSheet({
                 );
               })}
             </ul>
+          )
+        }
+        // Nothing listed by that name (E2, docs/design/log-entry.md): a blank Concert, dated now,
+        // opened at once. What was typed isn't put in, as it can't tell an Artist from a Sabha.
+        typedRow={
+          typed &&
+          found.length === 0 && (
+            <QuietAction mark="plus" className="pinned-row" onClick={() => void startHere()}>
+              {MESSAGES.season.notListedStart}
+            </QuietAction>
           )
         }
         caption={typed ? undefined : MESSAGES.season.oftenHeard}

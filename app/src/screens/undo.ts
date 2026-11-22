@@ -10,14 +10,17 @@
 // kept by an earlier build for a piece of an Item or a title is dropped quietly.
 
 import { browserStorage as storage } from '../browser-storage';
+import type { Event } from '../model';
 import { readyCatalog } from '../catalog/use-catalog';
 import { restoreEvent } from '../store/events';
 import { restoreItem } from '../store/items';
 import { restoreAppearance } from '../store/people';
 import { dropReceipt, undoableKind, type DeletionReceipt } from '../store/receipts';
 import { EVENT_DELETED, RuleError } from '../store/rules';
+import { undoFill } from '../store/schedule';
 import { db } from '../store/db';
 import { MESSAGES } from './messages';
+import { noteNewConcert } from './new-concert';
 
 export const UNDO_MS = 5000;
 
@@ -140,6 +143,8 @@ function notify() {
 export function undoMessage(receipt: DeletionReceipt): string {
   if (receipt.kind === 'item') return MESSAGES.undo.itemDeleted(receipt.position ?? 0);
   if (receipt.kind === 'appearance') return MESSAGES.undo.artistRemoved;
+  // A blank Concert filled from a listing: the bar names the listing, "NJ Nandini · Undo".
+  if (receipt.kind === 'fill') return receipt.fill?.lead ?? MESSAGES.undo.subject.concert;
   return MESSAGES.undo.concertDeleted;
 }
 
@@ -170,9 +175,11 @@ function arm() {
   timer = live && !paused && !live.inFlight ? setTimeout(expire, UNDO_MS) : null;
 }
 
-/** An Event's own receipt lives only as long as its bar on home. */
+/** An Event's own receipt, and a fill's, lives only as long as its bar. */
 function forget(receipt: DeletionReceipt) {
-  if (receipt.kind === 'event') void dropReceipt(receipt.id, db).catch(() => undefined);
+  if (receipt.kind === 'event' || receipt.kind === 'fill') {
+    void dropReceipt(receipt.id, db).catch(() => undefined);
+  }
 }
 
 function expire() {
@@ -265,12 +272,24 @@ export async function undo(receipt: DeletionReceipt): Promise<boolean> {
         ? await restoreItem(receipt.id, { catalog: await readyCatalog() })
         : receipt.kind === 'appearance'
           ? await restoreAppearance(receipt.id)
-          : await restoreEvent(receipt.id, { catalog: await readyCatalog() });
+          : receipt.kind === 'fill'
+            ? await undoFill(receipt.id)
+            : await restoreEvent(receipt.id, { catalog: await readyCatalog() });
+    // The blank Concert is back as new: still blank, it offers its listings, and left with
+    // nothing entered it is taken back (screens/new-concert.ts).
+    if (receipt.kind === 'fill' && restored && receipt.fill?.birth) {
+      const { birth, blank } = receipt.fill;
+      // Untouched when filled, it is new again as restored; edited (a late log's time), it keeps
+      // the birth it had, so leaving it never takes the edit back.
+      const untouched = blank.updatedAt === birth.updatedAt;
+      noteNewConcert(untouched ? (restored as Event) : { ...blank, ...birth }, birth.tappedAt);
+    }
     if (live?.receipt.id === receipt.id) live = null;
     failed = failed.filter((offer) => offer.receipt.id !== receipt.id);
     forgetFailed(receipt.id);
     arm();
     notify();
+    if (restored !== null) restoredListeners.forEach((listener) => listener(receipt));
     return restored !== null;
   } catch (error) {
     const refused = error instanceof RuleError ? error.problems.join('; ') : undefined;
@@ -322,6 +341,14 @@ export function failedUndoReceipts(): Set<string> {
 export function canRetryUndo(offer: UndoOffer, { eventLive }: { eventLive: boolean }): boolean {
   if (offer.inFlight) return false;
   return offer.refused !== EVENT_DELETED || eventLive;
+}
+
+const restoredListeners = new Set<(receipt: DeletionReceipt) => void>();
+
+/** Told after an Undo brought something back: a fill undone opens the blank Concert again. */
+export function onUndone(listener: (receipt: DeletionReceipt) => void): () => void {
+  restoredListeners.add(listener);
+  return () => void restoredListeners.delete(listener);
 }
 
 export function subscribeUndo(listener: () => void): () => void {

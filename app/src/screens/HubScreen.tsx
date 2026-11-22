@@ -12,7 +12,6 @@ import {
   Fragment,
   useEffect,
   useMemo,
-  useRef,
   useState,
   useSyncExternalStore,
   type ReactNode,
@@ -28,11 +27,9 @@ import {
 } from '@/components/ui/empty';
 import { cn } from '@/lib/utils';
 import { useCatalog } from '../catalog/use-catalog';
-import { newId } from '../model';
 import { Motif } from '../motif/Motif';
 import { ragaSeeds } from '../motif/ragas';
 import { updateNow, useOfflineState, useUpdate } from '../pwa';
-import { createEvent, today } from '../store/events';
 import { letGo, settleLapsed, wasThere } from '../store/lapse';
 import { isBeingLogged } from '../store/logging-note';
 import { useSeasonRagaKeys, type EventSummary, type ScheduleListing } from '../store/queries';
@@ -42,12 +39,13 @@ import { saveWith, SeasonFeedback, useSaveFeedback } from './components/feedback
 import { KindMark } from './components/kind-mark';
 import { Curtain, Panel, Screen, SectionHeader, useKeptScroll } from './components/layout';
 import { useReloadGuard } from './components/reload-guard';
-import { dayText, itemCount, nameBreaks, nowTime, timeText, typeName } from './format';
+import { dayText, itemCount, nameBreaks, timeText, typeName } from './format';
 import { MESSAGES } from './messages';
 import { WHATS_ON } from './nav';
 import { dayName, tomorrowOf } from './day-words';
 import { saveFeedback } from './save-feedback';
-import { claimNewConcert, dropNewConcert, noteNewConcert, sweepNewConcerts } from './new-concert';
+import { sweepNewConcerts } from './new-concert';
+import { startConcert } from './start-concert';
 import {
   diary,
   hubHero,
@@ -184,8 +182,6 @@ function HubView() {
   const undos = useSyncExternalStore(subscribeUndo, undoOffers);
   const { open, hint, sheets } = useConcertSheets(data);
   useKeptScroll(data !== undefined);
-  // One Concert per tap: a double tap must not make two.
-  const creating = useRef(false);
   // A new Concert left untouched, whose take-back hasn't happened yet, goes now.
   useEffect(() => {
     void sweepNewConcerts();
@@ -196,30 +192,10 @@ function HubView() {
   // answers it (store/lapse.ts): the hub opening never changes a status by itself.
   const lapsed = useMemo(() => (data ? lapsedToAsk(data.summaries, data.now) : []), [data]);
 
-  // Each attempt is its own Concert with its own id: a failed one stays listed, by its date and
-  // time, whatever later taps do, and its Try again makes it once (docs/adr/0007). One made and
-  // then left with nothing entered is taken back (screens/new-concert.ts).
+  // A blank Concert dated now (screens/start-concert.ts), opened at once.
   const logNow = async () => {
-    if (creating.current) return;
-    creating.current = true;
-    try {
-      const tappedAt = new Date().toISOString();
-      const id = newId();
-      const concert = { kind: 'concert' as const, date: today(), startTime: nowTime() };
-      // Held for its page before it exists, so no tab's sweep can take it back on the way there.
-      await claimNewConcert(id);
-      const event = await saveWith({ table: 'events', id, field: '*' }, concert, () =>
-        createEvent(concert, { id }),
-      );
-      if (!event) {
-        dropNewConcert(id);
-        return;
-      }
-      noteNewConcert(event, tappedAt);
-      navigate(`/event/${event.id}`);
-    } finally {
-      creating.current = false;
-    }
+    const event = await startConcert();
+    if (event) navigate(`/event/${event.id}`);
   };
 
   // The +, larger (the Maintainer, 2026-11-13): a 28px mark in its 48px target. Settings is a
