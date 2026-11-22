@@ -26,59 +26,17 @@ import type { ReactNode } from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { newId, type ScheduleEntry } from '../../model';
-import { isDeletedEvent } from '../../store/events';
 import { windowEnd } from '../../store/logging-note';
-import { addFromSchedule } from '../../store/schedule';
 import { byStage } from '../../store/stage';
 import { unshortlistConcert } from '../deletes';
 import { listingLead } from '../timeline';
 import { creditName, dayText, timeText } from '../format';
 import { MESSAGES } from '../messages';
-import { saveFeedback, type Target } from '../save-feedback';
+import { addListing as add, addTarget, attemptOf, justMade } from '../listing-event';
 import { stageOf, type Concert } from '../spine';
-import { NotSavedLine, saveWith, useSaveFeedback } from './feedback';
+import { NotSavedLine, useSaveFeedback } from './feedback';
 import { KindMark } from './kind-mark';
 import { SheetFrame } from './sheet-frame';
-
-// One id per entry's add, kept for the page's life: a retry, or a second tap after the sheet
-// was closed and opened again, makes the same Event (docs/adr/0007). Kept only while its Event
-// is live or its save unsettled: once that Event is deleted, the next add is a new attempt with
-// a new id, since a deleted Event's id is never made again (PR #30 review).
-const attempts = new Map<string, string>();
-const attemptOf = (entryId: string) => attempts.get(entryId) ?? null;
-const addTarget = (id: string): Target => ({ table: 'events', id, field: '*' });
-
-async function add(entry: ScheduleEntry) {
-  let id = attempts.get(entry.id);
-  if (id) {
-    const status = saveFeedback.get(addTarget(id))?.status;
-    const unsettled = status === 'saving' || status === 'failed' || status === 'typed';
-    if (!unsettled && (await isDeletedEvent(id))) id = undefined;
-  }
-  if (!id) attempts.set(entry.id, (id = newId()));
-  // The entry's id goes with it, so the journal settles even when the Event returned is one
-  // planned before, under another id (store/journal-check.ts).
-  const value = {
-    kind: entry.kind,
-    date: entry.date,
-    startTime: entry.startTime,
-    scheduleEntryId: entry.id,
-  };
-  const made = id;
-  const event = await saveWith(addTarget(made), value, () =>
-    addFromSchedule(entry.id, { id: made }),
-  );
-  if (event) madeAt.set(entry.id, performance.now());
-  return event;
-}
-
-// When each entry was last Shortlisted from here. The button that made it becomes the one that
-// takes it off, in the same place, so the second tap of a double tap must not undo the first.
-const madeAt = new Map<string, number>();
-const DOUBLE_TAP_MS = 700;
-const justMade = (entryId: string) =>
-  performance.now() - (madeAt.get(entryId) ?? -Infinity) < DOUBLE_TAP_MS;
 
 function Fact({ mark: Mark, name, children }: { mark: Icon; name: string; children?: ReactNode }) {
   return (

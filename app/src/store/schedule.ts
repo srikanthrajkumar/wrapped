@@ -11,15 +11,21 @@ import {
   type BilledArtist,
   type Event,
   type EventKind,
+  type Item,
+  type RasikaRows,
+  type RasikaTable,
   type Role,
   type ScheduleEntry,
 } from '../model';
 import { md5 } from '../md5';
 import { db as defaultDb, type WrappedDB } from './db';
 import { checkLecdem, createEvent, titleFor } from './events';
+import { draftKey, type ItemDraft } from './items';
+import { noteLogging, readLoggingNote } from './logging-note';
 import { getLive, newTimestamps, remove, save, type WriteOptions } from './mutate';
 import { createArtist, createSabha, nameMatcher, type NameMatcher } from './people';
 import { loadEntries } from './queries';
+import { takeReceipt, writeReceipt, type DeletionReceipt, type Filled } from './receipts';
 import { appearanceProblems, check, eventProblems, RuleError } from './rules';
 
 /** The feed's format this reader knows (contracts/schedule-feed.md, "Format number"). */
@@ -728,5 +734,245 @@ export async function keepMine(eventId: string, { db = defaultDb }: WriteOptions
     const event = await getLive('events', eventId, { db });
     if (!event.scheduleChanged) return event;
     return save('events', { ...event, scheduleChanged: false }, { db });
+  });
+}
+
+/** Why a fill is refused: the Concert has an Artist, a Sabha or a listing of its own by now. */
+export const NOT_BLANK = 'this Concert is no longer blank';
+/** Why a fill is refused: an Item is being typed on both Concerts, and only one can be kept. */
+export const DRAFT_ON_BOTH = 'an Item is being typed on both Concerts';
+/** Why a fill's Undo is refused: the Event was changed after the fill. */
+export const FILL_CHANGED = 'it was changed since';
+
+// Every table a fill or its Undo reads or writes: a Schedule write's, the receipts, the drafts
+// and logging notes (meta), and what says whether the blank Concert ever left the phone.
+const fillTables = (db: WrappedDB) => [...tablesOf(db), db.meta, db.serverSeqs, db.attention];
+
+const liveItemsOf = async (eventId: string, db: WrappedDB) =>
+  (await db.items.where('eventId').equals(eventId).toArray())
+    .filter((item) => item.deletedAt === null)
+    .sort((a, b) => a.position - b.position);
+
+/**
+ * Save a record that moves to another Event, queued after everything already queued: its unsent
+ * entry, which may sit before the birth of the Event it moves to, goes, and the save queues it
+ * afresh. So the server never hears of a row before the Event it belongs to.
+ */
+async function requeue<T extends RasikaTable>(db: WrappedDB, table: T, row: RasikaRows[T]) {
+  const unsent = (await db.outbox.where('recordId').equals(row.id).toArray()).filter(
+    (entry) => entry.table === table && entry.firstSentAt === null,
+  );
+  await db.outbox.bulkDelete(unsent.map((entry) => entry.seq!));
+  return save(table, row, { db });
+}
+
+/** Move an Item draft from one Event to another, if the other has none. Says whether it moved. */
+async function moveDraft(db: WrappedDB, from: string, to: string): Promise<boolean> {
+  const draft = (await db.meta.get(draftKey(from)))?.value as ItemDraft | undefined;
+  if (!draft || (await db.meta.get(draftKey(to)))) return false;
+  await db.meta.put({ key: draftKey(to), value: { ...draft, eventId: to } });
+  await db.meta.delete(draftKey(from));
+  return true;
+}
+
+/** Move a logging note from one Event to another, the later of the two kept. */
+async function moveLogging(db: WrappedDB, from: string, to: string): Promise<boolean> {
+  const note = await readLoggingNote(from, db);
+  if (!note?.lastLoggedAt) return false;
+  const theirs = await readLoggingNote(to, db);
+  if (!theirs?.lastLoggedAt || theirs.lastLoggedAt < note.lastLoggedAt) {
+    await noteLogging(db, to, new Date(note.lastLoggedAt));
+  }
+  await db.meta.delete(`loggingNote:${from}`);
+  return true;
+}
+
+/**
+ * Fill a blank Concert from a Schedule listing (docs/design/log-entry.md, decided 2026-11-22),
+ * in one transaction:
+ * - the listing's Event is made exactly as "I'm here" makes it (`addFromSchedule`, with `id`
+ *   for this attempt), or, when the rasika already has one (Shortlisted), it is that Event;
+ * - anything entered in the blank Concert moves to it first: its Items, after any already there
+ *   and in their order, as typed; its Note, after the Event's own; an Item being typed; the
+ *   logging note. Items moved make the Event Heard, as an Item added does (ADR 0010);
+ * - the blank Concert is taken back as an untouched one is (store/events.ts discardUntouched):
+ *   with no row left when it never left the phone and nothing was ever made for it, else as a
+ *   tombstone that syncs.
+ * Only a blank Concert is filled: one with no Artist, no Sabha and no listing (NOT_BLANK). A
+ * receipt in the same transaction lets Undo put everything back. A retry with the same `id`
+ * after a failure fills once; nothing is written by a fill that fails.
+ */
+export async function fillFromSchedule(
+  blankId: string,
+  entryId: string,
+  {
+    db = defaultDb,
+    id = newId(),
+    lead,
+    birth = null,
+  }: WriteOptions & { id?: string; lead: string; birth?: Filled['birth'] },
+): Promise<{ event: Event; receipt: DeletionReceipt }> {
+  return db.transaction('rw', fillTables(db), async () => {
+    const blank = await getLive('events', blankId, { db });
+    const stage = await db.appearances.where('eventId').equals(blankId).toArray();
+    if (
+      blank.scheduleEntryId !== null ||
+      blank.sabhaId !== null ||
+      stage.some((appearance) => appearance.deletedAt === null)
+    ) {
+      throw new RuleError([NOT_BLANK]);
+    }
+    const existing = await db.events
+      .where('scheduleEntryId')
+      .equals(entryId)
+      .filter((event) => event.deletedAt === null)
+      .first();
+    // An Item being typed on each: neither may be lost, so the fill waits for one to be done.
+    if (
+      existing &&
+      (await db.meta.get(draftKey(blankId))) &&
+      (await db.meta.get(draftKey(existing.id)))
+    ) {
+      throw new RuleError([DRAFT_ON_BOTH]);
+    }
+    let event = await addFromSchedule(entryId, { db, id });
+    const made = !existing;
+    const before = made
+      ? null
+      : {
+          status: event.status,
+          touched: event.touched,
+          scheduleChanged: event.scheduleChanged,
+          note: event.note,
+        };
+
+    const items = await liveItemsOf(blankId, db);
+    let place = Math.max(0, ...(await liveItemsOf(event.id, db)).map((item) => item.position));
+    for (const item of items) {
+      await requeue(db, 'items', { ...item, eventId: event.id, position: (place += 1) });
+    }
+    const note = blank.note?.trim() ? blank.note : null;
+    if (items.length > 0 || note) {
+      event = await save(
+        'events',
+        {
+          ...event,
+          note: note ? (event.note?.trim() ? `${event.note}\n\n${note}` : note) : event.note,
+          // Items moved make it Heard, as an Item added does; it is then the rasika's record.
+          ...(items.length > 0 && {
+            status: 'attended' as const,
+            touched: true,
+            scheduleChanged: false,
+          }),
+        },
+        { db },
+      );
+    }
+    const draft = await moveDraft(db, blankId, event.id);
+    const loggingBlank = (await readLoggingNote(blankId, db)) ?? null;
+    const loggingBefore = (await readLoggingNote(event.id, db)) ?? null;
+    const logging = await moveLogging(db, blankId, event.id);
+
+    // Taken back as an untouched one is: no row when it never left the phone and nothing was
+    // ever made for it, else a tombstone.
+    const queued = (await db.outbox.where('recordId').equals(blankId).toArray()).filter(
+      (entry) => entry.table === 'events',
+    );
+    const refused = db.attention.where({ table: 'events', recordId: blankId });
+    const everMade = stage.length + (await db.items.where('eventId').equals(blankId).count());
+    const neverLeft =
+      everMade === 0 &&
+      queued.length > 0 &&
+      queued.every((entry) => entry.firstSentAt === null) &&
+      (await db.serverSeqs.get(['events', blankId])) === undefined &&
+      (await refused.count()) === 0;
+    const records: DeletionReceipt['records'] = [
+      { table: 'events', id: event.id, deletedAt: null },
+    ];
+    if (neverLeft) {
+      await db.outbox.bulkDelete(queued.map((entry) => entry.seq!));
+      await db.events.delete(blankId);
+    } else {
+      await refused.delete();
+      const tombstone = (await remove('events', blankId, { db }))!;
+      records.push({ table: 'events', id: blankId, deletedAt: tombstone.deletedAt });
+    }
+    const fill: Filled = {
+      blank,
+      lead,
+      made,
+      before,
+      moved: items.map((item) => ({ id: item.id, position: item.position })),
+      draft,
+      logging,
+      loggingBlank,
+      loggingBefore,
+      birth,
+    };
+    const receipt = await writeReceipt(db, {
+      kind: 'fill',
+      eventId: event.id,
+      position: null,
+      records,
+      fill,
+    });
+    return { event, receipt };
+  });
+}
+
+/**
+ * Undo a fill: the blank Concert comes back as it was, with what it held, and the listing's
+ * Event goes back to how it was (deleted, when the fill made it). One transaction. Refused
+ * (FILL_CHANGED) once anything was changed on that Event after the fill, so an Undo never takes
+ * a later edit with it. A used or stale receipt restores nothing and returns null.
+ */
+export async function undoFill(
+  receiptId: string,
+  { db = defaultDb }: WriteOptions = {},
+): Promise<Event | null> {
+  return db.transaction('rw', fillTables(db), async () => {
+    const receipt = await takeReceipt(db, receiptId, 'fill');
+    const fill = receipt?.fill;
+    if (!receipt || !fill) return null;
+    const event = await getLive('events', receipt.eventId, { db });
+    const since = (row: { updatedAt: string }) => row.updatedAt > receipt.at;
+    const stage = await db.appearances.where('eventId').equals(event.id).toArray();
+    const items = await db.items.where('eventId').equals(event.id).toArray();
+    // An Item being typed on it since (not the one the fill moved) is a change too.
+    const draft = (await db.meta.get(draftKey(event.id)))?.value as ItemDraft | undefined;
+    const typedSince = draft !== undefined && (!fill.draft || draft.at > receipt.at);
+    if (since(event) || stage.some(since) || items.some(since) || typedSince) {
+      throw new RuleError([FILL_CHANGED]);
+    }
+
+    const current = await db.events.get(fill.blank.id);
+    const blank = await save('events', fill.blank, { db, restore: current !== undefined });
+    for (const moved of fill.moved) {
+      const item = items.find((one) => one.id === moved.id);
+      if (!item || item.deletedAt !== null) continue;
+      await requeue(db, 'items', { ...item, eventId: blank.id, position: moved.position } as Item);
+    }
+    if (fill.draft) await moveDraft(db, event.id, blank.id);
+    // Each logging note as it was before the fill.
+    if (fill.logging) {
+      if (fill.loggingBlank) {
+        await db.meta.put({ key: `loggingNote:${blank.id}`, value: fill.loggingBlank });
+      }
+      if (fill.loggingBefore) {
+        await db.meta.put({ key: `loggingNote:${event.id}`, value: fill.loggingBefore });
+      } else {
+        await db.meta.delete(`loggingNote:${event.id}`);
+      }
+    }
+
+    if (fill.made) {
+      for (const appearance of stage.filter((one) => one.deletedAt === null)) {
+        await remove('appearances', appearance.id, { db });
+      }
+      await remove('events', event.id, { db });
+    } else if (fill.before) {
+      await save('events', { ...event, ...fill.before }, { db });
+    }
+    return blank;
   });
 }

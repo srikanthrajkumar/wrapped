@@ -92,6 +92,27 @@ export function noteNewConcert(event: Event, tappedAt: string, { storage } = def
   }
 }
 
+/**
+ * Whether the Concert was made by Season's + (or What's on's "Not listed? Start a Concert") and
+ * is still noted as new: while it is blank, it offers the listings near its time.
+ */
+export function isNewConcert(id: string, { storage } = defaults()): boolean {
+  return read(storage, id) !== null;
+}
+
+/** What a new Concert was born with, as noted; null for one not noted. */
+export function newConcertBirth(
+  id: string,
+  { storage } = defaults(),
+): (Birth & { tappedAt: string }) | null {
+  return read(storage, id);
+}
+
+/** Forget a new Concert's note: it was filled from a listing and taken back already. */
+export function forgetNewConcert(id: string, { storage } = defaults()): void {
+  forget(storage, id);
+}
+
 /** The ids of new Concerts still noted. */
 function noted(storage: BrowserStorage | null): string[] {
   if (!storage) return [];

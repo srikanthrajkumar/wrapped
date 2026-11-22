@@ -3,16 +3,46 @@
 // Undo checks that every record is still the tombstone that delete made, then consumes the
 // receipt, so a receipt survives a crash and a stale or replayed Undo restores nothing.
 
-import { newId, type RasikaTable } from '../model';
+import { newId, type Event, type RasikaTable } from '../model';
 import type { MetaEntry, WrappedDB } from './db';
+import type { Birth } from './events';
+import type { LoggingNote } from './logging-note';
 
 /**
  * Undo is only for whole things: a Concert, an Item, an Artist (the Maintainer, 2026-11-25).
- * The Shortlist's Undo is an `event` receipt too.
+ * The Shortlist's Undo is an `event` receipt too. `fill`: a blank Concert was filled from a
+ * listing and taken back, and Undo brings that Concert back (docs/design/log-entry.md).
  */
-export type DeletionKind = 'item' | 'appearance' | 'event';
+export type DeletionKind = 'item' | 'appearance' | 'event' | 'fill';
 
-const KINDS: readonly string[] = ['item', 'appearance', 'event'] satisfies DeletionKind[];
+/** What a `fill` took from the blank Concert and gave the listing's Event, for Undo. */
+export interface Filled {
+  /** The blank Concert as it was, to bring back. */
+  blank: Event;
+  /** Who the listing is known by, for the bar: "NJ Nandini". */
+  lead: string;
+  /** The listing's Event was made by the fill (else it was the rasika's already). */
+  made: boolean;
+  /** The Event's own fields before the fill, when it was the rasika's already. */
+  before: Pick<Event, 'status' | 'touched' | 'scheduleChanged' | 'note'> | null;
+  /** The Items moved, with their places in the blank Concert. */
+  moved: { id: string; position: number }[];
+  /** The blank Concert's Item draft moved with them. */
+  draft: boolean;
+  /** Its logging note moved with them. */
+  logging: boolean;
+  /** Each one's logging note before the fill, put back by Undo. */
+  loggingBlank?: LoggingNote | null;
+  loggingBefore?: LoggingNote | null;
+  /**
+   * What the blank Concert was born with, as Season's + noted it (screens/new-concert.ts), so
+   * Undo notes it as new again: as born when it was untouched, else as first born, so an edit
+   * made to it (a late log's time) keeps it for good.
+   */
+  birth?: (Birth & { tappedAt: string }) | null;
+}
+
+const KINDS: readonly string[] = ['item', 'appearance', 'event', 'fill'] satisfies DeletionKind[];
 
 /**
  * Whether a receipt is of a kind Undo still restores. A `piece` or `title` receipt written by an
@@ -35,6 +65,9 @@ export interface DeletionReceipt {
   position: number | null;
   /** Every record the delete tombstoned, with the `deletedAt` it stamped. */
   records: { table: RasikaTable; id: string; deletedAt: string | null }[];
+  /** For a `fill` receipt: what it moved. Its records are the listing's Event, live, and the
+   *  blank Concert's tombstone when it left one. */
+  fill?: Filled;
   at: string;
 }
 
@@ -88,10 +121,13 @@ async function allReceipts(db: WrappedDB): Promise<DeletionReceipt[]> {
 
 /**
  * An Event's receipts for its Items and Appearances, newest first ("Recently deleted"). A receipt
- * of a retired kind, left by an earlier build, is never listed.
+ * of a retired kind, left by an earlier build, is never listed; nor is a fill, whose Undo lives
+ * only as long as its bar.
  */
 export async function listReceipts(eventId: string, db: WrappedDB): Promise<DeletionReceipt[]> {
-  return (await eventReceipts(eventId, db)).filter((receipt) => undoableKind(receipt.kind));
+  return (await eventReceipts(eventId, db)).filter(
+    (receipt) => undoableKind(receipt.kind) && receipt.kind !== 'fill',
+  );
 }
 
 async function eventReceipts(eventId: string, db: WrappedDB): Promise<DeletionReceipt[]> {

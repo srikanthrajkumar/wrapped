@@ -21,7 +21,7 @@ import {
 } from '@tabler/icons-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -76,10 +76,14 @@ import { SheetFrame, useLingering } from './components/sheet-frame';
 import { Fold } from './components/fold';
 import { Chip } from './components/DockedSearch';
 import { KindMark } from './components/kind-mark';
+import { ListingOffer } from './components/ListingOffer';
+import { fillFromListing } from './listing-event';
+import { isNewConcert } from './new-concert';
+import type { Concert } from './spine';
 import { creditName, dayText, eventLine, itemLine, itemTitle, kindName, timeText } from './format';
 import { deleteConcert, deleteItem, removeArtist } from './deletes';
 import { MESSAGES } from './messages';
-import { undo, undoMessage } from './undo';
+import { onUndone, undo, undoMessage } from './undo';
 import type { SaveFeedback } from './save-feedback';
 
 type Order = 'items' | null;
@@ -125,8 +129,19 @@ function EventView({ eventId }: { eventId: string }) {
   const [coloursFor, setColoursFor] = useState<string | null>(null);
   const [appearanceFor, setAppearanceFor] = useState<string | null>(null);
   const feedback = useSaveFeedback();
+  const [, navigate] = useLocation();
   // Back to the page it was opened from, in its tab (screens/nav.ts).
   const back = useBack();
+  // A fill undone: the blank Concert comes back in this one's place.
+  useEffect(
+    () =>
+      onUndone((receipt) => {
+        if (receipt.kind === 'fill' && receipt.eventId === eventId && receipt.fill) {
+          navigate(`/event/${receipt.fill.blank.id}`, { replace: true });
+        }
+      }),
+    [eventId, navigate],
+  );
   useKeptScroll(event !== undefined && items !== undefined && appearances !== undefined);
   // The Artist sheets, kept while they slide closed (an Artist removed included).
   const [colours, coloursOpen] = useLingering(
@@ -223,6 +238,39 @@ function EventView({ eventId }: { eventId: string }) {
     if (usual) void saveRole(appearance.id, usual);
   };
 
+  // Where logging starts: nothing sung yet, and Add Item in the bar.
+  const noItems = (
+    <Empty className="pt-10 pb-2">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <IconMusic aria-hidden />
+        </EmptyMedia>
+        <EmptyTitle>{MESSAGES.spine.empty.items.title}</EmptyTitle>
+        <EmptyDescription>{MESSAGES.spine.empty.items.line}</EmptyDescription>
+      </EmptyHeader>
+    </Empty>
+  );
+  // A blank Concert from Season's + offers the listings near its time, until an Artist or a
+  // Sabha is set (docs/design/log-entry.md); its date and time as entered.
+  const shownDate = feedback.shown(eventTarget(eventId, 'date'), event.date);
+  const shownTime = feedback.shown(eventTarget(eventId, 'startTime'), event.startTime);
+  const shownSabha = feedback.shown<{ id: string | null }>(eventTarget(eventId, 'sabhaId'), {
+    id: event.sabhaId,
+  }).id;
+  const offering =
+    order === null &&
+    isNewConcert(eventId) &&
+    event.scheduleEntryId === null &&
+    shownSabha === null &&
+    appearances.length === 0 &&
+    // An Artist added and not saved counts as set.
+    artistFailed === null;
+  // Filled from a listing: its Event opens in this one's place, so back goes where this went.
+  const fill = async (concert: Concert) => {
+    const filled = await fillFromListing(eventId, concert.listing!.entry, concert.lead);
+    if (filled) navigate(`/event/${filled.id}`, { replace: true });
+  };
+
   return (
     <>
       <TopBar
@@ -263,17 +311,16 @@ function EventView({ eventId }: { eventId: string }) {
 
       {/* Items, then Stage, then Note (the Maintainer, 2026-11-11, restoring the order before
           2026-11-04): what was sung leads, and each section's lines are its own rows'. */}
-      {items.length === 0 && (
-        // Where logging starts: nothing sung yet, and Add Item in the bar.
-        <Empty className="pt-10 pb-2">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <IconMusic aria-hidden />
-            </EmptyMedia>
-            <EmptyTitle>{MESSAGES.spine.empty.items.title}</EmptyTitle>
-            <EmptyDescription>{MESSAGES.spine.empty.items.line}</EmptyDescription>
-          </EmptyHeader>
-        </Empty>
+      {offering ? (
+        <ListingOffer
+          date={shownDate}
+          startTime={shownTime}
+          hasItems={items.length > 0}
+          onFill={(concert) => void fill(concert)}
+          before={noItems}
+        />
+      ) : (
+        items.length === 0 && noItems
       )}
 
       {items.length > 0 && (
