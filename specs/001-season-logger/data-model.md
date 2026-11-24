@@ -90,7 +90,7 @@ Event starts `attended`. A lapsed Event is never deleted by the app.
 Colour palette: the 12 colours in last season's Colours sheet (white, red, blue, orange, yellow,
 brown, pink, beige, green, purple, black, grey). Extending it is a project-kept list change.
 
-A Lecdem has at most 3 Appearances with role `presenter` (FR-013).
+A Lecdem has at most 6 Appearances with role `presenter` (FR-013).
 
 A group billed together, such as the Malladi Brothers, is kept as each member's own Appearance,
 each with the group's name in `group`. The name sits on the Appearance rather than the Event

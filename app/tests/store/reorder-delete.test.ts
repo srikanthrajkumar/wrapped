@@ -28,7 +28,7 @@ import {
 } from '../../src/store/people';
 import { listAppearances, listItems } from '../../src/store/queries';
 import { clearReceipts, listReceipts, pruneReceipts } from '../../src/store/receipts';
-import { RuleError } from '../../src/store/rules';
+import { RuleError, TOO_MANY_PRESENTERS } from '../../src/store/rules';
 import { fixtureCatalog, freshDb, reopen } from '../helpers';
 
 /** A Concert with Items "1" to "8", already pushed, so the outbox starts empty. */
@@ -469,22 +469,33 @@ describe('Undo (required)', () => {
     expect((await listReceipts(event.id, db)).map((r) => r.id)).toEqual([old.receipt.id]);
   });
 
-  it('refuses to restore a fourth presenter to a Lecdem, keeping the receipt', async () => {
+  it('refuses to restore a 7th presenter to a Lecdem, keeping the receipt', async () => {
     const db = freshDb();
     const lecdem = await createEvent({ kind: 'lecdem', title: 'Ragas of Tyagaraja' }, { db });
     const presenters = [];
-    for (const name of ['A', 'B', 'C']) {
+    for (const name of ['A', 'B', 'C', 'D', 'E', 'F']) {
       const artist = await createArtist(name, { db });
       presenters.push(await addAppearance(lecdem.id, artist.id, { role: 'presenter' }, { db }));
     }
     const removed = (await removeAppearance(presenters[0]!.id, { db }))!;
-    const d = await addAppearance(lecdem.id, (await createArtist('D', { db })).id, {}, { db });
-    await editAppearance(d.id, { role: 'presenter' }, { db });
+    const g = await addAppearance(lecdem.id, (await createArtist('G', { db })).id, {}, { db });
+    await editAppearance(g.id, { role: 'presenter' }, { db });
+    const before = await db.outbox.count();
 
-    await expect(restoreAppearance(removed.receipt.id, { db })).rejects.toThrow(RuleError);
+    await expect(restoreAppearance(removed.receipt.id, { db })).rejects.toThrow(
+      TOO_MANY_PRESENTERS,
+    );
 
     expect((await db.appearances.get(presenters[0]!.id))?.deletedAt).not.toBeNull();
     expect((await listReceipts(lecdem.id, db)).map((r) => r.id)).toEqual([removed.receipt.id]);
+    expect(await db.outbox.count()).toBe(before);
+
+    // Back to five presenters, the kept receipt restores the 6th.
+    await editAppearance(g.id, { role: 'violin' }, { db });
+    expect(await restoreAppearance(removed.receipt.id, { db })).toMatchObject({
+      id: presenters[0]!.id,
+    });
+    expect((await db.appearances.get(presenters[0]!.id))?.deletedAt).toBeNull();
   });
 });
 

@@ -173,13 +173,13 @@ describe('Undo (required)', () => {
     const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const artist = receipt('appearance');
     offerUndo(artist);
-    mocks.restoreAppearance.mockRejectedValue(new RuleError(['a Lecdem has at most 3 presenters']));
+    mocks.restoreAppearance.mockRejectedValue(new RuleError(['a Lecdem has at most 6 presenters']));
 
     expect(await undo(artist)).toBe(false);
 
     const offer = currentUndo()!;
-    expect(offer).toMatchObject({ failed: true, refused: 'a Lecdem has at most 3 presenters' });
-    expect(undoText(offer)).toBe('Undo failed: Artist, a Lecdem has at most 3 presenters.');
+    expect(offer).toMatchObject({ failed: true, refused: 'a Lecdem has at most 6 presenters' });
+    expect(undoText(offer)).toBe('Undo failed: Artist, a Lecdem has at most 6 presenters.');
     expect(logged).not.toHaveBeenCalled();
 
     // Any other failure is a write that didn't happen, and is logged.

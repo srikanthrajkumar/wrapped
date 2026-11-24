@@ -52,6 +52,8 @@ export const MESSAGES = {
     inMinutes: (minutes: number) => `in ${minutes} min`,
     inCount: (count: number, minutes: number) => `${count} in ${minutes} min`,
     onNow: 'On now',
+    /** The "+N" after a row's or the hero's presenters, as it is spoken (ADR 0013). */
+    andMore: (count: number) => `and ${count} more`,
     /** A cancelled concert's row, in its time's place (the row spec, 2026-11-16). */
     cancelled: 'Cancelled',
     shortlist: 'Shortlist',
@@ -240,7 +242,7 @@ export const MESSAGES = {
     /** The Undo itself could not be written: the bar stays, with Try again. */
     failedShort: (subject: string) => `Undo failed · ${subject}`,
     failed: (subject: string) => `Undo failed: ${subject}. Not saved on this phone.`,
-    /** A rule refused the Undo, as "a Lecdem has at most 3 presenters". */
+    /** A rule refused the Undo, as "a Lecdem has at most 6 presenters". */
     refusedShort: (subject: string, rule: string) => `Undo failed · ${subject} · ${rule}`,
     refused: (subject: string, rule: string) => `Undo failed: ${subject}, ${rule}.`,
     /** The "+1" on the newest failed Undo bar, naming the others. */

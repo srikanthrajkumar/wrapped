@@ -26,8 +26,8 @@ export class RuleError extends Error {
 /** Why an Undo of an Item or Artist can't run: the Concert it belonged to is deleted. */
 export const EVENT_DELETED = 'its Concert is deleted';
 
-/** FR-013: a Lecdem has at most 3 presenters, however it came to be a Lecdem. */
-export const MAX_PRESENTERS = 3;
+/** FR-013: a Lecdem has at most 6 presenters, however it came to be a Lecdem (ADR 0013). */
+export const MAX_PRESENTERS = 6;
 export const TOO_MANY_PRESENTERS = `a Lecdem has at most ${MAX_PRESENTERS} presenters`;
 
 /**

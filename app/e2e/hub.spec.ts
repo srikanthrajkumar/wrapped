@@ -623,6 +623,72 @@ test('a row keeps its lines: whole names then "+N", the type with the lead, a ti
   );
 });
 
+// A Lecdem may have 6 presenters (ADR 0013). From 4 up, a row and the hero name 2, then "+N",
+// spoken "and N more"; up to 3 read in full; the Event's Stage lists them all (the user,
+// 2026-11-24). Invented names, of real length.
+test('a Lecdem with 6 presenters names 2 and "+4" on its row and the hero, its Stage all 6', async ({
+  page,
+}) => {
+  const names = [
+    'Dr. Kamala Venkataraman',
+    'Prof. S. Raghavendra Rao',
+    'Dr. Meera Subrahmanyam',
+    'T. N. Lakshminarayanan',
+    'Dr. Padma Sundararajan',
+    'K. Srinivasa Gopalan',
+  ];
+  await openAt(page, at('15:40'), [
+    entry('panel', '16:00', {
+      kind: 'lecdem',
+      title: 'Articles in 100 years of the Journal',
+      billed: names.map((name) => ({ name, role: 'presenter', group: null, support: false })),
+    }),
+    // Up to 3 read in full, as before.
+    entry('trio', '18:00', {
+      kind: 'lecdem',
+      title: 'On Todi',
+      billed: ['Trio A', 'Trio B', 'Trio C'].map((name) => ({
+        name,
+        role: 'presenter',
+        group: null,
+        support: false,
+      })),
+    }),
+  ]);
+  const spoken = /^Dr\.\sKamala\sVenkataraman,\sProf\.\sS\.\sRaghavendra\sRao\sand\s4\smore\b/;
+
+  // What's on: two whole names, then "+4", on at most two lines; the rest left to the sheet.
+  await door(page).click();
+  const row = page.locator('main [data-row="concert"]', { hasText: 'Dr. Kamala' });
+  const name = row.locator('[data-name]');
+  await expect(name.getByText('+4', { exact: true })).toBeVisible();
+  for (const hidden of names.slice(2)) await expect(row).not.toContainText(hidden);
+  expect(Math.round((await name.boundingBox())!.height)).toBeLessThanOrEqual(48);
+  await expect(row.getByRole('button')).toHaveAccessibleName(spoken);
+  const trio = page.locator('main [data-row="concert"]', { hasText: 'Trio A' });
+  await expect(trio.locator('[data-name]')).toHaveText('Trio A, Trio B & Trio C');
+
+  // The Shortlist's row, the same.
+  await shortlist(page, 'Dr. Kamala');
+  await tab(page, 'Shortlist').click();
+  const mine = page.locator('main [data-row="concert"]', { hasText: 'Dr. Kamala' });
+  await expect(mine.getByText('+4', { exact: true })).toBeVisible();
+  await expect(mine.getByRole('button')).toHaveAccessibleName(spoken);
+
+  // The hero, the same.
+  await openHub(page);
+  const hero = page.getByRole('region', { name: 'Next' }).getByRole('link');
+  await expect(hero.getByText('+4', { exact: true })).toBeVisible();
+  for (const hidden of names.slice(2)) await expect(hero).not.toContainText(hidden);
+  await expect(hero).toHaveAccessibleName(spoken);
+
+  // The Event's Stage has everyone.
+  await hero.click();
+  const stage = page.getByRole('region', { name: 'Stage' }).getByRole('listitem');
+  await expect(stage).toHaveCount(6);
+  for (const [i, one] of names.entries()) await expect(stage.nth(i)).toContainText(one);
+});
+
 // On an installed iPhone the page draws under the clock (black-translucent), so the app paints
 // that band. The top inset is stood in for by the shell's own variable.
 test('the status band is clear over the hub’s curtain, and painted everywhere else', async ({

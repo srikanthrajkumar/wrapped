@@ -336,6 +336,8 @@ export interface EventSummary {
    * ("Malladi Brothers"); null before any.
    */
   knownBy: string | null;
+  /** The same names one by one, a Group once; empty before any. */
+  known: string[];
   /**
    * Every Artist on its Stage, each with the names they are found by: their name, their Aliases
    * and a group they were billed under, and whether they lead it (one the Event is known by).
@@ -408,6 +410,7 @@ export async function listEventSummaries(db: WrappedDB = defaultDb): Promise<Eve
       event,
       sabha: event.sabhaId ? (sabhas(event.sabhaId) ?? null) : null,
       knownBy: names.length > 0 ? joinNames(names) : null,
+      known: names,
       accompanists: accompanying(event.kind, stage).map((a) => artists(a.artistId)?.name ?? '?'),
       type: concertType(event.kind, stage),
       stage: (stages.get(event.id) ?? []).map((appearance) => {

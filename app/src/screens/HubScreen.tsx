@@ -36,7 +36,7 @@ import { createEvent, today } from '../store/events';
 import { letGo, settleLapsed, wasThere } from '../store/lapse';
 import { isBeingLogged } from '../store/logging-note';
 import { useSeasonRagaKeys, type EventSummary, type ScheduleListing } from '../store/queries';
-import { ConcertRow } from './components/ConcertRow';
+import { ConcertRow, MoreNames } from './components/ConcertRow';
 import { ActionRow } from './components/rows';
 import { saveWith, SeasonFeedback, useSaveFeedback } from './components/feedback';
 import { KindMark } from './components/kind-mark';
@@ -114,15 +114,16 @@ export function HubScreen() {
  * beside a 24px name.
  */
 function Title({ summary }: { summary: EventSummary }) {
-  const lead = summary.knownBy
-    ? nameBreaks(summary.knownBy)
-    : (summary.sabha?.name ?? 'No Sabha yet');
+  // 4 or more presenters: 2 whole names, then "+N", as on a row (ADR 0013).
+  const { lead: name, more } = owned(summary);
+  const lead = summary.knownBy ? nameBreaks(name) : name;
   const last = lead.lastIndexOf(' ') + 1;
   return (
     <>
       {lead.slice(0, last)}
       <span className="whitespace-nowrap">
         {lead.slice(last)}
+        {more > 0 && <MoreNames count={more} />}
         <KindMark kind={summary.event.kind} className="ml-2" />
         {summary.type && (
           <span className="ml-2 text-sub font-normal opacity-80">{typeName(summary.type)}</span>

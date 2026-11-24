@@ -35,6 +35,7 @@ const summary = (fields: Partial<Event>, cancelled: boolean): EventSummary => ({
   event: event(fields),
   sabha: null,
   knownBy: null,
+  known: [],
   stage: [],
   accompanists: [],
   type: null,

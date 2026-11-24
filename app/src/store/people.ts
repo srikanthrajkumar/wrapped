@@ -429,7 +429,7 @@ export async function removeAppearance(
  * Undo an Appearance removal: back at its old place in the order added, the others renumbered,
  * in one transaction. A used or stale receipt restores nothing; one whose Event is deleted is
  * refused with EVENT_DELETED, its receipt kept.
- * A restore that would break a rule (a fourth presenter at a Lecdem) is refused with the
+ * A restore that would break a rule (a 7th presenter at a Lecdem) is refused with the
  * receipt kept, so it can be undone once the rasika has changed a Role.
  */
 export async function restoreAppearance(
