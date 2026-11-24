@@ -37,11 +37,12 @@ import { cn } from '@/lib/utils';
 import { today } from '../store/events';
 import { loadEntries, type ScheduleListing } from '../store/queries';
 import type { EventKind } from '../model';
-import { ConcertRow } from './components/ConcertRow';
+import { ConcertRow, OnNowDot } from './components/ConcertRow';
 import { SheetFrame, useLingering } from './components/sheet-frame';
 import { BarHold, BottomDock, Panel, Screen, TopBar } from './components/layout';
 import { DockedSearch } from './components/DockedSearch';
 import { ListRowBody, ROW_SHAPE } from './components/rows';
+import { dayLabel } from './day-words';
 import { dayText, kindName } from './format';
 import { MESSAGES } from './messages';
 import { lastMove, WHATS_ON } from './nav';
@@ -61,8 +62,9 @@ import {
   type Lookup,
   type SeasonName,
 } from './season-filter';
-import { byStart, isOver, listed, owned, underWay, type Concert, type Notes } from './spine';
+import { byStart, listed, owned, underWay, type Concert, type Notes } from './spine';
 import { timeline, type TimelineDay } from './timeline';
+import { onlyEarlier, todayParts } from './today-folds';
 import { useConcertSheets, useSeason } from './use-season';
 
 export function WhatsOnScreen() {
@@ -76,6 +78,8 @@ export function WhatsOnScreen() {
       season.from = null;
     }
     season.place = null;
+    // Opened from the hub, both folds start closed, and are checked once (decision 1).
+    season.folds = { earlier: false, on: false, checked: null };
   });
   return (
     <Screen>
@@ -101,16 +105,27 @@ const season: {
   /** The day the list starts at, picked on the strip or the calendar; null from today. */
   from: string | null;
   place: Place;
+  /**
+   * Today's two folds, open or closed, kept with the place (docs/design/screens/whats-on.md
+   * decision 1). `checked` is the filter the start-open rule last ran for; null to run it again.
+   */
+  folds: Folds;
   filter: Filter;
   asked: boolean;
 } = {
   past: false,
   from: null,
   place: null,
+  folds: { earlier: false, on: false, checked: null },
   filter: NO_FILTER,
   /** Set by a link that asks for a day ({@link startWhatsOnAt}), for the next open to keep. */
   asked: false,
 };
+
+type Folds = { earlier: boolean; on: boolean; checked: string | null };
+
+/** A filter as a key, so the start-open rule runs again only when it changes. */
+const filterKey = (filter: Filter) => (isFiltering(filter) ? JSON.stringify(filter) : '');
 
 /** Have What's on open at a day: the hub's "Tomorrow", with nothing left today. */
 export function startWhatsOnAt(date: string | null): void {
@@ -293,6 +308,24 @@ function WhatsOnView() {
     if (jumped > 0) window.scrollTo(0, 0);
   }, [jumped]);
 
+  // Today's folds, kept with the place. "Earlier today" starts open when it would be all the
+  // list shows (decision 1): checked when the page opens from the hub and when the filter
+  // changes, never on the clock's tick, so nothing opens mid-view.
+  const [folds, setFolds] = useState(season.folds);
+  // Kept for the page's life, as the place is: back from an Event, the folds are as left.
+  useEffect(() => {
+    season.folds = folds;
+  }, [folds]);
+  const key = filterKey(filter);
+
+  // "Show Past" moves focus to the first day gone's label, once it has drawn (decision 3).
+  const focusFirst = useRef(false);
+  useEffect(() => {
+    if (!focusFirst.current || !past) return;
+    focusFirst.current = false;
+    document.querySelector<HTMLElement>('[data-list] section h2')?.focus();
+  }, [past]);
+
   // While the days load, the bottom bar keeps what it showed rather than emptying and filling
   // again with the search bar, which would move the page under the hold.
   if (!data || !shown) return <BarHold />;
@@ -302,6 +335,15 @@ function WhatsOnView() {
   const days = (past ? shown.gone : shown.ahead).filter(
     (day) => from === null || (past ? day.date <= from : day.date >= from),
   );
+  // The start-open rule, run as the page opens from the hub and as the filter changes, before
+  // the paint: "Earlier today" opens when it would be all the list shows.
+  if (folds.checked !== key) {
+    const first = !past && days[0]?.date === data.today ? days[0] : undefined;
+    const open =
+      first !== undefined &&
+      onlyEarlier(todayParts(dayRows(first, byEntry), data.notes, data.now), days.length);
+    setFolds({ ...folds, earlier: folds.earlier || open, checked: key });
+  }
 
   return (
     <>
@@ -371,38 +413,60 @@ function WhatsOnView() {
         className="flex flex-1 flex-col"
       >
         {days.length === 0 &&
-          (filtering ? (
-            // A filter that matches nothing here says so, with one tap to clear it.
-            <Empty>
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <IconSearchOff aria-hidden />
-                </EmptyMedia>
-                <EmptyTitle>{MESSAGES.spine.empty.search.title}</EmptyTitle>
-              </EmptyHeader>
-              <EmptyContent>
-                <Button variant="outline" onClick={() => setFilter(NO_FILTER)}>
-                  {MESSAGES.season.clear}
-                </Button>
-              </EmptyContent>
-            </Empty>
-          ) : (
-            <Empty className="flex-1 pb-24">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <IconCalendar aria-hidden />
-                </EmptyMedia>
-                <EmptyTitle>
-                  {bare
-                    ? MESSAGES.spine.empty.season.title
-                    : past
-                      ? MESSAGES.season.empty.past
-                      : MESSAGES.season.empty.ahead}
-                </EmptyTitle>
-                {bare && <EmptyDescription>{MESSAGES.spine.empty.season.line}</EmptyDescription>}
-              </EmptyHeader>
-            </Empty>
-          ))}
+          (() => {
+            // From today, with nothing to show, the days gone are offered when they hold
+            // anything (matching the filter, when one is on): decision 3. Past needs none: its
+            // strip already shows Today.
+            const offerPast = !past && !bare && shown.gone.length > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  focusFirst.current = true;
+                  go('past');
+                }}
+              >
+                {MESSAGES.season.showPast}
+              </Button>
+            );
+            return filtering ? (
+              // A filter that matches nothing here says so, with one tap to clear it.
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <IconSearchOff aria-hidden />
+                  </EmptyMedia>
+                  <EmptyTitle>
+                    {past
+                      ? MESSAGES.spine.empty.search.title
+                      : MESSAGES.spine.empty.searchAhead.title}
+                  </EmptyTitle>
+                </EmptyHeader>
+                <EmptyContent>
+                  {offerPast}
+                  <Button variant="outline" onClick={() => setFilter(NO_FILTER)}>
+                    {MESSAGES.season.clear}
+                  </Button>
+                </EmptyContent>
+              </Empty>
+            ) : (
+              <Empty className="flex-1 pb-24">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <IconCalendar aria-hidden />
+                  </EmptyMedia>
+                  <EmptyTitle>
+                    {bare
+                      ? MESSAGES.spine.empty.season.title
+                      : past
+                        ? MESSAGES.season.empty.past
+                        : MESSAGES.season.empty.ahead}
+                  </EmptyTitle>
+                  {bare && <EmptyDescription>{MESSAGES.spine.empty.season.line}</EmptyDescription>}
+                </EmptyHeader>
+                {offerPast && <EmptyContent>{offerPast}</EmptyContent>}
+              </Empty>
+            );
+          })()}
         <div>
           {days.map((day) => (
             <DaySection
@@ -411,9 +475,11 @@ function WhatsOnView() {
               byEntry={byEntry}
               notes={data.notes}
               now={data.now}
-              // Today starts from now, what is over folded to one line; a day gone, a day
-              // ahead and a list a filter narrowed show whole.
-              fromNow={!past && !filtering && day.date === data.today}
+              // Today reads the same with or without a filter (decision 4): its folds and the
+              // dot. A day gone and a day ahead show whole.
+              fromNow={!past && day.date === data.today}
+              folds={folds}
+              onFolds={setFolds}
               onOpen={open}
               onHint={hint}
             />
@@ -1061,14 +1127,71 @@ function SearchSheet({
 /** How many names heard most show before typing, at most. */
 const OFTEN_HEARD = 5;
 
+/** A day's rows: every concert that day once, by start time, the rasika's own among the rest. */
+function dayRows(day: TimelineDay, byEntry: ReadonlyMap<string, ScheduleListing>): Concert[] {
+  return [
+    ...day.own.map((summary) =>
+      owned(summary, byEntry.get(summary.event.scheduleEntryId ?? '') ?? null),
+    ),
+    ...day.listings.map(listed),
+  ].sort(byStart);
+}
+
+/**
+ * One of today's two folds, a `sub` row in its day's panel: "Earlier today", or "On now" with
+ * the dot and its word in 600 ink (docs/design/screens/whats-on.md decision 1). Spoken as a
+ * button, "On now 6", expanded or collapsed; the dot is silent.
+ */
+function FoldRow({
+  label,
+  count,
+  open,
+  live = false,
+  onToggle,
+}: {
+  label: string;
+  count: number;
+  open: boolean;
+  live?: boolean;
+  onToggle(): void;
+}) {
+  return (
+    <li className="hairline-b">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={onToggle}
+        className="flex min-h-12 w-full items-center justify-between gap-2 py-3 text-left text-sub text-muted-foreground focus-visible:-outline-offset-2"
+      >
+        <span className={cn('flex items-center', live && 'font-semibold text-foreground')}>
+          {live && <OnNowDot silent className="mr-2" />}
+          {label}
+        </span>
+        <span className="flex items-center gap-1 tabular-nums">
+          {count}
+          <IconChevronDown
+            aria-hidden
+            className={cn(
+              '-mr-1 size-5 transition-transform duration-150 motion-reduce:transition-none',
+              open && 'rotate-180',
+            )}
+          />
+        </span>
+      </button>
+    </li>
+  );
+}
+
 /**
  * One day of What's on: its label, then every concert that day once, by start time, the
- * rasika's own among the rest (SF-D31). Today starts from now (`fromNow`): what is over folds
- * to one line, "Earlier today", open at a tap. A long Season draws only the rows near the
- * screen, each day's held at their likely height until drawn, so scrolling never jumps. The
- * rows, not the day, skip drawing: skipping clips what it holds, and Safari moves a sticky label
- * inside a clip only once a fling's frame is done, so the rows ran over the label at a day's
- * change (the Maintainer's iPhone, 2026-11-10).
+ * rasika's own among the rest (SF-D31). Today (`fromNow`), with or without a filter, has two
+ * folds (docs/design/screens/whats-on.md decisions 1 and 4): what is over under "Earlier
+ * today", and what is under way under "On now" once three or more are and something is still to
+ * come. Each fold heads its own rows; then what is still to come. A long Season draws only the
+ * rows near the screen, each day's held at their likely height until drawn, so scrolling never
+ * jumps. The rows, not the day, skip drawing: skipping clips what it holds, and Safari moves a
+ * sticky label inside a clip only once a fling's frame is done, so the rows ran over the label at
+ * a day's change (the Maintainer's iPhone, 2026-11-10).
  */
 function DaySection({
   day,
@@ -1076,6 +1199,8 @@ function DaySection({
   notes,
   now,
   fromNow,
+  folds,
+  onFolds,
   onOpen,
   onHint,
 }: {
@@ -1084,24 +1209,31 @@ function DaySection({
   notes: Notes;
   now: Date;
   fromNow: boolean;
+  folds: Folds;
+  onFolds(next: Folds): void;
   onOpen(concert: Concert): void;
   onHint(eventId: string): void;
 }) {
-  const [earlier, setEarlier] = useState(false);
-  const rows = useMemo(
-    () =>
-      [
-        ...day.own.map((summary) =>
-          owned(summary, byEntry.get(summary.event.scheduleEntryId ?? '') ?? null),
-        ),
-        ...day.listings.map(listed),
-      ].sort(byStart),
-    [day, byEntry],
-  );
-  const over = fromNow ? rows.filter((row) => isOver(row, notes, now)) : [];
-  const ahead = over.length > 0 ? rows.filter((row) => !over.includes(row)) : rows;
-  const drawn = earlier ? rows : ahead;
+  const rows = useMemo(() => dayRows(day, byEntry), [day, byEntry]);
+  const parts = fromNow ? todayParts(rows, notes, now) : null;
+  const drawn = !parts
+    ? rows
+    : [
+        ...(folds.earlier ? parts.over : []),
+        ...(!parts.foldOn || folds.on ? parts.on : []),
+        ...parts.ahead,
+      ];
   const style = { containIntrinsicSize: `auto ${rowsHeight(drawn)}px` } as CSSProperties;
+  const label = dayLabel(day.date, now);
+  const row = (concert: Concert) => (
+    <ConcertRow
+      key={concert.key}
+      concert={concert}
+      on={fromNow && underWay(concert, notes, now)}
+      onOpen={onOpen}
+      onHint={onHint}
+    />
+  );
   return (
     // The first day 16px under the strip's text, then 32px between days (foundations,
     // 2026-11-16). The gap is the day above's foot, so a day jumped to starts at its label.
@@ -1110,51 +1242,48 @@ function DaySection({
       aria-labelledby={`day-${day.date}`}
       className="group/day pb-7 last:pb-0"
     >
-      {/* The day's label, in body 600 ink, 8px over its panel. */}
+      {/* The day's label, in body 600 ink, 8px over its panel: "Today · Mon 14 Dec" (decision
+          2). It takes focus from "Show Past" (decision 3), so it can be focused, though not
+          tabbed to. */}
       <h2
         id={`day-${day.date}`}
+        tabIndex={-1}
+        aria-label={label.spoken}
         // Sticks under the pinned strip while its day is on the screen, as a festival
         // schedule's day labels do. Its ground and its fade run to the screen's edges, as the
         // strip's do, while its text stays on the 24px column (the Maintainer's iPhone,
         // 2026-11-17: over the panels, a ground only as wide as the column showed their sides).
-        className="sticky top-[calc(var(--app-top-inset,env(safe-area-inset-top))+var(--season-strip,0px))] z-10 pt-1 pb-2 text-body font-semibold text-foreground before:absolute before:inset-y-0 before:right-[calc(-24px-env(safe-area-inset-right))] before:left-[calc(-24px-env(safe-area-inset-left))] before:-z-10 before:bg-background after:pointer-events-none after:absolute after:top-full after:right-[calc(-24px-env(safe-area-inset-right))] after:left-[calc(-24px-env(safe-area-inset-left))] after:h-6 after:bg-gradient-to-b after:from-background after:to-transparent after:opacity-0 group-data-[stuck]/day:after:opacity-(--under)"
+        className="sticky top-[calc(var(--app-top-inset,env(safe-area-inset-top))+var(--season-strip,0px))] z-10 pt-1 pb-2 text-body font-semibold text-foreground outline-none before:absolute before:inset-y-0 before:right-[calc(-24px-env(safe-area-inset-right))] before:left-[calc(-24px-env(safe-area-inset-left))] before:-z-10 before:bg-background after:pointer-events-none after:absolute after:top-full after:right-[calc(-24px-env(safe-area-inset-right))] after:left-[calc(-24px-env(safe-area-inset-left))] after:h-6 after:bg-gradient-to-b after:from-background after:to-transparent after:opacity-0 group-data-[stuck]/day:after:opacity-(--under)"
       >
-        {dayText(day.date)}
+        {label.text}
       </h2>
       <Panel className="[content-visibility:auto]" style={style}>
-        {over.length > 0 && (
-          // What is over today, as one `sub` row, first in its day's panel (Part 3): open, they
-          // are back in their slots.
-          <li className="hairline-b">
-            <button
-              type="button"
-              aria-expanded={earlier}
-              onClick={() => setEarlier(!earlier)}
-              className="flex min-h-12 w-full items-center justify-between gap-2 py-3 text-left text-sub text-muted-foreground focus-visible:-outline-offset-2"
-            >
-              <span>{MESSAGES.spine.earlier}</span>
-              <span className="flex items-center gap-1 tabular-nums">
-                {over.length}
-                <IconChevronDown
-                  aria-hidden
-                  className={cn(
-                    '-mr-1 size-5 transition-transform duration-150 motion-reduce:transition-none',
-                    earlier && 'rotate-180',
-                  )}
-                />
-              </span>
-            </button>
-          </li>
+        {!parts ? (
+          rows.map(row)
+        ) : (
+          <>
+            {parts.over.length > 0 && (
+              <FoldRow
+                label={MESSAGES.spine.earlier}
+                count={parts.over.length}
+                open={folds.earlier}
+                onToggle={() => onFolds({ ...folds, earlier: !folds.earlier })}
+              />
+            )}
+            {folds.earlier && parts.over.map(row)}
+            {parts.foldOn && (
+              <FoldRow
+                label={MESSAGES.spine.onNow}
+                count={parts.on.length}
+                open={folds.on}
+                live
+                onToggle={() => onFolds({ ...folds, on: !folds.on })}
+              />
+            )}
+            {(!parts.foldOn || folds.on) && parts.on.map(row)}
+            {parts.ahead.map(row)}
+          </>
         )}
-        {drawn.map((row) => (
-          <ConcertRow
-            key={row.key}
-            concert={row}
-            on={fromNow && underWay(row, notes, now)}
-            onOpen={onOpen}
-            onHint={onHint}
-          />
-        ))}
       </Panel>
     </section>
   );

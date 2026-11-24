@@ -45,6 +45,7 @@ import { useReloadGuard } from './components/reload-guard';
 import { dayText, itemCount, nameBreaks, nowTime, timeText, typeName } from './format';
 import { MESSAGES } from './messages';
 import { WHATS_ON } from './nav';
+import { dayName, tomorrowOf } from './day-words';
 import { saveFeedback } from './save-feedback';
 import { claimNewConcert, dropNewConcert, noteNewConcert, sweepNewConcerts } from './new-concert';
 import {
@@ -130,21 +131,6 @@ function Title({ summary }: { summary: EventSummary }) {
     </>
   );
 }
-
-/** The day after `now`'s, by the phone's calendar. */
-const tomorrowOf = (now: Date) =>
-  isoDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
-
-/**
- * A day as the hub says it, one word for one day wherever it names it (the hub spec's decision
- * 2): "Today", "Tomorrow", else "Mon 21 Dec". No "Yesterday": it keeps its date.
- */
-const dayName = (date: string, now: Date) =>
-  date === isoDay(now)
-    ? MESSAGES.season.today
-    : date === tomorrowOf(now)
-      ? MESSAGES.spine.tomorrow
-      : dayText(date);
 
 /**
  * The hero's line under a name, time first as a row's (the hub spec's decision 3): inside the hour

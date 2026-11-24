@@ -91,6 +91,8 @@ export const MESSAGES = {
       diary: { title: 'Nothing heard yet', line: 'Every concert you log is kept here.' },
       items: { title: 'No Items yet', line: 'Add each piece as it is sung.' },
       search: { title: 'Nothing here matches' },
+      /** From today, under a filter that matches nothing ahead (What's on decision 3). */
+      searchAhead: { title: 'Nothing ahead matches' },
     },
     tomorrow: 'Tomorrow',
     settingsToFix: 'Settings, something to fix',
@@ -126,6 +128,8 @@ export const MESSAGES = {
     oftenHeard: 'Often heard',
     noMatch: 'Nothing here matches.',
     clear: 'Clear filters',
+    /** An empty list from today, when the days gone hold something (What's on decision 3). */
+    showPast: 'Show Past',
   },
   /** Home, while the app isn't ready for offline; Settings shows it always. */
   offline: {

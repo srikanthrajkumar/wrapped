@@ -83,7 +83,7 @@ export function owned(summary: EventSummary, listing: ScheduleListing | null = n
   };
 }
 
-const startMs = (concert: Pick<Concert, 'date' | 'startTime'>) =>
+export const startMs = (concert: Pick<Concert, 'date' | 'startTime'>) =>
   eventStart(concert)?.getTime() ?? null;
 
 /** By start time, one with no time last in its day, then by Sabha, as the Schedule is listed. */
