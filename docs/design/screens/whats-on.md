@@ -249,3 +249,22 @@ is simpler than two.
 - **Noticed:** after a pick by Enter, focus goes back to the search bar and it shows its keyboard
   ring, which makes the × look outside it. Check on the iPhone whether its keyboard's Go does the
   same; any change comes back as its own decision.
+
+## 9. As built (2026-11-24)
+
+- `today-folds.ts`: today's split for the two folds, and when "Earlier today" starts open; pure,
+  tested in `tests/screens/today-folds.test.ts` (peak day at 4:10 pm, two under way, nothing to
+  come, no time, the Concert being logged, cancelled, a filter, the clock).
+- `day-words.ts`: the Hub's `dayName` moved here unchanged, and What's on's `dayLabel` with its
+  spoken form; tested in `tests/screens/day-words.test.ts` (midnight, month and year turns).
+- `WhatsOnScreen.tsx`: the folds (kept in `season` with the place), the labels, "Show Past" and
+  "Nothing ahead matches", today's folds and dot under a filter.
+- `e2e/whats-on.spec.ts`: the fold at 4:10 pm and kept across tabs, fewer than three, a filter,
+  "Show Past" with the filter kept and focus moved, nothing ahead, tomorrow's label.
+  `hub.spec.ts` and `timeline.spec.ts` take the new label and title.
+
+Builder's calls, open to review:
+
+- "Page opens" for the start-open rule means opened from the Hub, when both folds reset. Back
+  from an Event or another tab, the folds are as left, closed ones included.
+- A filter change re-runs the rule; it opens "Earlier today" but never closes it.

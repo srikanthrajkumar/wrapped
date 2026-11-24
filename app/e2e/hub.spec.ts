@@ -182,7 +182,7 @@ test('at 3:40 the hub shows today’s next slot, how close it is, and What’s o
   // What's on: today from now, what is over folded to one line, a dot on what is under way.
   await door(page).click();
   await expect(page.getByRole('heading', { name: "What's on", exact: true })).toBeVisible();
-  const today = page.getByRole('region', { name: 'Sun 20 Dec' });
+  const today = page.getByRole('region', { name: 'Today, Sunday 20 December' });
   const earlier = today.getByRole('button', { name: /^Earlier today/ });
   await expect(earlier).toContainText('1');
   // "Earlier today" is the first row of its day's panel; then the concerts (the row spec).
@@ -586,7 +586,9 @@ test('a row keeps its lines: whole names then "+N", the type with the lead, a ti
     }),
   ]);
   await door(page).click();
-  const rows = page.getByRole('region', { name: 'Sun 20 Dec' }).getByRole('listitem');
+  const rows = page
+    .getByRole('region', { name: 'Today, Sunday 20 December' })
+    .getByRole('listitem');
 
   // Two names don't fit a panel's 342px column: one whole name and a count, on one line, never
   // cut (on the page's 358px, before the panels of 2026-11-16, two fitted).

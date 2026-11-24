@@ -676,8 +676,10 @@ test('the search bar and its sheet: one sort widens, two narrow, Aliases find a 
   expect(await rows(page)).toEqual([]);
   expect(await stops(page)).toEqual(['Today']);
 
-  // Nothing matches here: said so, with one tap to clear every filter.
-  await expect(page.getByText('Nothing here matches')).toBeVisible();
+  // Nothing matches from today on: said so, with one tap to clear every filter (and no
+  // "Show Past", with nothing gone that matches).
+  await expect(page.getByText('Nothing ahead matches')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Show Past' })).toHaveCount(0);
   await clearInList(page).click();
   await expect.poll(() => rows(page)).toHaveLength(5);
   await expect(searchBar(page)).toHaveText('Artist or Sabha…');
