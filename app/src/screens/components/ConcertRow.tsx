@@ -21,6 +21,7 @@
 //
 // How each line holds its shape (the Maintainer, 2026-11-11; the row spec, 2026-11-16):
 // - the name wraps and is never cut, its lines balanced, never broken after an "&" or an initial;
+//   4 or more presenters show 2 whole names, then "+N", spoken "and N more" (ADR 0013);
 // - a printed title takes two lines at most, then "…";
 // - the accompanists take one line: as many whole names as fit, then "+N" (fit-names.ts);
 // - the facts break at a "·" first (the "·" dropped there), a fact longer than a line wraps
@@ -48,6 +49,19 @@ export function OnNowDot({ className, silent = false }: { className?: string; si
       aria-hidden={silent || undefined}
       className={cn('inline-block size-2 shrink-0 rounded-full bg-foreground', className)}
     />
+  );
+}
+
+/**
+ * The "+N" after the presenters a row or the hub's hero names (ADR 0013), kept with the last
+ * name's last word, and spoken "and N more".
+ */
+export function MoreNames({ count }: { count: number }) {
+  return (
+    <>
+      <span aria-hidden> +{count}</span>
+      <span className="sr-only"> {MESSAGES.spine.andMore(count)}</span>
+    </>
   );
 }
 
@@ -277,6 +291,7 @@ export function ConcertRow({
               {lead.slice(0, lastWord)}
               <span className="whitespace-nowrap">
                 {lead.slice(lastWord)}
+                {concert.more > 0 && <MoreNames count={concert.more} />}
                 <KindMark kind={concert.kind} className="ml-1.5" />
                 {concert.type && (
                   <span className="ml-2 text-caption text-muted-foreground">

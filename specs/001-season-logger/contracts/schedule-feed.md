@@ -214,7 +214,7 @@ For each Event with a `scheduleEntryId`:
   rasika added by hand stands for their billing as it is: never billed, its Role and group never
   changed, never removed, never doubled.
 - Either way, on a Planned Event, record `scheduleVersionSeen`.
-- A version that would break a rule (a Lecdem billed with more than 3 presenters) changes
+- A version that would break a rule (a Lecdem billed with more than 6 presenters) changes
   nothing and is not recorded, so a corrected version still applies.
 - A cancelled entry never hides or removes an Event: a Planned one stays in its day on Season,
   shown as cancelled, until the rasika removes it (2026-11-07). The entries are listed in

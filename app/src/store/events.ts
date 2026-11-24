@@ -116,8 +116,8 @@ export async function editEvent(
 }
 
 /**
- * FR-013 holds however an Event comes to be a Lecdem: one with more than 3 presenters is
- * refused with the same rule as a 4th presenter added, so its presenters stay editable.
+ * FR-013 holds however an Event comes to be a Lecdem: one with more than 6 presenters is
+ * refused with the same rule as a 7th presenter added, so its presenters stay editable.
  */
 export async function checkLecdem(event: Event, db: WrappedDB) {
   if (event.kind !== 'lecdem') return;

@@ -446,8 +446,8 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     ("Now", "Next", or for a choice "Pick your dusk") and at the right the +. Under it the
     concert: its title in `heading` 700, the Artists it is known by (else its Sabha, else "No
     Sabha yet"), its lines balanced and never broken after an "&" or an initial, starting on the
-    column; **after the name, as a row has them** (docs/design/screens/hub.md, decision 3, the
-    user, 2026-11-21), its kind's 20px mark and its instrument word ("Flute") in `sub` at 80%,
+    column (4 or more presenters as 2 names then "+N", as a row has them, ADR 0013); **after
+    the name, as a row has them** (docs/design/screens/hub.md, decision 3, the user, 2026-11-21), its kind's 20px mark and its instrument word ("Flute") in `sub` at 80%,
     kept with the name's last word. 4px under it a line in `sub` at 80% of the text colour,
     **time first, as a row's**: the day ("Today", "Tomorrow", else its date; none for a choice
     of today, named by its slot), the time, the Sabha, and once Heard the Item count when it has
@@ -684,7 +684,9 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   2026-11-11, from a mockup of every variant, measured on the Season's 542 listings at 390px):
   the **lead** wraps and is never cut, its lines balanced, never broken after an "&" or an
   initial (2026-11-13: a pair breaks before its "&"), and its type stays on the line of its
-  last word, never alone; a **printed title** takes two lines at most, then "…"; the **accompanists** take one
+  last word, never alone; 4 or more presenters (a Lecdem's, a Harikatha's) show 2 whole names,
+  then "+N", spoken "and N more", and up to 3 show in full (the user, 2026-11-24, ADR 0013); a
+  **printed title** takes two lines at most, then "…"; the **accompanists** take one
   line, as many whole names as fit, in Stage order, then "+N" for the rest ("Thiruvizha Sri.
   Viju. S. Anand · R. Sankaranarayanan +1", option B of three mockups: no name is ever cut and
   the line never wraps; one name always shows; one listing in four with accompanists carries a
@@ -1165,7 +1167,7 @@ Dynamic Island (`apple-mobile-web-app-status-bar-style: black-translucent` in
     Try again and Dismiss, until it works or the rasika dismisses it, across leaving the Event and a
     reload. Only the newest failed bar shows, with "+1" when older ones wait; "+1" brings the
     next forward, and on the Event screen they are also under "⋯" (decided 2026-11-02). When a
-    rule refuses the Undo, the bar says which ("Undo failed · Artist · a Lecdem has at most 3
+    rule refuses the Undo, the bar says which ("Undo failed · Artist · a Lecdem has at most 6
     presenters"); when the Item's or Artist's Concert is deleted, it says so, with Dismiss
     only. Its 5 seconds stop while the Undo is being written.
 - **Reordering:** a separate edit mode on the Event screen. It opens from a muted "Edit order"
@@ -1391,7 +1393,7 @@ from What's on to keep it here.", "Nothing heard yet", "Every concert you log is
 | Item search                  | No catalog                                                                                                                                                                                                     | "Catalog not on this phone yet. What you type is kept and can be matched later in Tidy."                                                                                                                                  |                            |
 | Undo bar                     | After a delete                                                                                                                                                                                                 | "Item 5 deleted" (or "Artist removed", "Concert deleted")                                                                                                                                                                 | Undo                       |
 | Undo bar                     | The Undo itself failed to save. Only the newest failed bar shows, with "+1" for older ones                                                                                                                     | "Undo failed · Concert" (or "Item 5", "Artist") · "Undo failed: Concert. Not saved on this phone." · "+1"                                                                                                                 | Try again · Dismiss        |
-| Undo bar                     | A rule refuses the Undo                                                                                                                                                                                        | "Undo failed · Artist · a Lecdem has at most 3 presenters" · "Undo failed: Artist, a Lecdem has at most 3 presenters."                                                                                                    | Try again · Dismiss        |
+| Undo bar                     | A rule refuses the Undo                                                                                                                                                                                        | "Undo failed · Artist · a Lecdem has at most 6 presenters" · "Undo failed: Artist, a Lecdem has at most 6 presenters."                                                                                                    | Try again · Dismiss        |
 | Undo bar                     | The Item's or Artist's Concert is deleted                                                                                                                                                                      | "Undo failed · Item 3 · its Concert is deleted" · "Undo failed: Item 3, its Concert is deleted."                                                                                                                          | Dismiss                    |
 | Screen reader                | After a delete                                                                                                                                                                                                 | "Item 5 deleted. Undo available."                                                                                                                                                                                         |                            |
 | Screen reader                | Search pauses                                                                                                                                                                                                  | "5 results" / "No matches"                                                                                                                                                                                                |                            |

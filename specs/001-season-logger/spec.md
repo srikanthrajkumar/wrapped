@@ -165,7 +165,7 @@ planned Concert and log it without typing the date, Sabha or any billed Artist.
 
 ### User Story 4 - Log a Lecdem (Priority: P4)
 
-At a Lecdem, the rasika records the title, up to 3 presenters (Artists in the presenter Role)
+At a Lecdem, the rasika records the title, up to 6 presenters (Artists in the presenter Role)
 and the Sabha, with optional Colours, Items demonstrated and notes.
 
 **Why this priority**: last season had 6 Lecdems against 33 Concerts. They matter to the
@@ -344,7 +344,8 @@ shared Artist, their text as typed is kept, and a third rasika is offered him fr
   its Nadai and an optional note.
 - **FR-012**: Search MUST find Compositions, Ragas and Composers across common transliteration
   variants (Thyagaraja / Tyagaraja, Sahana / Saahana) and the catalog's known Aliases.
-- **FR-013**: A Lecdem MUST have a title and up to 3 presenters, and MAY have Items.
+- **FR-013**: A Lecdem MUST have a title and up to 6 presenters, and MAY have Items (raised
+  from 3 on 2026-11-24, ADR 0013).
 - **FR-051**: The rasika MUST be able to record which improvised Details were heard in an Item
   (alapana, tanam, niraval, kalpana swaram), each with its own Raga when it differs from the
   Item's. They are shown in the usual concert order and stay out of the main logging path; how

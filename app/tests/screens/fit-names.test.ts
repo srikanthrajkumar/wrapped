@@ -2,7 +2,7 @@
 // order, then "+N"; one name at least.
 
 import { describe, expect, it } from 'vitest';
-import { fitNames, namesLine } from '../../src/screens/fit-names';
+import { fitNames, leadNames, namesLine } from '../../src/screens/fit-names';
 import { nameBreaks } from '../../src/screens/format';
 
 /** A fixed-width type: ten to the character. */
@@ -75,5 +75,27 @@ describe('where a name may break', () => {
     expect(nameBreaks('Nagai R. Muralidharan & Badrinarayanan. D')).toBe(
       `Nagai R.${NBSP}Muralidharan &${NBSP}Badrinarayanan. D`,
     );
+  });
+});
+
+describe('leadNames: a Lecdem’s presenters on a row and the hero (ADR 0013)', () => {
+  const names = (n: number) => ['A', 'B', 'C', 'D', 'E', 'F'].slice(0, n);
+
+  it('shows up to 3 presenters in full, as before', () => {
+    expect(leadNames('lecdem', names(1))).toEqual({ lead: 'A', more: 0 });
+    expect(leadNames('lecdem', names(2))).toEqual({ lead: 'A & B', more: 0 });
+    expect(leadNames('lecdem', names(3))).toEqual({ lead: 'A, B & C', more: 0 });
+  });
+
+  it('shows 2 whole names, then counts the rest, from 4 up to the 6 a Lecdem may have', () => {
+    expect(leadNames('lecdem', names(4))).toEqual({ lead: 'A, B', more: 2 });
+    expect(leadNames('lecdem', names(5))).toEqual({ lead: 'A, B', more: 3 });
+    expect(leadNames('lecdem', names(6))).toEqual({ lead: 'A, B', more: 4 });
+    expect(leadNames('harikatha', names(4))).toEqual({ lead: 'A, B', more: 2 });
+  });
+
+  it('leaves every other kind’s names whole', () => {
+    expect(leadNames('concert', names(4))).toEqual({ lead: 'A, B, C & D', more: 0 });
+    expect(leadNames('dance', names(4))).toEqual({ lead: 'A, B, C & D', more: 0 });
   });
 });

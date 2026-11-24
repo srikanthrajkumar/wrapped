@@ -433,7 +433,7 @@ export async function addFromSchedule(
       { db, id },
     );
     await syncStage(event, entry, names, db);
-    // A Lecdem billed with more than 3 presenters is refused whole (FR-013).
+    // A Lecdem billed with more than 6 presenters is refused whole (FR-013).
     await checkLecdem(event, db);
     return event;
   });
