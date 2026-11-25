@@ -3,9 +3,10 @@
 // Undo checks that every record is still the tombstone that delete made, then consumes the
 // receipt, so a receipt survives a crash and a stale or replayed Undo restores nothing.
 
-import { newId, type Event, type RasikaTable } from '../model';
+import { newId, type Appearance, type Event, type Item, type RasikaTable } from '../model';
 import type { MetaEntry, WrappedDB } from './db';
 import type { Birth } from './events';
+import type { ItemDraft } from './items';
 import type { LoggingNote } from './logging-note';
 
 /**
@@ -40,6 +41,16 @@ export interface Filled {
    * made to it (a late log's time) keeps it for good.
    */
   birth?: (Birth & { tappedAt: string }) | null;
+  /**
+   * The listing's Event as the fill left it, every row of it: Undo goes ahead only while the
+   * store still holds exactly these, so it never takes a later edit with it.
+   */
+  after?: {
+    event: Event;
+    stage: Appearance[];
+    items: Item[];
+    draft: ItemDraft | null;
+  };
 }
 
 const KINDS: readonly string[] = ['item', 'appearance', 'event', 'fill'] satisfies DeletionKind[];

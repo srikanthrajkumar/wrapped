@@ -211,3 +211,32 @@ Builder's calls in the build, open to review:
   is being typed on the Event; Undo puts each logging note back as it was; and a blank Concert
   whose time was changed (a late log) comes back from Undo still marked as edited, so leaving it
   never takes it back.
+- From the router's review of the build (Codex and a Claude reviewer, 2026-11-24), nine fixes,
+  each with a test (`tests/store/fill.test.ts`, `tests/screens/fill-listing.test.ts`):
+  - A blank Concert made a Lecdem, a Dance or given a title is no longer blank: the offer goes,
+    as it does for an Artist or a Sabha, and the store refuses the fill, since a listing would
+    overwrite that choice. **Open for the user**: decision 2 said "an Artist or a Sabha"; this adds
+    the kind and the title.
+  - A fill waits for anything entered for the blank Concert that is not yet in the store: a value
+    being written (waited for, as it may fail), typed, or failed, its Artists' and Items' too, and
+    one typed in another tab (read from the journal's shared copy). A second tap waits for the
+    first fill, and a tap after it finds nothing to fill, so no false "Not saved".
+  - Undo compares the Event, its Artists, its Items and its Item draft with how the fill left
+    them, by value, never by the clock; so an edit in the same millisecond or after the clock
+    stepped back refuses it, and a draft the Event had before the fill doesn't. It also waits
+    for anything typed on the Event and not yet written, here or in another tab.
+  - Undo puts a Missed Event back to Missed (its fields are taken before the fill Shortlists it
+    again).
+  - Undo holds the blank Concert's lock and notes it as new before bringing it back, so no tab's
+    sweep takes it back before its page opens, and a crash leaves it noted (kept, as edited).
+- From Codex's second look (2026-11-24): the journal is read again as the last step inside the
+  fill's and the Undo's own transaction, after every write, so a value typed in another tab while
+  either ran rolls it back ("something typed on this Concert is not saved yet"; "it was changed
+  since"). Undo into the rasika's own Event waits only for a typed value of a field it writes
+  back, one the fill changed (its Note, when the blank Concert's was added; its status, when
+  Items moved). Any other, a date or a Note typed before a fill that left the Note as it was,
+  stays with the Event and doesn't stop it.
+- Accepted by the user (2026-11-24): a window remains between that last look and the
+  IndexedDB commit, in which another tab could write a typed value to its journal in
+  localStorage for a row the fill or Undo removes. It needs typing in two tabs in that instant,
+  and closing it would mean a cross-tab lock in every editor.

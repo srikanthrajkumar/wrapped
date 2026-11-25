@@ -253,6 +253,21 @@ export function claimNewConcert(id: string, deps = defaults()): Promise<void> {
   return shared.granted;
 }
 
+/**
+ * A claimed Concert is about to open (an Undo brought it back): its page takes the hold over;
+ * if none does in a moment, the hold goes, so a Concert not opened after all can still be taken
+ * back once it is left untouched.
+ */
+export function handOverNewConcert(id: string, ms = 2000): void {
+  const shared = holds.get(id);
+  if (!shared) return;
+  clearTimeout(shared.pending);
+  shared.pending = setTimeout(() => {
+    if (holds.get(id) === shared) holds.delete(id);
+    shared.letGo();
+  }, ms);
+}
+
 /** The Concert claimed for a tap wasn't made: let its hold go. */
 export function dropNewConcert(id: string): void {
   holds.get(id)?.letGo();

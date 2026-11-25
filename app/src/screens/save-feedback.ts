@@ -57,6 +57,16 @@ export interface JournalEntry {
   state: 'typed' | 'saving' | 'failed' | 'unconfirmed';
 }
 
+/**
+ * Whether a journal entry is something entered for the Event `id`: a field of it, or a record
+ * made for it (an Artist, an Item), whose value names it.
+ */
+export function enteredFor(entry: JournalEntry, id: string): boolean {
+  if (entry.table === 'events' && entry.id === id) return entry.field !== '*';
+  const value = entry.value as { eventId?: unknown } | null;
+  return value !== null && typeof value === 'object' && value.eventId === id;
+}
+
 type Write = () => Promise<unknown>;
 
 interface Entry {
@@ -311,6 +321,41 @@ export class SaveFeedback {
       .map((entry) => this.toJournal(entry));
   }
 
+  /**
+   * What was entered for the Event `id` and is not in the store yet (typed, being written or
+   * failed), in this page's journal or in another tab's copy of its own. Read at once, so it can
+   * be run as the last step of a store transaction.
+   */
+  pendingFor(id: string): JournalEntry[] {
+    return [...this.notSaved(), ...this.storedEntries()].filter(
+      (entry) => entry.state !== 'unconfirmed' && enteredFor(entry, id),
+    );
+  }
+
+  /**
+   * Every entry the shared storage holds: this page's copies and those of the app's other tabs,
+   * which copy theirs there as they are typed. Read only: none is taken into this page's journal.
+   * A copy with no state of its own is taken as failed.
+   */
+  storedEntries(): JournalEntry[] {
+    const storage = this.storage;
+    if (!storage) return [];
+    const found: JournalEntry[] = [];
+    try {
+      for (let i = 0; i < storage.length; i += 1) {
+        const key = storage.key(i);
+        if (!key?.startsWith(NOT_SAVED_PREFIX)) continue;
+        const copy = parseCopy(storage.getItem(key));
+        if (!copy) continue;
+        const { table, id, field, value, enteredAt, state } = copy;
+        found.push({ table, id, field, value, enteredAt, state: state ?? 'failed' });
+      }
+    } catch {
+      // Storage blocked: no tab could copy anything there.
+    }
+    return found;
+  }
+
   /** Whether a failed write is still held in memory for Try again: a reload would lose it. */
   hasRetryableFailures(): boolean {
     return this.failed().some((entry) => this.canRetry(entry.target));
@@ -560,3 +605,13 @@ export class SaveFeedback {
 
 /** The app's one instance: feedback outlives the screen that made the edit. */
 export const saveFeedback = new SaveFeedback();
+
+/** Save `value` for `target` through `write`, with feedback; resolves to the write's result. */
+export function saveWith<T>(
+  target: Target,
+  value: unknown,
+  write: () => Promise<T>,
+  options?: { kind?: WriteKind },
+) {
+  return saveFeedback.track(target, value, write, options);
+}

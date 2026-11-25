@@ -44,6 +44,7 @@ import { EVENT_KINDS, newId, type Colour, type EventKind, type Item, type Role }
 import { changeKind, editEvent } from '../store/events';
 import { moveItemBy } from '../store/items';
 import { addAppearance, editAppearance, renameArtist, usualRoles } from '../store/people';
+import { isBlank } from '../store/schedule';
 import {
   getEvent,
   useAppearances,
@@ -251,17 +252,27 @@ function EventView({ eventId }: { eventId: string }) {
     </Empty>
   );
   // A blank Concert from Season's + offers the listings near its time, until an Artist or a
-  // Sabha is set (docs/design/log-entry.md); its date and time as entered.
+  // Sabha is set, or it is made another kind or titled (docs/design/log-entry.md): a listing
+  // would overwrite those. Its date and time as entered.
   const shownDate = feedback.shown(eventTarget(eventId, 'date'), event.date);
   const shownTime = feedback.shown(eventTarget(eventId, 'startTime'), event.startTime);
   const shownSabha = feedback.shown<{ id: string | null }>(eventTarget(eventId, 'sabhaId'), {
     id: event.sabhaId,
   }).id;
+  const shownKind = feedback.shown<{ kind: EventKind; title: string | null }>(
+    eventTarget(eventId, 'kind'),
+    { kind: event.kind, title: event.title },
+  );
+  const shownTitle = feedback.shown<string | null>(eventTarget(eventId, 'title'), shownKind.title);
   const offering =
     order === null &&
     isNewConcert(eventId) &&
-    event.scheduleEntryId === null &&
-    shownSabha === null &&
+    isBlank({
+      scheduleEntryId: event.scheduleEntryId,
+      sabhaId: shownSabha,
+      kind: shownKind.kind,
+      title: shownTitle,
+    }) &&
     appearances.length === 0 &&
     // An Artist added and not saved counts as set.
     artistFailed === null;

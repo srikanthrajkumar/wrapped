@@ -17,10 +17,17 @@ import { restoreItem } from '../store/items';
 import { restoreAppearance } from '../store/people';
 import { dropReceipt, undoableKind, type DeletionReceipt } from '../store/receipts';
 import { EVENT_DELETED, RuleError } from '../store/rules';
-import { undoFill } from '../store/schedule';
+import { FILL_CHANGED, undoFill } from '../store/schedule';
 import { db } from '../store/db';
 import { MESSAGES } from './messages';
-import { noteNewConcert } from './new-concert';
+import {
+  claimNewConcert,
+  dropNewConcert,
+  forgetNewConcert,
+  handOverNewConcert,
+  noteNewConcert,
+} from './new-concert';
+import { saveFeedback } from './save-feedback';
 
 export const UNDO_MS = 5000;
 
@@ -266,23 +273,44 @@ export async function undo(receipt: DeletionReceipt): Promise<boolean> {
     failed: true,
     attempt: failed.find((offer) => offer.receipt.id === receipt.id)?.attempt ?? 0,
   });
+  const fill = receipt.kind === 'fill' ? receipt.fill : undefined;
+  let claimed = false;
   try {
+    if (fill) {
+      // Anything typed on the filled Event and not yet in the store that Undo would take away:
+      // an Undo then waits until it is written, here or in another tab, and the store's check
+      // sees it.
+      losesTyped(receipt)();
+      // The blank Concert is held and noted as new before it comes back, so no tab's sweep takes
+      // it back before its page opens, and a crash leaves it noted (kept, as one edited is).
+      if (fill.birth) {
+        await claimNewConcert(fill.blank.id);
+        claimed = true;
+        noteNewConcert({ ...fill.blank, ...fill.birth }, fill.birth.tappedAt);
+      }
+    }
     const restored =
       receipt.kind === 'item'
         ? await restoreItem(receipt.id, { catalog: await readyCatalog() })
         : receipt.kind === 'appearance'
           ? await restoreAppearance(receipt.id)
           : receipt.kind === 'fill'
-            ? await undoFill(receipt.id)
+            ? await undoFill(receipt.id, { guard: losesTyped(receipt) })
             : await restoreEvent(receipt.id, { catalog: await readyCatalog() });
     // The blank Concert is back as new: still blank, it offers its listings, and left with
     // nothing entered it is taken back (screens/new-concert.ts).
-    if (receipt.kind === 'fill' && restored && receipt.fill?.birth) {
-      const { birth, blank } = receipt.fill;
-      // Untouched when filled, it is new again as restored; edited (a late log's time), it keeps
-      // the birth it had, so leaving it never takes the edit back.
-      const untouched = blank.updatedAt === birth.updatedAt;
-      noteNewConcert(untouched ? (restored as Event) : { ...blank, ...birth }, birth.tappedAt);
+    if (fill?.birth && claimed) {
+      if (restored) {
+        // Untouched when filled, it is new again as restored; edited (a late log's time), it
+        // keeps the birth it had, so leaving it never takes the edit back.
+        const { birth, blank } = fill;
+        if (blank.updatedAt === birth.updatedAt) {
+          noteNewConcert(restored as Event, birth.tappedAt);
+        }
+        handOverNewConcert(blank.id);
+      } else {
+        await letBlankGo(fill.blank.id);
+      }
     }
     if (live?.receipt.id === receipt.id) live = null;
     failed = failed.filter((offer) => offer.receipt.id !== receipt.id);
@@ -292,6 +320,7 @@ export async function undo(receipt: DeletionReceipt): Promise<boolean> {
     if (restored !== null) restoredListeners.forEach((listener) => listener(receipt));
     return restored !== null;
   } catch (error) {
+    if (fill && claimed) await letBlankGo(fill.blank.id);
     const refused = error instanceof RuleError ? error.problems.join('; ') : undefined;
     if (!refused) console.error('undo failed', error);
     const before =
@@ -322,6 +351,37 @@ export async function undo(receipt: DeletionReceipt): Promise<boolean> {
     writing.delete(receipt.id);
     dismissedWhileWriting.delete(receipt.id);
   }
+}
+
+/**
+ * A check that throws (FILL_CHANGED) while something typed and not yet in the store, here or in
+ * another tab, would be lost by the Undo: anything for the Event when the fill made it, as Undo
+ * deletes it. Into the rasika's own Event, Undo writes back only the fields the fill changed (its
+ * Note, when the blank Concert's was added; its status, when Items moved): only a value typed for
+ * one of those stops it. Any other (a date; a Note typed before a fill that left the Note as it
+ * was) stays with the Event, so it never refuses. Run before the Undo, and again as its last step
+ * inside the transaction.
+ */
+const losesTyped = (receipt: DeletionReceipt) => () => {
+  const fill = receipt.fill;
+  const before = fill?.before as Record<string, unknown> | null | undefined;
+  const after = fill?.after?.event as unknown as Record<string, unknown> | undefined;
+  const putBack = (field: string) =>
+    !before || !after || (field in before && before[field] !== after[field]);
+  const lost = saveFeedback
+    .pendingFor(receipt.eventId)
+    .some((entry) => fill?.made !== false || (entry.table === 'events' && putBack(entry.field)));
+  if (lost) throw new RuleError([FILL_CHANGED]);
+};
+
+/**
+ * An Undo of a fill brought nothing back: its hold goes, and so does its note, unless the blank
+ * Concert is back after all (another tab's Undo of the same fill), whose note that tab wrote.
+ */
+async function letBlankGo(id: string) {
+  dropNewConcert(id);
+  const blank = await db.events.get(id).catch(() => undefined);
+  if (!blank || blank.deletedAt !== null) forgetNewConcert(id);
 }
 
 /** Every offer to show: failed ones first, then the live one. */
