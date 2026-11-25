@@ -29,10 +29,11 @@ as the seasons. Decided 2026-10-29; evidence in `specs/001-season-logger/researc
   Plan and Lecdem and before Cards and Tidy, so sign-up is ready by 1 December (eng review
   D12). Deploying it is the final step.
 - **Free until deploy.** Development uses a local Supabase (the Supabase CLI on Docker), which
-  costs nothing and never pauses. A hosted free project is fine for a throwaway check, but free
-  projects pause after a week idle and have no automatic backups. So the season's database moves
-  to Pro (from $25/month, Mumbai, daily backups kept 7 days, never paused) before rasikas sign
-  up.
+  costs nothing and never pauses. ~~So the season's database moves to Pro (from $25/month,
+  Mumbai, daily backups kept 7 days, never paused) before rasikas sign up.~~ *Superseded
+  2026-11-25 by [ADR 0014](0014-launch-on-supabase-free-with-our-own-backups.md): the project
+  launches on Free, in Mumbai, with a nightly encrypted backup of our own, and moves to Pro when
+  use calls for it (`docs/setup/production.md`, "Scaling up to Pro").*
 - **The app never depends on the Supabase session to log.** It keeps its own record of who is
   signed in and asks Supabase for a token only when syncing. Supabase's docs warn that a
   refresh reply lost on bad signal can end the session after its 10-second reuse window. The

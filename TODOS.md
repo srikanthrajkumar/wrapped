@@ -2,17 +2,17 @@
 
 ## Infrastructure
 
-### Decide the Supabase plan after the season
+### Move Supabase to Pro when use calls for it
 
-**What:** After the end-of-season report, decide whether to keep Supabase Pro, export everything and move to the free tier, or pause the project.
+**What:** Watch **Organization → Usage** weekly in season, and move the `Carnatic Wrapped` organization to Pro on any trigger in ADR 0014: the database past about 350 of 500 MB, egress past about 3 of 5 GB a month, sign-ups continuing after the season, or an off-season pause that hurts rasikas.
 
-**Why:** Pro costs from $25 a month (about $300 a year) for an app used mostly in December and January.
+**Why:** The project launches on Free to keep costs down (ADR 0014, 2026-11-25). Free pauses after a week idle and has smaller limits.
 
-**Context:** ADR 0001 moves the season's database to Pro before sign-up and sets no end date. The free tier pauses after a week idle and has no automatic backups, so take a full export (database dump plus the season-report extract) before any downgrade or pause. Raised by the eng review's outside voice (2026-10-30, OV20).
+**Context:** First raised as "decide the plan after the season" by the eng review's outside voice (2026-10-30, OV20). Settled by ADR 0014: Free, with a nightly encrypted backup from the private `carnatic-backups` repository. Moving is one click and needs no redeploy (`docs/setup/production.md`, "Scaling up to Pro").
 
 **Effort:** S
 **Priority:** P3
-**Depends on:** the end-of-season (State of Margazhi) report
+**Depends on:** use in season
 
 ## Tidy
 

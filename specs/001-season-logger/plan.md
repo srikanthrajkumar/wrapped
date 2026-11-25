@@ -53,9 +53,9 @@ supabase-js.
 
 **Storage**: IndexedDB through Dexie on the phone ([data-model.md](data-model.md)); Supabase
 Postgres on the server. Development uses a local Supabase (CLI on Docker), free and never
-paused. The season's database moves to Supabase Pro in Mumbai before rasikas sign up, because
-free projects pause after a week idle and have no automatic backups. DuckDB only for the
-Maintainer's end-of-season report, reading Postgres read-only.
+paused. The season's database launches on Supabase's Free plan in Mumbai, with a nightly
+encrypted backup of our own, and moves to Pro when use calls for it (ADR 0014). DuckDB only for
+the Maintainer's end-of-season report, reading Postgres read-only.
 
 **Testing**: Vitest for units and the store; Playwright for end-to-end runs in offline mode
 (`context.setOffline`); a real installed PWA on the iPhone 16 and the Redmi Note 5 before each release.
