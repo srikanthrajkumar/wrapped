@@ -743,6 +743,63 @@ export const NOT_BLANK = 'this Concert is no longer blank';
 export const DRAFT_ON_BOTH = 'an Item is being typed on both Concerts';
 /** Why a fill's Undo is refused: the Event was changed after the fill. */
 export const FILL_CHANGED = 'it was changed since';
+/** Why a fill is refused: something typed for the blank Concert, here or in another tab, isn't saved yet. */
+export const TYPED_NOT_SAVED = 'something typed on this Concert is not saved yet';
+
+/**
+ * A last look, run as a fill or its Undo's final step inside its transaction, after every write:
+ * it throws (a RuleError) to roll the whole thing back. The screens pass one that reads the save
+ * journal, this tab's and the shared copy of every other tab's, so a value typed anywhere while
+ * the transaction ran is never left on a row it removes.
+ *
+ * Accepted (the user, 2026-11-24): a window remains between this look and the commit, in which
+ * another tab could journal a value to localStorage for a row the transaction removes. It needs
+ * typing in two tabs in that instant; closing it would mean a cross-tab lock in every editor.
+ */
+export type FillGuard = () => void;
+
+/**
+ * Whether a Concert is still blank, as Season's + made it: no Artist, no Sabha, no listing, and
+ * still a Concert with no title (one made a Lecdem or a Dance, or titled, holds the rasika's
+ * choice, which a listing would overwrite). Its date, time and Note may be anything: a listing
+ * near that time is the one meant, and the Note moves with the fill.
+ */
+export const isBlank = (event: Pick<Event, 'scheduleEntryId' | 'sabhaId' | 'kind' | 'title'>) =>
+  event.scheduleEntryId === null &&
+  event.sabhaId === null &&
+  event.kind === 'concert' &&
+  !event.title?.trim();
+
+/**
+ * Rows compared by value, the order of their fields and of the rows aside: a fill's Undo asks
+ * whether anything changed since by what is stored, never by the clock, so an edit in the same
+ * millisecond, or after the clock stepped back, is still seen.
+ */
+function canonical(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, canonical((value as Record<string, unknown>)[key])]),
+    );
+  }
+  return value ?? null;
+}
+const byId = <T extends { id: string }>(rows: readonly T[]) =>
+  [...rows].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+const sameStored = (a: unknown, b: unknown) =>
+  JSON.stringify(canonical(a)) === JSON.stringify(canonical(b));
+
+/** The listing's Event as the fill left it: its row, every Artist and Item row, its Item draft. */
+async function filledState(eventId: string, db: WrappedDB): Promise<NonNullable<Filled['after']>> {
+  return {
+    event: (await db.events.get(eventId))!,
+    stage: byId(await db.appearances.where('eventId').equals(eventId).toArray()),
+    items: byId(await db.items.where('eventId').equals(eventId).toArray()),
+    draft: ((await db.meta.get(draftKey(eventId)))?.value as ItemDraft | undefined) ?? null,
+  };
+}
 
 // Every table a fill or its Undo reads or writes: a Schedule write's, the receipts, the drafts
 // and logging notes (meta), and what says whether the blank Concert ever left the phone.
@@ -810,16 +867,13 @@ export async function fillFromSchedule(
     id = newId(),
     lead,
     birth = null,
-  }: WriteOptions & { id?: string; lead: string; birth?: Filled['birth'] },
+    guard,
+  }: WriteOptions & { id?: string; lead: string; birth?: Filled['birth']; guard?: FillGuard },
 ): Promise<{ event: Event; receipt: DeletionReceipt }> {
   return db.transaction('rw', fillTables(db), async () => {
     const blank = await getLive('events', blankId, { db });
     const stage = await db.appearances.where('eventId').equals(blankId).toArray();
-    if (
-      blank.scheduleEntryId !== null ||
-      blank.sabhaId !== null ||
-      stage.some((appearance) => appearance.deletedAt === null)
-    ) {
+    if (!isBlank(blank) || stage.some((appearance) => appearance.deletedAt === null)) {
       throw new RuleError([NOT_BLANK]);
     }
     const existing = await db.events
@@ -835,16 +889,17 @@ export async function fillFromSchedule(
     ) {
       throw new RuleError([DRAFT_ON_BOTH]);
     }
+    // As it was before addFromSchedule, which Shortlists a Missed one again: Undo puts it back.
+    const before = existing
+      ? {
+          status: existing.status,
+          touched: existing.touched,
+          scheduleChanged: existing.scheduleChanged,
+          note: existing.note,
+        }
+      : null;
     let event = await addFromSchedule(entryId, { db, id });
     const made = !existing;
-    const before = made
-      ? null
-      : {
-          status: event.status,
-          touched: event.touched,
-          scheduleChanged: event.scheduleChanged,
-          note: event.note,
-        };
 
     const items = await liveItemsOf(blankId, db);
     let place = Math.max(0, ...(await liveItemsOf(event.id, db)).map((item) => item.position));
@@ -908,6 +963,7 @@ export async function fillFromSchedule(
       loggingBlank,
       loggingBefore,
       birth,
+      after: await filledState(event.id, db),
     };
     const receipt = await writeReceipt(db, {
       kind: 'fill',
@@ -916,6 +972,8 @@ export async function fillFromSchedule(
       records,
       fill,
     });
+    // The last look (FillGuard); the window left after it is accepted.
+    guard?.();
     return { event, receipt };
   });
 }
@@ -924,26 +982,22 @@ export async function fillFromSchedule(
  * Undo a fill: the blank Concert comes back as it was, with what it held, and the listing's
  * Event goes back to how it was (deleted, when the fill made it). One transaction. Refused
  * (FILL_CHANGED) once anything was changed on that Event after the fill, so an Undo never takes
- * a later edit with it. A used or stale receipt restores nothing and returns null.
+ * a later edit with it: its row, an Artist or Item of it, or its Item draft not as the fill left
+ * them, compared by value. A used or stale receipt restores nothing and returns null.
  */
 export async function undoFill(
   receiptId: string,
-  { db = defaultDb }: WriteOptions = {},
+  { db = defaultDb, guard }: WriteOptions & { guard?: FillGuard } = {},
 ): Promise<Event | null> {
   return db.transaction('rw', fillTables(db), async () => {
     const receipt = await takeReceipt(db, receiptId, 'fill');
     const fill = receipt?.fill;
     if (!receipt || !fill) return null;
     const event = await getLive('events', receipt.eventId, { db });
-    const since = (row: { updatedAt: string }) => row.updatedAt > receipt.at;
-    const stage = await db.appearances.where('eventId').equals(event.id).toArray();
-    const items = await db.items.where('eventId').equals(event.id).toArray();
-    // An Item being typed on it since (not the one the fill moved) is a change too.
-    const draft = (await db.meta.get(draftKey(event.id)))?.value as ItemDraft | undefined;
-    const typedSince = draft !== undefined && (!fill.draft || draft.at > receipt.at);
-    if (since(event) || stage.some(since) || items.some(since) || typedSince) {
-      throw new RuleError([FILL_CHANGED]);
-    }
+    const now = await filledState(event.id, db);
+    // A receipt with no record of how the fill left the Event can't show nothing changed.
+    if (!fill.after || !sameStored(now, fill.after)) throw new RuleError([FILL_CHANGED]);
+    const { stage, items } = now;
 
     const current = await db.events.get(fill.blank.id);
     const blank = await save('events', fill.blank, { db, restore: current !== undefined });
@@ -973,6 +1027,8 @@ export async function undoFill(
     } else if (fill.before) {
       await save('events', { ...event, ...fill.before }, { db });
     }
+    // The last look (FillGuard); the window left after it is accepted.
+    guard?.();
     return blank;
   });
 }

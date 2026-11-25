@@ -41,15 +41,8 @@ export function useSaveFeedback(): typeof saveFeedback {
   return saveFeedback;
 }
 
-/** Save `value` for `target` through `write`, with feedback; resolves to the write's result. */
-export function saveWith<T>(
-  target: Target,
-  value: unknown,
-  write: () => Promise<T>,
-  options?: { kind?: WriteKind },
-) {
-  return saveFeedback.track(target, value, write, options);
-}
+// Kept with the journal, which needs no screen, so store-facing code imports it from there.
+export { saveWith } from '../save-feedback';
 
 const keyOf = (targets: Target[]) =>
   targets.map(({ table, id, field }) => `${table}/${id}/${field}`).join(' ');

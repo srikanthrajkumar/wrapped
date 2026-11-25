@@ -3,10 +3,10 @@
 // it was; Items moved to a Shortlisted Event reach the server once each, never before their
 // Event; and Undo after the fill reached the server puts everything back, on the server too.
 
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Event, Item, PushAck, RasikaRow } from '../../src/model';
 import type { OutboxEntry, WrappedDB } from '../../src/store/db';
-import { createEvent, editEvent } from '../../src/store/events';
+import { changeKind, createEvent, editEvent } from '../../src/store/events';
 import { addItem, draftKey, saveItemDraft } from '../../src/store/items';
 import { noteLogging, readLoggingNote } from '../../src/store/logging-note';
 import { acknowledge, claimBatch } from '../../src/store/outbox';
@@ -343,5 +343,106 @@ describe('an Item being typed on both Concerts (required)', () => {
     expect(await db.meta.get(draftKey(blank.id))).toBeDefined();
     expect(await db.meta.get(draftKey(shortlisted.id))).toBeDefined();
     expect((await db.events.get(blank.id))?.deletedAt).toBeNull();
+  });
+});
+
+describe('what the rasika chose on the blank Concert (required)', () => {
+  it.each([
+    ['made a Lecdem with a title', { kind: 'lecdem' as const, title: 'Ragas of Dikshitar' }],
+    ['made a Dance', { kind: 'dance' as const, title: null }],
+  ])('refuses the fill once it was %s, writing nothing', async (_, { kind, title }) => {
+    const db = freshDb();
+    await withSchedule(db);
+    const blank = await blankConcert(db);
+    await changeKind(blank.id, kind, { db, title });
+    const held = await db.events.get(blank.id);
+    const queued = await db.outbox.count();
+
+    await expect(fillFromSchedule(blank.id, ENTRY, { db, lead: LEAD })).rejects.toThrow(
+      new RuleError([NOT_BLANK]),
+    );
+    expect(await db.events.get(blank.id)).toEqual(held);
+    expect(await db.outbox.count()).toBe(queued);
+    expect(await db.events.where('scheduleEntryId').equals(ENTRY).count()).toBe(0);
+  });
+});
+
+describe('Undo sees a change by what is stored, not by the clock (required)', () => {
+  afterEach(() => void vi.useRealTimers());
+
+  it('is refused for an edit made in the same millisecond as the fill', async () => {
+    const db = freshDb();
+    await withSchedule(db);
+    const blank = await blankConcert(db);
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-12-15T10:40:00.000Z'));
+    const { event, receipt } = await fillFromSchedule(blank.id, ENTRY, { db, lead: LEAD });
+    await editEvent(event.id, { note: 'Sat by the pillar' }, { db });
+
+    await expect(undoFill(receipt.id, { db })).rejects.toThrow(new RuleError([FILL_CHANGED]));
+    expect(await db.events.get(event.id)).toMatchObject({
+      note: 'Sat by the pillar',
+      deletedAt: null,
+    });
+  });
+
+  it('is refused for an Item added after the clock stepped back', async () => {
+    const db = freshDb();
+    await withSchedule(db);
+    const blank = await blankConcert(db);
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-12-15T10:40:00.000Z'));
+    const { event, receipt } = await fillFromSchedule(blank.id, ENTRY, { db, lead: LEAD });
+    vi.setSystemTime(new Date('2026-12-15T10:30:00.000Z'));
+    const item = await addItem(event.id, { title: 'Vatapi' }, { db });
+
+    await expect(undoFill(receipt.id, { db })).rejects.toThrow(new RuleError([FILL_CHANGED]));
+    expect((await db.items.get(item.id))?.deletedAt).toBeNull();
+    expect((await db.events.get(event.id))?.deletedAt).toBeNull();
+  });
+
+  it('is refused for an Item draft changed in the same millisecond', async () => {
+    const db = freshDb();
+    await withSchedule(db);
+    const blank = await blankConcert(db);
+    await saveItemDraft({ id: 'moved', eventId: blank.id, text: 'Enda' }, { db });
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-12-15T10:40:00.000Z'));
+    const { event, receipt } = await fillFromSchedule(blank.id, ENTRY, { db, lead: LEAD });
+    await saveItemDraft({ id: 'moved', eventId: event.id, text: 'Endaro' }, { db });
+
+    await expect(undoFill(receipt.id, { db })).rejects.toThrow(new RuleError([FILL_CHANGED]));
+    expect((await db.meta.get(draftKey(event.id)))?.value).toMatchObject({ text: 'Endaro' });
+  });
+});
+
+describe('Undo puts a Shortlisted Event back as it was', () => {
+  it('a Missed one stays Missed', async () => {
+    const db = freshDb();
+    await withSchedule(db);
+    const missed = await addFromSchedule(ENTRY, { db });
+    await db.events.update(missed.id, { status: 'missed' });
+    const blank = await blankConcert(db);
+    const { event, receipt } = await fillFromSchedule(blank.id, ENTRY, { db, lead: LEAD });
+    expect(event).toMatchObject({ id: missed.id, status: 'planned' });
+
+    await undoFill(receipt.id, { db });
+    expect(await db.events.get(missed.id)).toMatchObject({ status: 'missed', deletedAt: null });
+  });
+
+  it('with an Item draft of its own from before the fill, Undo goes ahead and keeps it', async () => {
+    const db = freshDb();
+    await withSchedule(db);
+    const shortlisted = await addFromSchedule(ENTRY, { db });
+    await saveItemDraft({ id: 'its-own', eventId: shortlisted.id, text: 'Vatapi' }, { db });
+    const blank = await blankConcert(db);
+    const { receipt } = await fillFromSchedule(blank.id, ENTRY, { db, lead: LEAD });
+
+    expect(await undoFill(receipt.id, { db })).toMatchObject({ id: blank.id });
+    expect((await db.meta.get(draftKey(shortlisted.id)))?.value).toMatchObject({
+      id: 'its-own',
+      text: 'Vatapi',
+    });
+    expect(await db.meta.get(draftKey(blank.id))).toBeUndefined();
   });
 });

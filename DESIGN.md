@@ -814,7 +814,8 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     "Finishing a Concert").
   - **A blank Concert offers its listings** (G, decided by the user 2026-11-22,
     docs/design/log-entry.md). On a Concert the + made (or What's on's "Not listed? Start a
-    Concert"), while it has no Artist and no Sabha, its empty middle holds one section in the
+    Concert"), while it has no Artist and no Sabha and is still a Concert with no title, its
+    empty middle holds one section in the
     section pattern, in place of "No Items yet" (above the Items once there are some): "Is it
     one of these?", with "On now or within the hour · tap to fill it in" under it while its time
     is now (else "Near 4:00 pm · tap to fill it in"), and a panel of up to four listings near
