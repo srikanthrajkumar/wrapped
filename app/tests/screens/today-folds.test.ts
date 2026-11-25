@@ -62,6 +62,7 @@ function logging(id: string, startTime: string, loggedAt: string) {
     event,
     sabha: null,
     knownBy: id,
+    known: [id],
     stage: [],
     accompanists: [],
     type: null,
