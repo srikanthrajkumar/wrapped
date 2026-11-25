@@ -128,7 +128,7 @@ input[type='search']::-webkit-search-cancel-button {
 
 /* A screen sliding in must not widen the page: that adds a scroll area, which the new screen's
    focused search box then scrolls into, so the screen jumps when the slide ends. `clip`, not
-   `hidden`, so the bottom bar stays sticky. */
+   `hidden`, so a sticky day label still sticks. */
 main {
   overflow-x: clip;
 }
