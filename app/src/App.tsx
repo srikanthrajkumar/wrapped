@@ -25,7 +25,13 @@ import {
   type Tab,
 } from './screens/nav';
 import { Placeholder } from './screens/Placeholder';
-import { preloadSettings, SettingsScreen, useSettingsToFix } from './screens/SettingsScreen';
+import {
+  preloadSettings,
+  PRIVACY_PATH,
+  PrivacyScreen,
+  SettingsScreen,
+  useSettingsToFix,
+} from './screens/SettingsScreen';
 import { ShortlistScreen } from './screens/ShortlistScreen';
 import { ToPast, WhatsOnScreen } from './screens/WhatsOnScreen';
 import { holdNewConcert } from './screens/new-concert';
@@ -268,6 +274,9 @@ export function App() {
               </Route>
               <Route path="/settings">
                 <SettingsScreen />
+              </Route>
+              <Route path={PRIVACY_PATH}>
+                <PrivacyScreen />
               </Route>
               <Route path="/admin">
                 <Placeholder title="Review" back="/settings" />

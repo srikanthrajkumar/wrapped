@@ -32,8 +32,8 @@ test.afterAll(async () => {
   await server.end();
 });
 
-const SHARE = /^Share the Artists, Sabhas and Concerts/;
-const REPORTS = /^Include your season/;
+const SHARE = /^Help us keep the app's lists complete/;
+const REPORTS = /^Count your concerts in the December season totals/;
 
 async function logConcert(page: Page) {
   await page.evaluate(async () => {
@@ -97,8 +97,12 @@ test('a phone that is no longer the writer still turns consent off, at once or w
     'Your season is now being logged on another phone.',
   );
 
-  // From Settings, "No" to season reports reaches the server at once.
+  // From Settings' Privacy page (not on Settings' first view), "No" to season reports reaches
+  // the server at once.
   await openSettings(page);
+  await expect(page.getByRole('radiogroup', { name: REPORTS })).toHaveCount(0);
+  await page.getByRole('link', { name: 'Privacy' }).click();
+  await expect(page.getByRole('heading', { name: 'Privacy', exact: true })).toBeVisible();
   const reports = page.getByRole('radiogroup', { name: REPORTS });
   await reports.getByRole('radio', { name: 'No' }).click();
   await expect(reports.getByRole('radio', { name: 'No' })).toHaveAttribute('aria-checked', 'true');

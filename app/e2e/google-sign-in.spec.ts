@@ -189,5 +189,7 @@ test('a token exchange that never answers still lets the phone log, and its late
   expect((await revoked).headers().authorization).toBe('Bearer late.access.token');
   expect(await readMeta(page, 'identity')).toBeUndefined();
   await expect(page.getByRole('heading', { name: 'Season', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: /^Share the Artists/ })).toHaveCount(0);
+  await expect(
+    page.getByRole('heading', { name: /^Help us keep the app's lists complete/ }),
+  ).toHaveCount(0);
 });

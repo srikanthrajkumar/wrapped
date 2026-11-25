@@ -4,9 +4,9 @@
 
 export const MESSAGES = {
   welcome: {
-    title: 'Carnatic Wrapped',
-    sentence:
-      'Log the Concerts you attend this December, even with no signal, and see your season whole.',
+    // The Maintainer, 2026-11-25.
+    title: 'carnatic.live',
+    sentence: 'Log your sabha hopping and get your Margazhi wrapped.',
     action: 'Continue with Google',
   },
   signIn: {
@@ -14,16 +14,16 @@ export const MESSAGES = {
     noSignal: 'No signal. Sign-in needs a connection, once, on this phone.',
     googleError: "Google couldn't sign you in just now.",
   },
+  // The Maintainer's words, 2026-11-25.
   consent1: {
-    question:
-      'Share the Artists, Sabhas and Concerts you add by hand with the person who keeps the shared lists?',
+    question: "Help us keep the app's lists complete?",
     reason:
-      'Only the names, with a count of how many rasikas added them. Never who you are or what you logged. You can change this in Settings.',
+      'If you type in an artist, sabha, or concert we missed, we only see the name and how many people added it. We never see who you are or what you logged, and you can change this anytime in Settings.',
   },
   consent2: {
-    question: 'Include your season, without your name, in reports about the whole December season?',
+    question: 'Count your concerts in the December season totals?',
     reason:
-      "Reports show totals across rasikas, never one person's log. You can change this in Settings.",
+      "We sometimes share anonymous totals across the whole season, like the most-heard ragas, to test the season's burning theories with data. You can change this anytime in Settings.",
   },
   gettingReady: {
     downloading: 'Getting ready to log offline…',
@@ -163,7 +163,9 @@ export const MESSAGES = {
     otherAccount: "This phone holds another account's season. Sign in with that account.",
     /** A sign-in refused because the last account's consent change couldn't be sent yet. */
     consentWaiting:
-      "Another account's privacy choice on this phone hasn't reached the server. Sign in with that account first.",
+      'Still saving the privacy choice from your previous Google account. Please sign in with that account first so it can finish.',
+    /** Settings' row to the page with both consent questions (FR-042, FR-049). */
+    privacy: 'Privacy',
     updateRequired: 'Update the app to keep syncing.',
     writeHere: 'Make this the writing device again',
     signedInAs: (who: string) => `Signed in as ${who}`,

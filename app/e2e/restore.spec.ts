@@ -96,10 +96,12 @@ test('an emptied phone logs offline, then signs in and gets its whole season bac
   await page.goto('/');
   await page.getByRole('button', { name: 'Continue with Google' }).click();
   await expect(
-    page.getByRole('heading', { name: /^Share the Artists, Sabhas and Concerts/ }),
+    page.getByRole('heading', { name: /^Help us keep the app's lists complete/ }),
   ).toBeVisible();
   await page.getByRole('button', { name: 'Yes', exact: true }).click();
-  await expect(page.getByRole('heading', { name: /^Include your season/ })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: /^Count your concerts in the December season totals/ }),
+  ).toBeVisible();
   await page.getByRole('button', { name: 'No', exact: true }).click();
   await page.getByRole('button', { name: 'Start' }).click({ timeout: 30_000 });
   await expect(page.getByRole('heading', { name: 'Season', exact: true })).toBeVisible();
@@ -173,10 +175,12 @@ test('an emptied phone logs offline, then signs in and gets its whole season bac
   await prompt.getByRole('button', { name: 'Sign in' }).click();
   // Signed in after first launch, the two questions come once more, with nothing pre-selected.
   await expect(
-    page.getByRole('heading', { name: /^Share the Artists, Sabhas and Concerts/ }),
+    page.getByRole('heading', { name: /^Help us keep the app's lists complete/ }),
   ).toBeVisible();
   await page.getByRole('button', { name: 'No', exact: true }).click();
-  await expect(page.getByRole('heading', { name: /^Include your season/ })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: /^Count your concerts in the December season totals/ }),
+  ).toBeVisible();
   await page.getByRole('button', { name: 'No', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Season', exact: true })).toBeVisible();
   await withHarness(page);

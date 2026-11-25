@@ -5,9 +5,10 @@
 // 2026-11-11, opened from the hub's Settings mark, which is amber while a row here is. Export lives here
 // alone before sync (the safety rows keep their own); Settings can always be reached, offline
 // too (FR-019). With a server (Phase 7, T082): the season's panel adds its backup, and an
-// Account group after the theme holds who is signed in, both consents (changeable at any time,
-// kept on the phone at once and sent with the next sync), "Sign out other devices" and the
-// deletion contact (FR-021, FR-042, FR-046, FR-049).
+// Account group after the theme holds who is signed in, "Sign out other devices", the deletion
+// contact, and a Privacy row to a page of its own with both consents (changeable at any time,
+// kept on the phone at once and sent at once; the Maintainer, 2026-11-25: not on Settings'
+// first view) (FR-021, FR-042, FR-046, FR-049).
 
 import {
   IconAlertCircle,
@@ -15,6 +16,7 @@ import {
   IconCloudUp,
   IconDevicesX,
   IconLoader2,
+  IconLock,
   IconMail,
   IconPlaneTilt,
   IconShieldCheck,
@@ -38,7 +40,7 @@ import { changeConsent, refreshAccount } from '../store/sync-runtime';
 import { setTheme, useTheme, type Theme } from '../theme';
 import { APP_VERSION, exportSeason, useExportState } from './components/export-file';
 import { ExportIcon } from './components/feedback';
-import { Panel, Screen, TabHeader } from './components/layout';
+import { Panel, Screen, TabHeader, TopBar } from './components/layout';
 import { ListRowBody, ROW_SHAPE } from './components/rows';
 import { useSyncStatus } from './sync-status';
 import { shortDayText } from './format';
@@ -223,11 +225,14 @@ function ChoiceTrack<T extends string | boolean>({
   value,
   choices,
   onChoose,
+  note,
 }: {
   label: string;
   value: T | null;
   choices: { value: T; label: string }[];
   onChoose(value: T): void;
+  /** A line under the track, muted: why it's asked. */
+  note?: string;
 }) {
   return (
     <div role="radiogroup" aria-label={label} className="flex flex-col gap-2">
@@ -250,6 +255,7 @@ function ChoiceTrack<T extends string | boolean>({
           </button>
         ))}
       </div>
+      {note && <p className="text-sub text-muted-foreground">{note}</p>}
     </div>
   );
 }
@@ -262,15 +268,18 @@ const YES_NO = [
 function ConsentChoice({
   name,
   label,
+  note,
   value,
 }: {
   name: ConsentName;
   label: string;
+  note: string;
   value: boolean | null;
 }) {
   return (
     <ChoiceTrack
       label={label}
+      note={note}
       value={value}
       choices={YES_NO}
       onChoose={(answer) => {
@@ -322,7 +331,6 @@ function SignOutOthersRow({ config }: { config: NonNullable<typeof AUTH_CONFIG> 
 
 function AccountSection({ config }: { config: NonNullable<typeof AUTH_CONFIG> }) {
   const identity = useMeta<Identity>(IDENTITY_KEY);
-  const consent = useMeta<Consent>(CONSENT_KEY);
   const account = useMeta<MeResponse>(ACCOUNT_KEY);
   const status = useSyncStatus();
   useEffect(() => {
@@ -355,22 +363,54 @@ function AccountSection({ config }: { config: NonNullable<typeof AUTH_CONFIG> })
             />
           </li>
         )}
+        {identity && (
+          <li>
+            <Link href={PRIVACY_PATH} className={ROW_SHAPE}>
+              <ListRowBody
+                mark={<IconLock aria-hidden className={ICON} />}
+                title={MESSAGES.account.privacy}
+                chevron
+              />
+            </Link>
+          </li>
+        )}
       </Panel>
-      {identity && (
-        <div className="mt-8 flex flex-col gap-6">
-          <ConsentChoice
-            name="shareAdditions"
-            label={MESSAGES.consent1.question}
-            value={consent?.shareAdditions ?? null}
-          />
-          <ConsentChoice
-            name="seasonReports"
-            label={MESSAGES.consent2.question}
-            value={consent?.seasonReports ?? null}
-          />
-        </div>
-      )}
     </>
+  );
+}
+
+/** The page with both consent questions, under Settings. */
+export const PRIVACY_PATH = '/settings/privacy';
+
+/**
+ * Privacy (FR-042, FR-049): both questions as on first launch, each with its reason, changeable
+ * at any time. An answer is kept on the phone at once and sent at once, even while another phone
+ * is the writer; with no signal, when signal returns.
+ */
+export function PrivacyScreen() {
+  const consent = useMeta<Consent>(CONSENT_KEY);
+  useEffect(() => {
+    void refreshAccount();
+  }, []);
+  return (
+    <Screen>
+      <TopBar back={{ href: '/settings', label: MESSAGES.tabs.settings }} />
+      <h1 className="pt-2 pb-2 text-heading font-bold">{MESSAGES.account.privacy}</h1>
+      <div className="mt-4 flex flex-col gap-8">
+        <ConsentChoice
+          name="shareAdditions"
+          label={MESSAGES.consent1.question}
+          note={MESSAGES.consent1.reason}
+          value={consent?.shareAdditions ?? null}
+        />
+        <ConsentChoice
+          name="seasonReports"
+          label={MESSAGES.consent2.question}
+          note={MESSAGES.consent2.reason}
+          value={consent?.seasonReports ?? null}
+        />
+      </div>
+    </Screen>
   );
 }
 
