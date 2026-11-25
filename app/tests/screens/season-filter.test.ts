@@ -75,6 +75,7 @@ const own = (
     ? { id: `s-${sabha}`, name: sabha, aliases: sabhaAliases, shared: false, own: null }
     : null,
   knownBy: null,
+  known: [],
   stage,
   accompanists: [],
   type: null,

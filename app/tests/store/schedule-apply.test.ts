@@ -294,25 +294,30 @@ describe('a new Schedule version (FR-027, required)', () => {
     const event = await planned(db);
     const before = await db.events.get(event.id);
     const stage = await stageOf(db, event.id);
-    const four = Array.from({ length: 4 }, (_, i) => ({
+    const seven = Array.from({ length: 7 }, (_, i) => ({
       name: `Presenter ${i + 1}`,
       role: 'presenter' as const,
       group: null,
     }));
     expect(
-      await publish(db, entry({ version: 2, kind: 'lecdem', title: 'On Todi', billed: four })),
+      await publish(db, entry({ version: 2, kind: 'lecdem', title: 'On Todi', billed: seven })),
     ).toMatchObject({ refused: 1 });
     expect(await db.events.get(event.id)).toEqual(before);
     expect(await stageOf(db, event.id)).toEqual(stage);
 
     await publish(
       db,
-      entry({ version: 3, kind: 'lecdem', title: 'On Todi', billed: four.slice(0, 3) }),
+      entry({ version: 3, kind: 'lecdem', title: 'On Todi', billed: seven.slice(0, 6) }),
     );
     expect(await db.events.get(event.id)).toMatchObject({
       kind: 'lecdem',
       scheduleVersionSeen: '3',
     });
+    expect(
+      (await db.appearances.where('eventId').equals(event.id).toArray()).filter(
+        (a) => a.deletedAt === null && a.role === 'presenter',
+      ),
+    ).toHaveLength(6);
   });
 
   it('keeps an update through a force-close, and an edit made after it', async () => {

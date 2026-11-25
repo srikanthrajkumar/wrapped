@@ -7,6 +7,8 @@ import type { Event, ScheduleEntry } from '../../src/model';
 import {
   concerts,
   diary,
+  listed,
+  owned,
   hubHero,
   isOver,
   lapsedToAsk,
@@ -48,6 +50,7 @@ const own = (id: string, fields: Partial<Event> = {}, more: Partial<EventSummary
     },
     sabha: null,
     knownBy: id,
+    known: [id],
     stage: [],
     accompanists: [],
     type: null,
@@ -85,6 +88,40 @@ const notes = (logged: Record<string, string> = {}) =>
 const keys = (rows: { key: string }[]) => rows.map((row) => row.key);
 
 describe('one concert per row', () => {
+  it('names 4 or more presenters by the first 2, then "+N", Listed or the rasika’s', () => {
+    const billed = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'].map((name) => ({
+      name,
+      role: 'presenter' as const,
+      group: null,
+      support: false,
+    }));
+    const panel = listed(listing('panel', '08:10', { kind: 'lecdem', title: 'T', billed }));
+    expect(panel).toMatchObject({ lead: 'P1, P2', more: 4, sabha: 'Sabha panel' });
+    const four = listed(listing('four', '09:00', { kind: 'lecdem', billed: billed.slice(0, 4) }));
+    expect(four).toMatchObject({ lead: 'P1, P2', more: 2 });
+    // Up to 3 read in full, as before.
+    const three = listed(listing('three', '09:00', { kind: 'lecdem', billed: billed.slice(0, 3) }));
+    expect(three).toMatchObject({ lead: 'P1, P2 & P3', more: 0 });
+    const two = listed(listing('two', '09:00', { kind: 'lecdem', billed: billed.slice(0, 2) }));
+    expect(two).toMatchObject({ lead: 'P1 & P2', more: 0 });
+
+    const mine = own(
+      'e1',
+      { kind: 'lecdem' },
+      { knownBy: 'P1, P2, P3, P4, P5 & P6', known: ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'] },
+    );
+    expect(owned(mine)).toMatchObject({ lead: 'P1, P2', more: 4 });
+    const mineThree = own(
+      'e3',
+      { kind: 'lecdem' },
+      { knownBy: 'P1, P2 & P3', known: ['P1', 'P2', 'P3'] },
+    );
+    expect(owned(mineThree)).toMatchObject({ lead: 'P1, P2 & P3', more: 0 });
+    // A concert's leads stay whole, however many.
+    const trio = own('e2', {}, { knownBy: 'A, B & C', known: ['A', 'B', 'C'] });
+    expect(owned(trio)).toMatchObject({ lead: 'A, B & C', more: 0 });
+  });
+
   it('shows a listing the rasika Shortlisted or heard once, as theirs', () => {
     const mine = own('e1', { scheduleEntryId: 'a' });
     const heard = own('e2', { scheduleEntryId: 'b', status: 'attended', startTime: '18:00' });

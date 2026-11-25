@@ -36,7 +36,7 @@ import { createEvent, today } from '../store/events';
 import { letGo, settleLapsed, wasThere } from '../store/lapse';
 import { isBeingLogged } from '../store/logging-note';
 import { useSeasonRagaKeys, type EventSummary, type ScheduleListing } from '../store/queries';
-import { ConcertRow } from './components/ConcertRow';
+import { ConcertRow, MoreNames } from './components/ConcertRow';
 import { ActionRow } from './components/rows';
 import { saveWith, SeasonFeedback, useSaveFeedback } from './components/feedback';
 import { KindMark } from './components/kind-mark';
@@ -45,6 +45,7 @@ import { useReloadGuard } from './components/reload-guard';
 import { dayText, itemCount, nameBreaks, nowTime, timeText, typeName } from './format';
 import { MESSAGES } from './messages';
 import { WHATS_ON } from './nav';
+import { dayName, tomorrowOf } from './day-words';
 import { saveFeedback } from './save-feedback';
 import { claimNewConcert, dropNewConcert, noteNewConcert, sweepNewConcerts } from './new-concert';
 import {
@@ -113,15 +114,16 @@ export function HubScreen() {
  * beside a 24px name.
  */
 function Title({ summary }: { summary: EventSummary }) {
-  const lead = summary.knownBy
-    ? nameBreaks(summary.knownBy)
-    : (summary.sabha?.name ?? 'No Sabha yet');
+  // 4 or more presenters: 2 whole names, then "+N", as on a row (ADR 0013).
+  const { lead: name, more } = owned(summary);
+  const lead = summary.knownBy ? nameBreaks(name) : name;
   const last = lead.lastIndexOf(' ') + 1;
   return (
     <>
       {lead.slice(0, last)}
       <span className="whitespace-nowrap">
         {lead.slice(last)}
+        {more > 0 && <MoreNames count={more} />}
         <KindMark kind={summary.event.kind} className="ml-2" />
         {summary.type && (
           <span className="ml-2 text-sub font-normal opacity-80">{typeName(summary.type)}</span>
@@ -130,21 +132,6 @@ function Title({ summary }: { summary: EventSummary }) {
     </>
   );
 }
-
-/** The day after `now`'s, by the phone's calendar. */
-const tomorrowOf = (now: Date) =>
-  isoDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
-
-/**
- * A day as the hub says it, one word for one day wherever it names it (the hub spec's decision
- * 2): "Today", "Tomorrow", else "Mon 21 Dec". No "Yesterday": it keeps its date.
- */
-const dayName = (date: string, now: Date) =>
-  date === isoDay(now)
-    ? MESSAGES.season.today
-    : date === tomorrowOf(now)
-      ? MESSAGES.spine.tomorrow
-      : dayText(date);
 
 /**
  * The hero's line under a name, time first as a row's (the hub spec's decision 3): inside the hour

@@ -172,9 +172,9 @@ describe('a change to Lecdem keeps FR-013 (required)', () => {
     return { harikatha, appearances };
   }
 
-  it('refuses a Harikatha with 4 presenters as a Lecdem, as a 4th presenter is', async () => {
+  it('refuses a Harikatha with 7 presenters as a Lecdem, as a 7th presenter is', async () => {
     const db = freshDb();
-    const { harikatha, appearances } = await withPresenters(db, 4);
+    const { harikatha, appearances } = await withPresenters(db, 7);
     const before = await db.outbox.count();
 
     await expect(changeKind(harikatha.id, 'lecdem', { db })).rejects.toThrow(TOO_MANY_PRESENTERS);
@@ -184,16 +184,16 @@ describe('a change to Lecdem keeps FR-013 (required)', () => {
     expect((await editAppearance(appearances[0]!.id, { colourPrimary: 'red' }, { db })).id).toBe(
       appearances[0]!.id,
     );
-    // Three are a Lecdem's most.
-    const three = await withPresenters(db, 3);
-    expect((await changeKind(three.harikatha.id, 'lecdem', { db })).event.kind).toBe('lecdem');
+    // Six are a Lecdem's most.
+    const six = await withPresenters(db, 6);
+    expect((await changeKind(six.harikatha.id, 'lecdem', { db })).event.kind).toBe('lecdem');
   });
 
-  it('refuses an Undo that would make a Lecdem of more than 3, and keeps the receipt', async () => {
+  it('refuses an Undo that would make a Lecdem of more than 6, and keeps the receipt', async () => {
     const db = freshDb();
     const lecdem = await createEvent({ kind: 'lecdem', title: 'On Todi' }, { db });
     const { receipt } = await changeKind(lecdem.id, 'concert', { db });
-    for (let i = 1; i <= 4; i += 1) {
+    for (let i = 1; i <= 7; i += 1) {
       const artist = await createArtist(`Presenter ${i}`, { db });
       await addAppearance(lecdem.id, artist.id, { role: 'presenter' }, { db });
     }

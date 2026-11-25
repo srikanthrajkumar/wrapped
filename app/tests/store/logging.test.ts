@@ -35,7 +35,7 @@ import {
   heldEntry,
 } from '../../src/store/people';
 import { listAppearances, listItems } from '../../src/store/queries';
-import { RuleError } from '../../src/store/rules';
+import { RuleError, TOO_MANY_PRESENTERS } from '../../src/store/rules';
 import { fixtureCatalog, freshDb, reopen } from '../helpers';
 
 const v1 = fixtureCatalog('catalog-v1.json');
@@ -258,19 +258,25 @@ describe('Artists, Sabhas and Appearances', () => {
     ]);
   });
 
-  it('allows at most three presenters at a Lecdem', async () => {
+  it('allows at most six presenters at a Lecdem', async () => {
     const db = freshDb();
     const lecdem = await createEvent({ kind: 'lecdem', title: 'Pallavi singing' }, { db });
-    for (const name of ['A', 'B', 'C']) {
+    for (const name of ['A', 'B', 'C', 'D', 'E', 'F']) {
       const artist = await createArtist(name, { db });
       await addAppearance(lecdem.id, artist.id, { role: 'presenter' }, { db });
     }
-    const fourth = await createArtist('D', { db });
+    const seventh = await createArtist('G', { db });
+    const before = await db.outbox.count();
     await expect(
-      addAppearance(lecdem.id, fourth.id, { role: 'presenter' }, { db }),
-    ).rejects.toThrow(RuleError);
-    // As an accompanist, a fourth Artist is fine.
-    await addAppearance(lecdem.id, fourth.id, { role: 'violin' }, { db });
+      addAppearance(lecdem.id, seventh.id, { role: 'presenter' }, { db }),
+    ).rejects.toThrow(TOO_MANY_PRESENTERS);
+    expect(await db.outbox.count()).toBe(before);
+    // Given the Role later, a 7th is refused too.
+    const violin = await addAppearance(lecdem.id, seventh.id, { role: 'violin' }, { db });
+    await expect(editAppearance(violin.id, { role: 'presenter' }, { db })).rejects.toThrow(
+      TOO_MANY_PRESENTERS,
+    );
+    expect((await db.appearances.get(violin.id))?.role).toBe('violin');
   });
 });
 

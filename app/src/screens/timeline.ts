@@ -81,9 +81,14 @@ export function timeline(
  * Artists (a Group by its name), else its Sabha.
  */
 export function listingLead(entry: ScheduleEntry): string {
-  const stage = entry.billed.map((person, i) => ({ ...person, position: i + 1 })).sort(byStage);
-  const names = knownNames(knownBy(entry.kind, stage), (person) => person.name);
+  const names = listingNames(entry);
   return names.length > 0 ? joinNames(names) : entry.sabha;
+}
+
+/** The same names one by one, a Group once; empty when it bills nobody. */
+export function listingNames(entry: ScheduleEntry): string[] {
+  const stage = entry.billed.map((person, i) => ({ ...person, position: i + 1 })).sort(byStage);
+  return knownNames(knownBy(entry.kind, stage), (person) => person.name);
 }
 
 /** A Schedule entry's accompanists and type, as a row shows them (ADR 0011). */

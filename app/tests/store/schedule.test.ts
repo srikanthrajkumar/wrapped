@@ -225,13 +225,38 @@ describe('adding an entry to the Plan (T061)', () => {
     expect(again.id).not.toBe(a.id);
   });
 
-  it('refuses a cancelled entry, and a Lecdem billed with more than 3 presenters, adding nothing', async () => {
+  it('adds a Lecdem billed with 5 or 6 presenters, every one a presenter (ADR 0013)', async () => {
     const db = freshDb();
-    const four = Array.from({ length: 4 }, (_, i) => ({ name: `P${i}`, role: 'presenter' }));
+    const billed = (n: number) =>
+      Array.from({ length: n }, (_, i) => ({ name: `Speaker ${n}-${i}`, role: 'presenter' }));
+    await stored(
+      db,
+      raw({
+        id: 'panel',
+        kind: 'lecdem',
+        title: 'Articles in 100 years of the Journal',
+        billed: billed(5),
+      }),
+      raw({ id: 'six', kind: 'lecdem', title: 'On Todi', billed: billed(6) }),
+    );
+    for (const [id, n] of [
+      ['panel', 5],
+      ['six', 6],
+    ] as const) {
+      const event = await addFromSchedule(id, { db });
+      expect(event).toMatchObject({ kind: 'lecdem' });
+      const stage = await listAppearances(event.id, db);
+      expect(stage.map((a) => a.role)).toEqual(Array(n).fill('presenter'));
+    }
+  });
+
+  it('refuses a cancelled entry, and a Lecdem billed with more than 6 presenters, adding nothing', async () => {
+    const db = freshDb();
+    const seven = Array.from({ length: 7 }, (_, i) => ({ name: `P${i}`, role: 'presenter' }));
     await stored(
       db,
       raw({ id: 'off', cancelled: true }),
-      raw({ id: 'big', kind: 'lecdem', title: 'On Todi', billed: four }),
+      raw({ id: 'big', kind: 'lecdem', title: 'On Todi', billed: seven }),
     );
     await expect(addFromSchedule('off', { db })).rejects.toThrow(ENTRY_CANCELLED);
     await expect(addFromSchedule('big', { db })).rejects.toThrow(TOO_MANY_PRESENTERS);

@@ -242,12 +242,12 @@ describe('"take it" (required)', () => {
   it('refuses a version that breaks a rule whole, leaving the Event and the hint', async () => {
     const db = freshDb();
     const { event } = await hinted(db);
-    const four = Array.from({ length: 4 }, (_, i) => ({
+    const seven = Array.from({ length: 7 }, (_, i) => ({
       name: `Presenter ${i}`,
       role: 'presenter' as const,
       group: null,
     }));
-    await publish(db, { ...v2, version: 3, kind: 'lecdem', title: 'On Todi', billed: four });
+    await publish(db, { ...v2, version: 3, kind: 'lecdem', title: 'On Todi', billed: seven });
     const before = await snapshot(db, event.id);
     const outbox = await db.outbox.count();
 

@@ -9,7 +9,8 @@ import { hasLapsed, lapseVerdict, sameSlot as inOneSlot, SLOT_MS } from '../stor
 import { eventStart, isBeingLogged, type LoggingNote } from '../store/logging-note';
 import type { EventSummary, ScheduleListing } from '../store/queries';
 import type { ConcertType } from '../store/stage';
-import { isHeard, isShown, listingFacts, listingLead } from './timeline';
+import { leadNames } from './fit-names';
+import { isHeard, isShown, listingFacts, listingNames } from './timeline';
 
 /** A concert reads as under way from its start until this long after it (SF-D30). */
 export const UNDER_WAY_MS = 2.5 * 60 * 60 * 1000;
@@ -25,6 +26,8 @@ export interface Concert {
   kind: EventKind;
   /** Who it is known by: its lead Artists, else its Sabha. */
   lead: string;
+  /** How many presenters `lead` leaves out, shown as "+N" (fit-names.ts, ADR 0013); else 0. */
+  more: number;
   /** Its type when it isn't vocal (ADR 0011). */
   type: ConcertType | null;
   /** The printed title of a Lecdem, a Dance or a Harikatha. */
@@ -48,13 +51,16 @@ export const stageOf = (concert: Concert): Stage =>
 /** A Schedule listing nobody has Shortlisted, as a row. */
 export function listed(listing: ScheduleListing): Concert {
   const { entry } = listing;
-  const lead = listingLead(entry);
+  const names = listingNames(entry);
+  const { lead, more } =
+    names.length > 0 ? leadNames(entry.kind, names) : { lead: entry.sabha, more: 0 };
   return {
     key: entry.id,
     date: entry.date,
     startTime: entry.startTime,
     kind: entry.kind,
     lead,
+    more,
     title: entry.title,
     sabha: lead === entry.sabha ? null : entry.sabha,
     cancelled: entry.cancelled,
@@ -67,12 +73,17 @@ export function listed(listing: ScheduleListing): Concert {
 /** The rasika's own Event as a row, with its listing when it came from the Schedule. */
 export function owned(summary: EventSummary, listing: ScheduleListing | null = null): Concert {
   const { event } = summary;
+  const { lead, more } =
+    summary.known.length > 0
+      ? leadNames(event.kind, summary.known)
+      : { lead: summary.sabha?.name ?? 'No Sabha yet', more: 0 };
   return {
     key: event.scheduleEntryId ?? event.id,
     date: event.date,
     startTime: event.startTime,
     kind: event.kind,
-    lead: summary.knownBy ?? summary.sabha?.name ?? 'No Sabha yet',
+    lead,
+    more,
     type: summary.type,
     title: event.kind === 'concert' ? null : event.title,
     accompanists: summary.accompanists,
@@ -83,7 +94,7 @@ export function owned(summary: EventSummary, listing: ScheduleListing | null = n
   };
 }
 
-const startMs = (concert: Pick<Concert, 'date' | 'startTime'>) =>
+export const startMs = (concert: Pick<Concert, 'date' | 'startTime'>) =>
   eventStart(concert)?.getTime() ?? null;
 
 /** By start time, one with no time last in its day, then by Sabha, as the Schedule is listed. */

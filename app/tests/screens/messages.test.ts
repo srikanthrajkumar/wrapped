@@ -49,7 +49,7 @@ function produced(): Set<string> {
   const all = [...strings, ...fromNumbers];
   const fromStrings = functions.flatMap((fn) => all.map((s) => fn(s as never)));
   // Messages made of two values or a day, on the sample the table shows.
-  const presenters = 'a Lecdem has at most 3 presenters';
+  const presenters = 'a Lecdem has at most 6 presenters';
   const twoValues = [
     MESSAGES.undo.refused(MESSAGES.undo.subject.artist, presenters),
     MESSAGES.undo.refused(MESSAGES.undo.subject.item(3), 'its Concert is deleted'),

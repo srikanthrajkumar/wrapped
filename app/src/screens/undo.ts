@@ -26,7 +26,7 @@ export interface UndoOffer {
   message: string;
   /** The Undo itself failed: the bar stays, with Try again and Dismiss, until it works. */
   failed?: boolean;
-  /** The rule that refused the restore, as "a Lecdem has at most 3 presenters". */
+  /** The rule that refused the restore, as "a Lecdem has at most 6 presenters". */
   refused?: string;
   /** How many times it failed, so each failure is announced afresh. */
   attempt: number;
