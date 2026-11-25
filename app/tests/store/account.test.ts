@@ -3,7 +3,7 @@
 // were. And restore: the claim, then the push of what was logged on the empty phone, then the
 // pull from an empty cursor, with first launch waiting at most 10 seconds for it.
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   newId,
   type ClaimRequest,
@@ -37,7 +37,7 @@ import {
 import { save } from '../../src/store/mutate';
 import { restoreAfterSignIn } from '../../src/store/restore';
 import { createSyncLoop, syncOnce, type SyncLock } from '../../src/store/sync';
-import { changeConsent, startSync } from '../../src/store/sync-runtime';
+import { changeConsent, startSync, syncStatus } from '../../src/store/sync-runtime';
 import { readReply, SyncError, type SyncApi } from '../../src/store/sync-api';
 import { freshDb } from '../helpers';
 
@@ -466,7 +466,6 @@ describe('a consent answer waiting while sync is stopped is still sent (required
   afterEach(() => {
     for (const stop of stops.splice(0)) stop();
   });
-  const tick = () => new Promise((resolve) => setTimeout(resolve, 30));
 
   /** The app's sync started on a phone that holds a season while another phone writes. */
   async function stoppedForAnotherPhone() {
@@ -495,7 +494,10 @@ describe('a consent answer waiting while sync is stopped is still sent (required
         },
       }),
     );
-    await tick();
+    // The first sync is refused (another phone writes), and the loop stops for the rasika.
+    await vi.waitFor(() => expect(syncStatus()).toMatchObject({ state: 'stopped' }), {
+      timeout: 5_000,
+    });
     const setSignal = (on: boolean) => (signal = on);
     return { db, server, target, page, setSignal };
   }
@@ -515,8 +517,7 @@ describe('a consent answer waiting while sync is stopped is still sent (required
     expect(server.consents).toEqual([]);
     setSignal(true);
     target.dispatchEvent(new Event('online'));
-    await tick();
-    expect(server.consents).toEqual([{ seasonReports: false }]);
+    await vi.waitFor(() => expect(server.consents).toEqual([{ seasonReports: false }]));
     expect(await db.meta.get(CONSENT_PENDING_KEY)).toBeUndefined();
     expect(await db.outbox.count()).toBe(1);
   });
@@ -527,8 +528,7 @@ describe('a consent answer waiting while sync is stopped is still sent (required
     await changeConsent('seasonReports', false, db);
     setSignal(true);
     page.dispatchEvent(new Event('visibilitychange'));
-    await tick();
-    expect(server.consents).toEqual([{ seasonReports: false }]);
+    await vi.waitFor(() => expect(server.consents).toEqual([{ seasonReports: false }]));
   });
 });
 
