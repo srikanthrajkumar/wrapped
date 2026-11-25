@@ -839,7 +839,9 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   Card previews, each with its own Share. Not built yet: it joins the Diary, at its top (the
   Season spine, 2026-11-11).
 - **First launch (decided 2026-11-01; FR-050, FR-042, FR-049):** one step per screen, in order:
-  Welcome (wordmark, one sentence, "Continue with Google" as the 56px primary) → Google sign-in
+  Welcome (wordmark, one sentence, "Continue with Google" as Google's own button, full width up
+  to its 400px; not the app's 56px primary, since Supabase's redirect would show its
+  supabase.co address: the Maintainer, 2026-11-24, ADR 0001) → Google sign-in
   → Consent 1 → Consent 2 → "Getting ready to log offline" with real progress → the empty home.
   Each consent screen asks one question with its one-line reason and two equal 56px buttons, Yes
   and No, with neither styled as the default and nothing pre-selected. "Ready to log offline"
