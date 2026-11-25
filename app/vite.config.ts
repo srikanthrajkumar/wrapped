@@ -8,7 +8,9 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { CATALOG_FILE } from './src/catalog/load.ts';
 import { isPhase2 } from './src/precache-phases.ts';
 
-const outDir = fileURLToPath(new URL('./dist', import.meta.url));
+// The local restore test builds beside the ordinary build, never over it
+// (playwright.server.config.ts).
+const outDir = fileURLToPath(new URL(process.env.WRAPPED_OUT_DIR ?? './dist', import.meta.url));
 const appVersion = (
   JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
     version?: string;

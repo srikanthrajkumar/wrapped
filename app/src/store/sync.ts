@@ -31,6 +31,7 @@ import {
   type ServerSeq,
   type WrappedDB,
 } from './db';
+import { settleAccount, signedInUserId } from './account';
 import { claimBatch } from './outbox';
 import { SyncError, type SyncApi, type SyncFailure } from './sync-api';
 
@@ -267,12 +268,16 @@ export async function pullAll(api: SyncApi, { db = defaultDb, remap }: SyncOptio
 }
 
 /**
- * One full sync: push until the outbox is empty, then pull until the server has nothing more
- * (contracts/sync-api.md, "Sync order on the phone"). Throws SyncError at the first failure,
+ * One full sync: send what the account is waiting for (store/account.ts), push until the outbox
+ * is empty, then pull until the server has nothing more (contracts/sync-api.md, "Sync order on
+ * the phone"). Throws SyncError at the first failure,
  * leaving whatever is not yet answered in the outbox.
  */
 export async function syncOnce(api: SyncApi, options: SyncOptions = {}): Promise<void> {
   const db = options.db ?? defaultDb;
+  // A claim the rasika asked for (a sign-in, "Make this the writing device again") goes first,
+  // since the server refuses a push from a phone that isn't the writer; then any consent answers.
+  await settleAccount(api, () => deviceId(db), db);
   for (;;) {
     const before = await db.outbox.count();
     if (before === 0) break;
@@ -405,13 +410,26 @@ export function createSyncLoop(options: SyncLoopOptions): SyncLoop {
     cancelRetry();
     set({ state: 'syncing' });
     try {
+      // Who the session is for, read before it is looked up: if another account signs in
+      // before the lock is held, this session is not used, so nothing of the new account's
+      // (its consent answers, its season) is ever sent as the last one's.
+      const userId = await signedInUserId(db);
       const api = await getApi();
       if (!api) {
         set({ state: 'stopped', failure: { kind: 'signed_out' } });
         return;
       }
       const remap = (await getRemap?.()) ?? options.remap;
-      await lock(syncLockName(db), () => syncOnce(api, { db, remap }));
+      let switched = false;
+      await lock(syncLockName(db), async () => {
+        if ((await signedInUserId(db)) !== userId) switched = true;
+        else await syncOnce(api, { db, remap });
+      });
+      if (switched) {
+        // Run again, with the session of the account now signed in.
+        again = true;
+        return;
+      }
       attempt = 0;
       set({ state: 'idle' });
     } catch (error) {

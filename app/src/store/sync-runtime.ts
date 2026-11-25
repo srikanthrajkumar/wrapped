@@ -4,12 +4,94 @@
 
 import { liveQuery } from 'dexie';
 import type { Remap } from '../catalog/load';
+import {
+  accountAsked,
+  answerConsent,
+  sendConsent,
+  storeAccount,
+  type ConsentName,
+} from './account';
 import { getSyncApi } from './auth';
 import { buildAuthConfig } from './auth-config';
 import { db as defaultDb, type WrappedDB } from './db';
-import { createSyncLoop, type SyncLoop, type SyncLoopOptions } from './sync';
+import {
+  createSyncLoop,
+  webLock,
+  type SyncLock,
+  type SyncLoop,
+  type SyncLoopOptions,
+  type SyncStatus,
+} from './sync';
+import type { SyncApi } from './sync-api';
 
 let loop: SyncLoop | null = null;
+/** How the running loop reaches the server, which a consent sent outside it uses too. */
+let reach: { getApi: () => Promise<SyncApi | null>; lock: SyncLock } | null = null;
+const IDLE: SyncStatus = { state: 'idle' };
+const statusListeners = new Set<() => void>();
+let unsubscribeLoop: (() => void) | null = null;
+
+/** The running loop's status; idle before it starts (a build or test that never starts it). */
+export function syncStatus(): SyncStatus {
+  return loop?.status() ?? IDLE;
+}
+
+/** For useSyncExternalStore: told whenever the loop's status changes. */
+export function subscribeSyncStatus(listener: () => void): () => void {
+  statusListeners.add(listener);
+  return () => statusListeners.delete(listener);
+}
+
+/**
+ * Clear a stop and sync now: after a sign-in, "Make this the writing device again", or a consent
+ * answered. Resolves when that sync has ended, however it ended.
+ */
+export function resumeSync(): Promise<void> {
+  return loop?.resume() ?? Promise.resolve();
+}
+
+/**
+ * Ask the server about the account (`GET /v1/me`) and keep its answer, for Settings: the
+ * deletion contact, and consents changed on another device. Quietly nothing with no server, no
+ * session or no signal; Settings shows what it last had.
+ */
+export async function refreshAccount(db: WrappedDB = defaultDb): Promise<void> {
+  try {
+    // Before the session is looked up, so a reply for an account since replaced is dropped.
+    const asked = await accountAsked(db);
+    const api = await getSyncApi({ db, config: buildAuthConfig() });
+    if (!api) return;
+    await storeAccount(await api.me(), asked, db);
+  } catch {
+    // Kept as it was: the next visit asks again.
+  }
+}
+
+/**
+ * Send a consent answer now, even while sync is stopped (another phone writing): consent is
+ * account data, not a season op (store/account.ts, sendConsent).
+ */
+export function sendConsentNow(db: WrappedDB = defaultDb): Promise<void> {
+  const { getApi, lock } = reach ?? {
+    getApi: () => getSyncApi({ db, config: buildAuthConfig() }),
+    lock: webLock,
+  };
+  return sendConsent(getApi, db, { lock });
+}
+
+/**
+ * Settings' consent answer (FR-042, FR-049): kept on the phone at once, then sent at once, even
+ * while sync is stopped for another phone writing. With no signal it is sent by the next sync,
+ * `online`, or the app shown again.
+ */
+export async function changeConsent(
+  name: ConsentName,
+  answer: boolean,
+  db: WrappedDB = defaultDb,
+): Promise<void> {
+  await answerConsent(name, answer, db);
+  await sendConsentNow(db);
+}
 
 export interface StartSyncOptions {
   db?: WrappedDB;
@@ -34,17 +116,29 @@ export function startSync({
 }: StartSyncOptions = {}): () => void {
   if (loop) return () => {};
   const config = buildAuthConfig();
-  const started = createSyncLoop({
-    db,
-    getApi: () => getSyncApi({ db, config }),
-    getRemap,
-    ...extra,
-  });
+  const getApi = extra.getApi ?? (() => getSyncApi({ db, config }));
+  const lock = extra.lock ?? webLock;
+  const started = createSyncLoop({ db, getRemap, ...extra, getApi, lock });
   loop = started;
+  reach = { getApi, lock };
+  unsubscribeLoop = started.subscribe(() => {
+    for (const listener of statusListeners) listener();
+  });
 
-  const online = () => void started.request('online');
+  // A stopped loop ignores these (it waits for the rasika), but an answer waiting to be sent is
+  // still sent: a consent turned off with no signal while another phone writes would otherwise
+  // wait for the next answer or launch (FR-042, FR-049).
+  const consentWaiting = () => {
+    if (started.status().state === 'stopped') void sendConsent(getApi, db, { lock });
+  };
+  const online = () => {
+    void started.request('online');
+    consentWaiting();
+  };
   const visible = () => {
-    if (page.visibilityState === 'visible') void started.request('visible');
+    if (page.visibilityState !== 'visible') return;
+    void started.request('visible');
+    consentWaiting();
   };
   target.addEventListener('online', online);
   page.addEventListener('visibilitychange', visible);
@@ -64,6 +158,9 @@ export function startSync({
     page.removeEventListener('visibilitychange', visible);
     saves.unsubscribe();
     started.dispose();
+    unsubscribeLoop?.();
+    unsubscribeLoop = null;
     loop = null;
+    reach = null;
   };
 }

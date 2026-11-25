@@ -15,4 +15,14 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL?: string;
   /** The Supabase public (anon) key, safe in the browser by design (CONTRIBUTING.md). */
   readonly VITE_SUPABASE_ANON_KEY?: string;
+  /**
+   * Google's web client id for Google's sign-in button (ADR 0001). Public by design: Google
+   * checks the page's origin against the client's authorised origins.
+   */
+  readonly VITE_GOOGLE_CLIENT_ID?: string;
+  /**
+   * '1' only in the local restore test's build (app/playwright.server.config.ts): sign-in takes
+   * a password user against the local stack instead of Google's. Never set for a deploy.
+   */
+  readonly VITE_TEST_PASSWORD_SIGNIN?: string;
 }

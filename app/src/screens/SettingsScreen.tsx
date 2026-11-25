@@ -4,33 +4,49 @@
 // the Maintainer's link, then the app and catalog versions, small and muted. A pushed page since
 // 2026-11-11, opened from the hub's Settings mark, which is amber while a row here is. Export lives here
 // alone before sync (the safety rows keep their own); Settings can always be reached, offline
-// too (FR-019). Sync, account and consent join in Phase 7.
+// too (FR-019). With a server (Phase 7, T082): the season's panel adds its backup, and an
+// Account group after the theme holds who is signed in, both consents (changeable at any time,
+// kept on the phone at once and sent with the next sync), "Sign out other devices" and the
+// deletion contact (FR-021, FR-042, FR-046, FR-049).
 
 import {
   IconAlertCircle,
+  IconCloudCheck,
+  IconCloudUp,
+  IconDevicesX,
   IconLoader2,
+  IconMail,
   IconPlaneTilt,
   IconShieldCheck,
   IconShieldExclamation,
+  IconUserCircle,
 } from '@tabler/icons-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'wouter';
 import { cn } from '@/lib/utils';
+import type { MeResponse } from '../model';
 import { useOfflineState } from '../pwa';
+import { ACCOUNT_KEY, CONSENT_KEY, type Consent, type ConsentName } from '../store/account';
+import { IDENTITY_KEY, signOutOtherDevices, type Identity } from '../store/auth';
+import { buildAuthConfig } from '../store/auth-config';
 import { CATALOG_VERSION_KEY } from '../store/catalog-version';
 import { LAST_EXPORT_KEY, type LastExport } from '../store/export';
 import { storagePersisted } from '../store/persist';
-import { preloadMeta, useMeta } from '../store/queries';
+import { preloadMeta, useMeta, useUnsyncedCount } from '../store/queries';
 import { READY_KEY } from '../store/offline-ready';
+import { changeConsent, refreshAccount } from '../store/sync-runtime';
 import { setTheme, useTheme, type Theme } from '../theme';
 import { APP_VERSION, exportSeason, useExportState } from './components/export-file';
 import { ExportIcon } from './components/feedback';
 import { Panel, Screen, TabHeader } from './components/layout';
 import { ListRowBody, ROW_SHAPE } from './components/rows';
+import { useSyncStatus } from './sync-status';
 import { shortDayText } from './format';
 import { MESSAGES } from './messages';
 
 const ICON = 'size-5 shrink-0';
+/** Fixed for the build: a build without a server has no backup or account to show. */
+const AUTH_CONFIG = buildAuthConfig();
 /** A Settings row is a List row (the row spec, 2026-11-16): its mark, then its title at 56. */
 const ROW = cn(ROW_SHAPE, 'hairline-b');
 
@@ -42,7 +58,14 @@ let persistedSeen: boolean | undefined;
 
 /** Read ahead what Settings shows, so it opens whole. */
 export function preloadSettings(): void {
-  void preloadMeta([READY_KEY, LAST_EXPORT_KEY, CATALOG_VERSION_KEY]).catch(() => undefined);
+  void preloadMeta([
+    READY_KEY,
+    LAST_EXPORT_KEY,
+    CATALOG_VERSION_KEY,
+    IDENTITY_KEY,
+    CONSENT_KEY,
+    ACCOUNT_KEY,
+  ]).catch(() => undefined);
   void storagePersisted()
     .then((answer) => {
       persistedSeen = answer;
@@ -176,6 +199,181 @@ function ExportRow() {
   );
 }
 
+/** The writes not yet on the server (FR-016, constitution II), counted as the home line words it. */
+function BackupRow() {
+  const count = useUnsyncedCount();
+  if (count === undefined) return <Pending />;
+  return count === 0 ? (
+    <SeasonRow icon={<IconCloudCheck aria-hidden className={ICON} />}>
+      {MESSAGES.homeStatus.allSynced}
+    </SeasonRow>
+  ) : (
+    <SeasonRow icon={<IconCloudUp aria-hidden className={ICON} />}>
+      {MESSAGES.homeStatus.changesWaiting(count)}
+    </SeasonRow>
+  );
+}
+
+/**
+ * One choice as one track holding both answers, as the theme's. A consent shows neither picked
+ * until it is answered (FR-042, FR-049: nothing pre-selected).
+ */
+function ChoiceTrack<T extends string | boolean>({
+  label,
+  value,
+  choices,
+  onChoose,
+}: {
+  label: string;
+  value: T | null;
+  choices: { value: T; label: string }[];
+  onChoose(value: T): void;
+}) {
+  return (
+    <div role="radiogroup" aria-label={label} className="flex flex-col gap-2">
+      <span className="text-body font-semibold text-foreground">{label}</span>
+      {/* One track holding both choices, so it reads as one choice; on the 8px edge. */}
+      <div className="fill-edge flex gap-1 rounded-fill border border-border p-1">
+        {choices.map((choice) => (
+          <button
+            key={String(choice.value)}
+            type="button"
+            role="radio"
+            aria-checked={value === choice.value}
+            onClick={() => onChoose(choice.value)}
+            className={cn(
+              'min-h-12 flex-1 rounded-xl px-4',
+              value === choice.value && 'bg-secondary font-semibold',
+            )}
+          >
+            {choice.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const YES_NO = [
+  { value: true, label: MESSAGES.actions.yes },
+  { value: false, label: MESSAGES.actions.no },
+];
+
+function ConsentChoice({
+  name,
+  label,
+  value,
+}: {
+  name: ConsentName;
+  label: string;
+  value: boolean | null;
+}) {
+  return (
+    <ChoiceTrack
+      label={label}
+      value={value}
+      choices={YES_NO}
+      onChoose={(answer) => {
+        // Kept on the phone now and sent at once, even while sync is stopped for another phone
+        // writing; with no signal, the next sync sends it.
+        void changeConsent(name, answer).catch(() => undefined);
+      }}
+    />
+  );
+}
+
+/** "Sign out other devices" (FR-021: a lost phone), with how it went on the line under it. */
+function SignOutOthersRow({ config }: { config: NonNullable<typeof AUTH_CONFIG> }) {
+  const [state, setState] = useState<'idle' | 'working' | 'done' | 'failed'>('idle');
+  return (
+    <li className="hairline-b">
+      <button
+        type="button"
+        className={ROW_SHAPE}
+        aria-busy={state === 'working' || undefined}
+        disabled={state === 'working'}
+        onClick={async () => {
+          setState('working');
+          try {
+            await signOutOtherDevices({ config });
+            setState('done');
+          } catch {
+            setState('failed');
+          }
+        }}
+      >
+        <ListRowBody
+          mark={<IconDevicesX aria-hidden className={ICON} />}
+          title={MESSAGES.account.signOutOthers}
+          line={
+            state === 'done' || state === 'failed' ? (
+              <span role="status">
+                {state === 'done'
+                  ? MESSAGES.account.signedOutOthers
+                  : MESSAGES.account.signOutOthersFailed}
+              </span>
+            ) : undefined
+          }
+        />
+      </button>
+    </li>
+  );
+}
+
+function AccountSection({ config }: { config: NonNullable<typeof AUTH_CONFIG> }) {
+  const identity = useMeta<Identity>(IDENTITY_KEY);
+  const consent = useMeta<Consent>(CONSENT_KEY);
+  const account = useMeta<MeResponse>(ACCOUNT_KEY);
+  const status = useSyncStatus();
+  useEffect(() => {
+    void refreshAccount();
+  }, []);
+  const ended =
+    status.state === 'stopped' &&
+    (status.failure.kind === 'signed_out' || status.failure.kind === 'other_account');
+  const who = identity ? (identity.email ?? identity.name) : null;
+  return (
+    <>
+      <Panel className="mt-8">
+        <li className={ROW}>
+          <ListRowBody
+            mark={<IconUserCircle aria-hidden className={ICON} />}
+            title={who ? MESSAGES.account.signedInAs(who) : MESSAGES.account.notSignedIn}
+            line={identity && ended ? MESSAGES.sessionEnded : undefined}
+          />
+        </li>
+        {identity && <SignOutOthersRow config={config} />}
+        {account?.deletionContact && (
+          <li className={ROW}>
+            <ListRowBody
+              mark={<IconMail aria-hidden className={ICON} />}
+              title={
+                <span className="break-all">
+                  {MESSAGES.account.deletion(account.deletionContact)}
+                </span>
+              }
+            />
+          </li>
+        )}
+      </Panel>
+      {identity && (
+        <div className="mt-8 flex flex-col gap-6">
+          <ConsentChoice
+            name="shareAdditions"
+            label={MESSAGES.consent1.question}
+            value={consent?.shareAdditions ?? null}
+          />
+          <ConsentChoice
+            name="seasonReports"
+            label={MESSAGES.consent2.question}
+            value={consent?.seasonReports ?? null}
+          />
+        </div>
+      )}
+    </>
+  );
+}
+
 export function SettingsScreen() {
   return (
     <Screen>
@@ -195,29 +393,21 @@ function SettingsView() {
       <Panel>
         <OfflineRow />
         <StorageRow />
+        {AUTH_CONFIG && <BackupRow />}
         <ExportRow />
       </Panel>
-      <div role="radiogroup" aria-label="Theme" className="mt-8 flex flex-col gap-2">
-        <span className="text-body font-semibold text-foreground">Theme</span>
-        {/* One track holding both choices, so it reads as one choice; on the 8px edge. */}
-        <div className="fill-edge flex gap-1 rounded-fill border border-border p-1">
-          {(['dark', 'light'] as Theme[]).map((choice) => (
-            <button
-              key={choice}
-              type="button"
-              role="radio"
-              aria-checked={theme === choice}
-              onClick={() => setTheme(choice)}
-              className={cn(
-                'min-h-12 flex-1 rounded-xl px-4',
-                theme === choice && 'bg-secondary font-semibold',
-              )}
-            >
-              {choice === 'dark' ? 'Dark' : 'Light'}
-            </button>
-          ))}
-        </div>
+      <div className="mt-8">
+        <ChoiceTrack<Theme>
+          label="Theme"
+          value={theme}
+          choices={[
+            { value: 'dark', label: 'Dark' },
+            { value: 'light', label: 'Light' },
+          ]}
+          onChoose={setTheme}
+        />
       </div>
+      {AUTH_CONFIG && <AccountSection config={AUTH_CONFIG} />}
       {/* A List row on its own panel, with a chevron, as it opens a page; the versions close
           the page. */}
       <Panel className="mt-8">

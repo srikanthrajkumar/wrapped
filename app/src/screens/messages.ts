@@ -153,6 +153,26 @@ export const MESSAGES = {
   },
   sessionEnded: 'Sign in again to keep backing up. Logging still works.',
   anotherPhone: 'Your season is now being logged on another phone. Changes here are kept.',
+  /**
+   * Sign-in, sync and account words the Messages table doesn't have yet (T081-T083), drafted
+   * 2026-11-24 for the Maintainer to edit; they join the table once approved. "Update the app to
+   * keep syncing" and "Make this the writing device again" are the spec's own (T078, FR-022).
+   */
+  account: {
+    /** A sign-in refused because this phone holds another account's season (FR-021). */
+    otherAccount: "This phone holds another account's season. Sign in with that account.",
+    /** A sign-in refused because the last account's consent change couldn't be sent yet. */
+    consentWaiting:
+      "Another account's privacy choice on this phone hasn't reached the server. Sign in with that account first.",
+    updateRequired: 'Update the app to keep syncing.',
+    writeHere: 'Make this the writing device again',
+    signedInAs: (who: string) => `Signed in as ${who}`,
+    notSignedIn: 'Not signed in',
+    signOutOthers: 'Sign out other devices',
+    signedOutOthers: 'Other devices signed out.',
+    signOutOthersFailed: "Other devices weren't signed out. Try again with signal.",
+    deletion: (contact: string) => `To delete your account, write to ${contact}`,
+  },
   /** The full sentences, for screen readers; the rows show the short labels below. */
   saveFailed: 'Not saved on this phone.',
   /** Failed saves with no field on screen to show them (a new Concert, a move, an Artist added). */
