@@ -4,8 +4,13 @@
   "$schema": "../node_modules/wrangler/config-schema.json",
   "name": "wrapped",
   "compatibility_date": "2026-10-26",
-  // The test address, wrapped.<account subdomain>.workers.dev, until the real domain (T054b).
+  // The test address, wrapped.<account subdomain>.workers.dev, kept beside the real one.
   "workers_dev": true,
+  // The real address (T054b). A Custom Domain: Cloudflare makes its DNS record and certificate.
+  // Each origin keeps its own phone store, so rasikas must only ever be sent here. Keep the
+  // entry on one line: tools/deploy/deploy.sh reads it, and refuses to deploy here without the
+  // server settings (docs/setup/production.md).
+  "routes": [{ "pattern": "carnatic.live", "custom_domain": true }],
   "assets": {
     "directory": "./dist",
     // A path that is no file (a wouter route such as /event/…) gets index.html with a 200. Once

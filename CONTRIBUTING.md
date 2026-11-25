@@ -81,6 +81,11 @@ Deploys run from the Maintainer's machine, because it holds the snapshot.
     on a quiet machine too: other builds or test runs on it can still fail the budget.
   - Until the golden set is reviewed (T027) it fails, so the deploy needs
     `--without-golden-set`, which it repeats at the end.
+  - The uploaded build also gets the personal-data project's address and publishable key, and
+    Google's web client ID, from
+    `~/.config/wrapped/server.env`, outside the repository. While `app/wrangler.jsonc` puts the
+    Worker on carnatic.live, a real deploy stops without that file. Setup and release day:
+    `docs/setup/production.md`.
 - **Cache rules** are in `app/public/_headers`; the Worker's config is `app/wrangler.jsonc`.
 - **A release that changes a record's shape** (a new field, Event kind or Role) does two more
   things, in the same change (contracts/sync-api.md, "Errors"):
