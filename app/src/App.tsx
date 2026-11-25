@@ -1,5 +1,5 @@
 import { IconHome, IconNotebook, IconSettings, IconStar, type Icon } from '@tabler/icons-react';
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Link, Redirect, Route, Switch, useLocation, useRoute } from 'wouter';
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 import { cn } from '@/lib/utils';
@@ -150,7 +150,28 @@ function useReceiptsClearedOnLeave() {
 }
 
 /**
- * The page keeps the sticky footer's height (its bottom action, any Undo bars, the tab bar) as
+ * The fixed footer's height as `--footer-height` on the root, for the spacer that keeps its room
+ * in the page. Set before the first paint and again, before the paint, each time the footer
+ * changes height (an action or an Undo bar coming or going), so the page's height is never a
+ * frame behind the footer's.
+ */
+function useFooterHeight(footer: HTMLElement | null) {
+  useLayoutEffect(() => {
+    if (!footer) return;
+    const root = document.documentElement;
+    const set = () => root.style.setProperty('--footer-height', `${footer.offsetHeight}px`);
+    set();
+    const observer = new ResizeObserver(set);
+    observer.observe(footer);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty('--footer-height');
+    };
+  }, [footer]);
+}
+
+/**
+ * The page keeps the fixed footer's height (its bottom action, any Undo bars, the tab bar) as
  * scroll padding, so a field focused behind the footer scrolls up above it. A field already
  * inside the viewport is not scrolled by the browser, padding or not, so one the footer covers
  * is scrolled up by hand. A text field is kept clear while it has focus and the page changes
@@ -208,6 +229,7 @@ export function App() {
   const [bar, setBar] = useState<Bar | null>(null);
   const inset = useKeyboardInset();
   const [footer, setFooter] = useState<HTMLElement | null>(null);
+  useFooterHeight(footer);
   useFooterRoom(footer, inset);
   useReceiptsClearedOnLeave();
   useOpenConcertHeld();
@@ -292,7 +314,11 @@ export function App() {
           // The bottom stack, one frame on every screen: a screen's action (What's on's search
           // bar, an Event's Add Item) with any Undo bars, then any sync prompt, the install
           // strip, then the tabs.
-          <footer ref={setFooter} className="sticky z-10" style={{ bottom: inset }}>
+          // Fixed to the screen, not sticky: in a Safari tab on iOS 26 a sticky bottom stays
+          // where the toolbar's top was once the toolbar hides, about 85pt up with rows showing
+          // under it, and jumps as Safari re-places it mid-scroll (the Maintainer's iPhone,
+          // 2026-11-25). The room it covers is kept by the spacer after it.
+          <footer ref={setFooter} className="fixed inset-x-0 z-10" style={{ bottom: inset }}>
             <ActionBar onBar={setBar} />
             {inItemEditor ? (
               <div className="h-[env(safe-area-inset-bottom)] bg-background" />
@@ -306,6 +332,9 @@ export function App() {
             )}
           </footer>
         )}
+        {/* The footer's height in the page's flow, where the sticky footer stood, so the page
+            ends above it and is as tall as before (useFooterHeight). */}
+        {done && <div aria-hidden data-footer-room className="h-(--footer-height) shrink-0" />}
       </div>
     </BarProvider>
   );

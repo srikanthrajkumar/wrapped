@@ -44,7 +44,7 @@ export function SheetFrame({
 }) {
   const inset = useKeyboardInset();
   // What opened the sheet, given focus back as it closes without scrolling the page to it: a
-  // control in the sticky bottom bar sits, to the browser, at the page's end.
+  // control in the fixed bottom bar is already in view.
   const opener = useRef<HTMLElement | null>(null);
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

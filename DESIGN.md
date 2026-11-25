@@ -385,7 +385,9 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   - **The bottom stack** is one frame, the same on every tab: the search bar (What's on
     only; the Maintainer took it off the hub on seeing the mockup, since it filtered nothing
     the hub shows), then the install strip (FB-46: thin, only in a browser tab), then the tab
-    bar.
+    bar. It is fixed to the screen's bottom edge, with its height kept as room at the page's
+    end; never sticky, which Safari on iOS 26 leaves where its toolbar was once the toolbar
+    hides.
   - **On now is a dot.** A concert under way keeps its start time, in full ink, with an 8px
     ink dot before it, spoken "On now"; no "Now, since" (the Maintainer, 2026-11-11, option B
     of two mockups, "for now"). The dot is ink, never rose, and never moves. **On the hub the
@@ -690,7 +692,7 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     with a check. Billed Artists list a name per line, the Role under it. Two buttons share the
     bottom: "Keep mine" (outline, an X) and "Take it" (primary, a check). Either closes the
     sheet once saved; a failure shows its row in the sheet. A change to Concert that takes a
-    typed title offers Undo, as a kind change does. A cancelled Event is never
+    typed title takes it at once, with no Undo, as a kind change does. A cancelled Event is never
     hidden while it is ahead, and is never on now.
 - **The row** (Part 4; ADR 0011; the shared list row, on the hub, What's on, the
   Shortlist and the Diary): the lead in `body`, in the text colour, then its kind's mark
@@ -835,7 +837,7 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     first time on a phone that a part is turned on, its row reads "Kharaharapriya · tap to
     change" until a part's sheet is opened or the Item is left, then never again. The row's tap
     opens the part's one sheet; the check, centred on the row's text, is its one nested control,
-    turning it off with Undo every time ("Alapana removed · Undo"). For 500ms after a row turns
+    turning it off at once, with no Undo (2026-11-25). For 500ms after a row turns
     on, another tap on it does nothing; a row grows over `motion-grow`. Screen readers meet one
     switch per part: the row while off ("Tanam, off"), its check while on ("Alapana, on").
   - **A part's sheet:** following, "Item’s Raga: Kharaharapriya", "?" and "Not sure", a quiet
@@ -844,7 +846,7 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     until changed in its slot. With its own Ragas, they stand in a line, one selected (600, ink,
     underlined; the first by default), then "?" and "Not sure", then "← Earlier", "Later →" and
     "Remove" for the selected one, a quiet "+ Another Raga", the Action row "Use the Item’s Raga
-    only" (with Undo), and the box "Change Kalyani…". A list cut back to the Item's Raga alone
+    only", and the box "Change Kalyani…". Each removal saves at once, with no Undo. A list cut back to the Item's Raga alone
     goes back to following.
   - **The Layavinyasam** (one word; out of Manodharma, the user, 2026-11-19): its own one-row
     panel, 32px under Manodharma, always shown, a List row with a check. On, its nadais show more
@@ -854,7 +856,7 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     sheet shows "Tala’s nadai: Chatusra", the nadais in a line with one selected, the Nadai
     chips (a chip changes the selected nadai; picking only the Tala's own leaves the list empty;
     "?" records a nadai that changed and couldn't be named), "← Earlier", "Later →" and
-    "Remove" (with Undo), and a quiet "+ Another nadai" whose next chip appends one.
+    "Remove" (at once, with no Undo), and a quiet "+ Another nadai" whose next chip appends one.
 
   Bottom bar: "Done", "Next Item →".
 
@@ -1002,8 +1004,8 @@ Dynamic Island (`apple-mobile-web-app-status-bar-style: black-translucent` in
     and aria-disabled at either end; "Remove" at the right, on its own line at 200% text. After
     a move the sheet stays open, its title and placeholder following ("Raga 2" becomes "Raga
     1"), the Raga reordering behind with the save highlight, and screen readers hear "Kanada,
-    now Raga 1 of 3". "Remove" closes it and offers Undo ("Raga removed · Undo"), focus going to
-    the Raga that took its place, or to the "+". A lone Raga's sheet, and one being added, have
+    now Raga 1 of 3". "Remove" closes it and removes the Raga at once, with no Undo, focus going
+    to the Raga that took its place, or to the "+". A lone Raga's sheet, and one being added, have
     none of the three.
   - Tala opens its search, then a row of Nadai chips: "?", the five nadais and "Other…", in
     sentence case like the Roles ("Tisra"; 2026-11-19).
@@ -1014,7 +1016,7 @@ Dynamic Island (`apple-mobile-web-app-status-bar-style: black-translucent` in
   - Manodharma and the Layavinyasam use one sheet each for their Ragas and nadais (see "Item
     editor (DD4)").
   - **The Layavinyasam** (walkthrough S14, decided 2026-11-05; its own row since 2026-11-19, see
-    "Item editor (DD4)"): its check removes it, with Undo bringing back its nadais and note, but
+    "Item editor (DD4)"): its check removes it, nadais and note, at once with no Undo, but
     never with a note typed under it: one tap would lose the text, so the tap goes to the note
     instead, its text selected, to clear it first, and the check is spoken "Clear the note to
     turn off Layavinyasam". Its nadais start as the Tala's usual nadai, since many rasikas won't
@@ -1179,7 +1181,10 @@ Dynamic Island (`apple-mobile-web-app-status-bar-style: black-translucent` in
   "Still opening your season…" with Export. It is a slow start, not a failure: a muted spinner
   (Tabler IconLoader2, still when reduced motion is asked for) and muted text, no alert mark.
 - **Deleting:** removes at once and shows an Undo bar above the bottom actions for 5 seconds.
-  No "Are you sure?". Behaviour (decided 2026-11-01):
+  No "Are you sure?". Undo only for whole things: Concert, Item, Artist, Shortlist (the
+  Maintainer, 2026-11-25). A piece of an Item (a Raga, a Manodharma part or its Ragas, a nadai,
+  the Layavinyasam) and a title taken by a change to Concert go at once, saved, with no Undo bar.
+  Behaviour (decided 2026-11-01):
   - The bar sits directly above the screen's bottom action (the Add Item bar, the editor's
     bottom bar, or on home the tab bar) and never covers it.
   - The 5 seconds pause while the bar has keyboard or screen-reader focus.
@@ -1510,3 +1515,5 @@ in the phase that builds it):
 | 2026-11-21 | The Hub, the first screen of phase 3 (docs/design/screens/hub.md, https://claude.ai/artifact/EPYctkjFMgsjTmFBqMDYyf), signed off by the user one decision at a time, each through two council rounds (two Claude reviewers and Codex) with real renders at 390 × 844: the hero's concerts are never shown again under Today, another day or as the Diary's row (B, over two of the Maintainer's rules of 2026-11-13; "Nothing else ahead" when only the hero is ahead); "Today" and "Tomorrow" wherever the hub names those days, no "Yesterday" (B); the hero written as a row, time first, its kind's mark and instrument word after the name, under way its start time with no dot (B). Applied from foundations U45: the update row's words in Sub. Left for phase 4: the "Yes" pill, the Empty's spacing, the 28px +, real lines against hairlines, and day words on other screens. |
 | 2026-11-21 | Manodharma's panel (docs/design/manodharma-panel.md, https://claude.ai/artifact/Ba4YBkZYc19bmbCi5XjXvA), decided by the user from shots of the built app: closed, the fold was a bare label beside the Layavinyasam's one-row panel, so the fold becomes its own panel, one row closed, grown by the parts when open, the panels 32px apart. Not chosen: always open (212px taller on a plain kriti); as built. |
 | 2026-11-24 | What's on, the second screen of phase 3 (docs/design/screens/whats-on.md, https://claude.ai/artifact/UMTDPXSWmK5nP21muUR48E), signed off by the user ("Sign off all four") after three council rounds (two Claude reviewers and Codex) on renders at 390 × 844 with the hill-climb seed and the real 2026-27 feed: three or more concerts under way, with something still to come today, fold into one "On now" row under "Earlier today" (B; at 4:10 pm on peak days the next start had been below the first screen on 18 of 18 days), and "Earlier today" starts open when it would be all the list shows; today's and tomorrow's labels read "Today · Mon 14 Dec" and "Tomorrow · Tue 15 Dec" (C, the Hub's day words brought forward for What's on); from today, an empty list offers "Show Past" when the days gone hold anything, and under a filter reads "Nothing ahead matches" (B); today reads the same with or without a filter, its folds and dot kept (C, replacing "a list a filter narrowed shows whole" for today). Not chosen: opening at the next start (against the Maintainer's rule of 2026-11-09), "Today" alone, Past always on the strip (against SF-D32), the dot alone under a filter. |
+| 2026-11-25 | The bottom stack sits on the screen's bottom edge. On the Maintainer's iPhone, in a Safari tab, it sat about 85pt up once Safari's toolbar had hidden, What's on's rows scrolling under the tab bar, and flickered as the page moved: Safari on iOS 26 leaves a sticky bottom where the toolbar's top was (Apple developer forums thread 801028). The user chose to keep the page scrolling as it does and pin the stack to the screen (`position: fixed`), a spacer keeping its height at the page's end; a frame where only the middle scrolls would have kept Safari's toolbar from ever hiding. |
+| 2026-11-25 | Undo only for whole things: Concert, Item, Artist, Shortlist (the Maintainer, 2026-11-25: "remove the undo sonner on layavinyasam, manodharma etc. Kinda annoying. It's okay if they lose it out."). A Raga, a Manodharma part turned off, a part's own Ragas ("Remove", "Use the Item’s Raga only"), a nadai, the Layavinyasam, and a title taken by a change to Concert (a kind change or "Take it", T122) save at once, journalled as before, with no Undo bar. A piece or title Undo kept on a phone by an earlier build is dropped quietly. |

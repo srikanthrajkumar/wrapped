@@ -3,6 +3,11 @@
 The fourth spec of phase 2, and the last component spec. The user signed it off on 2026-11-19,
 one decision at a time, each through council rounds (two Claude reviewers and Codex).
 
+> **2026-11-25: Undo only for whole things: Concert, Item, Artist, Shortlist (the Maintainer,
+> 2026-11-25).** A Raga, a Manodharma part turned off, a part's own Ragas, a nadai and the
+> Layavinyasam are removed at once, saved, with no Undo bar. Where this spec says a removal
+> offers Undo, that is replaced.
+
 The decisions:
 
 - **Decision 1, where the Details sit:** B, one panel, with no lines inside.
@@ -171,10 +176,9 @@ Not chosen:
   - Its title and placeholder follow ("Raga 2" becomes "Raga 1").
   - The Raga reorders on the page behind, where it can be seen, and plays the save highlight.
   - Screen readers hear it once: "Kanada, now Raga 1 of 3".
-- **After "Remove",** the sheet closes and the Undo bar offers it back ("Raga removed · Undo", 5
-  seconds), as every delete does.
+- **After "Remove",** the sheet closes and the Raga is removed at once, saved, with no Undo
+  (2026-11-25).
   - Focus goes to the Raga that took its place, or to the + if the last one went.
-  - Undo puts the Raga back in its place and focuses it.
 - **When the room is short** (search.md, signed off), the move line steps aside only once
   something is typed in the box and the best match would be cut. It comes back when the box is
   cleared or the keyboard falls. Moving needs no typing, so the line is always there for a move.
@@ -213,8 +217,8 @@ fold's panel, in the order a concert takes them.
 - **The check is the row's one nested control:**
   - A 48×48 target, its ink ending on the 24px column.
   - Centred on a one-line row; on a two-line row, on its last line, as row.md places a control.
-  - Tapping it turns the part off. Undo always offers it back ("Alapana removed · Undo", 5
-    seconds), Ragas and all, since a mis-tap in a dark hall must lose nothing.
+  - Tapping it turns the part off, Ragas and all, at once, saved, with no Undo (the Maintainer,
+    2026-11-25: "It's okay if they lose it out").
 - **A second tap is guarded.** For 500ms after a row turns on, another tap on it does nothing, so
   an accidental double tap never opens its sheet. A row that grows does so over `motion-grow`
   (200ms).
@@ -248,7 +252,8 @@ fold's panel, in the order a concert takes them.
     and "Remove", acting on it too, in fixed places, as decision 2's sheet orders them: changing
     before reordering.
   - A quiet "+ Another Raga" adds one at the end and selects it.
-  - The Action row "Use the Item’s Raga only" sends the whole part back to following, with Undo.
+  - The Action row "Use the Item’s Raga only" sends the whole part back to following, at once,
+    with no Undo.
   - The box names what it changes: "Change Kalyani…".
   - A long list wraps, and the sheet scrolls above the box.
 - **The Item's Raga in a part's list stays live.** Copied in by "+ Another Raga", it reads
@@ -268,7 +273,8 @@ off". Before, a check was only a trailing mark meaning "picked".
 
 **The data model** changes from one Raga per part to a list, empty while it follows, with a
 marker for a slot that holds the Item's Raga live. The build needs an ADR for it, with the
-migration (a part's single set Raga becomes a list of one) and what Undo restores.
+migration (a part's single set Raga becomes a list of one). Undo of a removal is gone
+(2026-11-25).
 
 Not chosen:
 
@@ -298,7 +304,7 @@ outside the fold, so one tap turns it on.
   - It is a switch, "Layavinyasam, on".
   - The row reads "Nadais: the Tala's, Chatusra. Add a nadai", "Nadais: Khanda, Tisra", or, with
     no Tala, "No nadai. Add a nadai".
-  - It turns the Layavinyasam off with Undo ("Layavinyasam removed · Undo"), nadais, note and all.
+  - It turns the Layavinyasam off, nadais, note and all, at once, with no Undo (2026-11-25).
 - **With a note typed,** the decided rule stays (2026-11-05). The check's tap goes to the note,
   its text selected, to clear it first. The check is spoken "Clear the note to turn off
   Layavinyasam".
@@ -323,8 +329,8 @@ outside the fold, so one tap turns it on.
     2, selected".
   - Then the chips, whose pressed chip is the selected nadai. A chip changes the selected nadai.
   - Then "← Earlier" and "Later →" (only with two or more, in fixed places, one dimmed at either
-    end) and "Remove" at the right, each a whole 48px target. "Remove" offers Undo ("Nadai
-    removed · Undo"). Removing the last goes back to the Tala's.
+    end) and "Remove" at the right, each a whole 48px target. "Remove" saves at once, with no
+    Undo. Removing the last goes back to the Tala's.
   - Then a quiet "+ Another nadai". It clears the selection, and the next chip appends a nadai.
     Closing the sheet without a pick leaves the list unchanged.
 - "Other…" opens the Nadai's own sheet, as built.
@@ -363,10 +369,9 @@ Settled here and not asked; open to the user's veto.
 - **Focus on open** is unchanged. A new Item focuses its search box (the recorded exception); the
   edit page focuses its title block.
 - **Delete** is unchanged: ⋯ → "Delete Item", back to the Concert, with the Undo bar.
-- **Undo copy:** "Raga removed", "Alapana removed" (the part's name), "Layavinyasam removed" and
-  "Nadai removed", on the existing Undo bar. In a part's sheet, "Remove" on one of its own Ragas
-  reads "Raga removed", and "Use the Item’s Raga only" reads "Ragas removed" (the user,
-  2026-11-20, at the build).
+- **No Undo copy:** a removal in the editor shows no Undo bar (the Maintainer, 2026-11-25). It
+  replaces the bar's "Raga removed", "Alapana removed", "Layavinyasam removed", "Nadai removed"
+  and "Ragas removed" (the user, 2026-11-20, at the build).
 - **The Tala's nadai** ("Tala’s nadai: Chatusra", "Chatusra   + Nadai") is the Tala's Nadai when
   one is set, and otherwise Chatusra for every known Tala, chapu talas included (the user,
   2026-11-20, at the build: "Keep Chatusra"). With the Tala "?" or "N/A", or its Nadai "?", none
@@ -430,8 +435,8 @@ From the council, for later:
 - **Changing the Tala after nadais are set:** if the new Tala's own nadai is in the list (Adi to
   Khanda Chapu with Khanda listed), decide whether it leaves quietly or stays.
 - **The closed fold could summarise its parts** ("Manodharma · Alapana, Kalpanaswaram").
-- **The Layavinyasam's note rule** could go, now that every turn-off offers Undo with its note.
-  This is the user's call; it stays as decided on 2026-11-05.
+- **The Layavinyasam's note rule** stays as decided on 2026-11-05; with no Undo since
+  2026-11-25, it is what keeps a typed note from going with one tap.
 - **A "Remove Alapana" in a part's sheet,** for anyone who taps the row and never finds the check.
 - **An off part's row** has no sign that a tap turns it on. Watch first use.
 - **Long-press a part** as an expert's way to its sheet.

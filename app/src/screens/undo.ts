@@ -5,17 +5,18 @@
 // leaves the Event. An Undo that fails keeps its own bar, with Try again and Dismiss, until it
 // works or is dismissed, even after leaving the Event or a reload: failed offers, and an Undo
 // while it is being written, are kept in localStorage, and their receipts with them
-// (store/receipts.ts pruneReceipts). One Undo of a receipt runs at a time.
+// (store/receipts.ts pruneReceipts). One Undo of a receipt runs at a time. Undo is only for
+// whole things, a Concert, an Item, an Artist, the Shortlist (the Maintainer, 2026-11-25): a bar
+// kept by an earlier build for a piece of an Item or a title is dropped quietly.
 
 import { browserStorage as storage } from '../browser-storage';
 import { readyCatalog } from '../catalog/use-catalog';
-import { restoreEvent, restoreTitle } from '../store/events';
-import { restoreItem, restorePiece } from '../store/items';
+import { restoreEvent } from '../store/events';
+import { restoreItem } from '../store/items';
 import { restoreAppearance } from '../store/people';
-import { dropReceipt, type DeletionReceipt } from '../store/receipts';
+import { dropReceipt, undoableKind, type DeletionReceipt } from '../store/receipts';
 import { EVENT_DELETED, RuleError } from '../store/rules';
 import { db } from '../store/db';
-import { PART_NAMES } from './item-words';
 import { MESSAGES } from './messages';
 
 export const UNDO_MS = 5000;
@@ -37,13 +38,17 @@ export interface UndoOffer {
 /** Where failed Undos are kept, one key per receipt, so their bars survive a reload. */
 const FAILED_PREFIX = 'wrapped.undo.v1:';
 
-/** One kept offer, checked field by field; null for anything damaged. */
+/**
+ * One kept offer, checked field by field; null for anything damaged, or of a kind Undo no longer
+ * restores.
+ */
 function parseOffer(text: string | null): UndoOffer | null {
   try {
     const offer = JSON.parse(text ?? '') as Partial<UndoOffer> | null;
     const receipt = offer?.receipt as Partial<DeletionReceipt> | undefined;
     const strings = [receipt?.id, receipt?.at, receipt?.kind, receipt?.eventId];
     if (!strings.every((value) => typeof value === 'string')) return null;
+    if (!undoableKind(receipt!.kind)) return null;
     if (!Array.isArray(receipt!.records)) return null;
     return {
       receipt: receipt as DeletionReceipt,
@@ -60,7 +65,21 @@ function parseOffer(text: string | null): UndoOffer | null {
   }
 }
 
-/** The kept offers, oldest first; one damaged copy never hides the others. */
+/** Whether a kept copy is of a retired kind, a piece of an Item or a title, from an earlier build. */
+function retired(text: string | null): boolean {
+  try {
+    const kind = (JSON.parse(text ?? '') as { receipt?: { kind?: unknown } } | null)?.receipt?.kind;
+    return typeof kind === 'string' && !undoableKind(kind);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The kept offers, oldest first; one damaged copy never hides the others. A copy of a retired
+ * kind is forgotten, its bar never shown, and its receipt is pruned on the next launch
+ * (store/receipts.ts pruneReceipts).
+ */
 function readFailed(): UndoOffer[] {
   const store = storage();
   const offers: UndoOffer[] = [];
@@ -71,8 +90,10 @@ function readFailed(): UndoOffer[] {
       if (key?.startsWith(FAILED_PREFIX)) keys.push(key);
     }
     for (const key of keys) {
-      const offer = parseOffer(store!.getItem(key));
+      const text = store!.getItem(key);
+      const offer = parseOffer(text);
       if (offer) offers.push(offer);
+      else if (retired(text)) store!.removeItem(key);
     }
     offers.sort((a, b) => a.receipt.at.localeCompare(b.receipt.at));
   } catch {
@@ -115,31 +136,17 @@ function notify() {
   listeners.forEach((listener) => listener());
 }
 
-/** What a removed piece of an Item is called: "Raga", "Alapana", "Nadai", "Layavinyasam". */
-export function pieceName(receipt: DeletionReceipt): string {
-  const piece = receipt.piece;
-  if (piece?.field === 'ragas') return 'Raga';
-  if (piece?.field === 'partRagas') return piece.index === null ? 'Ragas' : 'Raga';
-  if (piece?.field === 'improvised') return PART_NAMES[piece.kind];
-  if (piece?.field === 'nadais') return 'Nadai';
-  return 'Layavinyasam';
-}
-
 /** The bar's words for a receipt. */
 export function undoMessage(receipt: DeletionReceipt): string {
   if (receipt.kind === 'item') return MESSAGES.undo.itemDeleted(receipt.position ?? 0);
-  if (receipt.kind === 'piece') return MESSAGES.undo.pieceRemoved(pieceName(receipt));
   if (receipt.kind === 'appearance') return MESSAGES.undo.artistRemoved;
-  if (receipt.kind === 'title') return MESSAGES.undo.titleRemoved;
   return MESSAGES.undo.concertDeleted;
 }
 
 /** What a failed Undo's bar names. */
 function undoSubject(receipt: DeletionReceipt): string {
   if (receipt.kind === 'item') return MESSAGES.undo.subject.item(receipt.position ?? 0);
-  if (receipt.kind === 'piece') return pieceName(receipt);
   if (receipt.kind === 'appearance') return MESSAGES.undo.subject.artist;
-  if (receipt.kind === 'title') return MESSAGES.undo.subject.title;
   return MESSAGES.undo.subject.concert;
 }
 
@@ -178,6 +185,7 @@ function expire() {
 }
 
 export function offerUndo(receipt: DeletionReceipt): void {
+  if (!undoableKind(receipt.kind)) return;
   live = { receipt, message: undoMessage(receipt), attempt: 0 };
   paused = false;
   arm();
@@ -230,6 +238,11 @@ export function leaveEvent(eventId: string): Set<string> {
  * apart from a write that failed, so the bar can say which rule.
  */
 export async function undo(receipt: DeletionReceipt): Promise<boolean> {
+  // A receipt of a retired kind, from an earlier build, restores nothing: it is dropped quietly.
+  if (!undoableKind(receipt.kind)) {
+    void dropReceipt(receipt.id, db).catch(() => undefined);
+    return false;
+  }
   // A second tap while it is written does nothing.
   if (writing.has(receipt.id)) return false;
   writing.add(receipt.id);
@@ -250,19 +263,14 @@ export async function undo(receipt: DeletionReceipt): Promise<boolean> {
     const restored =
       receipt.kind === 'item'
         ? await restoreItem(receipt.id, { catalog: await readyCatalog() })
-        : receipt.kind === 'piece'
-          ? await restorePiece(receipt.id, { catalog: await readyCatalog() })
-          : receipt.kind === 'appearance'
-            ? await restoreAppearance(receipt.id)
-            : receipt.kind === 'title'
-              ? await restoreTitle(receipt.id)
-              : await restoreEvent(receipt.id, { catalog: await readyCatalog() });
+        : receipt.kind === 'appearance'
+          ? await restoreAppearance(receipt.id)
+          : await restoreEvent(receipt.id, { catalog: await readyCatalog() });
     if (live?.receipt.id === receipt.id) live = null;
     failed = failed.filter((offer) => offer.receipt.id !== receipt.id);
     forgetFailed(receipt.id);
     arm();
     notify();
-    if (restored !== null) restoredListeners.forEach((listener) => listener(receipt));
     return restored !== null;
   } catch (error) {
     const refused = error instanceof RuleError ? error.problems.join('; ') : undefined;
@@ -314,14 +322,6 @@ export function failedUndoReceipts(): Set<string> {
 export function canRetryUndo(offer: UndoOffer, { eventLive }: { eventLive: boolean }): boolean {
   if (offer.inFlight) return false;
   return offer.refused !== EVENT_DELETED || eventLive;
-}
-
-const restoredListeners = new Set<(receipt: DeletionReceipt) => void>();
-
-/** Told after an Undo brought something back, so a screen can focus it (ADR 0012). */
-export function onUndone(listener: (receipt: DeletionReceipt) => void): () => void {
-  restoredListeners.add(listener);
-  return () => void restoredListeners.delete(listener);
 }
 
 export function subscribeUndo(listener: () => void): () => void {

@@ -1,7 +1,7 @@
 // Manodharma and the Layavinyasam in the Item editor (docs/design/item-editor.md §4, §5; DESIGN.md
 // "Item editor (DD4)"). Each part is a List row with a check: off, the row is a switch a tap
 // turns on; on, it silently follows the Item's Raga, and the row's tap opens the part's one
-// sheet, its check the one nested control that turns it off with Undo. The Layavinyasam is its
+// sheet, its check the one nested control that turns it off, at once. The Layavinyasam is its
 // own one-row panel, its nadais shown plainly, its Note under it. Their Ragas and nadais are
 // lists (ADR 0012).
 
@@ -196,9 +196,9 @@ export function PartSheet({
   itemRaga: DetailValue | null;
   /** The part's whole list, as it should now be stored. */
   onSave(ragas: (DetailValue | null)[]): void;
-  /** Remove the Raga in this place, with Undo. */
+  /** Remove the Raga in this place, at once, with no Undo. */
   onRemove(index: number): void;
-  /** "Use the Item's Raga only", with Undo. */
+  /** "Use the Item's Raga only", at once, with no Undo. */
   onFollow(): void;
   onAnnounce(text: string): void;
 }) {

@@ -5,7 +5,7 @@
 // pick, the Details sit on one panel with no lines inside, each a 68px label-over-value cell,
 // the Raga line full width; Manodharma follows as a fold of List rows with a check, then the
 // Layavinyasam on its own one-row panel. A Raga's order and removal are in its sheet. Each change
-// saves at once, and every removal offers Undo; the bottom bar holds "Next Item →" and, filled
+// saves at once, a removal too, with no Undo (only a whole Item has one); the bottom bar holds "Next Item →" and, filled
 // at the right, "Done", which goes back to the Concert (P1).
 
 import { IconArrowRight, IconDots } from '@tabler/icons-react';
@@ -68,7 +68,6 @@ import { BarHold, BottomDock, Panel, Screen, TopBar, useFocusOnOpen } from './co
 import { SheetFrame, useLingering } from './components/sheet-frame';
 import { deleteItem } from './deletes';
 import { isRtp } from '../store/rules';
-import { offerUndo, onUndone } from './undo';
 import { WriteGate } from './write-gate';
 import { detailText, ragasText, spokenDetail, talaText } from './format';
 import { MESSAGES } from './messages';
@@ -366,24 +365,13 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
   // part's sheet opens or the Item is left.
   const [hint, setHint] = useState<ImprovisedKind | null>(null);
   const [announcement, setAnnouncement] = useState('');
-  // A Raga put back by Undo, or the one that took a removed Raga's place (the "+" if the last
-  // went), takes focus once drawn (§3).
+  // The Raga that took a removed Raga's place (the "+" if the last went) takes focus once drawn
+  // (§3).
   const pendingRaga = useRef<number | null>(null);
   const head = useFocusOnOpen<HTMLHeadingElement>(itemId);
   const feedback = useSaveFeedback();
   // Details set while a repick is written are written after it (screens/write-gate.ts).
   const [gate] = useState(() => new WriteGate());
-
-  useEffect(
-    () =>
-      onUndone((receipt) => {
-        const piece = receipt.piece;
-        if (receipt.records[0]?.id === itemId && piece?.field === 'ragas') {
-          pendingRaga.current = piece.index;
-        }
-      }),
-    [itemId],
-  );
 
   if (item === undefined) return <BarHold />;
   if (item === null) {
@@ -433,11 +421,7 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
     void saveWith(
       target('ragas'),
       ragas.filter((_, i) => i !== index),
-      gate.after(async () => {
-        const removed = await removePiece(item.id, { field: 'ragas', index, value });
-        if (removed) offerUndo(removed.receipt);
-        return removed;
-      }),
+      gate.after(() => removePiece(item.id, { field: 'ragas', index, value })),
     );
   };
 
@@ -454,16 +438,13 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
         part.kind === kind ? { ...part, ragas: settlePartRagas(partRagas) } : part,
       ),
     );
-  // A part turned off, or its own Ragas removed, offers Undo, Ragas and all (§4).
+  // A part turned off, or its own Ragas removed, saves at once, with no Undo (§4; the
+  // Maintainer, 2026-11-25).
   const turnOffPart = (kind: ImprovisedKind) =>
     void saveWith(
       target('improvised'),
       improvised.filter((part) => part.kind !== kind),
-      gate.after(async () => {
-        const removed = await removePiece(item.id, { field: 'improvised', kind });
-        if (removed) offerUndo(removed.receipt);
-        return removed;
-      }),
+      gate.after(() => removePiece(item.id, { field: 'improvised', kind })),
     );
   const removePartRaga = (kind: ImprovisedKind, slot: number | 'all') => {
     const part = improvised.find((heard) => heard.kind === kind);
@@ -480,15 +461,13 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
             }
           : heard,
       ),
-      gate.after(async () => {
-        const removed = await removePartRagas(
+      gate.after(() =>
+        removePartRagas(
           item.id,
           kind,
           slot === 'all' ? 'all' : { index: slot, value: part.ragas[slot] ?? null },
-        );
-        if (removed) offerUndo(removed.receipt);
-        return removed;
-      }),
+        ),
+      ),
     );
   };
   const turnOnPart = (kind: ImprovisedKind) => {
@@ -521,22 +500,14 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
     void saveWith(
       target('layaVinyasam'),
       { nadais: nadais.filter((_, i) => i !== index) },
-      gate.after(async () => {
-        const removed = await removePiece(item.id, { field: 'nadais', index, value });
-        if (removed) offerUndo(removed.receipt);
-        return removed;
-      }),
+      gate.after(() => removePiece(item.id, { field: 'nadais', index, value })),
     );
   };
   const removeLaya = () =>
     void saveWith(
       target('layaVinyasam'),
       null,
-      gate.after(async () => {
-        const removed = await removePiece(item.id, { field: 'layaVinyasam' });
-        if (removed) offerUndo(removed.receipt);
-        return removed;
-      }),
+      gate.after(() => removePiece(item.id, { field: 'layaVinyasam' })),
     );
   const tala = shown('tala', item.tala);
   const nadai = shown('nadai', item.nadai);

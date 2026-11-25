@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from 'vitest';
 import type { Event, ScheduleEntry } from '../../src/model';
-import { editEvent, restoreTitle, setStatus } from '../../src/store/events';
+import { editEvent, setStatus } from '../../src/store/events';
 import { addItem } from '../../src/store/items';
 import { addAppearance, createArtist, editAppearance } from '../../src/store/people';
 import { listAppearances } from '../../src/store/queries';
@@ -139,8 +139,7 @@ describe('"take it" (required)', () => {
     const { event, stage } = await hinted(db);
     const before = await snapshot(db, event.id);
 
-    const { event: taken, receipt } = await takeSchedule(event.id, 2, { db });
-    expect(receipt).toBeNull();
+    const taken = await takeSchedule(event.id, 2, { db });
     const after = await snapshot(db, event.id);
 
     // The Event: the named fields, and the hint answered; the rest as it was.
@@ -273,7 +272,7 @@ describe('"take it" (required)', () => {
       takeSchedule(event.id, 2, { db }),
       takeSchedule(event.id, 2, { db }),
     ]);
-    expect(b.event).toEqual(a.event);
+    expect(b).toEqual(a);
     const outbox = await db.outbox.count();
     const stage = await stageOf(db, event.id);
     await takeSchedule(event.id, 2, { db });
@@ -281,23 +280,18 @@ describe('"take it" (required)', () => {
     expect(await stageOf(db, event.id)).toEqual(stage);
   });
 
-  it('keeps a title a change to Concert takes, for Undo, as a kind change does', async () => {
+  it('a change to Concert takes a typed title with no Undo, as a kind change does, and it holds', async () => {
     const db = freshDb();
     await publish(db, entry({ kind: 'lecdem', title: 'On Begada', billed: [] }));
     const event = await addFromSchedule(entry().id, { db });
     await editEvent(event.id, { title: 'On Begada and Saveri' }, { db });
     await publish(db, entry({ version: 2, billed: [] }));
 
-    const { event: taken, receipt } = await takeSchedule(event.id, 2, { db });
+    const taken = await takeSchedule(event.id, 2, { db });
     expect(taken).toMatchObject({ kind: 'concert', title: null });
-    expect(receipt).toMatchObject({
-      kind: 'title',
-      title: { kind: 'lecdem', title: 'On Begada and Saveri' },
-    });
-    expect(await restoreTitle(receipt!.id, { db })).toMatchObject({
-      kind: 'lecdem',
-      title: 'On Begada and Saveri',
-    });
+    // Undo is only for whole things (the Maintainer, 2026-11-25): no receipt is written.
+    expect(await db.meta.where('key').startsWith('receipt:').count()).toBe(0);
+    expect(await reopen(db).events.get(event.id)).toEqual(taken);
   });
 });
 
