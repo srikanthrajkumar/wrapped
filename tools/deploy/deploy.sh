@@ -9,9 +9,16 @@
 #
 #   --dry-run             everything but the upload: build, check, then `wrangler deploy --dry-run`
 #   --without-golden-set  deploy although the golden set (T027) fails; said again at the end
+#
+# The uploaded build gets the personal-data project's address and public key, and Google's web
+# client ID (sign-in and sync, T111), from ~/.config/wrapped/server.env, outside the repository (tools/deploy/server-env.sh;
+# docs/setup/production.md). While app/wrangler.jsonc puts the Worker on a custom domain, a real
+# deploy stops without that file: rasikas there must be able to sign in. Values are never printed.
 set -euo pipefail
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$root"
+# shellcheck source=server-env.sh
+source "$root/tools/deploy/server-env.sh"
 
 # The public-data project (ADR 0009): the logger's Supabase project, which holds the catalog and
 # serves the Schedule from its `schedule` function. Not a secret: the deployed bundle shows it.
@@ -54,11 +61,39 @@ version="$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.ar
   stop "$file is not valid JSON."
 [[ -n "$version" ]] || stop "$file has no version."
 
+# The custom domain app/wrangler.jsonc puts the Worker on, if any (T054b).
+domain="$(grep -oE '"pattern": *"[^"]+", *"custom_domain": *true' app/wrangler.jsonc |
+  head -1 | cut -d'"' -f4 || true)"
+
+# The checks build without the server, but Vite still reads app/.env*. A hosted project there
+# would let the tests reach it; production settings belong only in the server file.
+for f in app/.env app/.env.local app/.env.production app/.env.production.local; do
+  ! grep -qs 'supabase\.co' "$f" ||
+    stop "$f names a hosted Supabase project, so the checks would reach it. Keep production settings in $server_env_file only."
+done
+
+# Checked before the long checks, so a missing or wrong file stops at once.
+server=false
+if load_server_env "$root" "$public_data_url"; then
+  server=true
+elif [[ -f "$server_env_file" ]]; then
+  stop "the server settings are wrong: $server_env_error"
+elif [[ -n "$domain" && "$dry_run" == false ]]; then
+  stop "no server settings at $server_env_file. This deploy would also serve $domain, where rasikas must be able to sign in. Set them up (docs/setup/production.md), or use --dry-run."
+fi
+
 commit="$(git rev-parse --short HEAD)"
 echo "Snapshot: $file"
 echo "Version:  $version"
 echo "Commit:   $commit"
 echo "Schedule: $public_data_url/functions/v1/schedule/"
+if [[ "$server" == true ]]; then
+  echo "Server:   from $server_env_file (values not shown)"
+  server_env_mode_note
+else
+  echo "Server:   none. This build has no sign-in or sync."
+fi
+echo "Domain:   ${domain:-none, workers.dev only}"
 [[ -z "$(git status --porcelain)" ]] || echo "Note: the working tree has uncommitted changes; they deploy too."
 
 step "Copying the snapshot into app/public/catalog/"
@@ -96,13 +131,26 @@ else
     npm run e2e && npm run size; } || stop "npm run check failed."
 fi
 
-# The checks' end-to-end tests build app/dist again, with no public-data URL. So the build to
-# upload is made last, with it, and checked for it.
-step "Building for deploy, with the Schedule's public-data project"
-VITE_PUBLIC_DATA_URL="$public_data_url" npm run build -w app || stop "the build or the size budget failed."
+# The checks' end-to-end tests build app/dist again, with no public-data URL and no server. So
+# the build to upload is made last, with both, and checked for both.
+if [[ "$server" == true ]]; then
+  step "Building for deploy, with the Schedule's public-data project and the server"
+else
+  step "Building for deploy, with the Schedule's public-data project"
+fi
+env ${server_env[@]+"${server_env[@]}"} VITE_PUBLIC_DATA_URL="$public_data_url" npm run build -w app ||
+  stop "the build or the size budget failed."
 [[ -f "app/dist/catalog/$file" ]] || stop "the build in app/dist does not hold $file."
 grep -rqF "$public_data_url" app/dist/assets ||
   stop "the build in app/dist does not hold $public_data_url, so no phone would fetch the Schedule."
+if [[ "$server" == true ]]; then
+  grep -rqF "$server_url" app/dist/assets ||
+    stop "the build in app/dist does not hold the server's address from $server_env_file, so no phone could sign in."
+  grep -rqF "$server_google_client" app/dist/assets ||
+    stop "the build in app/dist does not hold Google's client ID from $server_env_file, so Google's button can't show. Is the sign-in work on this branch?"
+fi
+! grep -rqF 'GOCSPX-' app/dist || stop "the build in app/dist holds Google's client secret (GOCSPX-…)."
+! grep -rqF 'sb_secret_' app/dist || stop "the build in app/dist holds a secret key (sb_secret_…)."
 
 step "Files to upload (app/dist)"
 (cd app/dist && find . -type f ! -name _headers ! -name .assetsignore ! -name precache-phases.json |
@@ -126,4 +174,6 @@ address="$(grep -o 'https://[^ ]*workers\.dev' "$deploy_log" | head -1 || true)"
 echo
 echo "Deployed snapshot $version ($file), commit $commit."
 [[ "$without_golden" == false ]] || echo "Search accuracy was NOT checked: the golden set (T027) failed."
+[[ "$server" == true ]] || echo "No server: this build has no sign-in or sync."
 echo "Live at: ${address:-the address wrangler printed above}"
+[[ -z "$domain" ]] || echo "    and: https://$domain"
