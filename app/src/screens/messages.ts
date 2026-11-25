@@ -6,7 +6,7 @@ export const MESSAGES = {
   welcome: {
     // The Maintainer, 2026-11-25.
     title: 'carnatic.live',
-    sentence: 'Log your sabha hopping and get your Margazhi wrapped.',
+    sentence: 'Log your sabha hopping and get your Margazhi recapped.',
     action: 'Continue with Google',
   },
   signIn: {

@@ -20,6 +20,7 @@ import { buildAuthConfig } from '../store/auth-config';
 import { finishFirstLaunch } from '../store/first-launch';
 import { useMeta } from '../store/queries';
 import { GoogleButton } from './components/GoogleButton';
+import { Kolam } from './components/Kolam';
 import {
   beginSignIn,
   clearSignInFailure,
@@ -172,6 +173,8 @@ function Welcome({ onContinue }: { onContinue(): void }) {
         </div>
       }
     >
+      {/* The kolam above the name (the Maintainer, 2026-11-25). */}
+      <Kolam className="size-16" />
       <h1 className="text-display font-bold">{MESSAGES.welcome.title}</h1>
       {/* A failure is one line on the step it happened, in the sentence's place (DESIGN.md,
           "First launch"). */}
