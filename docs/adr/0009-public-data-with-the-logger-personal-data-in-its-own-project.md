@@ -51,9 +51,10 @@ listings need no project of their own.
   which stops if it's missing and checks the uploaded build holds it. No `.env` carries it.
   Unit tests, the e2e and the hill-climb rig build with it empty and never reach the real
   project; a build without it fetches no Schedule.
-- **The catalog project is on the free plan** (Maintainer, 2026-11-09); personal data goes on
-  Pro. Supabase pauses a free project after a week with no activity. While it is paused the
-  function doesn't answer, and every phone keeps its stored Schedule until the project is
+- **The catalog project is on the free plan** (Maintainer, 2026-11-09). Personal data launches on
+  Free too, in an organization of its own, and moves to Pro when use calls for it (ADR 0014).
+  Supabase pauses a free project after a week with no activity. While it is paused the function
+  doesn't answer, and every phone keeps its stored Schedule until the project is
   resumed.
 - **The region is Tokyo, not Mumbai.** The Schedule is one small file, fetched in the background
   and only when it has changed (`304` otherwise), so the distance never touches logging.

@@ -543,7 +543,7 @@ Merge the Artists, match the raga, and confirm all Appearances and the Wrapped u
 - [ ] T108 [P] Run `/review` on the full change set and fix its findings
 - [ ] T109 [P] Run `/cso` on the row-level security, the functions and the Maintainer allowlist, and fix its findings, including a size limit on pushed rows (outside voice 18)
 - [ ] T110 [P] Run the `accessibility` and `web-design-guidelines` skills on `app/src/screens/` (target size, focus not obscured, `inputmode`, no mobile `autoFocus`) and fix the findings. Except the Item editor's search box, which opens focused (plan.md DD4)
-- [ ] T111 Create the Supabase Pro project in Mumbai, set up Google OAuth credentials, and apply `supabase/migrations/` and `supabase/seed.sql` before rasikas sign up (ADR 0001). The Schedule is not here: it is set up on the logger's project (ADR 0009, `docs/setup/schedule-hosting.md`). Record the project ref, but no secrets, in `docs/adr/0001-supabase-for-sign-in-and-server-store.md`
+- [ ] T111 Create the Supabase project in Mumbai, on the Free plan in its own organization (ADR 0014), set up Google OAuth credentials, and apply `supabase/migrations/` and `supabase/seed.sql` before rasikas sign up (ADR 0001). Before anyone is invited, the nightly encrypted backup from the private `carnatic-backups` repository has run and been restored once. Steps in `docs/setup/production.md`. The Schedule is not here: it is set up on the logger's project (ADR 0009, `docs/setup/schedule-hosting.md`). Record the project ref, but no secrets, in `docs/adr/0001-supabase-for-sign-in-and-server-store.md`
 - [ ] T112 Get the DPDP legal check of consent, withdrawal, erasure and the one-year log retention before public launch (constitution, Privacy), and record the outcome in `specs/001-season-logger/research.md`
 - [ ] T113 On the Redmi Note 5 (budgets) and the iPhone 16 (sign-in), installed to the home screen, measure:
   - cold start to the logging screen in airplane mode under 1.5 s (SC-006);
@@ -666,8 +666,8 @@ Task: "T069 Sync client tests in app/tests/store/sync-client.test.ts"
 2. US2 part 2 (the server, local) and US7 (promotion), so sign-up is ready for 1 December
    (eng review D12).
 3. US5 (Cards, due 20 December) and US6 (Tidy).
-4. Deploy: Supabase Pro in Mumbai and static hosting, then open sign-up. Everything stays free
-   until this step.
+4. Deploy: Supabase in Mumbai (Free, with our own backups; Pro when use calls for it, ADR 0014)
+   and static hosting, then open sign-up.
 
 ### Deadline tension to watch
 
