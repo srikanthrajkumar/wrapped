@@ -14,13 +14,11 @@ import { db as defaultDb, type WrappedDB } from './db';
 import { draftKey, restoreItemRows, type Deleted, type RestoreOptions } from './items';
 import { readLoggingNote } from './logging-note';
 import { getLive, newTimestamps, remove, save, type WriteOptions } from './mutate';
-import { peekReceipt, takeReceipt, writeReceipt, type DeletionReceipt } from './receipts';
+import { takeReceipt, writeReceipt, type DeletionReceipt } from './receipts';
 import {
   check,
   ENTRY_PLANNED_AGAIN,
-  EVENT_DELETED,
   eventProblems,
-  KIND_CHANGED,
   MAX_PRESENTERS,
   RuleError,
   TOO_MANY_PRESENTERS,
@@ -130,21 +128,19 @@ export async function checkLecdem(event: Event, db: WrappedDB) {
 }
 
 /**
- * Change an Event's kind among the four (T122), with its title where the new kind has one. A
- * change to Concert, whose title is null, takes a typed title away only with a receipt that
- * Undo restores it from, written in the same transaction as the Event and its outbox entry, so
- * no title is ever lost to a kind change. Each change to Concert keeps its own receipt. Without
+ * Change an Event's kind among the four (T122), with its title where the new kind has one, in one
+ * transaction with its outbox entry. A change to Concert, whose title is null, takes a typed
+ * title away with no Undo: Undo is only for whole things (the Maintainer, 2026-11-25). Without
  * `title`, the title stays as it is.
  */
 export async function changeKind(
   id: string,
   kind: EventKind,
   { db = defaultDb, title }: WriteOptions & { title?: string | null } = {},
-): Promise<{ event: Event; receipt: DeletionReceipt | null }> {
-  return db.transaction('rw', [db.events, db.appearances, db.outbox, db.meta], async () => {
+): Promise<Event> {
+  return db.transaction('rw', [db.events, db.appearances, db.outbox], async () => {
     const event = await getLive('events', id, { db });
     const kept = titleFor(kind, title === undefined ? event.title : title);
-    const taken = kind === 'concert' && event.title?.trim() ? event.title : null;
     const edited: Event = {
       ...event,
       kind,
@@ -153,46 +149,7 @@ export async function changeKind(
     };
     check(eventProblems(edited));
     await checkLecdem(edited, db);
-    const saved = await save('events', edited, { db });
-    const receipt = taken
-      ? await writeReceipt(db, {
-          kind: 'title',
-          eventId: id,
-          position: null,
-          records: [{ table: 'events', id, deletedAt: null }],
-          title: { kind: event.kind, title: taken },
-        })
-      : null;
-    return { event: saved, receipt };
-  });
-}
-
-/**
- * Undo a title taken by a change to Concert: the Event goes back to the kind and title it had,
- * in one transaction. The receipt is used up only when the title comes back. It restores only
- * while the Event is still a live Concert, as that change left it: while the Event is deleted
- * the Undo is refused with EVENT_DELETED, and once it is another kind with KIND_CHANGED, since
- * restoring would undo the rasika's newer choice; either way the receipt is kept, so the title
- * can still come back. A used receipt, or one whose Event is gone, restores nothing and returns
- * null.
- */
-export async function restoreTitle(
-  receiptId: string,
-  { db = defaultDb }: WriteOptions = {},
-): Promise<Event | null> {
-  return db.transaction('rw', [db.events, db.appearances, db.outbox, db.meta], async () => {
-    const pending = await peekReceipt(db, receiptId);
-    if (pending?.kind !== 'title' || !pending.title) return null;
-    const event = await db.events.get(pending.eventId);
-    if (event && event.deletedAt !== null) throw new RuleError([EVENT_DELETED]);
-    if (event && event.kind !== 'concert') throw new RuleError([KIND_CHANGED]);
-    // Taken only now: a refusal above, or a rule below, leaves the receipt in place.
-    const receipt = await takeReceipt(db, receiptId, 'title');
-    if (!receipt?.title || !event) return null;
-    const restored: Event = { ...event, ...receipt.title, touched: true };
-    check(eventProblems(restored));
-    await checkLecdem(restored, db);
-    return save('events', restored, { db });
+    return save('events', edited, { db });
   });
 }
 

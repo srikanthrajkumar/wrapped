@@ -1,29 +1,26 @@
-// Required tests (constitution IV, nothing lost; ADR 0012). A Raga, a Manodharma part, a nadai or
-// the Layavinyasam is removed with Undo. Undo puts the piece back into the Item as it is now, so
-// nothing done in the 5 seconds between is lost, and a stale or used receipt restores nothing.
+// Required tests (constitution IV, nothing lost; ADR 0012). A Raga, a Manodharma part, a part's
+// own Ragas, a nadai or the Layavinyasam is removed at once, with no Undo: Undo is only for whole
+// things (the Maintainer, 2026-11-25). Each removal takes out that one piece and nothing more, in
+// one transaction with its outbox entry, and holds after a reload; one that fails changes nothing.
 
 import { describe, expect, it } from 'vitest';
 import { catalogValue, unknownValue, type DetailValue } from '../../src/model';
 import { createEvent } from '../../src/store/events';
 import {
   addItem,
-  ON_AGAIN,
-  repickItem,
-  SONG_CHANGED,
-  removeItem,
+  LAYA_NOTE_TYPED,
   removePartRagas,
   removePiece,
-  restorePiece,
   setImprovised,
   setLayaNadais,
   setLayaNote,
   setLayaVinyasam,
   setRagas,
 } from '../../src/store/items';
-import { save } from '../../src/store/mutate';
-import { listReceipts } from '../../src/store/receipts';
+import type { WrappedDB } from '../../src/store/db';
+import { listReceipts, pruneReceipts } from '../../src/store/receipts';
 import { RuleError } from '../../src/store/rules';
-import { freshDb } from '../helpers';
+import { freshDb, reopen } from '../helpers';
 
 const raga = (name: string): DetailValue => catalogValue(name.toLowerCase(), name);
 const nadai = (key: string): DetailValue => catalogValue(key, key);
@@ -35,143 +32,178 @@ async function itemWith() {
   return { db, event, item };
 }
 
-describe('removing a piece of an Item, and its Undo (required, ADR 0012)', () => {
-  it('a Raga comes back at its place, whatever was added since', async () => {
+/** Every receipt kept in the store, of any kind. */
+async function receipts(db: WrappedDB) {
+  return db.meta.where('key').startsWith('receipt:').toArray();
+}
+
+describe('removing a piece of an Item saves at once, with no Undo (required)', () => {
+  it('each removal takes out its one piece, writes no receipt, and holds after a reload', async () => {
     const { db, event, item } = await itemWith();
     await setRagas(item.id, [raga('Kalyani'), raga('Kanada'), raga('Behag')], { db });
-
-    const removed = await removePiece(item.id, { field: 'ragas', index: 1 }, { db });
-    expect(removed?.item.ragas).toEqual([raga('Kalyani'), raga('Behag')]);
-    // A piece's Undo is never under "Recently deleted".
-    expect(await listReceipts(event.id, db)).toEqual([]);
-    await setRagas(item.id, [raga('Kalyani'), raga('Behag'), raga('Sindhubhairavi')], { db });
-
-    const restored = await restorePiece(removed!.receipt.id, { db });
-    expect(restored?.ragas).toEqual([
-      raga('Kalyani'),
-      raga('Kanada'),
-      raga('Behag'),
-      raga('Sindhubhairavi'),
-    ]);
-    // Used once, it restores nothing again.
-    expect(await restorePiece(removed!.receipt.id, { db })).toBeNull();
-  });
-
-  it('a Raga removed from the end of a list now shorter goes back at the end', async () => {
-    const { db, item } = await itemWith();
-    await setRagas(item.id, [raga('Kalyani'), raga('Kanada'), raga('Behag')], { db });
-    const removed = await removePiece(item.id, { field: 'ragas', index: 2 }, { db });
-    await setRagas(item.id, [raga('Kalyani')], { db });
-    expect((await restorePiece(removed!.receipt.id, { db }))?.ragas).toEqual([
-      raga('Kalyani'),
-      raga('Behag'),
-    ]);
-  });
-
-  it('a Manodharma part comes back with its Ragas, the Item’s Raga still live', async () => {
-    const { db, item } = await itemWith();
     await setImprovised(
       item.id,
       [
         { kind: 'alapana', ragas: [null, raga('Kanada')] },
-        { kind: 'tanam', ragas: [] },
-      ],
-      { db },
-    );
-    const removed = await removePiece(item.id, { field: 'improvised', kind: 'alapana' }, { db });
-    expect(removed?.item.improvised).toEqual([{ kind: 'tanam', ragas: [] }]);
-    // Meanwhile Niraval is turned on: Undo keeps it.
-    await setImprovised(
-      item.id,
-      [
-        { kind: 'tanam', ragas: [] },
+        { kind: 'tanam', ragas: [raga('Kalyani'), raga('Kanada')] },
         { kind: 'niraval', ragas: [] },
       ],
       { db },
     );
+    await setLayaVinyasam(
+      item.id,
+      { nadais: [nadai('khanda'), unknownValue(), nadai('tisra')], note: 'with ghatam' },
+      { db },
+    );
 
-    const restored = await restorePiece(removed!.receipt.id, { db });
-    expect(restored?.improvised).toEqual([
+    // A Raga.
+    let now = await removePiece(item.id, { field: 'ragas', index: 1 }, { db });
+    expect(now?.ragas).toEqual([raga('Kalyani'), raga('Behag')]);
+    // A part's own Raga; the other parts stay.
+    now = await removePartRagas(item.id, 'tanam', { index: 0, value: raga('Kalyani') }, { db });
+    expect(now?.improvised).toEqual([
       { kind: 'alapana', ragas: [null, raga('Kanada')] },
-      { kind: 'tanam', ragas: [] },
+      { kind: 'tanam', ragas: [raga('Kanada')] },
       { kind: 'niraval', ragas: [] },
     ]);
-  });
-
-  it('a part turned on again takes the removed list while it follows, and is left once it has Ragas of its own', async () => {
-    const { db, item } = await itemWith();
-    await setImprovised(item.id, [{ kind: 'alapana', ragas: [raga('Kanada')] }], { db });
-    const first = await removePiece(item.id, { field: 'improvised', kind: 'alapana' }, { db });
-    await setImprovised(item.id, [{ kind: 'alapana', ragas: [] }], { db });
-    expect((await restorePiece(first!.receipt.id, { db }))?.improvised).toEqual([
-      { kind: 'alapana', ragas: [raga('Kanada')] },
+    // A part turned off, with its Ragas.
+    now = await removePiece(item.id, { field: 'improvised', kind: 'alapana' }, { db });
+    expect(now?.improvised).toEqual([
+      { kind: 'tanam', ragas: [raga('Kanada')] },
+      { kind: 'niraval', ragas: [] },
     ]);
-
-    const second = await removePiece(item.id, { field: 'improvised', kind: 'alapana' }, { db });
-    await setImprovised(item.id, [{ kind: 'alapana', ragas: [raga('Behag')] }], { db });
-    await expect(restorePiece(second!.receipt.id, { db })).rejects.toEqual(
-      new RuleError([ON_AGAIN]),
-    );
-    expect((await db.items.get(item.id))?.improvised).toEqual([
-      { kind: 'alapana', ragas: [raga('Behag')] },
-    ]);
-  });
-
-  it('a nadai comes back at its place; the last removed leaves the Tala’s', async () => {
-    const { db, item } = await itemWith();
-    await setLayaNadais(item.id, [nadai('khanda'), unknownValue(), nadai('tisra')], { db });
-    const middle = await removePiece(item.id, { field: 'nadais', index: 1 }, { db });
-    expect(middle?.item.layaVinyasam?.nadais).toEqual([nadai('khanda'), nadai('tisra')]);
-    await setLayaNote(item.id, 'koraippu', { db });
-    const restored = await restorePiece(middle!.receipt.id, { db });
-    expect(restored?.layaVinyasam).toEqual({
-      nadais: [nadai('khanda'), unknownValue(), nadai('tisra')],
-      note: 'koraippu',
-    });
-
-    await setLayaNadais(item.id, [nadai('misra')], { db });
-    const last = await removePiece(item.id, { field: 'nadais', index: 0 }, { db });
-    expect(last?.item.layaVinyasam).toEqual({ nadais: [], note: 'koraippu' });
-  });
-
-  it('the Layavinyasam comes back with its nadais and note, unless it is on again with its own', async () => {
-    const { db, item } = await itemWith();
-    await setLayaVinyasam(item.id, { nadais: [nadai('khanda')], note: 'with ghatam' }, { db });
-    const removed = await removePiece(item.id, { field: 'layaVinyasam' }, { db });
-    expect(removed?.item.layaVinyasam).toBeNull();
-    // Turned on again and still empty: the removed one takes its place.
-    await setLayaNadais(item.id, [], { db });
-    expect((await restorePiece(removed!.receipt.id, { db }))?.layaVinyasam).toEqual({
-      nadais: [nadai('khanda')],
+    // A nadai; the note stays.
+    now = await removePiece(item.id, { field: 'nadais', index: 1 }, { db });
+    expect(now?.layaVinyasam).toEqual({
+      nadais: [nadai('khanda'), nadai('tisra')],
       note: 'with ghatam',
     });
+    // The rest of the Item is as it was.
+    expect(now?.ragas).toEqual([raga('Kalyani'), raga('Behag')]);
 
-    const again = await removePiece(item.id, { field: 'layaVinyasam' }, { db });
-    await setLayaNote(item.id, 'new', { db });
-    await expect(restorePiece(again!.receipt.id, { db })).rejects.toEqual(
-      new RuleError([ON_AGAIN]),
-    );
-    expect((await db.items.get(item.id))?.layaVinyasam).toEqual({ nadais: [], note: 'new' });
+    expect(await receipts(db)).toEqual([]);
+    expect(await listReceipts(event.id, db)).toEqual([]);
+    const again = reopen(db);
+    expect(await again.items.get(item.id)).toEqual(now);
   });
 
-  it('restores nothing once the Item is deleted, and removes nothing that is not there', async () => {
+  it('the Layavinyasam goes with its nadais, and holds after a reload', async () => {
+    const { db, item } = await itemWith();
+    await setLayaVinyasam(item.id, { nadais: [nadai('khanda')], note: null }, { db });
+    const removed = await removePiece(item.id, { field: 'layaVinyasam' }, { db });
+    expect(removed?.layaVinyasam).toBeNull();
+    expect(await receipts(db)).toEqual([]);
+    expect((await reopen(db).items.get(item.id))?.layaVinyasam).toBeNull();
+  });
+
+  it('the Layavinyasam is never turned off with a note under it, so a Try again keeps a note saved since', async () => {
+    const { db, item } = await itemWith();
+    await setLayaVinyasam(item.id, { nadais: [nadai('khanda')], note: null }, { db });
+    // The first try failed; meanwhile a note was saved, from another tab.
+    await setLayaNote(item.id, 'tisram, then khandam', { db });
+    const before = { item: await db.items.get(item.id), outbox: await db.outbox.count() };
+
+    await expect(removePiece(item.id, { field: 'layaVinyasam' }, { db })).rejects.toEqual(
+      new RuleError([LAYA_NOTE_TYPED]),
+    );
+
+    expect(await db.items.get(item.id)).toEqual(before.item);
+    expect(await db.outbox.count()).toBe(before.outbox);
+    // Cleared first, it goes.
+    await setLayaNote(item.id, '', { db });
+    expect(
+      (await removePiece(item.id, { field: 'layaVinyasam' }, { db }))?.layaVinyasam,
+    ).toBeNull();
+  });
+
+  it('"Use the Item’s Raga only" clears a part’s own Ragas, and holds after a reload', async () => {
+    const { db, item } = await itemWith();
+    const own = [raga('Kalyani'), null, raga('Kanada')];
+    await setImprovised(item.id, [{ kind: 'kalpana_swaram', ragas: own }], { db });
+    const removed = await removePartRagas(item.id, 'kalpana_swaram', 'all', { db });
+    expect(removed?.improvised).toEqual([{ kind: 'kalpana_swaram', ragas: [] }]);
+    expect(await receipts(db)).toEqual([]);
+    expect((await reopen(db).items.get(item.id))?.improvised).toEqual(removed?.improvised);
+  });
+
+  it('a part cut back to the Item’s Raga alone follows it again', async () => {
+    const { db, item } = await itemWith();
+    await setImprovised(item.id, [{ kind: 'alapana', ragas: [null, raga('Kanada')] }], { db });
+    const removed = await removePartRagas(
+      item.id,
+      'alapana',
+      { index: 1, value: raga('Kanada') },
+      { db },
+    );
+    expect(removed?.improvised).toEqual([{ kind: 'alapana', ragas: [] }]);
+  });
+
+  it('the last nadai removed leaves the Tala’s', async () => {
+    const { db, item } = await itemWith();
+    await setLayaNadais(item.id, [nadai('misra')], { db });
+    const last = await removePiece(item.id, { field: 'nadais', index: 0 }, { db });
+    expect(last?.layaVinyasam).toEqual({ nadais: [], note: null });
+  });
+
+  it('removes nothing that is not there', async () => {
     const { db, item } = await itemWith();
     await setRagas(item.id, [raga('Kalyani'), raga('Kanada')], { db });
+    const outbox = await db.outbox.count();
     expect(await removePiece(item.id, { field: 'ragas', index: 5 }, { db })).toBeUndefined();
     expect(await removePiece(item.id, { field: 'layaVinyasam' }, { db })).toBeUndefined();
-    const removed = await removePiece(item.id, { field: 'ragas', index: 0 }, { db });
-    await removeItem(item.id, { db });
-    expect(await restorePiece(removed!.receipt.id, { db })).toBeNull();
+    expect(
+      await removePiece(item.id, { field: 'improvised', kind: 'tanam' }, { db }),
+    ).toBeUndefined();
+    expect(await removePartRagas(item.id, 'alapana', 'all', { db })).toBeUndefined();
+    expect(await db.outbox.count()).toBe(outbox);
   });
 
-  it('each removal and each Undo is queued for the server', async () => {
+  it('each removal is queued for the server', async () => {
     const { db, item } = await itemWith();
     await setImprovised(item.id, [{ kind: 'tanam', ragas: [] }], { db });
     await db.outbox.clear();
     const removed = await removePiece(item.id, { field: 'improvised', kind: 'tanam' }, { db });
-    expect((await db.outbox.toArray()).map((entry) => entry.row)).toEqual([removed!.item]);
-    const restored = await restorePiece(removed!.receipt.id, { db });
-    expect((await db.outbox.toArray()).map((entry) => entry.row)).toEqual([restored]);
+    expect((await db.outbox.toArray()).map((entry) => entry.row)).toEqual([removed]);
+  });
+
+  it('a removal that can’t be saved leaves the Item and the outbox as they were', async () => {
+    const { db, item } = await itemWith();
+    await setRagas(item.id, [raga('Kalyani'), raga('Kanada')], { db });
+    const before = { item: await db.items.get(item.id), outbox: await db.outbox.toArray() };
+    db.items.hook('updating', () => {
+      throw new Error('disk full');
+    });
+
+    await expect(removePiece(item.id, { field: 'ragas', index: 1 }, { db })).rejects.toThrow();
+
+    expect(await db.items.get(item.id)).toEqual(before.item);
+    expect(await db.outbox.toArray()).toEqual(before.outbox);
+  });
+});
+
+describe('a piece or title receipt left by an earlier build (required)', () => {
+  it('is never listed, and goes at the next launch whatever its age', async () => {
+    const { db, event, item } = await itemWith();
+    const at = new Date().toISOString();
+    for (const kind of ['piece', 'title']) {
+      await db.meta.put({
+        key: `receipt:old-${kind}`,
+        value: {
+          id: `old-${kind}`,
+          kind,
+          eventId: event.id,
+          position: 1,
+          records: [{ table: 'items', id: item.id, deletedAt: null }],
+          at,
+        },
+      });
+    }
+    expect(await listReceipts(event.id, db)).toEqual([]);
+
+    await pruneReceipts(24 * 60 * 60 * 1000, db);
+
+    expect(await receipts(db)).toEqual([]);
+    expect(await db.items.get(item.id)).toEqual(item);
   });
 });
 
@@ -188,57 +220,10 @@ describe('a removal tried again after its list changed (ADR 0007, ADR 0012)', ()
       { field: 'ragas', index: 1, value: raga('Kanada') },
       { db },
     );
-    expect(again?.item.ragas).toEqual([raga('Todi'), raga('Kalyani'), raga('Behag')]);
+    expect(again?.ragas).toEqual([raga('Todi'), raga('Kalyani'), raga('Behag')]);
     expect(
       await removePiece(item.id, { field: 'ragas', index: 1, value: raga('Kanada') }, { db }),
     ).toBeUndefined();
-  });
-});
-
-describe('a Manodharma part’s own Ragas removed, and their Undo (ADR 0012)', () => {
-  it('a part’s Raga comes back in place; cut to the Item’s alone, the part follows until Undo', async () => {
-    const { db, item } = await itemWith();
-    await setImprovised(item.id, [{ kind: 'alapana', ragas: [null, raga('Kanada')] }], { db });
-    const removed = await removePartRagas(
-      item.id,
-      'alapana',
-      { index: 1, value: raga('Kanada') },
-      { db },
-    );
-    expect(removed?.item.improvised).toEqual([{ kind: 'alapana', ragas: [] }]);
-    const restored = await restorePiece(removed!.receipt.id, { db });
-    expect(restored?.improvised).toEqual([{ kind: 'alapana', ragas: [null, raga('Kanada')] }]);
-  });
-
-  it('"Use the Item’s Raga only" comes back whole, unless the part has Ragas of its own again', async () => {
-    const { db, item } = await itemWith();
-    const own = [raga('Kalyani'), null, raga('Kanada')];
-    await setImprovised(item.id, [{ kind: 'kalpana_swaram', ragas: own }], { db });
-    const first = await removePartRagas(item.id, 'kalpana_swaram', 'all', { db });
-    expect((await restorePiece(first!.receipt.id, { db }))?.improvised[0]?.ragas).toEqual(own);
-
-    const second = await removePartRagas(item.id, 'kalpana_swaram', 'all', { db });
-    await setImprovised(item.id, [{ kind: 'kalpana_swaram', ragas: [raga('Behag')] }], { db });
-    await expect(restorePiece(second!.receipt.id, { db })).rejects.toEqual(
-      new RuleError([ON_AGAIN]),
-    );
-  });
-
-  it('a part turned off since comes back on with its Ragas', async () => {
-    const { db, item } = await itemWith();
-    await setImprovised(item.id, [{ kind: 'tanam', ragas: [raga('Kalyani'), raga('Kanada')] }], {
-      db,
-    });
-    const removed = await removePartRagas(
-      item.id,
-      'tanam',
-      { index: 0, value: raga('Kalyani') },
-      { db },
-    );
-    await setImprovised(item.id, [], { db });
-    expect((await restorePiece(removed!.receipt.id, { db }))?.improvised).toEqual([
-      { kind: 'tanam', ragas: [raga('Kalyani'), raga('Kanada')] },
-    ]);
   });
 });
 
@@ -258,73 +243,16 @@ describe('a part’s Raga removed by its place and value (ADR 0007, ADR 0012)', 
     );
     const target = { index: 1, value: raga('Kanada') };
     const removed = await removePartRagas(item.id, 'alapana', target, { db });
-    expect(removed?.item.improvised[0]?.ragas).toEqual([
-      raga('Todi'),
-      raga('Kalyani'),
-      raga('Behag'),
-    ]);
+    expect(removed?.improvised[0]?.ragas).toEqual([raga('Todi'), raga('Kalyani'), raga('Behag')]);
     expect(await removePartRagas(item.id, 'alapana', target, { db })).toBeUndefined();
     // The Item's-Raga slot is found by its marker.
     await setImprovised(item.id, [{ kind: 'alapana', ragas: [raga('Kanada'), null] }], { db });
     const items = await removePartRagas(item.id, 'alapana', { index: 0, value: null }, { db });
-    expect(items?.item.improvised[0]?.ragas).toEqual([raga('Kanada')]);
+    expect(items?.improvised[0]?.ragas).toEqual([raga('Kanada')]);
   });
 });
 
-describe('a removal or an Undo that fails leaves everything as it was (required)', () => {
-  it('a receipt that can’t be written takes the removal and its outbox entry back with it', async () => {
-    const { db, item } = await itemWith();
-    await setRagas(item.id, [raga('Kalyani'), raga('Kanada')], { db });
-    const before = { item: await db.items.get(item.id), outbox: await db.outbox.toArray() };
-    db.meta.hook('creating', (key) => {
-      if (String(key).startsWith('receipt:')) throw new Error('disk full');
-    });
-
-    await expect(removePiece(item.id, { field: 'ragas', index: 1 }, { db })).rejects.toThrow();
-
-    expect(await db.items.get(item.id)).toEqual(before.item);
-    expect(await db.outbox.toArray()).toEqual(before.outbox);
-  });
-
-  it('an Undo that can’t be saved keeps its receipt and the Item as they were', async () => {
-    const { db, item } = await itemWith();
-    await setRagas(item.id, [raga('Kalyani'), raga('Kanada')], { db });
-    const removed = await removePiece(item.id, { field: 'ragas', index: 1 }, { db });
-    const before = await db.items.get(item.id);
-    const failing = (_mods: unknown, primKey: unknown) => {
-      if (primKey === item.id) throw new Error('disk full');
-    };
-    db.items.hook('updating', failing);
-    db.items.hook('creating', failing);
-
-    await expect(restorePiece(removed!.receipt.id, { db })).rejects.toThrow();
-
-    expect(await db.items.get(item.id)).toEqual(before);
-    db.items.hook('updating').unsubscribe(failing);
-    db.items.hook('creating').unsubscribe(failing);
-    // The receipt is still there, so Try again brings the Raga back.
-    expect((await restorePiece(removed!.receipt.id, { db }))?.ragas).toEqual([
-      raga('Kalyani'),
-      raga('Kanada'),
-    ]);
-  });
-});
-
-describe('the review’s cases (ADR 0012)', () => {
-  it('a removed Raga is not put into another song repicked since', async () => {
-    const { db, item } = await itemWith();
-    // A song's Item (its Composition as a catalog pick leaves it).
-    await save('items', { ...item, compositionKey: 'c0001', title: 'Nidhi chala sukhama' }, { db });
-    await setRagas(item.id, [raga('Kalyani'), raga('Kanada')], { db });
-    const removed = await removePiece(item.id, { field: 'ragas', index: 1 }, { db });
-    await repickItem(item.id, { kind: 'typed', text: 'Tillana' }, { db });
-    const before = await db.items.get(item.id);
-    await expect(restorePiece(removed!.receipt.id, { db })).rejects.toEqual(
-      new RuleError([SONG_CHANGED]),
-    );
-    expect(await db.items.get(item.id)).toEqual(before);
-  });
-
+describe('a removal names its value as the screen saw it (ADR 0007)', () => {
   it('finds the value seen even when its keys come back from the server in another order', async () => {
     const { db, item } = await itemWith();
     // As jsonb returns it: keys reordered.
@@ -340,19 +268,6 @@ describe('the review’s cases (ADR 0012)', () => {
       { field: 'ragas', index: 1, value: raga('Kanada') },
       { db },
     );
-    expect(removed?.item.ragas).toEqual([raga('Kalyani')]);
-  });
-
-  it('a piece restored after a catalog upgrade comes back under the catalog in use', async () => {
-    const { db, item } = await itemWith();
-    const old = catalogValue('Sankarabharanam', 'Sankarabharanam');
-    await setImprovised(item.id, [{ kind: 'alapana', ragas: [old] }], { db });
-    const removed = await removePiece(item.id, { field: 'improvised', kind: 'alapana' }, { db });
-    const remap = { songs: {}, ragas: { Sankarabharanam: 'Dheerasankarabharanam' }, composers: {} };
-    const restored = await restorePiece(removed!.receipt.id, {
-      db,
-      catalog: { remap } as never,
-    });
-    expect(restored?.improvised[0]?.ragas).toEqual([{ ...old, key: 'Dheerasankarabharanam' }]);
+    expect(removed?.ragas).toEqual([raga('Kalyani')]);
   });
 });

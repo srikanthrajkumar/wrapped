@@ -96,6 +96,11 @@ build would refuse to save an Appearance with one of them ("unknown role").
 
 ## What Undo restores
 
+> **Superseded 2026-11-25:** Undo only for whole things: Concert, Item, Artist, Shortlist (the
+> Maintainer, 2026-11-25). A removed piece is saved at once with no Undo, and no `piece` receipt
+> is written; one left on a phone by an earlier build is dropped quietly. This section records
+> what was built before.
+
 Each removal writes a receipt in `meta`, in the same transaction as the change, as a delete
 does (store/receipts.ts), with the removed piece and its place. Undo puts **that piece** back into
 the Item **as it is now**, not the whole field as it was, so nothing done in the 5 seconds

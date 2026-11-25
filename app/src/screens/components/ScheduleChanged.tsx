@@ -34,7 +34,6 @@ import {
 } from '../../store/schedule';
 import { creditName, dayText, kindName, timeText } from '../format';
 import type { Target } from '../save-feedback';
-import { offerUndo } from '../undo';
 import { NotSavedLine, saveWith, useSaveFeedback } from './feedback';
 import { KindMark } from './kind-mark';
 import { SheetFrame, useLingering } from './sheet-frame';
@@ -135,10 +134,8 @@ export function ScheduleChangedSheet({
     const taken = await saveWith(target, { answer: 'take', version }, () =>
       takeSchedule(eventId, version),
     );
-    if (!taken) return;
-    onOpenChange(false);
-    // A change to Concert that took a typed title offers Undo, as a kind change does (T122).
-    if (taken.receipt) offerUndo(taken.receipt);
+    // A change to Concert that took a typed title saves with no Undo, as a kind change does.
+    if (taken) onOpenChange(false);
   };
   const keep = async () => {
     const kept = await saveWith(target, { answer: 'keep', version }, () => keepMine(eventId));

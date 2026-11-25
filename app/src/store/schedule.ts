@@ -20,7 +20,6 @@ import { checkLecdem, createEvent, titleFor } from './events';
 import { getLive, newTimestamps, remove, save, type WriteOptions } from './mutate';
 import { createArtist, createSabha, nameMatcher, type NameMatcher } from './people';
 import { loadEntries } from './queries';
-import { writeReceipt, type DeletionReceipt } from './receipts';
 import { appearanceProblems, check, eventProblems, RuleError } from './rules';
 
 /** The feed's format this reader knows (contracts/schedule-feed.md, "Format number"). */
@@ -681,8 +680,8 @@ export async function scheduleChanges(
  * date, a time it gives, its Sabha, kind, a title it prints, and its billed Artists, with
  * `cancelled`. Notes, status, Items, Colours and the rasika's own Artists stay. One
  * transaction, with each record's outbox entry; the hint clears. A rule the result would break
- * refuses it whole. A change to Concert that takes a typed title away writes the same receipt
- * as a kind change does, for its Undo. `version` is the one the sheet showed: once the stored
+ * refuses it whole. A change to Concert that takes a typed title away does so with no Undo, as a
+ * kind change does (the Maintainer, 2026-11-25). `version` is the one the sheet showed: once the stored
  * entry is another, it is refused (ENTRY_MOVED). An Event whose hint is already answered is
  * returned as it is, so a retry changes nothing twice.
  */
@@ -690,12 +689,12 @@ export async function takeSchedule(
   eventId: string,
   version: number,
   { db = defaultDb }: WriteOptions = {},
-): Promise<{ event: Event; receipt: DeletionReceipt | null }> {
-  return db.transaction('rw', [...tablesOf(db), db.meta], async () => {
+): Promise<Event> {
+  return db.transaction('rw', tablesOf(db), async () => {
     const event = await getLive('events', eventId, { db });
     // Attended and Missed are the rasika's record of what happened (2026-11-07).
     if (event.status !== 'planned') throw new RuleError([TAKE_PLANNED_ONLY]);
-    if (!event.scheduleChanged) return { event, receipt: null };
+    if (!event.scheduleChanged) return event;
     const entry = event.scheduleEntryId ? await db.schedule.get(event.scheduleEntryId) : undefined;
     if (!entry) throw new RuleError([ENTRY_GONE]);
     if (entry.version !== version) throw new RuleError([ENTRY_MOVED]);
@@ -716,17 +715,7 @@ export async function takeSchedule(
     const saved = await save('events', updated, { db });
     if (changed.has('billed')) await syncStage(saved, entry, names, db);
     await checkLecdem(saved, db);
-    const taken = entry.kind === 'concert' && event.title?.trim() ? event.title : null;
-    const receipt = taken
-      ? await writeReceipt(db, {
-          kind: 'title',
-          eventId,
-          position: null,
-          records: [{ table: 'events', id: eventId, deletedAt: null }],
-          title: { kind: event.kind, title: taken },
-        })
-      : null;
-    return { event: saved, receipt };
+    return saved;
   });
 }
 
