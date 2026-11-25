@@ -358,7 +358,9 @@ stays open until `/plan-design-review` has run on it; the screen tasks T040 to T
   - **Colour sheet:** a grid of labelled swatches plus "?", then an optional second colour for
     a two-tone outfit.
   - **Saving:** the new or changed row highlights briefly. No toast and no spinner.
-  - **Deleting:** removes at once with a 5-second Undo, never an "Are you sure?" question.
+  - **Deleting:** removes at once with a 5-second Undo, never an "Are you sure?" question. Undo
+    only for whole things: Concert, Item, Artist, Shortlist (the Maintainer, 2026-11-25); a
+    piece of an Item or a title taken by a change to Concert goes at once with no Undo.
   - **Reordering Items:** in a separate edit mode on the Event screen, never by dragging during
     the Concert. Export stays reachable from every screen that holds data (FR-019, T051) and
     from Settings; its exact place is settled in the preview.

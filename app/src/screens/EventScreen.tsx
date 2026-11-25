@@ -79,7 +79,7 @@ import { KindMark } from './components/kind-mark';
 import { creditName, dayText, eventLine, itemLine, itemTitle, kindName, timeText } from './format';
 import { deleteConcert, deleteItem, removeArtist } from './deletes';
 import { MESSAGES } from './messages';
-import { offerUndo, undo, undoMessage } from './undo';
+import { undo, undoMessage } from './undo';
 import type { SaveFeedback } from './save-feedback';
 
 type Order = 'items' | null;
@@ -546,14 +546,13 @@ function ConcertBlock({
   const title = feedback.shown(target('title'), kind.title);
 
   // The kind and its title are written, journalled and checked together, so a failed write
-  // keeps both. A change to Concert that takes a typed title away offers Undo, as a delete does
-  // (T122).
+  // keeps both. A change to Concert that takes a typed title away saves at once, with no Undo:
+  // Undo is only for whole things (the Maintainer, 2026-11-25).
   const saveKind = async (next: EventKind, nextTitle: string | null = title) => {
     const entered = { kind: next, title: next === 'concert' ? null : nextTitle };
-    const changed = await saveWith(target('kind'), entered, () =>
+    await saveWith(target('kind'), entered, () =>
       changeKind(event.id, next, next === 'concert' ? {} : { title: nextTitle }),
     );
-    if (changed?.receipt) offerUndo(changed.receipt);
   };
 
   return (

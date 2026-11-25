@@ -5,7 +5,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Catalog } from '../../src/catalog/load';
 import type { DeletionReceipt } from '../../src/store/receipts';
-import { EVENT_DELETED, KIND_CHANGED, RuleError } from '../../src/store/rules';
+import { RuleError } from '../../src/store/rules';
 
 const mocks = vi.hoisted(() => ({
   catalog: { version: 'test' } as unknown as Catalog,
@@ -13,20 +13,19 @@ const mocks = vi.hoisted(() => ({
   restoreEvent: vi.fn(),
   restoreItem: vi.fn(),
   restoreAppearance: vi.fn(),
-  restoreTitle: vi.fn(),
   dropReceipt: vi.fn(),
 }));
 
 vi.mock('../../src/catalog/use-catalog', () => ({
   readyCatalog: () => mocks.ready(),
 }));
-vi.mock('../../src/store/events', () => ({
-  restoreEvent: mocks.restoreEvent,
-  restoreTitle: mocks.restoreTitle,
-}));
+vi.mock('../../src/store/events', () => ({ restoreEvent: mocks.restoreEvent }));
 vi.mock('../../src/store/items', () => ({ restoreItem: mocks.restoreItem }));
 vi.mock('../../src/store/people', () => ({ restoreAppearance: mocks.restoreAppearance }));
-vi.mock('../../src/store/receipts', () => ({ dropReceipt: mocks.dropReceipt }));
+vi.mock('../../src/store/receipts', async (original) => ({
+  ...(await original<typeof import('../../src/store/receipts')>()),
+  dropReceipt: mocks.dropReceipt,
+}));
 
 /** localStorage, shared by the Undo module and its reload. */
 const storage = new Map<string, string>();
@@ -296,33 +295,51 @@ describe('Undo, fourth review (required)', () => {
   });
 });
 
-describe('Undo of a title taken by a change to Concert (T122)', () => {
-  it('brings the title back through its own restore, without the catalog, and the bar goes', async () => {
-    const title = receipt('title');
-    mocks.ready.mockReturnValue(new Promise(() => undefined));
-    mocks.restoreTitle.mockResolvedValue({ id: 'e1', kind: 'dance', title: 'Margam' });
-    offerUndo(title);
-    expect(undoText(currentUndo()!)).toBe('Title removed');
+describe('Undo only for whole things (the Maintainer, 2026-11-25; required)', () => {
+  /** A receipt an earlier build wrote for a piece of an Item, or a title taken. */
+  const retired = (kind: 'piece' | 'title') =>
+    ({ ...receipt('item'), id: `r-${kind}`, kind }) as unknown as DeletionReceipt;
 
-    expect(await undo(title)).toBe(true);
+  it('a failed piece or title bar kept by an earlier build is dropped quietly on reload', async () => {
+    const concert = receipt('event');
+    for (const kind of ['piece', 'title'] as const) {
+      storage.set(
+        `wrapped.undo.v1:r-${kind}`,
+        JSON.stringify({
+          receipt: retired(kind),
+          message: 'Raga removed',
+          failed: true,
+          attempt: 1,
+        }),
+      );
+    }
+    storage.set(
+      `wrapped.undo.v1:${concert.id}`,
+      JSON.stringify({ receipt: concert, message: 'Concert deleted', failed: true, attempt: 1 }),
+    );
 
-    expect(mocks.restoreTitle).toHaveBeenCalledWith(title.id);
-    expect(mocks.restoreEvent).not.toHaveBeenCalled();
-    expect(undoOffers()).toEqual([]);
+    vi.resetModules();
+    const reloaded = await import('../../src/screens/undo');
+
+    // No bar for either, and their copies are gone; the Concert's still comes back.
+    expect(reloaded.undoOffers().map((offer) => offer.receipt.id)).toEqual([concert.id]);
+    expect([...storage.keys()]).toEqual([`wrapped.undo.v1:${concert.id}`]);
+    expect(reloaded.failedUndoReceipts()).toEqual(new Set([concert.id]));
+    reloaded.dismissUndo(concert.id);
+    storage.clear();
   });
 
-  it('keeps the bar when refused, saying why, and waits for a deleted Event to come back', async () => {
-    const title = receipt('title');
-    offerUndo(title);
-    mocks.restoreTitle.mockRejectedValueOnce(new RuleError([KIND_CHANGED]));
-    expect(await undo(title)).toBe(false);
-    expect(undoText(currentUndo()!)).toBe('Undo failed: Title, its kind changed since.');
+  it('a piece or title receipt is never offered, and its Undo drops it and restores nothing', async () => {
+    for (const kind of ['piece', 'title'] as const) {
+      offerUndo(retired(kind));
+      expect(undoOffers()).toEqual([]);
 
-    mocks.restoreTitle.mockRejectedValueOnce(new RuleError([EVENT_DELETED]));
-    expect(await undo(title)).toBe(false);
-    const offer = currentUndo()!;
-    expect(offer).toMatchObject({ receipt: title, failed: true, refused: EVENT_DELETED });
-    expect(canRetryUndo(offer, { eventLive: false })).toBe(false);
-    expect(canRetryUndo(offer, { eventLive: true })).toBe(true);
+      expect(await undo(retired(kind))).toBe(false);
+      expect(mocks.dropReceipt).toHaveBeenCalledWith(`r-${kind}`, expect.anything());
+      expect(undoOffers()).toEqual([]);
+    }
+    expect(mocks.restoreEvent).not.toHaveBeenCalled();
+    expect(mocks.restoreItem).not.toHaveBeenCalled();
+    expect(storage.size).toBe(0);
   });
 });

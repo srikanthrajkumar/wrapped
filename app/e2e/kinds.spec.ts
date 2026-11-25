@@ -1,6 +1,7 @@
 // Dance, Harikatha and the Roles behind "More" on the screens (T120, T122): the kind is changed
-// in the Event's facts and shown as a mark, a title taken by a change to Concert comes back with
-// Undo, and a Role behind More is never hidden once chosen.
+// in the Event's facts and shown as a mark, a change to Concert takes the title at once with no
+// Undo (Undo is only for whole things, the Maintainer, 2026-11-25), and a Role behind More is
+// never hidden once chosen.
 
 import { expect, test, type Page } from '@playwright/test';
 import { failWritesOnDemand, finishFirstLaunch, readTable, setFailingWrites } from './helpers';
@@ -22,7 +23,7 @@ function journalled(page: Page, id: string, field: string) {
   );
 }
 
-test('a kind and its title, the Undo of a title taken, and the Roles under More Roles', async ({
+test('a kind and its title, a title taken with no Undo, and the Roles under More Roles', async ({
   page,
 }) => {
   await page.goto('/');
@@ -67,21 +68,32 @@ test('a kind and its title, the Undo of a title taken, and the Roles under More 
   await expect(page.getByRole('button', { name: /^(More|Fewer) Roles$/ })).toHaveCount(0);
   await page.keyboard.press('Escape');
 
-  // A change to Concert takes the title, and Undo brings it back.
-  await page.getByRole('button', { name: /^Margam/ }).click();
-  await page.getByRole('dialog').getByRole('button', { name: 'Concert' }).click();
-  await page.keyboard.press('Escape');
-  await expect(page.getByRole('button', { name: /^Margam/ })).toHaveCount(0);
-  await expect(heading.getByRole('img')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Undo' }).click();
-  await expect(page.getByRole('button', { name: /^Margam/ })).toBeVisible();
-  await expect(heading.getByRole('img', { name: 'Dance' })).toBeVisible();
-
   // The Season row carries the mark too.
   await page.getByRole('main').getByRole('link', { name: 'Season' }).click();
   await expect(
     page.getByRole('region', { name: 'Now' }).getByRole('img', { name: 'Dance' }),
   ).toBeVisible();
+  await page.getByRole('region', { name: 'Now' }).getByRole('link').first().click();
+
+  // A change to Concert takes the title at once, with no Undo bar, and it holds after a reload.
+  await page.getByRole('button', { name: /^Margam/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Concert' }).click();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: /^Margam/ })).toHaveCount(0);
+  await expect(heading.getByRole('img')).toHaveCount(0);
+  await expect
+    .poll(async () => (await readTable<{ kind: string; title: string | null }>(page, 'events'))[0])
+    .toMatchObject({ kind: 'concert', title: null });
+  await page.waitForTimeout(300);
+  await expect(page.getByRole('button', { name: 'Undo', exact: true })).toHaveCount(0);
+  await page.reload();
+  await expect(heading).toHaveText('Alarmel Valli');
+  await expect(heading.getByRole('img')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^Margam/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Undo', exact: true })).toHaveCount(0);
+  expect(
+    (await readTable<{ kind: string; title: string | null }>(page, 'events'))[0],
+  ).toMatchObject({ kind: 'concert', title: null });
 });
 
 test('a space typed before a pause stays for the next word', async ({ page }) => {

@@ -31,12 +31,6 @@ export const MAX_PRESENTERS = 6;
 export const TOO_MANY_PRESENTERS = `a Lecdem has at most ${MAX_PRESENTERS} presenters`;
 
 /**
- * Why a title taken by a change to Concert can't come back: the Event is no longer the Concert
- * that change made, so restoring would undo the rasika's newer choice of kind (T122).
- */
-export const KIND_CHANGED = 'its kind changed since';
-
-/**
  * Why a deleted Event from the Schedule can't come back: its entry is planned again as another
  * Event, and an entry is planned once (one Event per entry).
  */
