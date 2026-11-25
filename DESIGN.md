@@ -638,24 +638,44 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     picked together widen each other. Every filter applies to the days ahead and the days gone
     alike, to own Events as to listings, and prunes the strip and the calendar's dots; the hub
     is never filtered (builder). A list the filter empties
-    shows the empty state, "Nothing here matches", with one outline "Clear filters" under it,
-    which turns every filter off. Filters last while the app is open, across the days gone and Events, and
+    shows the empty state, "Nothing here matches" ("Nothing ahead matches" from today), with
+    one outline "Clear filters" under it, which turns every filter off; from today, when the
+    days gone match, an outline "Show Past" stands above it (docs/design/screens/whats-on.md
+    decision 3). Filters last while the app is open, across the days gone and Events, and
     **not across launches** (builder): What's on opens whole each time, so a filter set yesterday
     never hides a Concert today without being seen.
   - **Each day:** its label (sticking under the strip), then every concert that day once, **by
     start time** (then Sabha), the rasika's own among the rest (SF-D31), each as "The row". A
-    listing the rasika Shortlisted or heard shows once, as theirs. **Today starts from now**:
-    what is over (2½ hours after its start, unless the rasika is still logging it) folds to one
-    48px line, "Earlier today" with its count and a down chevron, open at a tap, when they
-    are back in their slots; a concert under way carries the dot. A day gone, a day ahead and
-    a list a filter narrowed show whole. A day with nothing in it is not shown. Rows far from
+    listing the rasika Shortlisted or heard shows once, as theirs. Today's and tomorrow's
+    labels say the Hub's word and the date, "Today · Mon 14 Dec" and "Tomorrow · Tue 15 Dec",
+    spoken "Today, Monday 14 December"; any other day its date alone, and no "Yesterday"
+    (docs/design/screens/whats-on.md decision 2). **Today starts from now**, with or without a
+    filter (decision 4: a filter only narrows its rows), in two folds, each a 48px `sub` row
+    with its count and a down chevron, open at a tap, heading its own rows
+    (docs/design/screens/whats-on.md decision 1):
+    - **"Earlier today"**: what is over (2½ hours after its start, unless the rasika is still
+      logging it), and a cancelled concert once its start has passed.
+    - **"On now"**, with the dot and its word in 600 ink: what is under way, the Concert being
+      logged included, once three or more are and something is still to come today (a
+      concert with no time counts). Fewer, or nothing still to come, they show as rows; a
+      concert under way carries the dot.
+    - Then what is still to come. Rows move between the folds on the clock's tick; the page
+      holds its place.
+    - Both folds are kept, open or closed, with the place; opened from the hub, both start
+      closed, except that "Earlier today" starts open when it would be all the list shows,
+      checked then and as the filter changes, never on the tick.
+
+    A day gone and a day ahead show whole. A day with nothing in it is not shown. Rows far from
     the screen aren't drawn until scrolled near, each day's held at their likely height (a
     64px row each, and 20px more for a printed title and for the accompanists); the label is
     always drawn, outside what skips drawing, since Safari moves a sticky label inside it only
     once a fling's frame is done and the rows ran over it at a day's change (the Maintainer's
     iPhone, 2026-11-10).
   - **Empty**: a list the filter empties, and a Season with nothing listed, show the empty
-    state ("Empty states"); the days gone with nothing say "Nothing yet".
+    state ("Empty states"); the days gone with nothing say "Nothing yet". From today, with
+    nothing to show and anything in the days gone (matching the filter, when one is on), the
+    Empty offers an outline "Show Past" first: it opens the days gone at their top, the filter
+    kept, focus on the first day's label (decision 3). Past needs none: its strip shows Today.
   - **The rasika's rows and the Schedule** (the Maintainer, 2026-11-07; T061): a Shortlisted Event
     whose Schedule entry is cancelled stays in its day until the rasika removes it (Delete
     Event) or its time passes (it then lapses to Missed unasked, ADR 0010),
@@ -1344,7 +1364,8 @@ Mon", "1 on now", "Were you at any of these?", "Yes", "Yes, I was at …", "None
 "Nothing more today", "Tomorrow", "Nothing listed yet",
 "Concerts show here once the Schedule is out.", "Nothing shortlisted", "Shortlist a concert
 from What's on to keep it here.", "Nothing heard yet", "Every concert you log is kept here.",
-"No Items yet", "Add each piece as it is sung.", "Nothing here matches", "What's on",
+"No Items yet", "Add each piece as it is sung.", "Nothing here matches", "Nothing ahead
+matches", "Show Past", "What's on",
 "Settings, something to fix".
 
 | Where                        | When                                                                                                                                                                                                           | Text                                                                                                                                                                                                                      | Action                     |
@@ -1481,3 +1502,4 @@ in the phase that builds it):
 | 2026-11-20 | The Maintainer's alignment fixes from iPhone shots of the Composer, Tala and Artist sheets and the Stage row, measured on 0.4.0 at 393px and decided one at a time from mocks, the council split on the first two: a chip is a fill, so a chip row stands on the 8px edge with its first word on the 24px column (a 1px border and 15px padding), as the search field and the Colours button do, on every chip row (the Detail sheets, the Layavinyasam's, the Role picker, the Event's kinds, the Item editor's form chips); a List row's one control (the Stage colour dot, the Manodharma and Layavinyasam checks) centred on the row's text rather than its last line; the Role label 8px above its chips, as "Nadai". More becomes "More Roles ⌄", a quiet text line under the first chips that stays in place as "Fewer Roles ⌃" and folds the other Roles again (council 9, 8, 8 over "Fewer" at the end, and over a toggle beside "Role"); "Not sure" moves before it; a pressed Role behind it shows every Role with no fold. Not chosen: the field and Colours pulled in to the 24px column; the dot kept on the last line; a "Fewer" chip at the list's end or in More's place. |
 | 2026-11-21 | The Hub, the first screen of phase 3 (docs/design/screens/hub.md, https://claude.ai/artifact/EPYctkjFMgsjTmFBqMDYyf), signed off by the user one decision at a time, each through two council rounds (two Claude reviewers and Codex) with real renders at 390 × 844: the hero's concerts are never shown again under Today, another day or as the Diary's row (B, over two of the Maintainer's rules of 2026-11-13; "Nothing else ahead" when only the hero is ahead); "Today" and "Tomorrow" wherever the hub names those days, no "Yesterday" (B); the hero written as a row, time first, its kind's mark and instrument word after the name, under way its start time with no dot (B). Applied from foundations U45: the update row's words in Sub. Left for phase 4: the "Yes" pill, the Empty's spacing, the 28px +, real lines against hairlines, and day words on other screens. |
 | 2026-11-21 | Manodharma's panel (docs/design/manodharma-panel.md, https://claude.ai/artifact/Ba4YBkZYc19bmbCi5XjXvA), decided by the user from shots of the built app: closed, the fold was a bare label beside the Layavinyasam's one-row panel, so the fold becomes its own panel, one row closed, grown by the parts when open, the panels 32px apart. Not chosen: always open (212px taller on a plain kriti); as built. |
+| 2026-11-24 | What's on, the second screen of phase 3 (docs/design/screens/whats-on.md, https://claude.ai/artifact/UMTDPXSWmK5nP21muUR48E), signed off by the user ("Sign off all four") after three council rounds (two Claude reviewers and Codex) on renders at 390 × 844 with the hill-climb seed and the real 2026-27 feed: three or more concerts under way, with something still to come today, fold into one "On now" row under "Earlier today" (B; at 4:10 pm on peak days the next start had been below the first screen on 18 of 18 days), and "Earlier today" starts open when it would be all the list shows; today's and tomorrow's labels read "Today · Mon 14 Dec" and "Tomorrow · Tue 15 Dec" (C, the Hub's day words brought forward for What's on); from today, an empty list offers "Show Past" when the days gone hold anything, and under a filter reads "Nothing ahead matches" (B); today reads the same with or without a filter, its folds and dot kept (C, replacing "a list a filter narrowed shows whole" for today). Not chosen: opening at the next start (against the Maintainer's rule of 2026-11-09), "Today" alone, Past always on the strip (against SF-D32), the dot alone under a filter. |
