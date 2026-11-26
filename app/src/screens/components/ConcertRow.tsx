@@ -15,9 +15,10 @@
 // with neither has no column, and its star ends the name's first line, taking 24px from that
 // line only. A cancelled row is at 60%, star included, and says "Cancelled" in its time's place.
 //
-// What follows the clock (the hub's rows of today, `now`): "in 25 min" inside the hour and "On
-// now" once started, led by its dot, both in 600 ink. Under a slot's time label a concert under
-// way also reads "● On now"; elsewhere it keeps its start time, in 600 ink, led by the dot.
+// What follows the clock (the hub's rows of today, `now`): "in 25 min" inside the hour, "On now"
+// once started and "Started at 6:30 pm" from an hour in (`ON_NOW_MS`), led by its dot, all in 600
+// ink. Under a slot's time label a concert under way also reads "● On now", then "● Started at";
+// elsewhere it keeps its start time, in 600 ink, led by the dot.
 //
 // How each line holds its shape (the Maintainer, 2026-11-11; the row spec, 2026-11-16):
 // - the name wraps and is never cut, its lines balanced, never broken after an "&" or an initial;
@@ -36,7 +37,7 @@ import { cn } from '@/lib/utils';
 import { fitNames, namesLine } from '../fit-names';
 import { itemCount, nameBreaks, timeText, typeName } from '../format';
 import { MESSAGES } from '../messages';
-import { minutesTo, stageOf, type Concert } from '../spine';
+import { minutesTo, stageOf, startedAWhileAgo, type Concert } from '../spine';
 import { KindMark } from './kind-mark';
 import { useLineMetrics, type LineMetrics } from './line-metrics';
 
@@ -187,13 +188,16 @@ export function ConcertRow({
   controlWidth = 0,
 }: {
   concert: Concert;
-  /** Under way: the dot leads the facts, its time (or "On now") in 600 ink. */
+  /** Under way: the dot leads the facts, its time (or "On now", then "Started at") in 600 ink. */
   on?: boolean;
   /** Its day, said before the time where no label above says it: the Diary's "Sat 19 Dec". */
   day?: string;
   /** Under a label that says its time (a Shortlist slot): the facts start with the Sabha. */
   timeless?: boolean;
-  /** The clock, where the row says how close the concert is: the hub's rows of today. */
+  /**
+   * The clock, where the row says how close the concert is: the hub's rows of today. Under a slot's
+   * time label (`timeless`) it only tells "On now" from "Started at".
+   */
   now?: Date;
   /** Opens the concert's sheet; without it, or once Heard, the row opens its Event. */
   onOpen?: (concert: Concert) => void;
@@ -211,7 +215,8 @@ export function ConcertRow({
   const own = concert.own;
   const changed = stage === 'shortlisted' && own!.event.scheduleChanged && onHint;
   const time = concert.startTime ? timeText(concert.startTime) : null;
-  const near = now ? minutesTo(concert, now) : null;
+  // Under a slot's time label the clock says only what is under way, never "in 25 min".
+  const near = now && !timeless ? minutesTo(concert, now) : null;
   const starred = star && stage === 'shortlisted';
   // Slot 2 of the trailing column: the changed hint, which can be acted on, else the cancelled
   // mark. With nothing there the row has no column.
@@ -226,15 +231,21 @@ export function ConcertRow({
     facts.push({ text: MESSAGES.spine.cancelled, node: MESSAGES.spine.cancelled });
   } else if (on && (now !== undefined || timeless)) {
     // On the hub, and under a slot's time label, a concert under way reads "On now", its dot
-    // leading the line: "● On now · Sabha" (the Maintainer, 2026-11-17).
+    // leading the line: "● On now · Sabha" (the Maintainer, 2026-11-17). An hour in it reads
+    // "● Started at 6:30 pm" until it is over: still on, its end maybe worth catching (the
+    // Maintainer, 2026-11-25).
+    const words =
+      now && time && startedAWhileAgo(concert, now)
+        ? MESSAGES.spine.startedAt(time)
+        : MESSAGES.spine.onNow;
     facts.push({
-      text: MESSAGES.spine.onNow,
+      text: words,
       live: true,
       dot: true,
       node: (
         <span className="font-semibold whitespace-nowrap text-foreground">
           <OnNowDot silent className="mr-2 align-[0.1em]" />
-          {MESSAGES.spine.onNow}
+          {words}
         </span>
       ),
     });

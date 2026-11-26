@@ -502,6 +502,77 @@ test('with nothing left today, Tomorrow leads, and a concert under way reads "On
   await expect(first).toHaveAttribute('data-place', NEXT_DAY);
 });
 
+// The Maintainer, 2026-11-25: "On now" for a concert's first hour only, then "Started at" its
+// time, the dot kept, since its end may still be worth catching. At 390px the longer words keep
+// to one line, the Sabha giving way first.
+test('an hour in, a concert under way reads "● Started at 12:30 pm", on the hub and in a slot', async ({
+  page,
+}) => {
+  const long = 'Sri Parthasarathy Swami Sabha Mylapore';
+  await openAt(page, at('12:00'), [
+    entry('p', '12:30', { sabha: long }),
+    entry('q', '12:30', { sabha: `${long} Annexe` }),
+    entry('r', '18:00'),
+  ]);
+  // Two in one slot, Shortlisted before they start.
+  await shortlist(page, 'Singer p');
+  await shortlist(page, 'Singer q');
+  await tab(page, 'Shortlist').click();
+  const slotRow = page.locator('main [data-row="concert"]', { hasText: 'Singer p' });
+  const slotFacts = slotRow.locator('[data-facts]');
+  // Under the slot's time, before it starts, the row says no time and no "in 30 min".
+  await expect(slotFacts).toHaveText(long);
+
+  // 59 minutes in: "On now".
+  await page.clock.setFixedTime(at('13:29'));
+  await page.reload();
+  await page.locator('main h1').waitFor();
+  await expect(slotFacts).toHaveText(`On now · ${long}`);
+
+  // 61 minutes in: "Started at 12:30 pm", led by the dot, in 600 ink, on one line.
+  await page.clock.setFixedTime(at('13:31'));
+  await page.reload();
+  await page.locator('main h1').waitFor();
+  // A Sabha this long doesn't fit beside the words: the facts break at the "·", the words whole
+  // on the first line and the Sabha on the second (the row's rule, 2026-11-17).
+  const lines = slotFacts.locator(':scope > span');
+  await expect(lines).toHaveText(['Started at 12:30 pm', long]);
+  await expect(slotFacts.locator('.rounded-full')).toHaveCount(1);
+  const words = slotFacts.getByText('Started at 12:30 pm');
+  expect(await words.evaluate((node) => getComputedStyle(node).fontWeight)).toBe('600');
+  expect(await words.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
+});
+
+test('on the hub, a row of today reads "On now" for an hour, then "Started at"', async ({
+  page,
+}) => {
+  // A Sabha of about 150px fits beside the words; one past about 185px (Sri Parthasarathy Swami
+  // Sabha, 197px) goes to the second line, as in the slot test above.
+  const long = 'Bharatiya Vidya Bhavan';
+  const entries = [entry('p', '12:30', { sabha: long }), entry('r', '18:00')];
+  await openAt(page, at('13:29'), entries);
+  const row = soon(page).getByRole('listitem').filter({ hasText: 'Singer p' });
+  const facts = row.locator('[data-facts]');
+  await expect(facts).toHaveText(`On now · ${long}`);
+
+  await page.clock.setFixedTime(at('13:31'));
+  await page.reload();
+  await page.locator('main h1').waitFor();
+  await expect(facts).toHaveText(`Started at 12:30 pm · ${long}`);
+  await expect(facts.locator('.rounded-full')).toHaveCount(1);
+  const words = facts.getByText('Started at 12:30 pm');
+  expect(await words.evaluate((node) => getComputedStyle(node).fontWeight)).toBe('600');
+  // One line at 390px, the words and the Sabha whole.
+  expect(Math.round((await facts.boundingBox())!.height)).toBe(20);
+  expect(await words.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
+
+  // Still on until 2½ hours in: at 2:59 the dot and the words stay.
+  await page.clock.setFixedTime(at('14:59'));
+  await page.reload();
+  await page.locator('main h1').waitFor();
+  await expect(facts).toHaveText(`Started at 12:30 pm · ${long}`);
+});
+
 // The hub spec's decisions 1 to 3 (docs/design/screens/hub.md; the user, 2026-11-21): one word
 // for one day, the hero written as a row, and its concert never shown twice.
 test('the hub names tomorrow "Tomorrow" everywhere, and never shows the hero twice', async ({

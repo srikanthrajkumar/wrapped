@@ -83,15 +83,16 @@ The states decision needed a third round, after mock errors were fixed and check
 | Where the row sits | "When" is | Example facts line |
 | --- | --- | --- |
 | Under a day label (What's on, a Shortlist day, the hub's Today and Tomorrow) | The time | "7:45 pm · Krishna Gana Sabha" |
-| Under a time label (a Shortlist slot) | Nothing; once under way, "● On now" | "Music Academy"; "● On now · Music Academy" |
+| Under a time label (a Shortlist slot) | Nothing; once under way, "● On now", an hour in "● Started at" its time | "Music Academy"; "● On now · Music Academy"; "● Started at 4:00 pm · Music Academy" |
 | No label above (the Diary, the hub's Diary row) | The day and time | "Sun 13 Dec · 6:45 pm · Sri Parthasarathy Swami Sabha · 3 Items" |
 
 - **The hub's rows of today** lead with how close the concert is, in 600 ink: "in 20 min",
-  or "● On now". This is unchanged from DESIGN.md.
+  or "● On now", and from an hour after its start "● Started at 6:30 pm" (the Maintainer,
+  2026-11-25). This follows DESIGN.md.
 - **A live dot leads the line,** 8px before its words: "● 6:00 pm · Music Academy" or
   "● On now · Narada Gana Sabha".
 - **Under a time label,** where no time shows, a concert under way reads "● On now · Sabha"
-  (the user, 2026-11-17).
+  (the user, 2026-11-17), and an hour in "● Started at 4:00 pm · Sabha" (2026-11-25).
 
 ### Kind words
 

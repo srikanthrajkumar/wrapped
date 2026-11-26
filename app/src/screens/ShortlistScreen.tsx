@@ -102,6 +102,7 @@ function ShortlistView() {
                         on={underWay(concert, data.notes, data.now)}
                         // Under its slot's time, the row doesn't say it again (the row spec).
                         timeless={!!clash}
+                        now={clash ? data.now : undefined}
                         onOpen={open}
                         onHint={hint}
                       />

@@ -17,6 +17,7 @@ import {
   slotName,
   stageOf,
   minutesTo,
+  startedAWhileAgo,
   startingSoon,
   underWay,
 } from '../../src/screens/spine';
@@ -440,6 +441,18 @@ describe('how close a concert is', () => {
     expect(minutesTo(row!, at('18:00'))).toBeNull();
     expect(minutesTo(row!, at('18:20'))).toBeNull();
     expect(minutesTo({ date: '2026-12-20', startTime: null }, at('17:40'))).toBeNull();
+  });
+});
+
+// The Maintainer, 2026-11-25: "On now" for the first hour, then "Started at 6:00 pm".
+describe('how long a concert under way has been on', () => {
+  const [row] = concerts([], [listing('a', '18:00')], at('08:00'));
+  it('reads "On now" for its first hour, and "Started at" from then on', () => {
+    expect(startedAWhileAgo(row!, at('18:00'))).toBe(false);
+    expect(startedAWhileAgo(row!, at('18:59'))).toBe(false);
+    expect(startedAWhileAgo(row!, at('19:00'))).toBe(true);
+    expect(startedAWhileAgo(row!, at('19:01'))).toBe(true);
+    expect(startedAWhileAgo({ date: '2026-12-20', startTime: null }, at('19:01'))).toBe(false);
   });
 });
 
