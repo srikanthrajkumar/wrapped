@@ -14,6 +14,12 @@ import { isHeard, isShown, listingFacts, listingNames } from './timeline';
 
 /** A concert reads as under way from its start until this long after it (SF-D30). */
 export const UNDER_WAY_MS = 2.5 * 60 * 60 * 1000;
+/**
+ * A concert under way reads "On now" for this long after its start, then "Started at 6:30 pm"
+ * until it is over (the Maintainer, 2026-11-25: "On now" is wrong two or three hours in, but
+ * the end may still be worth catching).
+ */
+export const ON_NOW_MS = 60 * 60 * 1000;
 /** The hub's first section shows at most this many rows (SF-D26). */
 export const SOON_ROWS = 4;
 
@@ -237,6 +243,12 @@ export function minutesTo(concert: Pick<Concert, 'date' | 'startTime'>, now: Dat
   if (start === null) return null;
   const minutes = Math.ceil((start - now.getTime()) / 60_000);
   return minutes >= 1 && minutes * 60_000 < NEAR_MS ? minutes : null;
+}
+
+/** Whether a concert started at least `ON_NOW_MS` ago: it then reads "Started at", not "On now". */
+export function startedAWhileAgo(concert: Pick<Concert, 'date' | 'startTime'>, now: Date): boolean {
+  const start = startMs(concert);
+  return start !== null && now.getTime() >= start + ON_NOW_MS;
 }
 
 export type Hero =

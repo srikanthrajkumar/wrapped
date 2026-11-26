@@ -49,7 +49,7 @@ Top to bottom, as built. Nothing in this section changes.
 | Hero | Its word (Sub, 600 ink) and the + on one 48px row; the concert in Page title, or a choice's names in Title; its line in Sub at 80% | foundations §3 (U06) |
 | Status rows | "Getting ready for offline…", season feedback, the update row | foundations U45 |
 | Lapse question | Section header (Strong, no chevron), with the day as its line when one day is asked about. With several days, each day is a Sub line inside the panel, above its own concerts. Then a panel of Concert rows, each with "Yes" as its one nested control; "None of these" as an Action row | row.md §1, §3 "Lapsed" |
-| Today / Tomorrow | Section header (Strong, count, chevron), then a panel of up to 4 Concert rows; on today, closeness ("in 15 min", "● On now") in 600 ink | row.md §2 "When" |
+| Today / Tomorrow | Section header (Strong, count, chevron), then a panel of up to 4 Concert rows; on today, closeness ("in 15 min", "● On now", an hour in "● Started at 4:00 pm") in 600 ink | row.md §2 "When" |
 | Shortlist | Header only, with its Sub line; no panel | foundations §1 "Which lists get panels" |
 | Diary | Header, then a panel holding one Concert row (heard; day · time · Sabha · N Items) | row.md §4 (U15) |
 | Empty | Bare 28px moon and a Strong title; "Nothing listed yet" adds a Sub line, "Nothing more today" has none | DESIGN.md "Season, the hub" |

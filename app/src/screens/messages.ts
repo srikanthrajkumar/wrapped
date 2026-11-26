@@ -52,6 +52,8 @@ export const MESSAGES = {
     inMinutes: (minutes: number) => `in ${minutes} min`,
     inCount: (count: number, minutes: number) => `${count} in ${minutes} min`,
     onNow: 'On now',
+    /** A concert under way an hour after its start (the Maintainer, 2026-11-25). */
+    startedAt: (time: string) => `Started at ${time}`,
     /** The "+N" after a row's or the hero's presenters, as it is spoken (ADR 0013). */
     andMore: (count: number) => `and ${count} more`,
     /** A cancelled concert's row, in its time's place (the row spec, 2026-11-16). */
