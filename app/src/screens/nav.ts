@@ -24,8 +24,10 @@ export function homeTab(path: string): Tab | null {
   if (path.startsWith('/event/')) return null;
   if (path === TAB_ROOT.shortlist) return 'shortlist';
   if (path === TAB_ROOT.diary) return 'diary';
-  // Settings, and the Maintainer's review under it.
-  if (path === TAB_ROOT.settings || path === '/admin') return 'settings';
+  // Settings, and the pages under it: Privacy, the Maintainer's review.
+  if (path === TAB_ROOT.settings || path.startsWith('/settings/') || path === '/admin') {
+    return 'settings';
+  }
   return 'season';
 }
 
@@ -33,7 +35,7 @@ export function homeTab(path: string): Tab | null {
 export function level(path: string): number {
   if (path.startsWith('/event/')) return path.includes('/item/') ? 4 : 3;
   if (Object.values(TAB_ROOT).includes(path)) return 0;
-  return path === '/admin' ? 2 : 1;
+  return path === '/admin' || path.startsWith('/settings/') ? 2 : 1;
 }
 
 export interface NavState {

@@ -7,6 +7,7 @@ import {
   arrive,
   enterTab,
   homeTab,
+  level,
   navState,
   resetNav,
   startState,
@@ -68,6 +69,8 @@ describe('the tabs’ stacks', () => {
   it('keeps Settings as its own tab, with the review under it', () => {
     expect(homeTab('/settings')).toBe('settings');
     expect(homeTab('/admin')).toBe('settings');
+    expect(homeTab('/settings/privacy')).toBe('settings');
+    expect(level('/settings/privacy')).toBe(2);
     expect(homeTab(WHATS_ON)).toBe('season');
     expect(homeTab('/event/a')).toBeNull();
     // What's on is left where it was, under Season, while Settings is on.

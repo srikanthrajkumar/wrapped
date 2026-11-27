@@ -5,10 +5,11 @@ import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 import { cn } from '@/lib/utils';
 import { ConcertSummary } from './screens/components/ConcertSummary';
 import { InstallStrip } from './screens/components/InstallRow';
+import { SyncPrompt } from './screens/components/SyncStatus';
 import { ActionBar, BarProvider, type Bar } from './screens/components/layout';
 import { DiaryScreen } from './screens/DiaryScreen';
 import { EventScreen } from './screens/EventScreen';
-import { FirstLaunch } from './screens/FirstLaunch';
+import { FirstLaunch, useConsentOwed } from './screens/FirstLaunch';
 import { HubScreen } from './screens/HubScreen';
 import { ItemEditor } from './screens/ItemEditor';
 import { MESSAGES } from './screens/messages';
@@ -24,7 +25,13 @@ import {
   type Tab,
 } from './screens/nav';
 import { Placeholder } from './screens/Placeholder';
-import { preloadSettings, SettingsScreen, useSettingsToFix } from './screens/SettingsScreen';
+import {
+  preloadSettings,
+  PRIVACY_PATH,
+  PrivacyScreen,
+  SettingsScreen,
+  useSettingsToFix,
+} from './screens/SettingsScreen';
 import { ShortlistScreen } from './screens/ShortlistScreen';
 import { ToPast, WhatsOnScreen } from './screens/WhatsOnScreen';
 import { holdNewConcert } from './screens/new-concert';
@@ -212,7 +219,11 @@ function useFooterRoom(footer: HTMLElement | null, inset: number) {
 }
 
 export function App() {
-  const done = useFirstLaunchDone();
+  const firstLaunchDone = useFirstLaunchDone();
+  // Signed in after first launch with the consent questions still to answer (FR-050): their
+  // steps show before the shell, once, and logging resumes after the second answer.
+  const consentOwed = useConsentOwed();
+  const done = firstLaunchDone === undefined ? undefined : firstLaunchDone && !consentOwed;
   const [inItemEditor] = useRoute(ITEM_ROUTE);
   const [path] = useLocation();
   const [bar, setBar] = useState<Bar | null>(null);
@@ -286,6 +297,9 @@ export function App() {
               <Route path="/settings">
                 <SettingsScreen />
               </Route>
+              <Route path={PRIVACY_PATH}>
+                <PrivacyScreen />
+              </Route>
               <Route path="/admin">
                 <Placeholder title="Review" back="/settings" />
               </Route>
@@ -298,7 +312,8 @@ export function App() {
         {done && <ConcertSummary />}
         {done && (
           // The bottom stack, one frame on every screen: a screen's action (What's on's search
-          // bar, an Event's Add Item) with any Undo bars, then the install strip, then the tabs.
+          // bar, an Event's Add Item) with any Undo bars, then any sync prompt, the install
+          // strip, then the tabs.
           // Fixed to the screen, not sticky: in a Safari tab on iOS 26 a sticky bottom stays
           // where the toolbar's top was once the toolbar hides, about 85pt up with rows showing
           // under it, and jumps as Safari re-places it mid-scroll (the Maintainer's iPhone,
@@ -309,6 +324,8 @@ export function App() {
               <div className="h-[env(safe-area-inset-bottom)] bg-background" />
             ) : (
               <>
+                {/* Sync waiting for the rasika (sign in, another phone, update), never blocking. */}
+                <SyncPrompt />
                 <InstallStrip />
                 <TabBar />
               </>

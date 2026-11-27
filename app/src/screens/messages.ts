@@ -4,9 +4,9 @@
 
 export const MESSAGES = {
   welcome: {
-    title: 'Carnatic Wrapped',
-    sentence:
-      'Log the Concerts you attend this December, even with no signal, and see your season whole.',
+    // The Maintainer, 2026-11-25.
+    title: 'carnatic.live',
+    sentence: 'Log your sabha hopping and get your Margazhi recapped.',
     action: 'Continue with Google',
   },
   signIn: {
@@ -14,16 +14,16 @@ export const MESSAGES = {
     noSignal: 'No signal. Sign-in needs a connection, once, on this phone.',
     googleError: "Google couldn't sign you in just now.",
   },
+  // The Maintainer's words, 2026-11-25.
   consent1: {
-    question:
-      'Share the Artists, Sabhas and Concerts you add by hand with the person who keeps the shared lists?',
+    question: "Help us keep the app's lists complete?",
     reason:
-      'Only the names, with a count of how many rasikas added them. Never who you are or what you logged. You can change this in Settings.',
+      'If you type in an artist, sabha, or concert we missed, we only see the name and how many people added it. We never see who you are or what you logged, and you can change this anytime in Settings.',
   },
   consent2: {
-    question: 'Include your season, without your name, in reports about the whole December season?',
+    question: 'Count your concerts in the December season totals?',
     reason:
-      "Reports show totals across rasikas, never one person's log. You can change this in Settings.",
+      "We sometimes share anonymous totals across the whole season, like the most-heard ragas, to test the season's burning theories with data. You can change this anytime in Settings.",
   },
   gettingReady: {
     downloading: 'Getting ready to log offline…',
@@ -174,6 +174,28 @@ export const MESSAGES = {
   },
   sessionEnded: 'Sign in again to keep backing up. Logging still works.',
   anotherPhone: 'Your season is now being logged on another phone. Changes here are kept.',
+  /**
+   * Sign-in, sync and account words the Messages table doesn't have yet (T081-T083), drafted
+   * 2026-11-24 for the Maintainer to edit; they join the table once approved. "Update the app to
+   * keep syncing" and "Make this the writing device again" are the spec's own (T078, FR-022).
+   */
+  account: {
+    /** A sign-in refused because this phone holds another account's season (FR-021). */
+    otherAccount: "This phone holds another account's season. Sign in with that account.",
+    /** A sign-in refused because the last account's consent change couldn't be sent yet. */
+    consentWaiting:
+      'Still saving the privacy choice from your previous Google account. Please sign in with that account first so it can finish.',
+    /** Settings' row to the page with both consent questions (FR-042, FR-049). */
+    privacy: 'Privacy',
+    updateRequired: 'Update the app to keep syncing.',
+    writeHere: 'Make this the writing device again',
+    signedInAs: (who: string) => `Signed in as ${who}`,
+    notSignedIn: 'Not signed in',
+    signOutOthers: 'Sign out other devices',
+    signedOutOthers: 'Other devices signed out.',
+    signOutOthersFailed: "Other devices weren't signed out. Try again with signal.",
+    deletion: (contact: string) => `To delete your account, write to ${contact}`,
+  },
   /** The full sentences, for screen readers; the rows show the short labels below. */
   saveFailed: 'Not saved on this phone.',
   /** Failed saves with no field on screen to show them (a new Concert, a move, an Artist added). */

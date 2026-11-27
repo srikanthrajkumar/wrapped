@@ -24,7 +24,13 @@ export default defineConfig({
       // and the search timing test (T048) needs Chromium's CPU throttling.
       name: 'phone',
       use: { ...devices['iPhone 13'], browserName: 'chromium' },
-      testIgnore: 'search-perf.spec.ts',
+      // These need the local Supabase stack (playwright.server.config.ts).
+      testIgnore: [
+        'search-perf.spec.ts',
+        'restore.spec.ts',
+        'google-sign-in.spec.ts',
+        'consent-not-writer.spec.ts',
+      ],
     },
     // The iPhone's own engine, for what shows frame by frame (the bottom bar). Opt in with
     // WEBKIT=1 once `npx playwright install --with-deps webkit` has run.

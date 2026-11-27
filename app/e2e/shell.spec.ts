@@ -15,7 +15,7 @@ const builtCatalog = (() => {
 
 test('first launch leads to the empty home, once', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Carnatic Wrapped' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'carnatic.live' })).toBeVisible();
   await finishFirstLaunch(page);
   const tabs = page.getByRole('navigation', { name: 'Main' }).getByRole('link');
   await expect(tabs).toHaveText(['Season', 'Shortlist', 'Diary', 'Settings']);

@@ -47,8 +47,18 @@ as the seasons. Decided 2026-10-29; evidence in `specs/001-season-logger/researc
   2026-11-06, T066; see the section below). They follow `contracts/sync-api.md`.
 - **Tested 2026-10-31 (T010):** Google sign-in works from the app installed to the home screen
   on the iPhone 16 (iOS 18.7), both with Google's button and `signInWithIdToken` and with
-  Supabase's redirect sign-in. Sign-in uses Google's button; the email one-time code fallback
-  (eng review D3) is not needed. Details in `specs/001-season-logger/research.md`.
+  Supabase's redirect sign-in. The email one-time code fallback (eng review D3) is not
+  needed. Details in `specs/001-season-logger/research.md`.
+- **Sign-in is Google's own button, never Supabase's redirect** (the Maintainer, 2026-11-24,
+  T081). The redirect's Google screen names the project's random `….supabase.co` address, which
+  a rasika must never see. Google's button (Google Identity Services) gives an id token that
+  `signInWithIdToken` exchanges in the background, so Google names only the app and its own
+  address. So first launch shows Google's button, "Continue with Google", in Google's own style
+  (at most 400px wide, its own height), not a 56px button of the app's. The build reads
+  Google's web client id as `VITE_GOOGLE_CLIENT_ID`; the Supabase project's Google provider
+  lists the same id, and Google's OAuth client lists `https://carnatic.live` (and any test
+  address) as an authorised JavaScript origin. A Supabase custom domain (e.g. `auth.carnatic.live`,
+  a paid add-on) would be the only way to make the redirect acceptable.
 
 ## Push and pull as Postgres functions
 

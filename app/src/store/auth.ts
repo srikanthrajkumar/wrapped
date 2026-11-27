@@ -1,7 +1,8 @@
 // Sign-in on the phone (T077; ADR 0001; contracts/sync-api.md, "Sign-in and sessions").
 //
-// - Google's button gives an id token, which `signInWithIdToken` turns into a Supabase session
-//   (proven on the iPhone by T010).
+// - Google's own button gives an id token, which `signInWithIdToken` turns into a Supabase
+//   session (proven on the iPhone by T010). Not Supabase's redirect, whose Google screen names
+//   the project's supabase.co address (ADR 0001, decided 2026-11-24).
 // - The app keeps its own record of who signed in (`identity` in `meta`). Logging never reads
 //   the session; only the sync loop asks for a token, through `getSyncApi`.
 // - supabase-js is loaded only when first needed, after the first screen is drawn, and keeps its
@@ -24,6 +25,7 @@ import type {
   User,
 } from '@supabase/supabase-js';
 import { APP_VERSION_HEADER, RASIKA_TABLES } from '../model';
+import { ACCOUNT_KEYS, hasPendingConsent, sendConsent } from './account';
 import { db as defaultDb, type WrappedDB } from './db';
 import { LAST_SYNCED_KEY, PULL_CURSOR_KEY, syncLockName, webLock, type SyncLock } from './sync';
 import { rpcSyncApi, SyncError, type RpcClient, type SyncApi } from './sync-api';
@@ -48,6 +50,8 @@ export interface AuthConfig {
   url: string;
   anonKey: string;
   appVersion: string;
+  /** Google's web client id, for Google's sign-in button; unset in tests and local builds. */
+  googleClientId?: string;
 }
 
 /** The user of a session as auth-js stores it; undefined for anything else. */
@@ -155,6 +159,37 @@ export class AccountMismatchError extends Error {
   }
 }
 
+/**
+ * The last account on this phone has a consent answer it couldn't send (its session ended, or
+ * the server didn't answer). Another account signing in would drop it, and a withdrawal would
+ * never reach the server, so the sign-in is refused; nothing was changed (FR-042, FR-049).
+ */
+export class ConsentWaitingError extends Error {
+  constructor(readonly signedIn: Identity) {
+    super('Another account’s consent answer on this phone has not been sent');
+    this.name = 'ConsentWaitingError';
+  }
+}
+
+/** How long a sign-in waits for the server to turn a credential into a session. */
+export const SIGN_IN_DEADLINE_MS = 10_000;
+
+/**
+ * Before another account's session is kept: send the last account's waiting consent answers with
+ * its own session (store/account.ts, sendConsent, which checks under the sync lock that it is
+ * still that account). Quietly nothing on failure; recordIdentity then refuses the switch.
+ */
+export async function sendLastAccountsConsent(
+  userId: string,
+  getApi: () => Promise<SyncApi | null>,
+  db: WrappedDB = defaultDb,
+  lock: SyncLock = webLock,
+): Promise<void> {
+  const current = await readIdentity(db);
+  if (!current || current.userId === userId) return;
+  await sendConsent(getApi, db, { lock });
+}
+
 /** True when the store holds anything of a season: a record, a queued or rejected change. */
 async function holdsSeason(db: WrappedDB): Promise<boolean> {
   for (const table of RASIKA_TABLES) {
@@ -188,10 +223,16 @@ export async function recordIdentity(
       const current = await readIdentity(db);
       if (current && current.userId !== identity.userId) {
         if (await holdsSeason(db)) throw new AccountMismatchError(identity);
+        if (await hasPendingConsent(db)) throw new ConsentWaitingError(identity);
         // The last account's sync state goes with it. Its pull cursor is a position in one
         // sequence shared by every rasika, so kept it would skip the new account's earlier rows.
         await db.meta.bulkDelete([PULL_CURSOR_KEY, LAST_SYNCED_KEY]);
         await db.serverSeqs.clear();
+        // So are its consent answers (none waits to be sent: signIn sent them, or the switch was
+        // refused above), its claim and what the server said about it: the new account is asked
+        // both questions afresh, and nothing the last one answered is ever sent as the new
+        // one's (FR-042, FR-049).
+        await db.meta.bulkDelete([...ACCOUNT_KEYS]);
       }
       await db.meta.put({ key: IDENTITY_KEY, value: identity });
       // As auth-js stores it, for the phone's client to find (supabaseClient).
@@ -239,22 +280,88 @@ export async function signIn(
     config,
     db = defaultDb,
     lock = webLock,
-  }: { config: AuthConfig | null; db?: WrappedDB; lock?: SyncLock },
+    deadlineMs = SIGN_IN_DEADLINE_MS,
+  }: { config: AuthConfig | null; db?: WrappedDB; lock?: SyncLock; deadlineMs?: number },
 ): Promise<Identity> {
   if (!config) throw new Error('This build has no server to sign in to');
   const candidate = await candidateClient(config);
-  const { data, error } = await attempt(candidate);
+  const { data, error } = await withinDeadline(attempt(candidate), deadlineMs, (late) => {
+    // Answered after the screen gave up: never kept, and revoked on the server.
+    const token = late.data.session?.access_token;
+    if (token) void candidate.auth.admin.signOut(token, 'local').catch(() => undefined);
+  });
   if (error) throw error;
   if (!data.session || !data.user) throw new Error('The sign-in gave no session');
   const identity = identityOf(data.user);
+  // The last account's waiting consent goes first, with its own session.
+  await sendLastAccountsConsent(identity.userId, () => getSyncApi({ db, config }), db, lock);
   try {
     await recordIdentity(identity, db, { lock, session: data.session });
   } catch (refused) {
-    // Only this session goes; the account's other devices stay signed in.
-    void candidate.auth.signOut({ scope: 'local' }).catch(() => undefined);
+    // Only this session goes; the account's other devices stay signed in. By its own token,
+    // since a session set from a redirect isn't one the client signs out by itself.
+    void candidate.auth.admin.signOut(data.session.access_token, 'local').catch(() => undefined);
     throw refused;
   }
   return identity;
+}
+
+/**
+ * `answer`, or after `ms` a TypeError, fetch's own for no connection, so the screen says "No
+ * signal" and offers Try again and, once stored for offline, Start (FR-018): on a stalled hall
+ * connection the token request may never answer. An answer that comes later goes to `late`.
+ */
+function withinDeadline<T>(answer: Promise<T>, ms: number, late: (value: T) => void): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      settled = true;
+      reject(new TypeError('The sign-in did not answer in time'));
+    }, ms);
+    answer.then(
+      (value) => {
+        if (settled) return late(value);
+        settled = true;
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
+/**
+ * Revoke this account's sessions on every other device (FR-021: a lost phone), keeping this
+ * one's. The other phones keep their seasons and outboxes, and are asked to sign in again.
+ */
+export async function signOutOtherDevices({
+  config,
+  db = defaultDb,
+}: {
+  config: AuthConfig;
+  db?: WrappedDB;
+}): Promise<void> {
+  const client = await supabaseClient(config, db);
+  // Not `auth.signOut`, which answers success with no session and on a 401: here that would tell
+  // the rasika a lost phone was signed out when it wasn't.
+  const { data, error: sessionError } = await client.auth.getSession();
+  if (sessionError) throw sessionError;
+  if (!data.session) throw new SessionEndedError();
+  const { error } = await client.auth.admin.signOut(data.session.access_token, 'others');
+  if (error) throw error;
+}
+
+/** No session on this phone to act with; the rasika signs in again first. */
+export class SessionEndedError extends Error {
+  constructor() {
+    super('The session on this phone has ended');
+    this.name = 'SessionEndedError';
+  }
 }
 
 /**

@@ -8,5 +8,10 @@ export function buildAuthConfig(): AuthConfig | null {
   const url = import.meta.env.VITE_SUPABASE_URL;
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
   if (!url || !anonKey) return null;
-  return { url, anonKey, appVersion: import.meta.env.VITE_APP_VERSION };
+  return {
+    url,
+    anonKey,
+    appVersion: import.meta.env.VITE_APP_VERSION,
+    googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || undefined,
+  };
 }
