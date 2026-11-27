@@ -56,7 +56,7 @@ export async function makeExportFile({
     : await buildExport({ db, appVersion: APP_VERSION, notSaved });
   const day = file.exportedAt.slice(0, 10);
   const suffix = !rescue ? '' : file.storeUnreadable ? '-store-unreadable' : '-not-saved';
-  return { name: `carnatic-wrapped-${day}${suffix}.json`, file };
+  return { name: `carnatic-live-${day}${suffix}.json`, file };
 }
 
 /** Resolves to whether the file was handed over (closing the share sheet doesn't count). */

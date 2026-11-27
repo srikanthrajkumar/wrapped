@@ -65,12 +65,12 @@ Built entirely from the phone store, then handed to the share sheet or saved.
   `unsyncedOps` are `null`, and `notSaved` still carries the values the screen held, so they
   leave the phone even when the store can't. A rasika who sees this marker has not lost the
   stored season: it is still on the phone, unread. Only a rescue Export is ever written this
-  way, named `carnatic-wrapped-<day>-store-unreadable.json`; a plain Export of an unreadable
+  way, named `carnatic-live-<day>-store-unreadable.json`; a plain Export of an unreadable
   store fails visibly instead of handing over empty arrays.
 - `storeTimedOut` (optional; fourth review of PR #5, 2026-11-02): in place of `storeUnreadable`
   when the store was still opening and didn't answer within 10 seconds. Same shape and the same
   empty arrays, but the store is only slow, not broken: the season is still on the phone and an
-  Export once it opens holds it. The file is named `carnatic-wrapped-<day>-not-saved.json`.
+  Export once it opens holds it. The file is named `carnatic-live-<day>-not-saved.json`.
 - The journal lives in `localStorage`, one key per field or new record
   (`wrapped.notSaved.v1:<table>:<id>:<field>`), from the moment a value is entered until the
   store is read back holding it, so a reload, a force-close or iOS ending the page doesn't lose

@@ -87,7 +87,7 @@ describe('season export (required)', () => {
     await expect(makeExportFile({ rescue: false, db })).rejects.toThrow();
 
     const rescue = await makeExportFile({ rescue: true, db });
-    expect(rescue.name).toMatch(/^carnatic-wrapped-\d{4}-\d{2}-\d{2}-store-unreadable\.json$/);
+    expect(rescue.name).toMatch(/^carnatic-live-\d{4}-\d{2}-\d{2}-store-unreadable\.json$/);
     expect(rescue.file.storeUnreadable).toEqual({ error: expect.any(String) });
   });
 

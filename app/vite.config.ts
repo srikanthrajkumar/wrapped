@@ -62,8 +62,8 @@ export default defineConfig({
       registerType: 'prompt',
       injectRegister: false,
       manifest: {
-        name: 'Carnatic Wrapped',
-        short_name: 'Wrapped',
+        name: 'carnatic.live',
+        short_name: 'carnatic.live',
         start_url: '/',
         scope: '/',
         display: 'standalone',
