@@ -259,6 +259,10 @@ the fields so they hold no glare.
   until the browser restores one. The movement is about 0.4 KB of code; no video. With large
   text the words rise into the silk, so a full-bleed scrim rises behind them from 192px above,
   eased the same way (measured 13.7:1 at 200% text on a 320px phone).
+- **The Diary's Recap card** (2026-11-27): Silk, still, filling a card at the top of the
+  Diary once one concert is heard (see "Diary"). Painted once like every still mark, so the
+  Diary scrolls over a picture; the words keep their contrast on the panel's colour, never on
+  the field itself.
 - **No Schedule tile** (2026-11-08): the Schedule card's avatar tile went with the Schedule
   screen; an entry on Season's timeline is a quiet row with no tile.
 
@@ -772,8 +776,11 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
 - **Diary** (Part 8, cut to its list by the Maintainer on 2026-11-11): a plain tab header,
   then every concert the rasika has heard, newest first, each as "The row" with its day in the
   time's place ("Sat 19 Dec · 6:30 pm · 9 Items"), opening its Event. Empty, it shows the
-  empty state. The Wrapped's stats and Cards come later, at its top; their "Your Season so
-  far" header takes another title, so "Season" names only the tab.
+  empty state. The season's stats and Cards come later, at its top, as Recap; their "Your
+  Season so far" header takes another title, so "Season" names only the tab. Until then, once
+  one concert is heard, a Recap card stands between the header and the list (2026-11-27): Silk
+  behind "Recap" and "Coming soon", a button that opens a small sheet saying what Recap will
+  show. With none heard it isn't there, and the empty state shows alone.
 - **Empty states** (the Maintainer, 2026-11-11): shadcn's Empty, in the app's tokens
   (`app/src/components/ui/empty.tsx`), only where something is truly empty: a 48px mark on
   `surface-raised` with 14px corners, a `body` 600 title, one `sub` muted line, and at most
@@ -1465,6 +1472,8 @@ matches", "Show Past", "What's on",
 | Undo bar                     | The Item's or Artist's Concert is deleted                                                                                                                                                                      | "Undo failed · Item 3 · its Concert is deleted" · "Undo failed: Item 3, its Concert is deleted."                                                                                                                          | Dismiss                    |
 | Screen reader                | After a delete                                                                                                                                                                                                 | "Item 5 deleted. Undo available."                                                                                                                                                                                         |                            |
 | Screen reader                | Search pauses                                                                                                                                                                                                  | "5 results" / "No matches"                                                                                                                                                                                                |                            |
+| Diary | Once one concert is heard: the Recap card (the Maintainer, 2026-11-27) | **Recap** · "Coming soon" | |
+| Recap sheet | The Recap card tapped | **Coming soon** · "Recap will tell your season back to you, from your own diary:" · "How many concerts you heard, and the sabhas you went to" · "The ragas and artists you heard most" · "Cards to share when the season ends" | |
 
 ## Still open
 

@@ -7,6 +7,7 @@ import type { Event, ScheduleEntry } from '../../src/model';
 import {
   concerts,
   diary,
+  recapShows,
   listed,
   owned,
   hubHero,
@@ -543,6 +544,17 @@ describe('the Shortlist and the Diary', () => {
         own('missed', { status: 'missed' }),
       ]).map((summary) => summary.event.id),
     ).toEqual(['evening', 'afternoon', 'older']);
+  });
+});
+
+describe('the Recap card', () => {
+  it('shows once one concert is heard, and not before', () => {
+    // None logged: nothing, nor for a Shortlisted or Missed one.
+    expect(recapShows([])).toBe(false);
+    expect(recapShows([own('shortlisted'), own('missed', { status: 'missed' })])).toBe(false);
+    // One logged, by being there or by its first Item.
+    expect(recapShows([own('shortlisted'), own('heard', { status: 'attended' })])).toBe(true);
+    expect(recapShows([own('itemed', {}, { itemCount: 1 })])).toBe(true);
   });
 });
 
