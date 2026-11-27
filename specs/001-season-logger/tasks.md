@@ -548,7 +548,7 @@ Merge the Artists, match the raga, and confirm all Appearances and the Wrapped u
 
 - [ ] T107 [P] (stretch) Spreadsheet export shaped like last season's sheet (Main, Lecdems, Colours, Compositions) with write-excel-file, lazy-loaded from the phase-2 cache, in `app/src/store/export-xlsx.ts`
 - [ ] T108 [P] Run `/review` on the full change set and fix its findings
-- [ ] T109 [P] Run `/cso` on the row-level security, the functions and the Maintainer allowlist, and fix its findings, including a size limit on pushed rows (outside voice 18)
+- [x] T109 [P] Run `/cso` on the row-level security, the functions and the Maintainer allowlist, and fix its findings, including a size limit on pushed rows (outside voice 18)
 - [ ] T110 [P] Run the `accessibility` and `web-design-guidelines` skills on `app/src/screens/` (target size, focus not obscured, `inputmode`, no mobile `autoFocus`) and fix the findings. Except the Item editor's search box, which opens focused (plan.md DD4)
 - [ ] T111 Create the Supabase Pro project in Mumbai, set up Google OAuth credentials, and apply `supabase/migrations/` and `supabase/seed.sql` before rasikas sign up (ADR 0001). The Schedule is not here: it is set up on the logger's project (ADR 0009, `docs/setup/schedule-hosting.md`). Record the project ref, but no secrets, in `docs/adr/0001-supabase-for-sign-in-and-server-store.md`
 - [ ] T112 Get the DPDP legal check of consent, withdrawal, erasure and the one-year log retention before public launch (constitution, Privacy), and record the outcome in `specs/001-season-logger/research.md`

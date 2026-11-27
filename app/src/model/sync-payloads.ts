@@ -47,7 +47,10 @@ export interface PushRejection {
   message: string;
 }
 
-/** The 200 answer. Every op in the request is either acked or rejected. */
+/**
+ * The 200 answer. Each op is acked or rejected, except the ops a push left unanswered at the
+ * day's limit, which stay queued (contracts/sync-api.md, "Push").
+ */
 export interface PushResponse {
   acked: PushAck[];
   rejected: PushRejection[];

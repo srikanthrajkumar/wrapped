@@ -9,7 +9,8 @@ project-kept tables are read-only on both.
 - **Ids**: every rasika-owned record has a client-generated UUID `id` from `crypto.randomUUID()`,
   created on the phone (constitution II). The server never invents ids for rasika records.
 - **Tombstones**: a delete sets `deletedAt` and syncs like any other write. The phone hides
-  tombstoned rows; the server keeps them so a restore replays the delete.
+  tombstoned rows; the server keeps them so a restore replays the delete, with their notes
+  emptied (contracts/sync-api.md, "Push").
 - **Last write wins per record**: each rasika has one writing device (FR-022), so two writers
   never edit the same record. A push replaces the whole row.
 - **Server bookkeeping** (server only): `rasikaId`, `seq` (bigint from one Postgres sequence,
@@ -242,8 +243,9 @@ Kept for at least a year (DPDP Rules; see research.md).
 
 `Device`: `id`, `rasikaId`, `label`, `createdAt`, `lastSeenAt`. It records which phone is the
 writer. Sessions are Supabase Auth's (ADR 0001): refresh tokens never expire, no inactivity
-timeout is set, and a lost phone is revoked by signing out other devices. A 401 never clears
-the phone's data (FR-020, FR-021).
+timeout is set, and a lost phone is revoked by signing out other devices, at once: a token
+whose session has ended gets 401. A 401 never clears the phone's data (FR-020, FR-021). The
+server keeps a rasika's 20 most recently seen devices.
 
 ### Processed op
 
@@ -252,7 +254,9 @@ rejection's `code` and `message`. An acked op also keeps its record (table and i
 record's `seq` before this device's run of writes to it. A primary key on (`rasikaId`, `opId`)
 makes a repeated push a no-op (FR-015), and the kept answer lets a retried push get the same
 reply. The kept lineage lets a retry after a lost reply carry later edits of the same record
-without a `conflict`, while nothing else has written the record since.
+without a `conflict`, while nothing else has written the record since. Kept for good, so a
+phone away for any length of time still gets its answers; the day's op limit bounds their growth
+(contracts/sync-api.md, "Push").
 
 ### Promotion candidates (view)
 
