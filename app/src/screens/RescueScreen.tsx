@@ -7,11 +7,26 @@
 // is only slow
 // to open keeps the screens, with "Still opening your season…" (muted, a spinner, no alert) and
 // Export at the top.
+// Before it shows for the store, the app opens a new connection once (store/health.ts), and screens
+// that broke on a lost connection are drawn again; why it showed is kept and shown in small text
+// at the foot (store/rescue-cause.ts).
 
 import { IconAlertCircle } from '@tabler/icons-react';
-import { Component, useEffect, type CSSProperties, type ErrorInfo, type ReactNode } from 'react';
+import {
+  Component,
+  useEffect,
+  useSyncExternalStore,
+  type CSSProperties,
+  type ErrorInfo,
+  type ReactNode,
+} from 'react';
 import { Button } from '@/components/ui/button';
-import { useStoreHealth } from '../store/health';
+import { healAfterCrash, mayHealCrash, recordCrash, useStoreHealth } from '../store/health';
+import {
+  latestRescueCause,
+  rescueCausesRecorded,
+  subscribeRescueCauses,
+} from '../store/rescue-cause';
 import {
   dismissExportFailure,
   exportSeason,
@@ -80,8 +95,35 @@ export function RescueScreen({ replaced = false }: { replaced?: boolean }) {
           <ExportIcon exported={handover !== null && !handover.storeTimedOut} />
           {MESSAGES.actions.export}
         </Button>
+        {!replaced && <CauseLine />}
       </div>
     </div>
+  );
+}
+
+/**
+ * Why the rescue screen showed, for diagnosis: small, muted, known names and fixed details only
+ * (store/rescue-cause.ts), e.g. "store: UnknownError, connection lost · 27 Nov, 14:02".
+ */
+function CauseLine() {
+  // A crash draws this screen before its cause is kept (RescueBoundary): read again on each record.
+  useSyncExternalStore(subscribeRescueCauses, rescueCausesRecorded);
+  const cause = latestRescueCause();
+  if (!cause) return null;
+  const at = new Date(cause.at).toLocaleString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  return (
+    <p
+      data-testid="rescue-cause"
+      className="pt-2 text-center text-caption break-words text-muted-foreground"
+    >
+      {cause.kind}: {cause.name}
+      {cause.detail && `, ${cause.detail}`} · {at}
+    </p>
   );
 }
 
@@ -115,19 +157,36 @@ export function StoreGate({ children }: { children: ReactNode }) {
   );
 }
 
-/** Whatever breaks the screens leaves the rescue screen, never a blank page. */
-class RescueBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
-  override state = { failed: false };
+/**
+ * Whatever breaks the screens leaves the rescue screen, never a blank page. Screens that broke
+ * on a lost store connection (a live query on WebKit after hours in the background) are drawn
+ * again once a new connection opens; while it opens (about a second) nothing is drawn.
+ */
+class RescueBoundary extends Component<
+  { children: ReactNode },
+  { failed: boolean; healing: boolean }
+> {
+  override state = { failed: false, healing: false };
 
-  static getDerivedStateFromError() {
-    return { failed: true };
+  static getDerivedStateFromError(error: unknown) {
+    return mayHealCrash(error) ? { healing: true } : { failed: true };
   }
 
   override componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('the screens failed', error, info.componentStack);
+    if (!this.state.healing) {
+      console.error('the screens failed', error, info.componentStack);
+      recordCrash(error);
+      return;
+    }
+    console.warn('the screens lost the store; opening it again', error);
+    void healAfterCrash().then((healed) =>
+      // Not healed: the store failed, and StoreGate shows the rescue screen.
+      this.setState({ healing: false, failed: !healed }),
+    );
   }
 
   override render() {
-    return this.state.failed ? <RescueScreen /> : this.props.children;
+    if (this.state.failed) return <RescueScreen />;
+    return this.state.healing ? null : this.props.children;
   }
 }

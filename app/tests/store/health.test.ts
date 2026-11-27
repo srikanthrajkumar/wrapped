@@ -23,6 +23,9 @@ function opening() {
         finish = resolve;
         fail = reject;
       }),
+    whenLost: () => () => undefined,
+    // The one more try a refused open gets (store/db.ts) is refused too.
+    reopen: () => Promise.reject(new Error('Connection to Indexed Database server lost')),
   } as unknown as WrappedDB;
   return {
     db,

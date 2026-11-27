@@ -8,7 +8,13 @@ import { StoreGate } from './screens/RescueScreen';
 import { saveFeedback } from './screens/save-feedback';
 import { failedUndoReceipts } from './screens/undo';
 import { db } from './store/db';
-import { storeHealth, subscribeStoreHealth, watchStore } from './store/health';
+import {
+  storeHealth,
+  subscribeStoreHealth,
+  watchForeground,
+  watchStore,
+  watchStrayErrors,
+} from './store/health';
 import { holdsValue, storedHolds } from './store/journal-check';
 import { ensurePersistentStorage } from './store/persist';
 import { pruneReceipts } from './store/receipts';
@@ -25,6 +31,10 @@ watchInstall();
 // The home screen renders first, with nothing awaited (constitution I). If the store won't open,
 // the rescue screen still offers the values not saved for Export.
 watchStore(db);
+// A connection WebKit dropped while the page sat in the background is replaced when the page
+// comes back, and when an error nobody caught says it was lost (store/health.ts).
+watchForeground();
+watchStrayErrors();
 createRoot(root).render(
   <StrictMode>
     <StoreGate>

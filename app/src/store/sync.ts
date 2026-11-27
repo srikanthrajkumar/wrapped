@@ -113,8 +113,9 @@ export async function settlePush(
 ): Promise<number> {
   const acked = new Map(response.acked.map((ack) => [ack.opId, ack.seq]));
   const rejected = new Map(response.rejected.map((rejection) => [rejection.opId, rejection]));
-  let answered = 0;
-  await db.transaction('rw', db.outbox, db.serverSeqs, db.attention, async () => {
+  // Counted inside the transaction, so a run again after a reopen (store/db.ts) counts once.
+  return db.transaction('rw', db.outbox, db.serverSeqs, db.attention, async () => {
+    let answered = 0;
     for (const entry of batch) {
       const seq = acked.get(entry.opId);
       const rejection = rejected.get(entry.opId);
@@ -132,8 +133,8 @@ export async function settlePush(
         answered += 1;
       }
     }
+    return answered;
   });
-  return answered;
 }
 
 /**
