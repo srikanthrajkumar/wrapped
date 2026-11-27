@@ -348,12 +348,6 @@ export function shortlistDays(shortlisted: readonly Concert[]): ShortlistDay[] {
 }
 
 /** The rasika's Heard concerts, newest first: the Diary. */
-/**
- * Whether the Diary shows the Recap card ("Recap"): once the rasika has heard one concert this
- * season. With none heard, the Diary is its empty state alone.
- */
-export const recapShows = (summaries: readonly EventSummary[]) => summaries.some(isHeard);
-
 export function diary(summaries: readonly EventSummary[]): EventSummary[] {
   return summaries
     .filter(isHeard)
@@ -364,6 +358,12 @@ export function diary(summaries: readonly EventSummary[]): EventSummary[] {
         b.event.createdAt.localeCompare(a.event.createdAt),
     );
 }
+
+/**
+ * Whether the Diary shows the Recap card ("Recap"): once the rasika has heard one concert this
+ * season. With none heard, the Diary is its empty state alone.
+ */
+export const recapShows = (summaries: readonly EventSummary[]) => summaries.some(isHeard);
 
 /**
  * The lapsed Shortlisted Events the hub's card asks about, newest day first (ADR 0010): never
