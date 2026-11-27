@@ -642,23 +642,29 @@ function EditItem({ eventId, itemId }: { eventId: string; itemId: string }) {
                 {index < ragas.length - 1 && <span aria-hidden className="w-2" />}
               </span>
             ))}
+            {/* Every child of the list is an item, the "?" and Add Raga too, so a screen reader
+                reads the list whole (axe aria-required-children; T110). */}
             {ragas.length === 0 && (
-              <ValueButton
-                ref={takeFocus(0)}
-                aria-label="Raga, unknown"
-                onClick={() => setOpen({ kind: 'raga', index: 0 })}
-              >
-                ?
-              </ValueButton>
+              <span role="listitem" className="flex items-center">
+                <ValueButton
+                  ref={takeFocus(0)}
+                  aria-label="Raga, unknown"
+                  onClick={() => setOpen({ kind: 'raga', index: 0 })}
+                >
+                  ?
+                </ValueButton>
+              </span>
             )}
             {ragas.length > 0 && (
-              <AddButton
-                ref={takeFocus('add')}
-                label="Add Raga"
-                // Its ink 8px after the word, as a comma's 8px.
-                className="-ml-1.5"
-                onClick={() => setOpen({ kind: 'raga', index: ragas.length })}
-              />
+              <span role="listitem" className="flex items-center">
+                <AddButton
+                  ref={takeFocus('add')}
+                  label="Add Raga"
+                  // Its ink 8px after the word, as a comma's 8px.
+                  className="-ml-1.5"
+                  onClick={() => setOpen({ kind: 'raga', index: ragas.length })}
+                />
+              </span>
             )}
           </div>
           <ValueNotes value={ragas[0] ?? unknownValue()} suggested={suggested.ragas?.[0]} />

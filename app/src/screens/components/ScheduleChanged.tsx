@@ -91,7 +91,7 @@ function valueOf(change: ScheduleChange, side: 'from' | 'to'): ReactNode {
     case 'kind':
       return (
         <>
-          <KindMark kind={change[side]} className="mr-1.5" />
+          <KindMark kind={change[side]} spoken={false} className="mr-1.5" />
           {kindName(change[side])}
         </>
       );

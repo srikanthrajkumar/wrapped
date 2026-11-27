@@ -1092,7 +1092,7 @@ function EventFacts({
                 if (each !== kind) onKind(each);
               }}
             >
-              <KindMark kind={each} className="-ml-1 mr-1.5" />
+              <KindMark kind={each} spoken={false} className="-ml-1 mr-1.5" />
               {kindName(each)}
             </Chip>
           ))}
@@ -1104,7 +1104,6 @@ function EventFacts({
             stored={title}
             waitingAs={waiting}
             required={shownKind === 'lecdem'}
-            autoFocus={waiting !== null}
             onSave={(next) => {
               onTitle(next, shownKind);
               setWaiting(null);
@@ -1173,14 +1172,12 @@ function TitleField({
   stored,
   waitingAs,
   required,
-  autoFocus,
   onSave,
 }: {
   eventId: string;
   stored: string | null;
   waitingAs: EventKind | null;
   required: boolean;
-  autoFocus: boolean;
   onSave(title: string | null): void;
 }) {
   const feedback = useSaveFeedback();
@@ -1205,8 +1202,9 @@ function TitleField({
         <input
           value={title.text}
           required={required}
-          // A Lecdem picked without a title: the title is what it waits for.
-          autoFocus={autoFocus}
+          // No autofocus, even for a Lecdem waiting on its title: only the searches raise the
+          // keyboard unasked (DESIGN.md "Search box"; T110). The field shows; a tap types.
+          autoComplete="off"
           onChange={(e) => title.change(e.target.value)}
           onBlur={title.flush}
           className="fill-edge block min-h-12 w-[calc(100%+32px)] rounded-fill bg-secondary px-4 text-body"
