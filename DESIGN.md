@@ -1208,7 +1208,7 @@ Dynamic Island (`apple-mobile-web-app-status-bar-style: black-translucent` in
 - **The store can't be opened** (decided 2026-11-02): when the phone's database won't open,
   every screen gives way to one rescue screen that needs no database: the alert mark, "Can't open
   your season", Try again (back to the start) and Export. That Export holds only the journal; it
-  is named `carnatic-wrapped-<day>-store-unreadable.json`, and once handed over the button keeps
+  is named `carnatic-live-<day>-store-unreadable.json`, and once handed over the button keeps
   "Export" and its download icon, with a small check badge (screen readers hear "Exported"). An open still waiting after 10 seconds leaves the screen in place, under the row
   "Still opening your season…" with Export. It is a slow start, not a failure: a muted spinner
   (Tabler IconLoader2, still when reduced motion is asked for) and muted text, no alert mark.
@@ -1482,10 +1482,11 @@ in the phase that builds it):
   Event's facts (T122).
 - The Maintainer's edits to the drafted Messages table above, and the wording of messages for
   the screens deferred here.
-- The product's name and where its logo appears (deferred 2026-11-01: the Maintainer is
-  considering other names; a logo will appear somewhere). Welcome says "carnatic.live" under
-  the kolam (the Maintainer, 2026-11-25); "Carnatic Wrapped" stays the working name elsewhere
-  until then. The mark itself is settled ("The mark", 2026-11-10).
+- Where the logo appears (deferred 2026-11-01). The name is settled: a rasika sees
+  "carnatic.live" everywhere, on Welcome under the kolam, the page title, the home-screen name
+  and the Export file, and "Wrapped" never (the Maintainer, 2026-11-25 and 2026-11-27). It stays
+  only in internal names; the database's must never change, or phones lose their season. The
+  mark itself is settled ("The mark", 2026-11-10).
 - The motif's remaining uses (T088a): the ground of the Wrapped cards and what the
   Season shelf holds beyond its title. The motif itself was settled on 2026-11-07.
 

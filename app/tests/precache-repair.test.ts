@@ -10,7 +10,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { md5 } from '../src/md5';
 import { repairMissing, type PrecacheFile } from '../src/precache-phases';
 
-const html = '<!doctype html><title>Carnatic Wrapped</title>';
+const html = '<!doctype html><title>carnatic.live</title>';
 const md5Of = (text: string) => createHash('md5').update(text).digest('hex');
 const indexHtml: PrecacheFile = { url: 'index.html', revision: md5Of(html) };
 const script: PrecacheFile = { url: 'assets/index-Bd17z0YL.js', revision: null };

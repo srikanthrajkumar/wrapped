@@ -275,7 +275,7 @@ test('A3: when the phone store cannot be opened, a rescue screen still offers Ex
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export' }).click();
   const handed = await download;
-  expect(handed.suggestedFilename()).toMatch(/^carnatic-wrapped-.*-store-unreadable\.json$/);
+  expect(handed.suggestedFilename()).toMatch(/^carnatic-live-.*-store-unreadable\.json$/);
   const file = JSON.parse(readFileSync((await handed.path())!, 'utf8'));
   expect(file.storeUnreadable).toEqual({ error: expect.any(String) });
   expect(file.notSaved).toEqual([expect.objectContaining({ id: 'i1', value: 'Adi' })]);
