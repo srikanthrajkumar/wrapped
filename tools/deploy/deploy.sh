@@ -149,8 +149,7 @@ if [[ "$server" == true ]]; then
   grep -rqF "$server_google_client" app/dist/assets ||
     stop "the build in app/dist does not hold Google's client ID from $server_env_file, so Google's button can't show. Is the sign-in work on this branch?"
 fi
-! grep -rqF 'GOCSPX-' app/dist || stop "the build in app/dist holds Google's client secret (GOCSPX-…)."
-! grep -rqF 'sb_secret_' app/dist || stop "the build in app/dist holds a secret key (sb_secret_…)."
+secrets="$(tools/deploy/dist-secrets.sh app/dist)" || stop "the build in app/dist holds ${secrets:-a secret}."
 
 step "Files to upload (app/dist)"
 (cd app/dist && find . -type f ! -name _headers ! -name .assetsignore ! -name precache-phases.json |
