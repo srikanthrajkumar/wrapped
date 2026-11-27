@@ -411,4 +411,20 @@ main:has(~ footer [data-slot='bar-frame']:not([hidden])) {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
+
+  /* Focus never lands under what is pinned at the top (WCAG 2.4.11 "Focus not obscured";
+     T110): the status band, and on What's on its strip and the day's sticky label above a row
+     (WhatsOnScreen.tsx: 4px + a body line + 8px). A margin on what takes focus, not scroll
+     padding on the page: Chromium's scroll anchoring chooses its anchor inside the padding,
+     which moved the place What's on keeps (timeline.spec.ts). Only on keyboard focus, so a tap
+     never moves the page. The bottom stack is kept clear by App.tsx (useFooterRoom). */
+  main :focus-visible {
+    scroll-margin-top: var(--app-top-inset, env(safe-area-inset-top));
+  }
+  [data-list] section[data-place] :is(a, button, input):focus-visible {
+    scroll-margin-top: calc(
+      var(--app-top-inset, env(safe-area-inset-top)) + var(--season-strip, 0px) + 12px +
+        var(--text-body) * 24 / 17
+    );
+  }
 }

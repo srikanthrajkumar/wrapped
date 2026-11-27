@@ -1,6 +1,7 @@
 // An Event's kind as a mark (T122; DESIGN.md "Event"): a Lecdem, a Dance or a Harikatha carries
 // one where its name shows, a Concert none, so the common case stays bare. The mark is spoken by
-// its kind's name.
+// its kind's name, unless the word stands beside it (`spoken={false}`), where it would be heard
+// twice ("Dance Dance").
 
 import { IconBook, IconPresentation, IconStretching, type Icon } from '@tabler/icons-react';
 import { cn } from '@/lib/utils';
@@ -14,13 +15,20 @@ const MARKS: Partial<Record<EventKind, Icon>> = {
   harikatha: IconBook,
 };
 
-export function KindMark({ kind, className }: { kind: EventKind; className?: string }) {
+export function KindMark({
+  kind,
+  spoken = true,
+  className,
+}: {
+  kind: EventKind;
+  spoken?: boolean;
+  className?: string;
+}) {
   const Mark = MARKS[kind];
   if (!Mark) return null;
   return (
     <Mark
-      role="img"
-      aria-label={kindName(kind)}
+      {...(spoken ? { role: 'img', 'aria-label': kindName(kind) } : { 'aria-hidden': true })}
       className={cn('inline size-5 shrink-0 align-[-0.15em] text-muted-foreground', className)}
     />
   );
