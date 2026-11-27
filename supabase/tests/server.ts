@@ -67,6 +67,8 @@ export interface Rasika {
   rasikaId: string;
   /** This rasika's phone. */
   deviceId: string;
+  /** For a second sign-in, as another device of the same account. */
+  password: string;
 }
 
 /** A new Supabase Auth user, signed in; the sign-in trigger has made their Rasika row. */
@@ -95,6 +97,7 @@ export async function signUp(
     userId: created.data.user.id,
     rasikaId: row.id,
     deviceId: randomUUID(),
+    password,
   };
 }
 

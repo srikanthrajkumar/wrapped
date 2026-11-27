@@ -22,7 +22,9 @@ table limits reads and writes to that rasika's own rows.
   is still signed in on return (FR-020).
 - A lost phone is revoked by signing out with scope `others` from another device (FR-021).
   Supabase's "single session per user" setting stays off; the writer claim below handles the
-  one writing device.
+  one writing device. The revocation takes effect at once: Supabase's access tokens stay valid
+  until they expire (an hour), so the pre-request check answers 401 `session_ended` to any
+  token whose session no longer exists (T109).
 - The phone asks supabase-js for a token only when syncing. Logging never checks the session.
 - A 401, or a session Supabase has ended, shows a non-blocking "sign in again" prompt. The
   phone MUST keep its outbox and local data (constitution I).
@@ -57,8 +59,8 @@ table limits reads and writes to that rasika's own rows.
 | Method and path | Body | Response |
 |---|---|---|
 | `GET /v1/me` | | `{ id, name, shareAdditions, seasonReports, writerDeviceId, deletionContact }` |
-| `PUT /v1/me/consent` | `{ shareAdditions?: boolean, seasonReports?: boolean }` | `200 { shareAdditions, seasonReports }`. Each change appends a Consent event |
-| `POST /v1/devices/claim` | `{ deviceId, label }` | `200 { writerDeviceId }`. Makes this device the writer (FR-022) |
+| `PUT /v1/me/consent` | `{ shareAdditions?: boolean, seasonReports?: boolean }` | `200 { shareAdditions, seasonReports }`. Each change appends a Consent event. A call that would take the day's changes past 50 gets `429 too_many_changes`; an unchanged value is always answered |
+| `POST /v1/devices/claim` | `{ deviceId, label }` | `200 { writerDeviceId }`. Makes this device the writer (FR-022). The server keeps the rasika's 20 most recently seen devices |
 
 ## Push
 
@@ -102,7 +104,27 @@ table limits reads and writes to that rasika's own rows.
   - an op the server can't read (an unknown table, a row without a uuid `id` or `eventId`, a
     `baseSeq` that isn't a whole number) is rejected `invalid_op`;
   - a live Appearance or Item needs a live Event of the same rasika, else `missing_event`. A
-    deleted one needs only the Event, since the phone deletes the children first.
+    deleted one needs only the Event, since the phone deletes the children first;
+  - a tombstone is stored without its note text (an Event's and an Item's `note`, an Item's
+    `layaVinyasam.note`), the free text that can identify a rasika: a note with text becomes
+    `""`, which is never longer, and an empty, null or absent one is left as it is. The deleting
+    phone keeps its own copy, so Undo pushes the note back with the restored row.
+- Limits, so one account can't fill the database (T109; outside voice 18). Each is a column of
+  the server's settings (`private.server_config`), changed by hand:
+  - a row over 64 KB as JSON, not counting `deletedAt` and `updatedAt`, is rejected
+    `invalid_op`, so a plain delete of a row at the limit still fits;
+  - a season is measured the same way for the total and for each op: each row's JSON text
+    without `deletedAt` and `updatedAt`, plus a fixed 128 bytes for those two. Each must be a
+    timestamp of at most 42 bytes as JSON, or null, else the op is rejected `invalid_op`. An op
+    that grows the season is rejected `invalid_op` unless it fits under 16 MB; one that doesn't
+    grow it is always accepted. A plain delete (only `deletedAt` and `updatedAt` change, and the
+    server empties the notes) never grows it, so a full season can always be tidied;
+  - only ops the server hasn't handled count toward 10,000 in 24 hours; a retried op is answered
+    from its first answer and never counts. A push stops at the first new op past the limit: the
+    ops before it are answered, it and the rest are left unanswered and stay queued. A push that
+    could answer nothing gets `429 too_many_ops` and nothing is applied;
+  - processed ops are kept for good, since a retry after a lost reply needs them however long
+    the phone was away. The day's op limit bounds their growth to about 2 MB a day per account.
 
 Responses:
 
@@ -112,6 +134,7 @@ Responses:
 | `401` | | Keeps the outbox; shows the sign-in prompt |
 | `400` | `{ "code": "bad_request", "message" }` | The request is malformed (no `ops` array, more than 200 ops, a `deviceId` or `opId` that isn't a uuid) and nothing was applied. Stops pushing and moves the batch's ops from the outbox into "needs attention" (code `bad_request`), kept across a relaunch and still counted as unsynced, with "try again" and "discard". Never retried with backoff: a retry would block the outbox behind one bad batch |
 | `409` | `{ "code": "not_writer", "details": "<writer device id>" }` | Stops pushing, keeps the outbox, tells the rasika and offers export or "Make this the writing device again", which claims the device and resumes pushing (Edge Cases, "Second device") |
+| `429` | `{ "code": "too_many_ops", "details": "<the day's limit>" }` | Stops this sync and keeps the outbox; the next sync tries again (a refusal, not retried in a loop) |
 | `5xx` or network error | | Retries with exponential backoff and jitter |
 
 A rejected op is recorded as processed so it is never retried in a loop, and its `code` is
@@ -129,11 +152,13 @@ rasika has since settled) never undoes what was settled after it.
 
 ## Errors
 
-A 409 or 426 is raised by the function with PostgREST's custom error, so its body has
-PostgREST's shape: `{ "code", "message", "details", "hint" }`, with `code` set to `not_writer`
-or `update_required`. PostgREST takes `details` only as a string, so it holds one plain value:
-the writer device's id for a 409 (null if no device has claimed yet), the minimum app version
-for a 426. A 401 is Supabase's API's own response to a missing or expired token.
+A 409, 426 or 429 is raised by the function with PostgREST's custom error, so its body has
+PostgREST's shape: `{ "code", "message", "details", "hint" }`, with `code` set to `not_writer`,
+`update_required`, `too_many_ops` or `too_many_changes`. PostgREST takes `details` only as a
+string, so it holds one plain value: the writer device's id for a 409 (null if no device has
+claimed yet), the minimum app version for a 426, the day's limit for a 429. A 401 is Supabase's
+API's own response to a missing or expired token, or the pre-request check's `session_ended` for
+a token whose session was signed out; the phone treats both alike.
 Every sync call has a 30 s deadline: unanswered by then, it is aborted and counts as a network
 failure, retried with backoff. A sync holds the cross-tab lock that a sign-in also takes, so a call
 that never settles must not hold it for ever. The server stops a statement after 8 s, and the
