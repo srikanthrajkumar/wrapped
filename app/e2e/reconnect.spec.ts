@@ -19,6 +19,7 @@ async function dropConnectionsOnDemand(page: Page): Promise<void> {
       failOpens?: boolean;
       hangOpens?: boolean;
       opens: number;
+      lastTransactionAt: number;
     };
     const lost = () =>
       new DOMException(
@@ -31,9 +32,11 @@ async function dropConnectionsOnDemand(page: Page): Promise<void> {
     IDBDatabase.prototype.transaction = function (this: IDBDatabase, ...args) {
       if (dropped.has(this)) throw lost();
       seen.add(this);
+      state.lastTransactionAt = performance.now();
       return transaction.apply(this, args);
     };
     state.opens = 0;
+    state.lastTransactionAt = 0;
     const open = IDBFactory.prototype.open;
     IDBFactory.prototype.open = function (this: IDBFactory, ...args) {
       if (state.failOpens) throw lost();
@@ -49,8 +52,30 @@ async function dropConnectionsOnDemand(page: Page): Promise<void> {
   });
 }
 
-const loseConnections = (page: Page) =>
-  page.evaluate(() => (window as unknown as { loseConnections: () => void }).loseConnections());
+/**
+ * Once the page's own reads have settled (no transaction for QUIET_MS), drop the connections
+ * open so far, so that the test's next step is what finds them lost. With `opens`, new opens are
+ * refused ('fail') or never answer ('hang') from that same moment: a read still running would
+ * otherwise find the connection lost and reopen it before a later step could stop the open
+ * (CI run 46003382830).
+ */
+const loseConnections = (page: Page, opens?: 'fail' | 'hang') =>
+  page.evaluate(async (opens) => {
+    const QUIET_MS = 300;
+    const state = window as unknown as {
+      loseConnections: () => void;
+      failOpens: boolean;
+      hangOpens: boolean;
+      lastTransactionAt: number;
+    };
+    const until = performance.now() + 5_000;
+    while (performance.now() - state.lastTransactionAt < QUIET_MS && performance.now() < until) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    if (opens === 'fail') state.failOpens = true;
+    if (opens === 'hang') state.hangOpens = true;
+    state.loseConnections();
+  }, opens);
 
 const opens = (page: Page) => page.evaluate(() => (window as unknown as { opens: number }).opens);
 
@@ -123,10 +148,7 @@ test('when no new connection opens, the rescue screen shows why, and the value i
   await dropConnectionsOnDemand(page);
   const tala = await newItem(page);
 
-  await loseConnections(page);
-  await page.evaluate(() => {
-    (window as unknown as { failOpens: boolean }).failOpens = true;
-  });
+  await loseConnections(page, 'fail');
   await tala.click();
   await page.getByRole('button', { name: 'Not applicable' }).click();
 
@@ -162,10 +184,7 @@ test('after the rescue screen, Try again opens the store, and the value entered 
   const [item] = await readTable<{ id: string }>(page, 'items');
 
   // Given up: the rescue screen, the value kept in the journal, the store untouched.
-  await loseConnections(page);
-  await page.evaluate(() => {
-    (window as unknown as { failOpens: boolean }).failOpens = true;
-  });
+  await loseConnections(page, 'fail');
   await tala.click();
   await page.getByRole('button', { name: 'Not applicable' }).click();
   await expect(page.getByRole('heading', { name: "Can't open your season" })).toBeVisible();
@@ -210,10 +229,7 @@ test('screens waiting on a new connection that never opens give way to the rescu
   await newItem(page);
   await page.getByRole('link', { name: 'Done' }).click();
 
-  await loseConnections(page);
-  await page.evaluate(() => {
-    (window as unknown as { hangOpens: boolean }).hangOpens = true;
-  });
+  await loseConnections(page, 'hang');
   // The next screen's reads find the connection lost, and the reopen never answers.
   await page.getByRole('link', { name: /^1/ }).click();
 
