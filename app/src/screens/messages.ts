@@ -38,6 +38,23 @@ export const MESSAGES = {
       `Saved on this phone · ${count} ${count === 1 ? 'change' : 'changes'} not yet backed up`,
     allSynced: 'All backed up',
   },
+  /**
+   * The Diary's Recap card and its sheet: a season summary from the rasika's own diary, not built
+   * yet (the Maintainer, 2026-11-27). Never "Wrapped" on screen; the public name is carnatic.live.
+   */
+  recap: {
+    title: 'Recap',
+    soon: 'Coming soon',
+    sheet: {
+      title: 'Coming soon',
+      lede: 'Recap will tell your season back to you, from your own diary:',
+      lines: [
+        'How many concerts you heard, and the sabhas you went to',
+        'The ragas and artists you heard most',
+        'Cards to share when the season ends',
+      ],
+    },
+  },
   /** The tab bar (the Maintainer, 2026-11-11). */
   tabs: { season: 'Season', shortlist: 'Shortlist', diary: 'Diary', settings: 'Settings' },
   /**

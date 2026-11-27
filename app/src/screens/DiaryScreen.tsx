@@ -1,7 +1,8 @@
 // The Diary (docs/designs/season-spine.md Part 8, cut to its list by the Maintainer on
 // 2026-11-11; DESIGN.md "Diary"): every concert the rasika has heard, newest first, under a
 // plain tab header, so each logged concert has a home now that the days gone left the strip.
-// Each row opens its Event. The Wrapped's stats and Cards come later, at its top.
+// Each row opens its Event. Once one is heard, the Recap card stands at its top: the season's
+// stats and Cards come later, and for now it says so.
 
 import { IconNotebook } from '@tabler/icons-react';
 import {
@@ -12,10 +13,11 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty';
 import { ConcertRow } from './components/ConcertRow';
+import { RecapCard } from './components/RecapCard';
 import { Panel, Screen, TabHeader, useKeptScroll } from './components/layout';
 import { dayText } from './format';
 import { MESSAGES } from './messages';
-import { diary, isoDay, owned } from './spine';
+import { diary, isoDay, owned, recapShows } from './spine';
 import { useSeason } from './use-season';
 
 export function DiaryScreen() {
@@ -36,6 +38,7 @@ function DiaryView() {
   return (
     <>
       {header}
+      {recapShows(data.summaries) && <RecapCard />}
       {heard.length === 0 ? (
         <Empty className="flex-1 pb-24">
           <EmptyHeader>

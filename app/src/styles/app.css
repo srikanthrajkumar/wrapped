@@ -154,6 +154,27 @@ main:has(~ footer [data-slot='bar-frame']:not([hidden])) {
   );
 }
 
+/* The Recap card's scrim (DESIGN.md "Diary"): the panel rising over Silk from the left, whole
+   behind the words and gone by 62% of the card's width, eased the same way. */
+@utility recap-scrim-side {
+  background-color: var(--panel);
+  mask-image: linear-gradient(
+    to right,
+    rgb(0 0 0 / 1) 0%,
+    rgb(0 0 0 / 0.993) 18%,
+    rgb(0 0 0 / 0.972) 21%,
+    rgb(0 0 0 / 0.896) 25.5%,
+    rgb(0 0 0 / 0.784) 30%,
+    rgb(0 0 0 / 0.648) 34.5%,
+    rgb(0 0 0 / 0.5) 39%,
+    rgb(0 0 0 / 0.352) 43.5%,
+    rgb(0 0 0 / 0.216) 48%,
+    rgb(0 0 0 / 0.104) 52.5%,
+    rgb(0 0 0 / 0.028) 57%,
+    rgb(0 0 0 / 0) 62%
+  );
+}
+
 /* Dark is the default theme; light is the rasika's choice in Settings (DESIGN.md "Colors"). */
 @custom-variant dark (&:is(.dark *));
 /* Hover styles only where a real pointer hovers, so a tap never leaves one stuck on. */
