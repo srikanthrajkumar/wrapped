@@ -172,6 +172,29 @@ test('storage the browser hasn’t promised to keep reads "Storage not protected
   ).toBeVisible();
 });
 
+test('"Send feedback" is a mailto: link with the version and the phone, and nothing else', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await finishFirstLaunch(page);
+  await openSettings(page);
+  const link = page.getByRole('link', { name: /^Send feedback/ });
+  await expect(link).toBeVisible();
+  await expect(link).toContainText('info@carnatic.live');
+  const { version } = JSON.parse(readFileSync('package.json', 'utf8')) as { version: string };
+  const href = new URL((await link.getAttribute('href'))!);
+  expect(href.protocol).toBe('mailto:');
+  expect(href.pathname).toBe('info@carnatic.live');
+  expect(href.searchParams.get('subject')).toBe('carnatic.live feedback');
+  // The phone's Safari, in a browser tab.
+  expect(href.searchParams.get('body')).toBe(
+    `\r\n\r\n\r\n—\r\ncarnatic.live ${version}\r\niPhone · Safari · browser tab`,
+  );
+  // It sits above the Maintainer's link, which still closes the rows.
+  const below = await page.getByRole('link', { name: 'Maintainer' }).boundingBox();
+  expect((await link.boundingBox())!.y).toBeLessThan(below!.y);
+});
+
 test.describe('the install row', () => {
   test('an iPhone browser tab shows Safari’s steps on every screen', async ({ page }) => {
     await newConcert(page);

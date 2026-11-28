@@ -222,14 +222,16 @@ test('Settings: groups on panels, rows at least 48px, Theme in body 600', async 
   await openSettings(page);
   await settled(page);
   const panels = page.locator('main [data-panel]');
-  await expect(panels).toHaveCount(2);
+  // The season, Send feedback, the Maintainer's link.
+  await expect(panels).toHaveCount(3);
   await onFillEdge(page, panels.first());
-  for (const row of await panels.first().locator('li').all()) {
+  for (const row of await page.locator('main [data-panel] li').all()) {
     expect((await box(row)).height).toBeGreaterThanOrEqual(48);
   }
   // A List row with a mark: its title at 56.
   const exportTitle = panels.first().getByText('Export', { exact: true });
   expect(Math.round((await box(exportTitle)).x)).toBe(56);
+  expect(Math.round((await box(page.getByText('Send feedback', { exact: true }))).x)).toBe(56);
   await strongLabel(page.getByText('Theme', { exact: true }));
   // The versions in `sub`.
   expect(await style(page.getByText(/^App /).locator('..'), 'font-size')).toBe('15px');

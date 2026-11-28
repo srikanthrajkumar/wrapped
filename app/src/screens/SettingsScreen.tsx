@@ -8,7 +8,8 @@
 // Account group after the theme holds who is signed in, "Sign out other devices", the deletion
 // contact, and a Privacy row to a page of its own with both consents (changeable at any time,
 // kept on the phone at once and sent at once; the Maintainer, 2026-11-25: not on Settings'
-// first view) (FR-021, FR-042, FR-046, FR-049).
+// first view) (FR-021, FR-042, FR-046, FR-049). "Send feedback" (2026-11-28), a mailto: row on its
+// own panel above the Maintainer's link.
 
 import {
   IconAlertCircle,
@@ -18,6 +19,7 @@ import {
   IconLoader2,
   IconLock,
   IconMail,
+  IconMessageCircle,
   IconPlaneTilt,
   IconShieldCheck,
   IconShieldExclamation,
@@ -42,6 +44,7 @@ import { APP_VERSION, exportSeason, useExportState } from './components/export-f
 import { ExportIcon } from './components/feedback';
 import { Panel, Screen, TabHeader, TopBar } from './components/layout';
 import { ListRowBody, ROW_SHAPE } from './components/rows';
+import { currentDeviceFacts, describeDevice, feedbackMailto } from './feedback-link';
 import { useSyncStatus } from './sync-status';
 import { shortDayText } from './format';
 import { MESSAGES } from './messages';
@@ -448,6 +451,22 @@ function SettingsView() {
         />
       </div>
       {AUTH_CONFIG && <AccountSection config={AUTH_CONFIG} />}
+      {/* Feedback on its own panel: a mailto: link, so no chevron (it opens the mail app, not a
+          page), with the inbox under it for a browser that has no mail app. */}
+      <Panel className="mt-8">
+        <li>
+          <a
+            href={feedbackMailto(APP_VERSION, describeDevice(currentDeviceFacts()))}
+            className={ROW_SHAPE}
+          >
+            <ListRowBody
+              mark={<IconMessageCircle aria-hidden className={ICON} />}
+              title={MESSAGES.feedback.title}
+              line={MESSAGES.feedback.address}
+            />
+          </a>
+        </li>
+      </Panel>
       {/* A List row on its own panel, with a chevron, as it opens a page; the versions close
           the page. */}
       <Panel className="mt-8">
