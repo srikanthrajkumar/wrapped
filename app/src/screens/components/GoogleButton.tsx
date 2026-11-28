@@ -7,6 +7,7 @@
 // Google is given its SHA-256, Supabase the nonce itself (store/auth.ts, googleNonce).
 
 import { useEffect, useEffectEvent, useRef } from 'react';
+import { cn } from '@/lib/utils';
 import { googleNonce } from '../../store/auth';
 import { useTheme } from '../../theme';
 
@@ -86,6 +87,7 @@ export function GoogleButton({
   text,
   size = 'large',
   attempt,
+  look,
   onCredential,
   onError,
 }: {
@@ -95,6 +97,8 @@ export function GoogleButton({
   size?: 'large' | 'medium';
   /** Changed to draw the button again with a fresh nonce, after a failed attempt. */
   attempt: number;
+  /** Google's own look for the button; by default it follows the theme. */
+  look?: 'outline' | 'filled_black';
   onCredential(credential: string, nonce: string): void;
   onError(error: unknown): void;
 }) {
@@ -124,7 +128,7 @@ export function GoogleButton({
         node.replaceChildren();
         google.renderButton(node, {
           type: 'standard',
-          theme: theme === 'dark' ? 'filled_black' : 'outline',
+          theme: look ?? (theme === 'dark' ? 'filled_black' : 'outline'),
           size,
           text,
           shape: 'pill',
@@ -143,13 +147,21 @@ export function GoogleButton({
     return () => {
       current = false;
     };
-  }, [clientId, text, size, theme, attempt]);
+  }, [clientId, text, size, theme, attempt, look]);
 
+  // Google draws its button in a frame whose page is light. In a dark page the browser would
+  // give that frame an opaque white backdrop (CSS Color Adjust: a frame whose colour scheme
+  // differs from its page's is painted opaque), which showed as a white box round the pill,
+  // 10px wider on each side, as Google's frame is. Light here matches Google's page, so the
+  // frame stays clear in either theme.
   return (
     <div
       ref={parent}
       data-google-button
-      className={size === 'large' ? 'flex w-full justify-center' : 'flex shrink-0'}
+      className={cn(
+        'scheme-light',
+        size === 'large' ? 'flex w-full justify-center' : 'flex shrink-0',
+      )}
     />
   );
 }

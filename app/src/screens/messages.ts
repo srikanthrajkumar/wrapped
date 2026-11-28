@@ -8,6 +8,8 @@ export const MESSAGES = {
     title: 'carnatic.live',
     sentence: 'Log your sabha hopping and get your Margazhi recapped.',
     action: 'Continue with Google',
+    // Under Google's button: what signing in is for.
+    reassure: 'Signing in keeps your diary backed up.',
   },
   signIn: {
     cancelled: 'Sign-in was cancelled. You need to sign in once before logging.',
