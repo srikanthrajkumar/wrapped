@@ -75,7 +75,7 @@ export function FirstLaunch() {
           steps, so it never restarts. */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-x-0 top-0 h-[calc(var(--app-height)*0.8)] overflow-hidden horizon-fade"
+        className="pointer-events-none fixed inset-x-column top-0 h-[calc(var(--app-height)*0.8)] overflow-hidden horizon-fade"
       >
         <Motif
           seed={{ kind: 'mark' }}

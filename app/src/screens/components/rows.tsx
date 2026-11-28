@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 
 /** The shape every row's target takes: 12px above and below, at least 48px, ring inside. */
 export const ROW_SHAPE =
-  'flex min-h-12 w-full min-w-0 items-center gap-2 py-3 text-left focus-visible:-outline-offset-2';
+  'row-hover flex min-h-12 w-full min-w-0 items-center gap-2 py-3 text-left focus-visible:-outline-offset-2';
 
 /**
  * A List row's text and its trailing slot, for the target that holds it (a button, a link).

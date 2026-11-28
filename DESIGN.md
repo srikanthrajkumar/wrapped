@@ -330,6 +330,31 @@ renderer (T088).
 
 Phone width only, one column, built at 390px and checked from 320px to 430px.
 
+- **A wide screen** (the Maintainer, 2026-11-28, after a council of three on three treatments):
+  on a laptop the app stays a phone. Wider than 600px, it is one 430px column, centred and full
+  height; it is not a desktop layout, with no second pane and no new screens. At 600px and
+  under nothing changes.
+  - One width, `--column` (430px). Everything fixed to the screen stands in from each side by
+    `--column-x` (`inset-x-column`): the bottom stack (the tab bar, a screen's action and search
+    bar, Undo bars, the sync prompt), the status band, first launch's Silk, and bottom sheets. A
+    dialog is no wider than the column less 16px each side. Only the dimmed scrim behind a
+    sheet or dialog covers the whole window.
+  - The column has a hairline edge (`--column-edge`); in light a soft shadow too, in dark none,
+    so the edge is a brighter hairline (Elevation & Depth).
+  - The sides are a quiet tint of the page, a step darker than the column: a neutral grey,
+    `oklch(0.94 0 0)`, in light, and `oklch(0.105 0.004 228.8)`, a step under the page, in dark.
+    Nothing is drawn on them. Plain near-black in both themes was harsh around the white light
+    column, and Silk across the sides competed with the column and spent rose on decoration
+    (the council, 2026-11-28: B picked by all three, overall 7.5 to 9).
+  - The window still scrolls, so a wheel or trackpad over the sides scrolls the page. Its own
+    scrollbar is hidden; the column draws a thin one inside its right edge, shown while the page
+    scrolls or the pointer is over the column, and draggable (`ColumnScrollbar`).
+  - Hover states only under `(hover: hover) and (pointer: fine)`, so a tap never leaves one
+    stuck on: a row takes the save highlight's shape, 8px past its text (`row-hover`); a filled
+    control takes a 6% tint of the text colour over its own fill (`fill-hover`); a tab that
+    isn't on brightens to the text colour; anything that acts shows the pointer.
+  - Checked by `e2e/wide.spec.ts` at 1440×900 and 1024×768.
+
 - **Larger text** (decided 2026-11-01): type sizes follow the phone's text setting up to 200%.
   The px values in this file are the sizes at the default setting; build them in `rem` from a
   root that follows the platform (on iOS, `font: -apple-system-body` on the root; Android
@@ -1573,3 +1598,4 @@ in the phase that builds it):
 | 2026-11-25 | The Maintainer: a concert under way reads "On now" for its first hour only ("1 hour as some cut off"), then "Started at 6:30 pm" until it is over, its dot kept: a time, not minutes ago, as its end may still be caught ("at 8:10 I could still catch a little of academy's last concert"). On the hub's rows of today and under a Shortlist slot's time; the hub's "3 on now", What's on's "On now" fold, the hero's "Now" and the dot's spoken "On now" are unchanged. With a Sabha past about 185px the facts now take a second line from an hour in. |
 | 2026-11-25 | The bottom stack sits on the screen's bottom edge. On the Maintainer's iPhone, in a Safari tab, it sat about 85pt up once Safari's toolbar had hidden, What's on's rows scrolling under the tab bar, and flickered as the page moved: Safari on iOS 26 leaves a sticky bottom where the toolbar's top was (Apple developer forums thread 801028). The user chose to keep the page scrolling as it does and pin the stack to the screen (`position: fixed`), a spacer keeping its height at the page's end; a frame where only the middle scrolls would have kept Safari's toolbar from ever hiding. |
 | 2026-11-25 | Undo only for whole things: Concert, Item, Artist, Shortlist (the Maintainer, 2026-11-25: "remove the undo sonner on layavinyasam, manodharma etc. Kinda annoying. It's okay if they lose it out."). A Raga, a Manodharma part turned off, a part's own Ragas ("Remove", "Use the Item’s Raga only"), a nadai, the Layavinyasam, and a title taken by a change to Concert (a kind change or "Take it", T122) save at once, journalled as before, with no Undo bar. A piece or title Undo kept on a phone by an earlier build is dropped quietly. |
+| 2026-11-28 | A wide screen stays a phone: over 600px, one centred 430px column (`--column`) with everything fixed kept inside it, the sides a quiet tint of the page a step darker than the column (B of three, the council unanimous; near-black and Silk rejected), the column's own thin scrollbar, and hover states for a mouse only. Not a desktop layout. |

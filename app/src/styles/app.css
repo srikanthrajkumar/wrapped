@@ -377,6 +377,136 @@ main:has(~ footer [data-slot='bar-frame']:not([hidden])) {
   --motif-far: oklch(0.8 0 0);
 }
 
+/* A wide screen (DESIGN.md "Layout", "A wide screen"): over 600px the app stays a phone, one
+   430px column centred on the window, with the sides as background. `--column` is the one
+   width; `--column-x` is how far the column stands in from each side of the window (0 on a
+   phone), and everything fixed to the screen takes it as its left and right (`inset-x-column`),
+   so the tab bar, the bottom stack, sheets and the status band stay inside the column. Its `%`
+   resolves where it is used: on a fixed element, against the window. */
+:root {
+  --column: 430px;
+  --column-x: 0px;
+}
+
+@utility inset-x-column {
+  left: var(--column-x);
+  right: var(--column-x);
+}
+
+@media (width > 600px) {
+  :root {
+    --column-x: max(0px, calc((100% - var(--column)) / 2));
+  }
+
+  /* The window's scrollbar would stand at the window's edge, far from the column; the column
+     draws its own, inside its edge (ColumnScrollbar). The window still scrolls, so a wheel or a
+     trackpad over the sides scrolls the page. */
+  html {
+    scrollbar-width: none;
+  }
+
+  html::-webkit-scrollbar {
+    display: none;
+  }
+
+  #root {
+    position: relative;
+    width: var(--column);
+    margin-inline: auto;
+    background-color: var(--background);
+    /* A hairline and a soft shadow, so the column reads as a device on the sides. */
+    box-shadow:
+      0 0 0 1px var(--column-edge),
+      var(--column-shadow);
+  }
+
+  /* The sides, behind everything: a quiet tint of the page, a step darker than the column (the
+     Maintainer's pick, 2026-11-28). The body's own page colour would paint over them; the
+     column paints it instead. */
+  html body {
+    background-color: transparent;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background-color: var(--sides);
+  }
+}
+
+/* The column's edge and shadow, and the sides: in light a neutral grey under the white page; in
+   dark a step under the page's own colour, with no shadow (DESIGN.md "Elevation & Depth"), so a
+   brighter hairline holds the edge. */
+:root {
+  --column-edge: var(--border);
+  --column-shadow: 0 0 24px rgb(0 0 0 / 0.08);
+  --sides: oklch(0.94 0 0);
+}
+
+.dark {
+  --column-edge: oklch(1 0 0 / 12%);
+  --column-shadow: 0 0 transparent;
+  --sides: oklch(0.105 0.004 228.8);
+}
+
+/* The column's scrollbar shows while the page scrolls (and, with a mouse, while the pointer is
+   over the column), as an overlay scrollbar does, and fades out after. */
+[data-column-scrollbar] > div {
+  opacity: 0;
+  transition:
+    opacity 300ms ease-out,
+    background-color 100ms ease-out,
+    width 100ms ease-out;
+}
+
+[data-column-scrollbar][data-scrolling] > div,
+[data-column-scrollbar] > div[data-dragging] {
+  opacity: 1;
+  transition-duration: 100ms;
+}
+
+/* Hover, only where a real pointer hovers (the `hover` variant's media): a row takes the save
+   highlight's shape, 8px past its text on each side; a plain control takes a tint over its own
+   fill. shadcn's buttons have their own. */
+@media (hover: hover) and (pointer: fine) {
+  :is(button, [role='button'], a[href]):not(:disabled, [aria-disabled='true']) {
+    cursor: pointer;
+  }
+
+  .row-hover {
+    position: relative;
+  }
+
+  .row-hover::after {
+    content: '';
+    position: absolute;
+    inset: 0 -8px;
+    border-radius: var(--radius-xl);
+    background-color: color-mix(in oklch, var(--foreground) 6%, transparent);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 100ms ease-out;
+  }
+
+  .row-hover:hover::after {
+    opacity: 1;
+  }
+
+  #root:hover [data-column-scrollbar] > div {
+    opacity: 1;
+    transition-duration: 100ms;
+  }
+
+  .fill-hover:hover {
+    background-image: linear-gradient(
+      color-mix(in oklch, var(--foreground) 6%, transparent),
+      color-mix(in oklch, var(--foreground) 6%, transparent)
+    );
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
