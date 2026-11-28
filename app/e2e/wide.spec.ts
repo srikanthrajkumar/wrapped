@@ -1,5 +1,6 @@
 import { devices, expect, test, type Locator, type Page } from '@playwright/test';
-import { finishFirstLaunch } from './helpers';
+import sharp from 'sharp';
+import { finishFirstLaunch, tab } from './helpers';
 
 // A wide screen (DESIGN.md "Layout", "A wide screen"): over 600px the app stays a phone, one
 // 430px column centred on the window, and everything that floats (the tab bar, a bottom sheet,
@@ -112,7 +113,54 @@ for (const viewport of [
         await page.evaluate(() => getComputedStyle(document.documentElement).scrollbarWidth),
       ).toBe('none');
     });
+
+    test('the sides are one even tint, the whole page down, at any scroll, on every tab', async ({
+      page,
+    }) => {
+      await page.goto('/');
+      await finishFirstLaunch(page);
+      const box = await column(page);
+      // Halfway across the left side, and the right.
+      const sides = [Math.round(box.x / 2), Math.round(box.x + box.width + box.x / 2)];
+      for (const name of ['Season', 'Shortlist', 'Diary', 'Settings']) {
+        await tab(page, name).click();
+        await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
+        // Each tab made three windows tall, so the page scrolls.
+        await page.evaluate((height) => {
+          const room = document.createElement('div');
+          room.style.height = `${height * 3}px`;
+          document.querySelector('main')!.append(room);
+        }, viewport.height);
+        // The whole page in one picture (a full-page capture, as a laptop's screenshot tool
+        // takes it), and the window scrolled to the foot: the sides never change tone.
+        const tones = [
+          ...(await tonesDown(await page.screenshot({ fullPage: true }), sides)),
+          ...(await page
+            .evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+            .then(async () => tonesDown(await page.screenshot(), sides))),
+        ];
+        expect(new Set(tones), `${name}: ${[...new Set(tones)].join(' | ')}`).toEqual(
+          new Set([tones[0]]),
+        );
+        // And that tone is the sides' tint, a step from the column's page colour.
+        const columnTone = (await tonesDown(await page.screenshot(), [box.x + 8]))[0];
+        expect(tones[0]).not.toBe(columnTone);
+        await page.evaluate(() => window.scrollTo(0, 0));
+      }
+    });
   });
+}
+
+/** The colour at each of `xs`, every 50px down a screenshot. */
+async function tonesDown(png: Buffer, xs: number[]): Promise<string[]> {
+  const { data, info } = await sharp(png).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const tones: string[] = [];
+  for (let y = 0; y < info.height; y += 50)
+    for (const x of xs) {
+      const at = (y * info.width + x) * 3;
+      tones.push(`${data[at]},${data[at + 1]},${data[at + 2]}`);
+    }
+  return tones;
 }
 
 test.describe('on a phone', () => {

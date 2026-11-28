@@ -24,7 +24,7 @@ export function homeTab(path: string): Tab | null {
   if (path.startsWith('/event/')) return null;
   if (path === TAB_ROOT.shortlist) return 'shortlist';
   if (path === TAB_ROOT.diary) return 'diary';
-  // Settings, and the pages under it: Privacy, the Maintainer's review.
+  // Settings, and the pages under it: Account and its Privacy, the Maintainer's review.
   if (path === TAB_ROOT.settings || path.startsWith('/settings/') || path === '/admin') {
     return 'settings';
   }
@@ -35,7 +35,9 @@ export function homeTab(path: string): Tab | null {
 export function level(path: string): number {
   if (path.startsWith('/event/')) return path.includes('/item/') ? 4 : 3;
   if (Object.values(TAB_ROOT).includes(path)) return 0;
-  return path === '/admin' || path.startsWith('/settings/') ? 2 : 1;
+  // A page under Settings is one deeper for each step down: Account, then its Privacy.
+  if (path.startsWith('/settings/')) return path.split('/').length - 1;
+  return path === '/admin' ? 2 : 1;
 }
 
 export interface NavState {

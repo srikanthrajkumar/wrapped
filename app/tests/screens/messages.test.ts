@@ -59,7 +59,9 @@ function produced(): Set<string> {
   const days = [MESSAGES.lastExport('2 Nov')];
   // What was typed, as the table shows it.
   const typed = [MESSAGES.search.nothingMatches('…')];
-  return new Set([...all, ...fromStrings, ...twoValues, ...days, ...typed]);
+  // The deletion contact the server gives, as the table shows it.
+  const contact = [MESSAGES.account.deleteLine('privacy@carnatic.live')];
+  return new Set([...all, ...fromStrings, ...twoValues, ...days, ...typed, ...contact]);
 }
 
 describe('messages.ts', () => {

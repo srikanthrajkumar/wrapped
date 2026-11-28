@@ -67,7 +67,7 @@ export default defineConfig({
   projects: [
     {
       name: 'restore',
-      testMatch: ['restore.spec.ts', 'consent-not-writer.spec.ts'],
+      testMatch: ['restore.spec.ts', 'consent-not-writer.spec.ts', 'account.spec.ts'],
       use: { baseURL: `http://localhost:${port}` },
     },
     {

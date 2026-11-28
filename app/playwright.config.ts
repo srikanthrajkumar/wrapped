@@ -30,6 +30,7 @@ export default defineConfig({
         'restore.spec.ts',
         'google-sign-in.spec.ts',
         'consent-not-writer.spec.ts',
+        'account.spec.ts',
       ],
     },
     // The iPhone's own engine, for what shows frame by frame (the bottom bar). Opt in with

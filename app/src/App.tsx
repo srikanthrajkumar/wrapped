@@ -28,6 +28,8 @@ import {
 import { Placeholder } from './screens/Placeholder';
 import {
   preloadSettings,
+  ACCOUNT_PATH,
+  AccountScreen,
   PRIVACY_PATH,
   PrivacyScreen,
   SettingsScreen,
@@ -298,8 +300,15 @@ export function App() {
               <Route path="/settings">
                 <SettingsScreen />
               </Route>
+              <Route path={ACCOUNT_PATH}>
+                <AccountScreen />
+              </Route>
               <Route path={PRIVACY_PATH}>
                 <PrivacyScreen />
+              </Route>
+              {/* Privacy's place before it moved under Account (2026-11-28). */}
+              <Route path="/settings/privacy">
+                <Redirect to={PRIVACY_PATH} replace />
               </Route>
               <Route path="/admin">
                 <Placeholder title="Review" back="/settings" />
