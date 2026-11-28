@@ -294,11 +294,12 @@ function NewItem({ eventId }: { eventId: string }) {
   const failedLabel =
     failed && failed.status !== 'saved' ? (failed.value as { label?: string }).label : undefined;
   return (
-    // As tall as the screen above the keyboard: the page's 24px of scroll room is taken back.
+    // As tall as the screen above the keyboard and the footer's foot (`--foot-room`): the page's
+    // 24px of scroll room is taken back.
     <div
       className="-mb-6 flex flex-col pb-2"
       style={{
-        height: `calc(var(--app-height) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - ${inset}px)`,
+        height: `calc(var(--app-height) - env(safe-area-inset-top) - var(--foot-room) - ${inset}px)`,
       }}
     >
       {/* Backing out discards what was typed (design D12). */}

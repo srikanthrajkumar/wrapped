@@ -237,3 +237,141 @@ test('after a search, with the field gone, the bottom stack is back on the botto
   await page.evaluate((by) => window.scrollBy(0, by), 300);
   await expect.poll(() => footerLift(page)).toBe(0);
 });
+
+// The room under the tabs for the home indicator (the Maintainer's iPhone, Chrome, 2026-11-28).
+// In a browser tab the bottom inset is 0 while the toolbar shows and 34pt once it hides, flipped
+// in one step: the whole of it left a tall empty band under the tabs, and a jump between the
+// two. A tab keeps half and glides; the installed app keeps all of it. No browser here hides a
+// toolbar or has a home indicator: Chromium is given the inset (DevTools' safe-area override),
+// and WebKit, which has no override, the half a tab leaves of it (`--foot-room`).
+
+type Foot = {
+  /** How far the stack's foot is from the screen's. */
+  lift: number;
+  /** The room under the tabs. */
+  room: number;
+  /** How far the tabs' words end above the screen's foot. */
+  words: number;
+  footer: number;
+  spacer: number;
+};
+
+const readFoot = () => {
+  const footer = document.querySelector('footer')!;
+  const tabs = footer.querySelector<HTMLElement>('nav[aria-label="Main"]')!;
+  const words = Math.max(
+    ...[...tabs.querySelectorAll('a')].map((link) => {
+      const range = document.createRange();
+      range.selectNodeContents(link);
+      return range.getBoundingClientRect().bottom;
+    }),
+  );
+  return {
+    lift: Math.round(window.innerHeight - footer.getBoundingClientRect().bottom),
+    room: parseFloat(getComputedStyle(tabs).paddingBottom),
+    words: window.innerHeight - words,
+    footer: footer.offsetHeight,
+    spacer: document.querySelector<HTMLElement>('[data-footer-room]')!.offsetHeight,
+  };
+};
+
+async function bottomInset(page: Page, bottom: number) {
+  if (page.context().browser()?.browserType().name() === 'chromium') {
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Emulation.setSafeAreaInsetsOverride' as never, { insets: { bottom } } as never);
+  } else {
+    await page.evaluate(
+      (room) => document.documentElement.style.setProperty('--foot-room', `${room}px`),
+      bottom / 2,
+    );
+  }
+}
+
+/** The tabs' glide, slowed to 10s so it can be held halfway whatever the machine's load. */
+async function slowGlide(page: Page) {
+  const tabs = page.getByRole('navigation', { name: 'Main' });
+  // At its own pace first: 200ms, the app's grow.
+  expect(await tabs.evaluate((t) => getComputedStyle(t).transitionDuration)).toBe('0.2s');
+  await page.addStyleTag({
+    content: 'nav[aria-label="Main"] { transition-duration: 10s !important; }',
+  });
+}
+
+/** The glide the last change began, held halfway: the foot there, and once it ends. */
+async function holdHalfway(page: Page): Promise<{ half: Foot; end: Foot }> {
+  await page.evaluate(`window.readFoot = ${readFoot.toString()}`);
+  return page.evaluate(async () => {
+    const w = window as unknown as { readFoot: () => Foot };
+    const frame = () => new Promise((done) => requestAnimationFrame(done));
+    // The page's room follows the stack's on the frames after (WebKit's lag a few under load).
+    const settled = async () => {
+      for (let i = 0; i < 60; i++) {
+        await frame();
+        const foot = w.readFoot();
+        if (foot.spacer === foot.footer) return foot;
+      }
+      return w.readFoot();
+    };
+    const tabs = document.querySelector<HTMLElement>('nav[aria-label="Main"]')!;
+    const glide = tabs
+      .getAnimations()
+      .find((a) => (a as CSSTransition).transitionProperty === 'padding-bottom');
+    if (!glide) throw new Error('no glide');
+    glide.pause();
+    glide.currentTime = 5000;
+    const half = await settled();
+    glide.finish();
+    return { half, end: await settled() };
+  });
+}
+
+/** Halfway the room is between `from` and `to`, the stack on the bottom edge, the words over it. */
+function expectGlide({ half, end }: { half: Foot; end: Foot }, from: number, to: number) {
+  for (const f of [half, end]) {
+    expect(f.lift).toBe(0);
+    expect(f.words).toBeGreaterThan(f.room);
+    // The page keeps the stack's room, mid-glide too.
+    expect(f.spacer).toBe(f.footer);
+  }
+  expect(half.room).toBeGreaterThan(Math.min(from, to));
+  expect(half.room).toBeLessThan(Math.max(from, to));
+  expect(end.room).toBe(to);
+}
+
+test('in a browser tab the room under the tabs is half the inset, and glides as the toolbar hides and shows', async ({
+  page,
+}) => {
+  await openLongWhatsOn(page);
+  await page.evaluate((by) => window.scrollBy(0, by), 600);
+  await expect.poll(() => page.evaluate(readFoot).then((f) => f.room)).toBe(0);
+  await slowGlide(page);
+
+  // The toolbar hides: the screen grows by its height and the inset comes in one step.
+  const size = page.viewportSize()!;
+  await page.setViewportSize({ width: size.width, height: size.height + 85 });
+  await bottomInset(page, 34);
+  const hide = await holdHalfway(page);
+  expectGlide(hide, 0, 17);
+  // Clear of the home indicator (its top about 13pt over the screen's foot).
+  expect(hide.end.words).toBeGreaterThanOrEqual(20);
+
+  // The toolbar shows again.
+  await page.setViewportSize(size);
+  await bottomInset(page, 0);
+  expectGlide(await holdHalfway(page), 17, 0);
+});
+
+test('the installed app keeps the whole inset under its tabs, with nothing to glide', async ({
+  page,
+  browserName,
+}) => {
+  test.skip(browserName !== 'chromium', 'only Chromium can be given an inset');
+  await openLongWhatsOn(page);
+  await page.evaluate(() => document.documentElement.setAttribute('data-ios-app', ''));
+  const tabs = page.getByRole('navigation', { name: 'Main' });
+  expect(await tabs.evaluate((t) => getComputedStyle(t).transitionDuration)).toBe('0s');
+  await bottomInset(page, 34);
+  await expect.poll(() => page.evaluate(readFoot)).toMatchObject({ room: 34, lift: 0 });
+  const foot = await page.evaluate(readFoot);
+  expect(foot.spacer).toBe(foot.footer);
+});
