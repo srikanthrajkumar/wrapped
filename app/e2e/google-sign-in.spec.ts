@@ -56,6 +56,11 @@ test('Google’s button signs in in the background, with the nonce hashed for Go
   const origin = new URL(page.url()).origin;
   const google = page.locator('[data-google-button]');
   await expect(google.getByRole('button', { name: 'Continue with Google' })).toBeVisible();
+  // Google draws its button in a frame holding a light page. On the dark page its holder is
+  // light too: a frame whose colour scheme differs from its page's gets an opaque backdrop,
+  // which showed as a white box round the button (2026-11-28).
+  await expect(page.locator('html')).toHaveCSS('color-scheme', 'dark');
+  await expect(google).toHaveCSS('color-scheme', 'light');
   const [first] = await page.evaluate(() => (window as unknown as { gisInits: Init[] }).gisInits);
   expect(first!.clientId).toBe(STAND_IN_GOOGLE_CLIENT_ID);
   expect(first!.nonce).toMatch(/^[0-9a-f]{64}$/);

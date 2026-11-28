@@ -7,6 +7,7 @@
 // Google is given its SHA-256, Supabase the nonce itself (store/auth.ts, googleNonce).
 
 import { useEffect, useEffectEvent, useRef } from 'react';
+import { cn } from '@/lib/utils';
 import { googleNonce } from '../../store/auth';
 import { useTheme } from '../../theme';
 
@@ -145,11 +146,19 @@ export function GoogleButton({
     };
   }, [clientId, text, size, theme, attempt]);
 
+  // Google draws its button in a frame whose page is light. In a dark page the browser would
+  // give that frame an opaque white backdrop (CSS Color Adjust: a frame whose colour scheme
+  // differs from its page's is painted opaque), which showed as a white box round the pill,
+  // 10px wider on each side, as Google's frame is. Light here matches Google's page, so the
+  // frame stays clear in either theme.
   return (
     <div
       ref={parent}
       data-google-button
-      className={size === 'large' ? 'flex w-full justify-center' : 'flex shrink-0'}
+      className={cn(
+        'scheme-light',
+        size === 'large' ? 'flex w-full justify-center' : 'flex shrink-0',
+      )}
     />
   );
 }
