@@ -19,6 +19,7 @@ import { db as defaultDb, type WrappedDB } from './db';
 import { eventStart, readLoggingNotes } from './logging-note';
 import { countUnsynced } from './outbox';
 import { listReceipts } from './receipts';
+import { readGeneration, remember, useSeenLiveQuery } from './seen';
 import {
   accompanying,
   byStage,
@@ -245,7 +246,7 @@ export async function listSeasonRagaKeys(db: WrappedDB = defaultDb): Promise<str
 }
 
 export function useSeasonRagaKeys() {
-  return useLiveQuery(() => listSeasonRagaKeys());
+  return useSeenLiveQuery('seasonRagaKeys', () => listSeasonRagaKeys());
 }
 
 /** An Event's live Appearances in Stage order (store/stage.ts), each with its Artist resolved. */
@@ -299,28 +300,22 @@ export function useItem(id: string | null, { withDeleted = false } = {}) {
   }, [id, withDeleted]);
 }
 
-// The last value read for each `meta` key, so a screen drawn again shows it from its first
-// frame rather than one read later (walkthrough P10: Settings' rows popped in and moved Export).
-const metaSeen = new Map<string, unknown>();
-
+// The last value read for each `meta` key is kept (store/seen.ts), so a screen drawn again
+// shows it from its first frame rather than one read later (walkthrough P10: Settings' rows
+// popped in and moved Export).
 async function readMeta(key: string): Promise<unknown> {
-  const value = (await defaultDb.meta.get(key))?.value ?? null;
-  metaSeen.set(key, value);
-  return value;
+  return (await defaultDb.meta.get(key))?.value ?? null;
 }
 
 /** One `meta` row's value, null when there is none; the last value read until it answers. */
 export function useMeta<T>(key: string): T | null | undefined {
-  return useLiveQuery(
-    () => readMeta(key) as Promise<T | null>,
-    [key],
-    metaSeen.get(key) as T | null | undefined,
-  );
+  return useSeenLiveQuery(`meta:${key}`, () => readMeta(key) as Promise<T | null>);
 }
 
 /** Read `meta` rows ahead, so the screen that shows them draws them at once. */
 export async function preloadMeta(keys: readonly string[]): Promise<void> {
-  await Promise.all(keys.map(readMeta));
+  const readIn = readGeneration();
+  await Promise.all(keys.map(async (key) => remember(`meta:${key}`, await readMeta(key), readIn)));
 }
 
 /** Writes not yet on the server (FR-016): the outbox and "needs attention" (store/outbox.ts). */
@@ -431,8 +426,11 @@ export async function listEventSummaries(db: WrappedDB = defaultDb): Promise<Eve
   });
 }
 
+// The Season's queries start from what they last read (store/seen.ts): the four Season
+// screens share them, so moving between the tabs draws each one whole on its first frame.
+
 export function useEventSummaries() {
-  return useLiveQuery(() => listEventSummaries());
+  return useSeenLiveQuery('eventSummaries', () => listEventSummaries());
 }
 
 /** A Schedule entry as What's on lists it, with the rasika's live Event made from it, if any. */
@@ -472,12 +470,12 @@ export async function listSchedule(
 }
 
 export function useSchedule(from: string) {
-  return useLiveQuery(() => listSchedule(from), [from]);
+  return useSeenLiveQuery(`schedule:${from}`, () => listSchedule(from));
 }
 
 /** The per-phone logging notes, for the Now selector. */
 export function useLoggingNotes() {
-  return useLiveQuery(() => readLoggingNotes());
+  return useSeenLiveQuery('loggingNotes', () => readLoggingNotes());
 }
 
 /** An Event's receipts for "Recently deleted" in its "⋯" menu. */

@@ -27,6 +27,7 @@ import type {
 import { APP_VERSION_HEADER, RASIKA_TABLES } from '../model';
 import { ACCOUNT_KEYS, hasPendingConsent, sendConsent } from './account';
 import { db as defaultDb, type WrappedDB } from './db';
+import { forgetSeen } from './seen';
 import { LAST_SYNCED_KEY, PULL_CURSOR_KEY, syncLockName, webLock, type SyncLock } from './sync';
 import { rpcSyncApi, SyncError, type RpcClient, type SyncApi } from './sync-api';
 
@@ -218,6 +219,7 @@ export async function recordIdentity(
     db.serverSeqs,
     ...RASIKA_TABLES.map((t) => db.table(t)),
   ];
+  let switched = false;
   await lock(syncLockName(db), () =>
     db.transaction('rw', tables, async () => {
       const current = await readIdentity(db);
@@ -233,6 +235,7 @@ export async function recordIdentity(
         // both questions afresh, and nothing the last one answered is ever sent as the new
         // one's (FR-042, FR-049).
         await db.meta.bulkDelete([...ACCOUNT_KEYS]);
+        switched = true;
       }
       await db.meta.put({ key: IDENTITY_KEY, value: identity });
       // As auth-js stores it, for the phone's client to find (supabaseClient).
@@ -244,6 +247,8 @@ export async function recordIdentity(
       }
     }),
   );
+  // What the screens last showed was the last account's: none of it is drawn for this one.
+  if (switched) forgetSeen();
 }
 
 interface SignedInUser {

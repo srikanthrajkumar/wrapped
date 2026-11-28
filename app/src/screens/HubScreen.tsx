@@ -71,12 +71,17 @@ import { startWhatsOnAt } from './WhatsOnScreen';
 function SeasonArt() {
   const keys = useSeasonRagaKeys();
   const catalog = useCatalog();
+  // It fades in when it comes after the page; back on the tab it is there from the first frame.
+  const [fade] = useState(() => keys === undefined || catalog.status === 'loading');
   if (keys === undefined || catalog.status === 'loading') return null;
   const ragas = ragaSeeds(keys, catalog.status === 'ready' ? catalog.catalog : null);
   return (
     <Motif
       seed={{ kind: 'season', ragas }}
-      className="size-full animate-in duration-300 fade-in motion-reduce:animate-none"
+      className={cn(
+        'size-full',
+        fade && 'animate-in duration-300 fade-in motion-reduce:animate-none',
+      )}
     />
   );
 }
