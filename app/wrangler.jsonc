@@ -4,8 +4,9 @@
   "$schema": "../node_modules/wrangler/config-schema.json",
   "name": "wrapped",
   "compatibility_date": "2026-10-26",
-  // The test address, wrapped.<account subdomain>.workers.dev, kept beside the real one.
-  "workers_dev": true,
+  // Production answers only on carnatic.live: no wrapped.<account subdomain>.workers.dev address,
+  // so nobody takes it for staging (below). Turning it off unpublishes that address.
+  "workers_dev": false,
   // The real address (T054b). A Custom Domain: Cloudflare makes its DNS record and certificate.
   // Each origin keeps its own phone store, so rasikas must only ever be sent here. Keep the
   // entry on one line: tools/deploy/deploy.sh reads it, and refuses to deploy here without the
@@ -16,5 +17,15 @@
     // A path that is no file (a wouter route such as /event/…) gets index.html with a 200. Once
     // installed, the service worker answers navigations from its precache before this is asked.
     "not_found_handling": "single-page-application",
+  },
+  "env": {
+    // Staging (docs/setup/staging.md): a second Worker, wrapped-staging.<account subdomain>.
+    // workers.dev, with no route and no custom domain. `deploy.sh --staging` deploys it, built
+    // exactly like production and on the same personal-data project. Never send rasikas here.
+    "staging": {
+      "name": "wrapped-staging",
+      "workers_dev": true,
+      "routes": [],
+    },
   },
 }

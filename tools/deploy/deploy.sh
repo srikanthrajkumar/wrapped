@@ -5,15 +5,20 @@
 # the Maintainer's own sign-in (`npx wrangler login`, or CLOUDFLARE_API_TOKEN in their shell).
 #
 # Usage, from the repository root:
-#   tools/deploy/deploy.sh <snapshot.json> [--dry-run] [--without-golden-set]
+#   tools/deploy/deploy.sh <snapshot.json> [--staging] [--dry-run] [--without-golden-set]
 #
+#   --staging             deploy to the staging Worker, wrapped-staging on workers.dev, instead of
+#                         carnatic.live (docs/setup/staging.md). Built and checked exactly the same
+#                         way, with the same server settings; only the Worker differs, and its
+#                         build sends noindex (tools/deploy/noindex.sh)
 #   --dry-run             everything but the upload: build, check, then `wrangler deploy --dry-run`
 #   --without-golden-set  deploy although the golden set (T027) fails; said again at the end
 #
 # The uploaded build gets the personal-data project's address and public key, and Google's web
 # client ID (sign-in and sync, T111), from ~/.config/wrapped/server.env, outside the repository (tools/deploy/server-env.sh;
 # docs/setup/production.md). While app/wrangler.jsonc puts the Worker on a custom domain, a real
-# deploy stops without that file: rasikas there must be able to sign in. Values are never printed.
+# deploy stops without that file: rasikas there must be able to sign in. So does a real staging
+# deploy, which is there to check the build carnatic.live would get. Values are never printed.
 set -euo pipefail
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$root"
@@ -26,10 +31,16 @@ source "$root/tools/deploy/server-env.sh"
 # without it, so they never reach the real project.
 public_data_url="https://zddeaewyohognvbbazdl.supabase.co"
 
+# The staging Worker (env.staging in app/wrangler.jsonc): workers.dev only, never a domain.
+staging_host="wrapped-staging.srikanthrajkumar26.workers.dev"
+
+staging=false
+staging_line=""
 stop() {
   echo >&2
   echo "deploy: stopped. $1" >&2
   echo "deploy: nothing was deployed." >&2
+  [[ "$staging" == false ]] || echo "$staging_line" >&2
   exit 1
 }
 step() { printf '\n== %s\n' "$1"; }
@@ -43,6 +54,7 @@ without_golden=false
 for arg in "$@"; do
   case "$arg" in
     --dry-run) dry_run=true ;;
+    --staging) staging=true ;;
     --without-golden-set) without_golden=true ;;
     -*) stop "unknown option $arg." ;;
     *)
@@ -51,6 +63,22 @@ for arg in "$@"; do
       ;;
   esac
 done
+
+# The custom domain app/wrangler.jsonc puts the production Worker on, if any (T054b).
+production_domain="$(grep -oE '"pattern": *"[^"]+", *"custom_domain": *true' app/wrangler.jsonc |
+  head -1 | cut -d'"' -f4 || true)"
+if [[ "$staging" == true ]]; then
+  # Said first and last, so no one takes this deploy for carnatic.live's.
+  staging_line="Staging: $staging_host (not ${production_domain:-production})"
+  echo "$staging_line"
+  echo
+  domain=""
+  wrangler_env=(--env staging)
+else
+  domain="$production_domain"
+  # The top-level Worker, named, so wrangler never has to guess between it and staging.
+  wrangler_env=(--env "")
+fi
 [[ -n "$snapshot" ]] ||
   stop "give the snapshot to deploy, e.g. /opt/carnatic/logger/pipeline/karnatik/catalog-snapshots/catalog.<hash>.json"
 [[ -f "$snapshot" ]] || stop "no snapshot at $snapshot."
@@ -60,10 +88,6 @@ file="$(basename "$snapshot")"
 version="$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).version ?? "")' "$snapshot")" ||
   stop "$file is not valid JSON."
 [[ -n "$version" ]] || stop "$file has no version."
-
-# The custom domain app/wrangler.jsonc puts the Worker on, if any (T054b).
-domain="$(grep -oE '"pattern": *"[^"]+", *"custom_domain": *true' app/wrangler.jsonc |
-  head -1 | cut -d'"' -f4 || true)"
 
 # The checks build without the server, but Vite still reads app/.env*. A hosted project there
 # would let the tests reach it; production settings belong only in the server file.
@@ -80,6 +104,8 @@ elif [[ -f "$server_env_file" ]]; then
   stop "the server settings are wrong: $server_env_error"
 elif [[ -n "$domain" && "$dry_run" == false ]]; then
   stop "no server settings at $server_env_file. This deploy would also serve $domain, where rasikas must be able to sign in. Set them up (docs/setup/production.md), or use --dry-run."
+elif [[ "$staging" == true && "$dry_run" == false ]]; then
+  stop "no server settings at $server_env_file. Staging is built like ${production_domain:-production}, sign-in and all. Set them up (docs/setup/production.md), or use --dry-run."
 fi
 
 commit="$(git rev-parse --short HEAD)"
@@ -93,7 +119,11 @@ if [[ "$server" == true ]]; then
 else
   echo "Server:   none. This build has no sign-in or sync."
 fi
-echo "Domain:   ${domain:-none, workers.dev only}"
+if [[ "$staging" == true ]]; then
+  echo "Worker:   wrapped-staging (staging), at https://$staging_host only"
+else
+  echo "Domain:   ${domain:-none, workers.dev only}"
+fi
 [[ -z "$(git status --porcelain)" ]] || echo "Note: the working tree has uncommitted changes; they deploy too."
 
 step "Copying the snapshot into app/public/catalog/"
@@ -149,6 +179,15 @@ if [[ "$server" == true ]]; then
   grep -rqF "$server_google_client" app/dist/assets ||
     stop "the build in app/dist does not hold Google's client ID from $server_env_file, so Google's button can't show. Is the sign-in work on this branch?"
 fi
+# Search engines must never index staging, and must index carnatic.live: noindex is added to the
+# staging build here, after the checks, and never reaches app/public/_headers.
+if [[ "$staging" == true ]]; then
+  { tools/deploy/noindex.sh add app/dist && tools/deploy/noindex.sh check app/dist; } ||
+    stop "could not add noindex to app/dist/_headers, so search engines could index staging."
+  echo "Staging: every response sends X-Robots-Tag: noindex, nofollow."
+elif tools/deploy/noindex.sh check app/dist; then
+  stop "the build in app/dist sends X-Robots-Tag: noindex (from app/public/_headers?), so search engines would drop ${domain:-the site}."
+fi
 secrets="$(tools/deploy/dist-secrets.sh app/dist)" || stop "the build in app/dist holds ${secrets:-a secret}."
 
 step "Files to upload (app/dist)"
@@ -157,16 +196,21 @@ step "Files to upload (app/dist)"
 
 if [[ "$dry_run" == true ]]; then
   step "Dry run: wrangler deploy --dry-run"
-  (cd app && npx wrangler deploy --dry-run) || stop "wrangler's dry run failed."
+  (cd app && npx wrangler deploy "${wrangler_env[@]}" --dry-run) || stop "wrangler's dry run failed."
   echo
   echo "Dry run passed: snapshot $version ($file), commit $commit. Nothing was uploaded."
+  [[ "$staging" == false ]] || echo "$staging_line"
   exit 0
 fi
 
-step "Deploying to Cloudflare"
+if [[ "$staging" == true ]]; then
+  step "Deploying to Cloudflare: staging, $staging_host"
+else
+  step "Deploying to Cloudflare"
+fi
 deploy_log="$(mktemp)"
 trap 'rm -f "$golden_json" "$deploy_log"' EXIT
-(cd app && npx wrangler deploy) 2>&1 | tee "$deploy_log" ||
+(cd app && npx wrangler deploy "${wrangler_env[@]}") 2>&1 | tee "$deploy_log" ||
   stop "wrangler deploy failed. If it asks you to sign in, run 'npx wrangler login' in app/."
 
 address="$(grep -o 'https://[^ ]*workers\.dev' "$deploy_log" | head -1 || true)"
@@ -174,5 +218,13 @@ echo
 echo "Deployed snapshot $version ($file), commit $commit."
 [[ "$without_golden" == false ]] || echo "Search accuracy was NOT checked: the golden set (T027) failed."
 [[ "$server" == true ]] || echo "No server: this build has no sign-in or sync."
-echo "Live at: ${address:-the address wrangler printed above}"
-[[ -z "$domain" ]] || echo "    and: https://$domain"
+if [[ "$staging" == true ]]; then
+  echo "Live at: ${address:-https://$staging_host}"
+  echo "${production_domain:-Production} is unchanged. It gets this build only on the Maintainer's word: the same command without --staging."
+  echo "$staging_line"
+elif [[ -n "$domain" ]]; then
+  echo "Live at: https://$domain"
+  [[ -z "$address" ]] || echo "    and: $address"
+else
+  echo "Live at: ${address:-the address wrangler printed above}"
+fi

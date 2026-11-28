@@ -61,7 +61,8 @@ it: it is built from karnatik.com and is not published here.
 
 ## Deploying
 
-The app is served by Cloudflare Workers Static Assets, at a test address for now (ADR 0008).
+The app is served by Cloudflare Workers Static Assets, on carnatic.live, with a staging Worker
+beside it (ADR 0008; `docs/setup/staging.md`).
 Deploys run from the Maintainer's machine, because it holds the snapshot.
 
 - **Sign in once**, in your own terminal: `npx wrangler login` from `app/`. On a remote
@@ -72,6 +73,9 @@ Deploys run from the Maintainer's machine, because it holds the snapshot.
   - It prints the snapshot's version, copies it into `app/public/catalog/`, builds, runs the
     golden set and `npm run check` with it, and deploys only if all of them pass.
   - `--dry-run` does everything but the upload.
+  - `--staging` deploys the same build to the staging Worker,
+    `wrapped-staging.srikanthrajkumar26.workers.dev`, instead of carnatic.live. Every merge goes
+    there first; carnatic.live gets it only on the Maintainer's word (`docs/setup/staging.md`).
   - The uploaded build is made last, after the checks, with the Schedule's public-data project
     (`public_data_url` in the script, ADR 0009); the checks themselves build without it, so no
     test reaches that project. The script stops if the setting is missing or the build lacks it.
