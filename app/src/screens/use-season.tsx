@@ -15,6 +15,7 @@ import { ListingSheet } from './components/ListingSheet';
 import { useNow } from './components/layout';
 import { ScheduleChangedSheet } from './components/ScheduleChanged';
 import { useLingering } from './components/sheet-frame';
+import { lastMove } from './nav';
 import { leavingNow, subscribeLeaving } from './new-concert';
 import { concerts, type Concert, type Notes } from './spine';
 
@@ -31,13 +32,24 @@ export interface Season {
   settling: boolean;
 }
 
+/**
+ * A tab switched to draws what it last showed on its first frame (the Maintainer, 2026-11-28:
+ * the tabs flickered). A page gone back to slides in, and waits for the store as it always has:
+ * its kept place is found on the page as it now stands, never on the one it last showed.
+ */
+export function useTabSwitched(): boolean {
+  const [switched] = useState(() => lastMove() === 'tab');
+  return switched;
+}
+
 /** The Season as stored: undefined until read. */
 export function useSeason(): Season | undefined {
-  const stored = useEventSummaries();
+  const switched = useTabSwitched();
+  const stored = useEventSummaries(switched);
   // A new Concert being taken back as the rasika leaves it is never drawn on its way out.
   const leaving = useSyncExternalStore(subscribeLeaving, leavingNow);
-  const notes = useLoggingNotes();
-  const listings = useSchedule('');
+  const notes = useLoggingNotes(switched);
+  const listings = useSchedule('', switched);
   const now = useNow();
   return useMemo(() => {
     if (stored === undefined || notes === undefined || listings === undefined) return undefined;

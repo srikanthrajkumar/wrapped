@@ -20,6 +20,7 @@ import {
 } from '../../src/store/auth';
 import type { WrappedDB } from '../../src/store/db';
 import { save } from '../../src/store/mutate';
+import { lastSeen, readGeneration, remember } from '../../src/store/seen';
 import {
   createSyncLoop,
   LAST_SYNCED_KEY,
@@ -256,6 +257,22 @@ describe('sign-in on the phone', () => {
     expect(await db.meta.get(PULL_CURSOR_KEY)).toBeUndefined();
     expect(await db.meta.get(LAST_SYNCED_KEY)).toBeUndefined();
     expect(await db.serverSeqs.count()).toBe(0);
+  });
+
+  it('forgets what the screens last showed when another account signs in, never for the same', async () => {
+    const db = freshDb();
+    const first = identity();
+    await recordIdentity(first, db, { lock: noLock });
+    remember('eventSummaries', ['the last account’s'], readGeneration());
+    await recordIdentity({ ...first, signedInAt: new Date().toISOString() }, db, { lock: noLock });
+    expect(lastSeen('eventSummaries')).toEqual(['the last account’s']);
+
+    // A read begun for the last account lands after the switch: it is not kept either.
+    const readIn = readGeneration();
+    await recordIdentity(identity(), db, { lock: noLock });
+    expect(lastSeen('eventSummaries')).toBeUndefined();
+    remember('eventSummaries', ['the last account’s'], readIn);
+    expect(lastSeen('eventSummaries')).toBeUndefined();
   });
 
   it('keeps the sync state when the same account signs in again', async () => {

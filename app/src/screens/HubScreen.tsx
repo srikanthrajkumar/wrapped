@@ -64,19 +64,24 @@ import {
 } from './spine';
 import { subscribeUndo, undoOffers } from './undo';
 import { offersUpdate } from './update-offer';
-import { useConcertSheets, useSeason } from './use-season';
+import { useConcertSheets, useSeason, useTabSwitched } from './use-season';
 import { startWhatsOnAt } from './WhatsOnScreen';
 
 /** The season so far as one field (DESIGN.md "The motif"), drawn once its Ragas are known. */
 function SeasonArt() {
-  const keys = useSeasonRagaKeys();
+  const keys = useSeasonRagaKeys(useTabSwitched());
   const catalog = useCatalog();
+  // It fades in when it comes after the page; back on the tab it is there from the first frame.
+  const [fade] = useState(() => keys === undefined || catalog.status === 'loading');
   if (keys === undefined || catalog.status === 'loading') return null;
   const ragas = ragaSeeds(keys, catalog.status === 'ready' ? catalog.catalog : null);
   return (
     <Motif
       seed={{ kind: 'season', ragas }}
-      className="size-full animate-in duration-300 fade-in motion-reduce:animate-none"
+      className={cn(
+        'size-full',
+        fade && 'animate-in duration-300 fade-in motion-reduce:animate-none',
+      )}
     />
   );
 }

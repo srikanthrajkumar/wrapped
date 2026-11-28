@@ -132,12 +132,35 @@ function draw(
 
 const toneCache = new Map<string, Record<Tone, Colour>>();
 
+const themeName = () => (document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+
+// The last few marks painted, by theme, size and seed, so a screen drawn again (Season, on its
+// tab) shows its mark on its first frame with one copy, not a fresh draw: where WebGL has no
+// GPU (the test browser) the draw took about 100 ms, holding up the tab's first frame
+// (2026-11-28).
+const PAINTED_KEPT = 2;
+const painted = new Map<string, HTMLCanvasElement>();
+
+function keep(key: string, from: HTMLCanvasElement) {
+  const copy = document.createElement('canvas');
+  copy.width = from.width;
+  copy.height = from.height;
+  const context = copy.getContext('2d');
+  if (!context) return;
+  context.drawImage(from, 0, 0);
+  painted.set(key, copy);
+  for (const old of painted.keys()) {
+    if (painted.size <= PAINTED_KEPT) break;
+    painted.delete(old);
+  }
+}
+
 /**
  * The theme's tones as GL colours, read from --motif-<tone> through a 1px canvas once per theme
  * (a Schedule's forty tiles share one read).
  */
 function tones(): Record<Tone, Colour> {
-  const theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+  const theme = themeName();
   const cached = toneCache.get(theme);
   if (cached) return cached;
   const style = getComputedStyle(document.documentElement);
@@ -183,11 +206,21 @@ export function paintMotif(
   const pad = blur * 2;
   const W = w + pad * 2;
   const H = h + pad * 2;
-  draw(p, params, tones(), W, H, ratio);
   target.width = W;
   target.height = H;
-  // Copied in the same task as the draw, so the GL canvas needs no preserved buffer.
-  context.drawImage(p.gl.canvas, 0, 0);
+  const key = `${themeName()}|${W}x${H}@${ratio}|${JSON.stringify(params)}`;
+  const kept = painted.get(key);
+  if (kept) {
+    context.drawImage(kept, 0, 0);
+    // The most recent last to go.
+    painted.delete(key);
+    painted.set(key, kept);
+  } else {
+    draw(p, params, tones(), W, H, ratio);
+    // Copied in the same task as the draw, so the GL canvas needs no preserved buffer.
+    context.drawImage(p.gl.canvas, 0, 0);
+    keep(key, target);
+  }
   target.style.filter = `blur(${blur / ratio}px)`;
   // `scale`, not `transform`, which a fade-in animation would override while it runs.
   target.style.scale = `${W / w} ${H / h}`;
