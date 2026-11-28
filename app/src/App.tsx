@@ -65,7 +65,7 @@ function TabBar() {
   return (
     <nav
       aria-label="Main"
-      className="flex border-t border-border bg-background pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)]"
+      className="flex foot-room border-t border-border bg-background pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]"
     >
       {TABS.map(({ tab, label, icon: Mark }) => {
         const current = nav.tab === tab;
@@ -331,7 +331,7 @@ export function App() {
           <footer ref={setFooter} className="fixed inset-x-column z-10" style={{ bottom: inset }}>
             <ActionBar onBar={setBar} />
             {inItemEditor ? (
-              <div className="h-[env(safe-area-inset-bottom)] bg-background" />
+              <div className="foot-room bg-background" />
             ) : (
               <>
                 {/* Sync waiting for the rasika (sign in, another phone, update), never blocking. */}

@@ -39,6 +39,22 @@ body {
   min-height: 100lvh;
 }
 
+/* The room the bottom stack leaves under its last row for the home indicator (`foot-room` in
+   app.css says why): half the bottom inset in a browser tab, the whole of it installed. */
+:root {
+  --foot-room: calc(env(safe-area-inset-bottom) / 2);
+}
+
+:root[data-ios-app] {
+  --foot-room: env(safe-area-inset-bottom);
+}
+
+@media (display-mode: standalone) {
+  :root {
+    --foot-room: env(safe-area-inset-bottom);
+  }
+}
+
 #root {
   min-height: var(--app-height);
 }
