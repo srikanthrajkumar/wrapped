@@ -10,7 +10,8 @@ one file in step 4, which lives outside the repository.
 The Schedule is not here: it lives on the logger's project (`docs/setup/schedule-hosting.md`).
 Never link `supabase/` to that project.
 
-The release-day order is in [Release day](#release-day). The project launches on Supabase's Free
+The release-day order is in [Release day](#release-day). After release, every merge goes to
+staging first, and to carnatic.live only on the Maintainer's word ([staging.md](staging.md)). The project launches on Supabase's Free
 plan, with our own nightly backups (ADR 0014); when to move to Pro is the last section.
 
 ## 1. Create the Supabase project (10 min)
@@ -47,7 +48,8 @@ In [console.cloud.google.com](https://console.cloud.google.com), pick or create 
 4. **Clients** → **Create client** → Application type **Web application**, name `wrapped web`:
    - **Authorized JavaScript origins** (scheme and host only, no slash at the end):
      - `https://carnatic.live`
-     - `https://wrapped.srikanthrajkumar26.workers.dev`, for sign-in on your test phones
+     - `https://wrapped-staging.srikanthrajkumar26.workers.dev`, for sign-in on staging
+       ([staging.md](staging.md))
      - `http://localhost` and `http://localhost:5173`, for local runs
    - **Authorized redirect URIs**: leave empty. The app signs in with Google's own button and
      `signInWithIdToken` (ADR 0001), so no one is sent to Supabase's address.
@@ -194,8 +196,8 @@ Checked against `main` on 2026-11-24:
 
 ## 6. carnatic.live on the Worker
 
-`app/wrangler.jsonc` lists `carnatic.live` as a Custom Domain beside the workers.dev address. The
-first deploy attaches it: Cloudflare makes the DNS record and the certificate. There is nothing
+`app/wrangler.jsonc` lists `carnatic.live` as the production Worker's only address, a Custom
+Domain, with no workers.dev address (`workers_dev: false`). The first deploy attaches it: Cloudflare makes the DNS record and the certificate. There is nothing
 to set in DNS first.
 
 Checked read-only on 2026-11-24: the zone `carnatic.live` is active on the account, with no
@@ -211,8 +213,8 @@ it. **If the deploy fails on the domain**, attach it in the dashboard and run th
 A custom domain can't go on a host that already has a CNAME record. If Cloudflare says so,
 delete that record under **carnatic.live → DNS → Records** first.
 
-Each address keeps its own phone store, so send rasikas only to `https://carnatic.live`. The
-workers.dev address stays for your test phones.
+Each address keeps its own phone store, so send rasikas only to `https://carnatic.live`. Test
+phones use the staging Worker instead ([staging.md](staging.md)).
 
 Optional: to send `www.carnatic.live` to the bare domain, use **carnatic.live → Rules →
 Templates → Redirect from WWW to root**. Don't add `www` as a second custom domain: it would be
