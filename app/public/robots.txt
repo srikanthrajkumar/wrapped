@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://carnatic.live/sitemap.xml

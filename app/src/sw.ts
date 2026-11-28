@@ -99,8 +99,13 @@ addPlugins([
 ]);
 precacheAndRoute(phase1);
 cleanupOutdatedCaches();
-// Every navigation opens the precached shell, so a reload in airplane mode still works.
-registerRoute(new NavigationRoute(createHandlerBoundToURL('index.html')));
+// Every navigation opens the precached shell, so a reload in airplane mode still works, except
+// the files for crawlers (globIgnores in vite.config.ts), which open as themselves.
+registerRoute(
+  new NavigationRoute(createHandlerBoundToURL('index.html'), {
+    denylist: [/^\/(robots\.txt|sitemap\.xml|og\.png)$/],
+  }),
+);
 // Take control of the page on first install; updates still wait for SKIP_WAITING.
 clientsClaim();
 

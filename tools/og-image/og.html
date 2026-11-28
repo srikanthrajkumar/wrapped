@@ -1,0 +1,72 @@
+<!doctype html>
+<!-- The share image's page (tools/og-image/build.mjs): Silk, the kolam and the wordmark at
+     1200 × 630, drawn by the app's own Motif and Kolam components and stylesheet. -->
+<html lang="en" class="dark" style="background: #090b0c">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="card"></div>
+    <script type="module">
+      import '/app/src/styles/app.css';
+      import { createElement as h } from 'react';
+      import { createRoot } from 'react-dom/client';
+      import { flushSync } from 'react-dom';
+      import { Motif } from '/app/src/motif/Motif.tsx';
+      import { Kolam } from '/app/src/screens/components/Kolam.tsx';
+
+      // As on first launch (DESIGN.md "The motif"): Silk as a horizon from the top, kept sharp,
+      // dissolving into the page above the words. The words sit low and in the middle, so the
+      // square WhatsApp crops from the centre still holds them.
+      const card = h(
+        'div',
+        {
+          className: 'relative h-[630px] w-[1200px] overflow-hidden bg-background text-foreground',
+        },
+        h(
+          'div',
+          { className: 'absolute inset-x-0 top-0 h-[520px] overflow-hidden horizon-fade' },
+          h(Motif, { seed: { kind: 'mark' }, soft: 0.012, className: 'size-full' }),
+        ),
+        h(
+          'div',
+          {
+            className:
+              'absolute inset-x-0 bottom-[60px] flex flex-col items-center gap-[20px] text-center',
+          },
+          h(
+            'div',
+            { className: 'flex items-center gap-[24px]' },
+            h(Kolam, { className: 'size-[92px]' }),
+            h(
+              'div',
+              { className: 'font-bold leading-none tracking-[-0.01em]', style: { fontSize: 88 } },
+              'carnatic.live',
+            ),
+          ),
+          h(
+            'div',
+            { className: 'text-muted-foreground', style: { fontSize: 38, lineHeight: 1.2 } },
+            'Your December season concert diary',
+          ),
+        ),
+      );
+      flushSync(() => createRoot(document.getElementById('card')).render(card));
+      await document.fonts.ready;
+      // Motif paints after mount; done once its canvas holds the field.
+      const canvas = document.querySelector('canvas[data-motif]');
+      while (canvas.width === 0) await new Promise((r) => requestAnimationFrame(r));
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      document.body.dataset.ready = 'true';
+    </script>
+  </body>
+</html>
