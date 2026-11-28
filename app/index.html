@@ -15,7 +15,44 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="color-scheme" content="dark light" />
     <meta name="apple-mobile-web-app-title" content="carnatic.live" />
-    <title>carnatic.live</title>
+    <title>carnatic.live: your December season concert diary</title>
+    <!-- What search engines and link previews show (WhatsApp first). The public name is
+         carnatic.live; og.png is drawn by tools/og-image/build.mjs. -->
+    <meta
+      name="description"
+      content="Log the concerts you hear in the Chennai December season, with their ragas and songs, even offline."
+    />
+    <link rel="canonical" href="https://carnatic.live/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="carnatic.live" />
+    <meta property="og:url" content="https://carnatic.live/" />
+    <meta property="og:title" content="carnatic.live: your December season concert diary" />
+    <meta
+      property="og:description"
+      content="Log the concerts you hear in the Chennai December season, with their ragas and songs, even offline."
+    />
+    <meta property="og:image" content="https://carnatic.live/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="carnatic.live, with its kolam and a field of rose silk: your December season concert diary"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "carnatic.live",
+        "url": "https://carnatic.live/",
+        "description": "Log the concerts you hear in the Chennai December season, with their ragas and songs, even offline.",
+        "applicationCategory": "LifestyleApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires JavaScript",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "INR" }
+      }
+    </script>
     <!-- The mark (DESIGN.md "The mark"). -->
     <link rel="icon" href="/favicon.ico" sizes="32x32" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -42,7 +79,18 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- For crawlers that read the page without running it. A <noscript> never draws while
+           scripts run, so the launch never flashes it; React replaces #root when it mounts. -->
+      <noscript>
+        <h1>carnatic.live</h1>
+        <p>
+          Log the concerts you hear in the Chennai December season: the artists, the ragas and the
+          songs, even offline at the sabha. Then get your Margazhi recapped.
+        </p>
+        <p>carnatic.live needs JavaScript to run.</p>
+      </noscript>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

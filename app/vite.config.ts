@@ -64,6 +64,8 @@ export default defineConfig({
       manifest: {
         name: 'carnatic.live',
         short_name: 'carnatic.live',
+        description:
+          'Log the concerts you hear in the Chennai December season, with their ragas and songs, even offline.',
         start_url: '/',
         scope: '/',
         display: 'standalone',
@@ -86,7 +88,9 @@ export default defineConfig({
         globPatterns: ['**/*'],
         // Cloudflare's own files (ADR 0008), never served: precached, they would come back as
         // the app page. tools/size-budget/check.mjs skips the same list.
-        globIgnores: ['_headers', '.assetsignore'],
+        // The files only crawlers and link previews read (robots.txt, the sitemap, the share
+        // image) are never the phone's download either; sw.ts lets them through to the server.
+        globIgnores: ['_headers', '.assetsignore', 'robots.txt', 'sitemap.xml', 'og.png'],
         maximumFileSizeToCacheInBytes: MAX_PRECACHED_FILE_BYTES,
         // Record the two phases for the size check (tools/size-budget/check.mjs). The service
         // worker itself is downloaded at install, so it belongs to the first phase.
