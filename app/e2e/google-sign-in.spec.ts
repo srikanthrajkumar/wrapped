@@ -61,6 +61,7 @@ test('Google’s button signs in in the background, with the nonce hashed for Go
   // which showed as a white box round the button (2026-11-28).
   await expect(page.locator('html')).toHaveCSS('color-scheme', 'dark');
   await expect(google).toHaveCSS('color-scheme', 'light');
+  await expect(page.getByText('Signing in keeps your diary backed up.')).toBeVisible();
   const [first] = await page.evaluate(() => (window as unknown as { gisInits: Init[] }).gisInits);
   expect(first!.clientId).toBe(STAND_IN_GOOGLE_CLIENT_ID);
   expect(first!.nonce).toMatch(/^[0-9a-f]{64}$/);

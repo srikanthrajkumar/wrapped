@@ -12,6 +12,7 @@
 
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { retryReadiness, useReadiness } from '../pwa';
 import { Motif } from '../motif/Motif';
 import { answerConsent, CONSENT_KEY, type Consent, type ConsentName } from '../store/account';
@@ -70,19 +71,21 @@ export function FirstLaunch() {
           : 'ready';
   return (
     <>
-      {/* The app's own mark, Silk, as a horizon behind every step (DESIGN.md "The motif"):
-          full-bleed from the top, dissolving above the words, drifting slowly. The same across
-          steps, so it never restarts. */}
+      {/* The app's own mark, Silk, in a window at the top of every step (DESIGN.md "The
+          motif"): 8px in from the screen's sides and top, 56% of its height, with 28px corners,
+          drifting slowly. The same across steps, so it never restarts. */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-x-column top-0 h-[calc(var(--app-height)*0.8)] overflow-hidden horizon-fade"
+        className="pointer-events-none fixed inset-x-column top-0 px-2 pt-[calc(8px+env(safe-area-inset-top))]"
       >
-        <Motif
-          seed={{ kind: 'mark' }}
-          moving
-          soft={0.012}
-          className="size-full animate-in duration-300 fade-in motion-reduce:animate-none"
-        />
+        <div className="h-[calc(var(--app-height)*0.56)] overflow-hidden rounded-[28px]">
+          <Motif
+            seed={{ kind: 'mark' }}
+            moving
+            soft={0.012}
+            className="size-full animate-in duration-300 fade-in motion-reduce:animate-none"
+          />
+        </div>
       </div>
       {step === 'welcome' ? (
         <Welcome onContinue={HAS_SERVER ? () => void beginSignIn() : () => setWelcomed(true)} />
@@ -100,7 +103,7 @@ export function FirstLaunch() {
 function Screen({ children, action }: { children: React.ReactNode; action: React.ReactNode }) {
   return (
     <div className="relative flex min-h-[calc(var(--app-height)-env(safe-area-inset-top)-env(safe-area-inset-bottom))] flex-col pb-4">
-      {/* Under the horizon, low, near the thumb. With large text the words rise into the silk,
+      {/* Under the window, low, near the thumb. With large text the words rise into the silk,
           so a scrim rises behind them from 192px above, the page's colour by their first line. */}
       <div className="flex flex-1 flex-col justify-end py-8">
         <div className="relative isolate flex flex-col gap-4 before:absolute before:right-[calc(-24px-env(safe-area-inset-right))] before:left-[calc(-24px-env(safe-area-inset-left))] before:-top-48 before:bottom-0 before:-z-10 before:scrim-rise before:content-['']">
@@ -136,50 +139,70 @@ function Welcome({ onContinue }: { onContinue(): void }) {
   // Google's button needs Google's script; with no signal, "Try again" loads it again.
   const googleButton = GOOGLE_CLIENT_ID !== null && failure !== 'noSignal';
   return (
-    <Screen
-      action={
-        <div className="flex flex-col gap-3">
-          {googleButton ? (
-            <div aria-busy={working || undefined} className={working ? 'opacity-50' : undefined}>
-              <GoogleButton
-                clientId={GOOGLE_CLIENT_ID}
-                text="continue_with"
-                attempt={attempt}
-                onCredential={(credential, nonce) => void signInWithCredential(credential, nonce)}
-                onError={failSignIn}
-              />
-            </div>
-          ) : (
-            <Button
-              size="lg"
-              className="fill-edge w-[calc(100%+32px)]"
-              aria-busy={working || undefined}
-              disabled={working}
-              onClick={GOOGLE_CLIENT_ID !== null ? clearSignInFailure : onContinue}
-            >
-              {failure ? MESSAGES.actions.tryAgain : MESSAGES.welcome.action}
-            </Button>
-          )}
-          {logOffline && (
-            <Button
-              size="lg"
-              variant="secondary"
-              className="fill-edge w-[calc(100%+32px)]"
-              onClick={() => void finishFirstLaunch()}
-            >
-              {MESSAGES.actions.start}
-            </Button>
-          )}
-        </div>
-      }
-    >
-      {/* The kolam above the name (the Maintainer, 2026-11-25). */}
-      <Kolam className="size-16" />
-      <h1 className="text-display font-bold">{MESSAGES.welcome.title}</h1>
-      {/* A failure is one line on the step it happened, in the sentence's place (DESIGN.md,
-          "First launch"). */}
-      {failure ? <p role="alert">{FAILURE_TEXT[failure]}</p> : <p>{MESSAGES.welcome.sentence}</p>}
-    </Screen>
+    <div className="relative flex min-h-[calc(var(--app-height)-env(safe-area-inset-top)-env(safe-area-inset-bottom))] flex-col pb-4">
+      {/* Down to the window's foot, where the kolam sits across its edge on a disc of the
+          page's colour (the Maintainer's pick, 2026-11-28). */}
+      <div className="h-[calc(var(--app-height)*0.56+8px-44px)] shrink-0" />
+      <div className="mx-auto grid size-22 shrink-0 place-items-center rounded-full bg-background">
+        <Kolam className="size-16" />
+      </div>
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 pb-6 text-center">
+        <h1 className="text-display font-bold">{MESSAGES.welcome.title}</h1>
+        {/* A failure is one line on the step it happened, in the sentence's place (DESIGN.md,
+            "First launch"). */}
+        {failure ? (
+          <p role="alert">{FAILURE_TEXT[failure]}</p>
+        ) : (
+          <p className="text-muted-foreground">{MESSAGES.welcome.sentence}</p>
+        )}
+      </div>
+      <div className="flex flex-col gap-3">
+        {googleButton ? (
+          // Google's white button in both themes, the width of a fill (DESIGN.md, "First
+          // launch"): on the dark page its own dark one barely showed.
+          <div
+            aria-busy={working || undefined}
+            className={cn('fill-edge', working && 'opacity-50')}
+          >
+            <GoogleButton
+              clientId={GOOGLE_CLIENT_ID}
+              text="continue_with"
+              look="outline"
+              attempt={attempt}
+              onCredential={(credential, nonce) => void signInWithCredential(credential, nonce)}
+              onError={failSignIn}
+            />
+          </div>
+        ) : (
+          <Button
+            size="lg"
+            className="fill-edge w-[calc(100%+32px)]"
+            aria-busy={working || undefined}
+            disabled={working}
+            onClick={GOOGLE_CLIENT_ID !== null ? clearSignInFailure : onContinue}
+          >
+            {failure ? MESSAGES.actions.tryAgain : MESSAGES.welcome.action}
+          </Button>
+        )}
+        {logOffline && (
+          <Button
+            size="lg"
+            variant="secondary"
+            className="fill-edge w-[calc(100%+32px)]"
+            onClick={() => void finishFirstLaunch()}
+          >
+            {MESSAGES.actions.start}
+          </Button>
+        )}
+        {/* What signing in is for, under the button; not where Start lets an emptied phone
+            log without it. */}
+        {HAS_SERVER && !logOffline && (
+          <p className="text-center text-caption text-muted-foreground">
+            {MESSAGES.welcome.reassure}
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
 
