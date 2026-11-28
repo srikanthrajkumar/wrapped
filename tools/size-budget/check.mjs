@@ -18,7 +18,8 @@ const BUDGETS = { phase1: 2_000_000, phase2: 3_000_000 };
 const MANIFEST = 'precache-phases.json';
 // Files in the build the phone never downloads: the phase list, and the host's own files
 // (ADR 0008), which Cloudflare reads at deploy and never serves. The precache skips them too
-// (globIgnores in app/vite.config.ts), as do the files only crawlers and link previews read.
+// (globIgnores in app/vite.config.ts), as do the files only crawlers and link previews read, and
+// the privacy policy, a page of its own.
 const NOT_DOWNLOADED = new Set([
   MANIFEST,
   '_headers',
@@ -26,6 +27,7 @@ const NOT_DOWNLOADED = new Set([
   'robots.txt',
   'sitemap.xml',
   'og.png',
+  'privacy.html',
 ]);
 
 const root = resolve(import.meta.dirname, '../..');

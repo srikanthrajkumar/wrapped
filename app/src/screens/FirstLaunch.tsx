@@ -33,6 +33,7 @@ import {
   type SignInFailure,
 } from '../store/sign-in-flow';
 import { MESSAGES } from './messages';
+import { PRIVACY_POLICY_PATH } from '../privacy/path';
 
 /** Fixed for the build: whether there is a server to sign in to. */
 const HAS_SERVER = buildAuthConfig() !== null;
@@ -201,6 +202,17 @@ function Welcome({ onContinue }: { onContinue(): void }) {
             {MESSAGES.welcome.reassure}
           </p>
         )}
+        {/* The public privacy policy, quiet but always there (Google's brand verification). A
+            new tab, so first launch stays where it was; in the installed app, the browser's
+            sheet over it. */}
+        <a
+          href={PRIVACY_POLICY_PATH}
+          target="_blank"
+          rel="noopener"
+          className="mx-auto px-2 py-1 text-center text-caption text-muted-foreground underline underline-offset-3"
+        >
+          {MESSAGES.welcome.privacy}
+        </a>
       </div>
     </div>
   );
