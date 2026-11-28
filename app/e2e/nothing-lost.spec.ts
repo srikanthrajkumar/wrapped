@@ -335,6 +335,9 @@ test('Clear asks first, and removes only what the saved Export holds', async ({ 
   await page.getByRole('button', { name: 'Add Artist' }).click();
   await page.getByRole('searchbox', { name: 'Search Artists' }).fill('Sanjay');
   await page.getByRole('button', { name: 'Add “Sanjay” as a new Artist' }).click();
+  // The write has failed before writes work again: on a slow disk it can still be waiting for
+  // the store, and then it saves, leaving nothing unsaved to export (CI run 46124642726).
+  await expect(page.getByRole('dialog').getByText('Not saved', { exact: true })).toBeVisible();
   await page.keyboard.press('Escape');
   await setFailingWrites(page, false);
   // After a reload the value can only be exported.
