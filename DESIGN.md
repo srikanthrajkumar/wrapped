@@ -247,10 +247,11 @@ the fields so they hold no glare.
 - **The Concert summary's top edge, as a curtain:** 96px, the summary drawn up over it with
   18px corners. The page behind it goes grey under the scrim, so only this Concert's field
   carries rose.
-- **First launch, as a horizon:** Silk, full-bleed from the top over 80% of the screen,
-  dissolving into the page above the words; the words and the button sit low, under it. The
-  dissolve runs from 45% of its height to its foot, eased (smoothstep) so it leaves and reaches
-  the page with no slope and no line shows where it stops. It is
+- **First launch, as a window:** Silk in a window at the top of every step, 8px in from the
+  screen's sides and top (under the safe area), 56% of the screen's height, with 28px corners
+  and no fade (the Maintainer, 2026-11-28; it was a full-bleed horizon over 80% of the screen,
+  dissolving into the page above the words). The words and the button sit under it, on the
+  page's colour; on Welcome the kolam sits across its foot ("First launch" below). It is
   the only mark that moves: its folds drift back and forth on slow periods (11, 14 and 19
   seconds, so it never visibly loops), drawn in its own WebGL2 context at the screen's CSS
   pixels, at most 30 frames a second, and not at all while the app is hidden, nor where WebGL
@@ -925,15 +926,29 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   Card previews, each with its own Share. Not built yet: it joins the Diary, at its top (the
   Season spine, 2026-11-11).
 - **First launch (decided 2026-11-01; FR-050, FR-042, FR-049):** one step per screen, in order:
-  Welcome (the kolam, 64px, above the wordmark: the Maintainer, 2026-11-25; wordmark, one
-  sentence, "Continue with Google" as Google's own button, full width up to its 400px; not the app's 56px primary, since Supabase's redirect would show its
-  supabase.co address: the Maintainer, 2026-11-24, ADR 0001) → Google sign-in
+  Welcome → Google sign-in
   → Consent 1 → Consent 2 → "Getting ready to log offline" with real progress → the empty home.
   Each consent screen asks one question with its one-line reason and two equal 56px buttons, Yes
   and No, with neither styled as the default and nothing pre-selected. "Ready to log offline"
   shows only once the catalog is stored. Each failure (sign-in cancelled, no signal, a Google
   error, the download stopping) is one line of text and one "Try again", on the step it
   happened, keeping the answers already given.
+  - **Welcome** (redesigned 2026-11-28, the Maintainer's pick of three, "C", the window):
+    the kolam, 64px, centred on an 88px disc of the page's colour across the window's foot,
+    so the drifting silk never runs through its line. Then, centred in the space under it, the
+    wordmark (`display`, bold) and the sentence (muted). Then, at the bottom, "Continue with
+    Google" as Google's own button (GIS: `outline`, `large`, `pill`, `continue_with`, logo
+    centred), in both themes: its dark `filled_black` barely
+    showed on the dark page. It takes a fill's width (8px from the screen's sides, as the
+    app's 56px buttons do), up to Google's 400px; its 40px height is Google's. Not the app's
+    56px primary, since Supabase's redirect would show its supabase.co address (the
+    Maintainer, 2026-11-24, ADR 0001). Under it, centred, in `caption` and muted, what
+    signing in is for: "Signing in keeps your diary backed up." (left out where "Start" lets
+    an emptied phone log without signing in).
+  - **Google's frame stays clear.** Google draws its button in a frame holding a light page.
+    The frame's holder is `color-scheme: light`: a frame whose colour scheme differs from its
+    page's is painted with an opaque backdrop, which on the dark page showed as a white box
+    round the button, 10px wider than it on each side (2026-11-28).
 - **Settings** (laid out 2026-11-03 for Phase 4; the fourth tab since 2026-11-13, with a
   plain tab header, its name in `heading`, and no way back to give): the
   season first, as three icon-led rows,
@@ -1452,7 +1467,7 @@ matches", "Show Past", "What's on",
 
 | Where                        | When                                                                                                                                                                                                         | Text                                                                                                                                                                                                                      | Action                     |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
-| Welcome                      | First launch                                                                                                                                                                                                 | **carnatic.live** · "Log your sabha hopping and get your Margazhi recapped."                                                                                                                                              | Continue with Google       |
+| Welcome                      | First launch                                                                                                                                                                                                 | **carnatic.live** · "Log your sabha hopping and get your Margazhi recapped." · under the button: "Signing in keeps your diary backed up." | Continue with Google       |
 | Sign-in                      | Cancelled                                                                                                                                                                                                    | "Sign-in was cancelled. You need to sign in once before logging."                                                                                                                                                         | Try again                  |
 | Sign-in                      | No signal                                                                                                                                                                                                    | "No signal. Sign-in needs a connection, once, on this phone."                                                                                                                                                             | Try again                  |
 | Sign-in                      | Google error                                                                                                                                                                                                 | "Google couldn't sign you in just now."                                                                                                                                                                                   | Try again                  |
@@ -1599,3 +1614,4 @@ in the phase that builds it):
 | 2026-11-25 | The bottom stack sits on the screen's bottom edge. On the Maintainer's iPhone, in a Safari tab, it sat about 85pt up once Safari's toolbar had hidden, What's on's rows scrolling under the tab bar, and flickered as the page moved: Safari on iOS 26 leaves a sticky bottom where the toolbar's top was (Apple developer forums thread 801028). The user chose to keep the page scrolling as it does and pin the stack to the screen (`position: fixed`), a spacer keeping its height at the page's end; a frame where only the middle scrolls would have kept Safari's toolbar from ever hiding. |
 | 2026-11-25 | Undo only for whole things: Concert, Item, Artist, Shortlist (the Maintainer, 2026-11-25: "remove the undo sonner on layavinyasam, manodharma etc. Kinda annoying. It's okay if they lose it out."). A Raga, a Manodharma part turned off, a part's own Ragas ("Remove", "Use the Item’s Raga only"), a nadai, the Layavinyasam, and a title taken by a change to Concert (a kind change or "Take it", T122) save at once, journalled as before, with no Undo bar. A piece or title Undo kept on a phone by an earlier build is dropped quietly. |
 | 2026-11-28 | A wide screen stays a phone: over 600px, one centred 430px column (`--column`) with everything fixed kept inside it, the sides a quiet tint of the page a step darker than the column (B of three, the council unanimous; near-black and Silk rejected), the column's own thin scrollbar, and hover states for a mouse only. Not a desktop layout. |
+| 2026-11-28 | First launch's Welcome redesigned after the Maintainer found it bland and the Google button ugly (it sat in a hard white box). The box: Google's button frame holds a light page, and a frame whose colour scheme differs from its page's gets an opaque backdrop; its holder is now `color-scheme: light`, checked in WebKit and Chromium, dark and light, at 390px and in the laptop column. The page: three variants at 390px in both themes, A (today's layout tuned), B (Silk over the whole screen, the kolam as a seal on it), C (Silk in a rounded window, the kolam across its foot); a Codex council read scored them 6, 8 and 7. The Maintainer first picked B with its seal lowered, then changed to C: Silk in a window at the top of every first-launch step, the kolam on a disc across its foot, the name and sentence centred under it. Google's white `outline` button in both themes at a fill's width, and one muted line under it, "Signing in keeps your diary backed up." A sharper Silk (`mixing` 0 to 0.28) was tried and dropped: the folds stayed soft, so Silk is unchanged. |
