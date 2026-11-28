@@ -245,8 +245,9 @@ export async function listSeasonRagaKeys(db: WrappedDB = defaultDb): Promise<str
   return keys;
 }
 
-export function useSeasonRagaKeys() {
-  return useSeenLiveQuery('seasonRagaKeys', () => listSeasonRagaKeys());
+/** With `fromLast`, from the last value read until it answers (store/seen.ts). */
+export function useSeasonRagaKeys(fromLast = false) {
+  return useSeenLiveQuery('seasonRagaKeys', () => listSeasonRagaKeys(), fromLast);
 }
 
 /** An Event's live Appearances in Stage order (store/stage.ts), each with its Artist resolved. */
@@ -426,11 +427,11 @@ export async function listEventSummaries(db: WrappedDB = defaultDb): Promise<Eve
   });
 }
 
-// The Season's queries start from what they last read (store/seen.ts): the four Season
-// screens share them, so moving between the tabs draws each one whole on its first frame.
+// The Season's queries keep what they last read (store/seen.ts), and with `fromLast` start from
+// it: the four Season screens share them, so a tab switched to draws whole on its first frame.
 
-export function useEventSummaries() {
-  return useSeenLiveQuery('eventSummaries', () => listEventSummaries());
+export function useEventSummaries(fromLast = false) {
+  return useSeenLiveQuery('eventSummaries', () => listEventSummaries(), fromLast);
 }
 
 /** A Schedule entry as What's on lists it, with the rasika's live Event made from it, if any. */
@@ -469,13 +470,13 @@ export async function listSchedule(
   });
 }
 
-export function useSchedule(from: string) {
-  return useSeenLiveQuery(`schedule:${from}`, () => listSchedule(from));
+export function useSchedule(from: string, fromLast = false) {
+  return useSeenLiveQuery(`schedule:${from}`, () => listSchedule(from), fromLast);
 }
 
 /** The per-phone logging notes, for the Now selector. */
-export function useLoggingNotes() {
-  return useSeenLiveQuery('loggingNotes', () => readLoggingNotes());
+export function useLoggingNotes(fromLast = false) {
+  return useSeenLiveQuery('loggingNotes', () => readLoggingNotes(), fromLast);
 }
 
 /** An Event's receipts for "Recently deleted" in its "⋯" menu. */

@@ -32,16 +32,21 @@ export function forgetSeen(): void {
 }
 
 /**
- * `useLiveQuery`, starting from the last value read under `key` rather than undefined. `key`
- * must name everything the query depends on, as its deps would.
+ * `useLiveQuery`, starting from the last value read under `key` rather than undefined, unless
+ * `fromLast` is false; either way what it reads is kept. `key` must name everything the query
+ * depends on, as its deps would.
  */
-export function useSeenLiveQuery<T>(key: string, querier: () => Promise<T>): T | undefined {
+export function useSeenLiveQuery<T>(
+  key: string,
+  querier: () => Promise<T>,
+  fromLast = true,
+): T | undefined {
   return useLiveQuery(
     async () => {
       const readIn = generation;
       return remember(key, await querier(), readIn);
     },
     [key],
-    lastSeen<T>(key),
+    fromLast ? lastSeen<T>(key) : undefined,
   );
 }
