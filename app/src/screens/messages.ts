@@ -180,6 +180,19 @@ export const MESSAGES = {
   neverExported: '—',
   /** Settings' version lines, each label before its version: "App 0.1.0". */
   versions: { app: 'App', catalog: 'Catalog' },
+  /**
+   * Settings' "Send feedback" row (2026-11-28): a mailto: link to the project's inbox. The mail
+   * starts with blank lines to write in, then this footer: the version and the kind of phone and
+   * browser, nothing else.
+   */
+  feedback: {
+    title: 'Send feedback',
+    address: 'info@carnatic.live',
+    subject: 'carnatic.live feedback',
+    footer: (version: string, device: string) => ['—', `carnatic.live ${version}`, device],
+    installed: 'installed',
+    inBrowser: 'browser tab',
+  },
   /** The install row, on a phone with the app open in a browser tab (eng review D15). */
   install: {
     iPhone: 'Add to Home Screen:',
