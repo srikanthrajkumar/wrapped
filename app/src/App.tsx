@@ -7,6 +7,7 @@ import { ConcertSummary } from './screens/components/ConcertSummary';
 import { InstallStrip } from './screens/components/InstallRow';
 import { SyncPrompt } from './screens/components/SyncStatus';
 import { ActionBar, BarProvider, type Bar } from './screens/components/layout';
+import { ColumnScrollbar } from './screens/components/wide';
 import { DiaryScreen } from './screens/DiaryScreen';
 import { EventScreen } from './screens/EventScreen';
 import { FirstLaunch, useConsentOwed } from './screens/FirstLaunch';
@@ -87,7 +88,7 @@ function TabBar() {
               // is a step dimmer than muted text (the council, 2026-11-13: in a dim hall the one
               // that is on hardly stood out).
               'flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 text-center text-[min(var(--text-caption),18px)] leading-4',
-              current ? 'font-semibold text-foreground' : 'text-tab-idle',
+              current ? 'font-semibold text-foreground' : 'text-tab-idle hover:text-foreground',
             )}
           >
             <span className="relative">
@@ -251,7 +252,7 @@ export function App() {
           <div
             aria-hidden
             data-status-band
-            className="pointer-events-none fixed inset-x-0 top-0 z-30 status-band"
+            className="pointer-events-none fixed inset-x-column top-0 z-30 status-band"
           />
         )}
         {/* The page holds its text 24px from the screen and its last line 24px over the bottom
@@ -318,7 +319,7 @@ export function App() {
           // where the toolbar's top was once the toolbar hides, about 85pt up with rows showing
           // under it, and jumps as Safari re-places it mid-scroll (the Maintainer's iPhone,
           // 2026-11-25). The room it covers is kept by the spacer after it.
-          <footer ref={setFooter} className="fixed inset-x-0 z-10" style={{ bottom: inset }}>
+          <footer ref={setFooter} className="fixed inset-x-column z-10" style={{ bottom: inset }}>
             <ActionBar onBar={setBar} />
             {inItemEditor ? (
               <div className="h-[env(safe-area-inset-bottom)] bg-background" />
@@ -335,6 +336,8 @@ export function App() {
         {/* The footer's height in the page's flow, where the sticky footer stood, so the page
             ends above it and is as tall as before (useFooterHeight). */}
         {done && <div aria-hidden data-footer-room className="h-(--footer-height) shrink-0" />}
+        {/* On a wide screen, the column's own scrollbar (DESIGN.md "A wide screen"). */}
+        <ColumnScrollbar />
       </div>
     </BarProvider>
   );

@@ -423,7 +423,7 @@ function EventView({ eventId }: { eventId: string }) {
                       }}
                       // An Item row (the row spec): 12px above and below, the number in its 24px
                       // box, then 8px, the title at 56; no chevron.
-                      className="flex min-h-12 items-start gap-2 py-3 text-foreground focus-visible:-outline-offset-2"
+                      className="row-hover flex min-h-12 items-start gap-2 py-3 text-foreground focus-visible:-outline-offset-2"
                     >
                       <ItemLabel item={item} />
                     </Link>
@@ -765,7 +765,7 @@ function StageRow({
             ref={rowRef}
             onClick={onOpen}
             // A List row with the Colours dot as its nested control (the row spec, 2026-11-16).
-            className="flex min-h-12 min-w-[min(100%,calc(9*var(--text-body)))] flex-1 flex-col items-stretch justify-center py-3 text-left focus-visible:-outline-offset-2"
+            className="row-hover flex min-h-12 min-w-[min(100%,calc(9*var(--text-body)))] flex-1 flex-col items-stretch justify-center py-3 text-left focus-visible:-outline-offset-2"
           >
             <span className="break-words">{name}</span>
             {creditName(appearance.role, appearance.support) && (
@@ -1119,7 +1119,7 @@ function EventFacts({
             type="button"
             aria-labelledby="facts-sabha facts-sabha-value"
             onClick={onSabha}
-            className="fill-edge flex min-h-12 items-center justify-between gap-2 rounded-fill bg-secondary px-4 text-left text-body"
+            className="fill-edge fill-hover flex min-h-12 items-center justify-between gap-2 rounded-fill bg-secondary px-4 text-left text-body"
           >
             <span id="facts-sabha-value">{sabhaName ?? 'Add Sabha'}</span>
             <IconChevronRight aria-hidden className="-mr-2 size-5 shrink-0 text-muted-foreground" />

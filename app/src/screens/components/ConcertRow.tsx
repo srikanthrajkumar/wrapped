@@ -340,7 +340,7 @@ export function ConcertRow({
   );
   // The focus ring sits inside the row: a day's rows are clipped to their box while they skip
   // drawing, which would cut a ring drawn outside it.
-  const shape = 'flex min-w-0 flex-1 py-3 text-left focus-visible:-outline-offset-2';
+  const shape = 'row-hover flex min-w-0 flex-1 py-3 text-left focus-visible:-outline-offset-2';
   return (
     <li data-row="concert" className="relative flex items-center gap-2 hairline-b">
       {onOpen && stage !== 'heard' && concert.listing ? (

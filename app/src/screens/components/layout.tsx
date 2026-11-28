@@ -216,7 +216,7 @@ export function TopBar({
         <Link
           href={back.href}
           onClick={onBack}
-          className="-ml-2 flex min-h-12 min-w-0 items-center gap-1 rounded-xl pr-2 text-body text-foreground"
+          className="fill-hover -ml-2 flex min-h-12 min-w-0 items-center gap-1 rounded-xl pr-2 text-body text-foreground"
         >
           <IconChevronLeft className="size-[22px] shrink-0" stroke={2} aria-hidden />
           <span className="break-words">{back.label}</span>
