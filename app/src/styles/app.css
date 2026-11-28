@@ -421,18 +421,18 @@ main:has(~ footer [data-slot='bar-frame']:not([hidden])) {
   }
 
   /* The sides, behind everything: a quiet tint of the page, a step darker than the column (the
-     Maintainer's pick, 2026-11-28). The body's own page colour would paint over them; the
-     column paints it instead. */
-  html body {
-    background-color: transparent;
+     Maintainer's pick, 2026-11-28). Painted as the page's canvas, the root's background, which
+     covers the whole document at any scroll, past its ends and in a full-page capture; a layer
+     fixed to the window covered only the window, so a capture showed the page colour above it
+     (2026-11-28). `!important`, as the root also carries the page colour inline, for the first
+     paint before this sheet loads (index.html, theme.ts). The body's own page colour would paint
+     over the sides; the column paints it instead. */
+  html {
+    background-color: var(--sides) !important;
   }
 
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: -1;
-    background-color: var(--sides);
+  html body {
+    background-color: transparent;
   }
 }
 

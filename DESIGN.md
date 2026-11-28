@@ -345,7 +345,10 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     `oklch(0.94 0 0)`, in light, and `oklch(0.105 0.004 228.8)`, a step under the page, in dark.
     Nothing is drawn on them. Plain near-black in both themes was harsh around the white light
     column, and Silk across the sides competed with the column and spent rose on decoration
-    (the council, 2026-11-28: B picked by all three, overall 7.5 to 9).
+    (the council, 2026-11-28: B picked by all three, overall 7.5 to 9). They are the root's own
+    background (the canvas), so they are one tone the whole page down, at any scroll and in a
+    full-page capture; a layer fixed to the window covered only the window, and the page colour
+    showed above it (2026-11-28).
   - The window still scrolls, so a wheel or trackpad over the sides scrolls the page. Its own
     scrollbar is hidden; the column draws a thin one inside its right edge, shown while the page
     scrolls or the pointer is over the column, and draggable (`ColumnScrollbar`).
