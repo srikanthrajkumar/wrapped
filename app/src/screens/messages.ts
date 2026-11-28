@@ -10,6 +10,8 @@ export const MESSAGES = {
     action: 'Continue with Google',
     // Under Google's button: what signing in is for.
     reassure: 'Signing in keeps your diary backed up.',
+    // The link to the public policy at /privacy, under it (Google's brand verification).
+    privacy: 'Privacy policy',
   },
   signIn: {
     cancelled: 'Sign-in was cancelled. You need to sign in once before logging.',

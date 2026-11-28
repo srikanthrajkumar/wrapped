@@ -3,10 +3,11 @@ import react from '@vitejs/plugin-react';
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin, type PreviewServer, type ViteDevServer } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { CATALOG_FILE } from './src/catalog/load.ts';
 import { isPhase2 } from './src/precache-phases.ts';
+import { PRIVACY_POLICY_FILE, PRIVACY_POLICY_PATH, privacyPage } from './src/privacy/page.ts';
 
 // The local restore test builds beside the ordinary build, never over it
 // (playwright.server.config.ts).
@@ -48,6 +49,39 @@ function catalogFile(): string | null {
   return file;
 }
 
+/**
+ * The privacy policy (app/src/privacy/page.ts) as a plain document, privacy.html, beside the app:
+ * Cloudflare serves it at /privacy, and the service worker lets it through (sw.ts). The dev and
+ * preview servers answer /privacy the same way, so the e2e reads it as the phone does.
+ */
+function privacyPagePlugin(): Plugin {
+  const css = () => readFileSync(new URL('./src/styles/app.css', import.meta.url), 'utf8');
+  const answer = (page: () => string) => (server: ViteDevServer | PreviewServer) => {
+    server.middlewares.use((request, response, next) => {
+      if (request.url?.split('?')[0] !== PRIVACY_POLICY_PATH) return next();
+      response.setHeader('Content-Type', 'text/html; charset=utf-8');
+      response.end(page());
+    });
+  };
+  return {
+    name: 'privacy-page',
+    configureServer: answer(() => privacyPage({ css: css() })),
+    configurePreviewServer: answer(() => readFileSync(`${outDir}/${PRIVACY_POLICY_FILE}`, 'utf8')),
+    generateBundle(_options, bundle) {
+      // The app's own font file, already in the build under its hashed name.
+      const font = Object.values(bundle).find(
+        (file) =>
+          file.type === 'asset' && /\/source-sans-3-latin-[^/]*\.woff2$/.test(file.fileName),
+      );
+      this.emitFile({
+        type: 'asset',
+        fileName: PRIVACY_POLICY_FILE,
+        source: privacyPage({ css: css(), fontUrl: font && `/${font.fileName}` }),
+      });
+    },
+  };
+}
+
 export default defineConfig({
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
@@ -55,6 +89,7 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    privacyPagePlugin(),
     VitePWA({
       strategies: 'injectManifest',
       srcDir: 'src',
@@ -89,8 +124,16 @@ export default defineConfig({
         // Cloudflare's own files (ADR 0008), never served: precached, they would come back as
         // the app page. tools/size-budget/check.mjs skips the same list.
         // The files only crawlers and link previews read (robots.txt, the sitemap, the share
-        // image) are never the phone's download either; sw.ts lets them through to the server.
-        globIgnores: ['_headers', '.assetsignore', 'robots.txt', 'sitemap.xml', 'og.png'],
+        // image) and the privacy policy are never the phone's download either; sw.ts lets them
+        // through to the server.
+        globIgnores: [
+          '_headers',
+          '.assetsignore',
+          'robots.txt',
+          'sitemap.xml',
+          'og.png',
+          PRIVACY_POLICY_FILE,
+        ],
         maximumFileSizeToCacheInBytes: MAX_PRECACHED_FILE_BYTES,
         // Record the two phases for the size check (tools/size-budget/check.mjs). The service
         // worker itself is downloaded at install, so it belongs to the first phase.
