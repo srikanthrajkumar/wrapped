@@ -938,15 +938,15 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
   error, the download stopping) is one line of text and one "Try again", on the step it
   happened, keeping the answers already given.
 - **Settings** (laid out 2026-11-03 for Phase 4; the fourth tab since 2026-11-13, with a
-  plain tab header, its name in `heading`, and no way back to give): the
-  season first, as three icon-led rows,
-  each with its words in its accessible name and amber when something is wrong: offline
-  readiness ("Ready offline"), persisted storage ("Storage protected", amber "Storage not
-  protected" when the browser hasn't promised to keep it), and Export with the date of the last
-  one ("Last: 2 Nov", or "—" before the first). Then the theme, as one track holding both
-  choices. Then the Maintainer's `/admin` link, a row with a chevron, and last the app and
-  catalog versions, small and muted (reordered 2026-11-04, UI hill-climb). Sync, account and
-  consent join in Phase 7. As built and accepted 2026-11-03:
+  plain tab header, its name in `heading`, and no way back to give): with a server, first **one
+  Account row** (the Maintainer, 2026-11-28, B of three layouts); then the season, as three
+  icon-led rows (four with the backup), each with its words in its accessible name and amber
+  when something is wrong: offline readiness ("Ready offline"), persisted storage ("Storage
+  protected", amber "Storage not protected" when the browser hasn't promised to keep it), and
+  Export with the date of the last one ("Last: 2 Nov", or "—" before the first). Then the theme,
+  as one track holding both choices. Then "Send feedback" and the Maintainer's `/admin` link on
+  one panel, and last the app and catalog versions, small and muted (reordered 2026-11-04, UI
+  hill-climb). As built and accepted 2026-11-03:
   - **Ready offline** leads with an airplane mark. "Getting ready for offline…" has a muted
     spinner and is not amber, since it clears on its own. In a browser with no service worker
     the row is amber, with the alert mark and "Offline logging isn't available in this
@@ -959,11 +959,29 @@ Phone width only, one column, built at 390px and checked from 320px to 430px.
     included.
   - **Versions:** "App 0.1.0" and "Catalog …" on their own lines; the catalog line shows once a
     catalog version is recorded.
-  - **Privacy** (decided 2026-11-25): the two consent questions are not on Settings' first view.
-    A "Privacy" row with a lock mark and a chevron, last in the account panel, opens a page of
-    its own with both questions, each as a Yes · No track with its reason line under it.
-  - **Send feedback** (decided 2026-11-28): a row with a speech-bubble mark on its own panel,
-    above the Maintainer's link, with "info@carnatic.live" on the line under it. It is a plain
+  - **Account** (the Maintainer, 2026-11-28: the first view "looking so bleh", with the deletion
+    contact and "Sign out other devices" on it). One row on its own panel, first on the page:
+    the user mark, Google's name, the email on the line under it (cut to one line with "…", so
+    the chevron stays), and a chevron; with no name, the email alone; once the session has
+    ended, "Sign in again to keep backing up…" in place of the email. Signed out it reads "Not
+    signed in", opens nothing, and nothing on the first view speaks of deletion. It opens the
+    **Account page**, pushed as Privacy is, its back "Settings":
+    - a panel with who is signed in (the name, the whole email under it) and "Sign out other
+      devices" (FR-021), with how it went on the line under it;
+    - a panel with **Privacy** (decided 2026-11-25, moved here 2026-11-28): a lock mark and a
+      chevron to a page of its own (`/settings/account/privacy`, its back "Account") with both
+      questions, each as a Yes · No track with its reason line under it. Under Account, not on
+      the first view, as the consents belong to the account and exist only once signed in;
+    - a panel with **"Request account deletion"**, a trash mark in ink (never amber or red),
+      "Email privacy@carnatic.live" under it, a `mailto:` with no chevron, its subject "Delete
+      my carnatic.live account" and a line naming the account's email filled in (FR-046).
+      One tap from Settings, so the way to ask for deletion stays plain (India's DPDP Act).
+      There is no plain "Sign out" yet.
+    The council (two Claude reviewers and Codex) scored B, Account first, 7, 8 and 9; A, the
+    season first, 8, 6 and 8; C, labelled groups ("This phone", "Account"), 6, 6.5 and 7.
+  - **Send feedback** (decided 2026-11-28): a row with a speech-bubble mark, on one panel with
+    the Maintainer's link (which takes a tool mark, as every row in a panel has a mark), above
+    it, with "info@carnatic.live" on the line under it. It is a plain
     `mailto:` link, so it needs no server and works offline (the mail app sends it later), and
     has no chevron, as it opens the mail app, not a page. The subject is "carnatic.live
     feedback"; the body is blank lines to write in, then a footer with the app's version and the
@@ -1474,6 +1492,8 @@ matches", "Show Past", "What's on",
 | Settings                     | Offline readiness                                                                                                                                                                                            | "Ready offline" · not ready: "Getting ready for offline…" · amber, no service worker: "Offline logging isn't available in this browser. You can still log while you have signal."                                         |                            |
 | Settings                     | Persisted storage                                                                                                                                                                                            | "Storage protected" · amber: "Storage not protected"                                                                                                                                                                      |                            |
 | Settings                     | Export                                                                                                                                                                                                       | "Export" with "Last: 2 Nov", or "—" before the first; after a handover its name begins "Exported"                                                                                                                         | Export                     |
+| Settings                     | Account row, then its page                                                                                                                                                                                   | Google's name, the email under it · signed out: "Not signed in" · the page's title "Account"                                                                                                                             |                            |
+| Account                      | Deletion contact, a mailto: link                                                                                                                                                                             | "Request account deletion" · its line: "Email privacy@carnatic.live" · subject "Delete my carnatic.live account"                                                                                                          |                            |
 | Settings                     | Send feedback, a mailto: link                                                                                                                                                                                | "Send feedback" · its line: "info@carnatic.live"                                                                                                                                                                          |                            |
 | Settings                     | Versions, small and muted, each label before its version                                                                                                                                                     | "App" · "Catalog"                                                                                                                                                                                                         |                            |
 | Home status                  | All synced                                                                                                                                                                                                   | "All backed up"                                                                                                                                                                                                           |                            |
@@ -1602,3 +1622,4 @@ in the phase that builds it):
 | 2026-11-25 | The bottom stack sits on the screen's bottom edge. On the Maintainer's iPhone, in a Safari tab, it sat about 85pt up once Safari's toolbar had hidden, What's on's rows scrolling under the tab bar, and flickered as the page moved: Safari on iOS 26 leaves a sticky bottom where the toolbar's top was (Apple developer forums thread 801028). The user chose to keep the page scrolling as it does and pin the stack to the screen (`position: fixed`), a spacer keeping its height at the page's end; a frame where only the middle scrolls would have kept Safari's toolbar from ever hiding. |
 | 2026-11-25 | Undo only for whole things: Concert, Item, Artist, Shortlist (the Maintainer, 2026-11-25: "remove the undo sonner on layavinyasam, manodharma etc. Kinda annoying. It's okay if they lose it out."). A Raga, a Manodharma part turned off, a part's own Ragas ("Remove", "Use the Item’s Raga only"), a nadai, the Layavinyasam, and a title taken by a change to Concert (a kind change or "Take it", T122) save at once, journalled as before, with no Undo bar. A piece or title Undo kept on a phone by an earlier build is dropped quietly. |
 | 2026-11-28 | A wide screen stays a phone: over 600px, one centred 430px column (`--column`) with everything fixed kept inside it, the sides a quiet tint of the page a step darker than the column (B of three, the council unanimous; near-black and Silk rejected), the column's own thin scrollbar, and hover states for a mouse only. Not a desktop layout. |
+| 2026-11-28 | Settings' first view, the Maintainer's pick of three (B): one Account row first (name, email, chevron) opening an Account page with who is signed in, "Sign out other devices", Privacy (moved from the first view's account panel) and "Request account deletion" as a mailto: to privacy@carnatic.live; signed out, only "Not signed in". Send feedback and the Maintainer's link share a panel. One council round at 390px (two Claude reviewers and Codex; B 8.0, A 7.3, C 6.5) built two fixes: the deletion row says it opens mail ("Delete account · Write to" read as deleting in the app), and the Account row's email stays on one line. Not built: Privacy back into the first panel (one reviewer), a "This phone" label (one reviewer; Codex against). The wide screen's sides are now the root's background, so a full-page capture or a scroll past the window no longer shows the page colour above the window's height. |

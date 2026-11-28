@@ -69,8 +69,14 @@ describe('the tabs’ stacks', () => {
   it('keeps Settings as its own tab, with the review under it', () => {
     expect(homeTab('/settings')).toBe('settings');
     expect(homeTab('/admin')).toBe('settings');
-    expect(homeTab('/settings/privacy')).toBe('settings');
-    expect(level('/settings/privacy')).toBe(2);
+    expect(homeTab('/settings/account')).toBe('settings');
+    expect(homeTab('/settings/account/privacy')).toBe('settings');
+    expect(level('/settings/account')).toBe(2);
+    // Privacy sits on Account, so going in keeps Account under it to go back to.
+    expect(level('/settings/account/privacy')).toBe(3);
+    expect(
+      walk('/settings', '/settings/account', '/settings/account/privacy').state.stacks.settings,
+    ).toEqual(['/settings', '/settings/account', '/settings/account/privacy']);
     expect(homeTab(WHATS_ON)).toBe('season');
     expect(homeTab('/event/a')).toBeNull();
     // What's on is left where it was, under Season, while Settings is on.

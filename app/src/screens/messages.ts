@@ -219,12 +219,23 @@ export const MESSAGES = {
     privacy: 'Privacy',
     updateRequired: 'Update the app to keep syncing.',
     writeHere: 'Make this the writing device again',
-    signedInAs: (who: string) => `Signed in as ${who}`,
     notSignedIn: 'Not signed in',
     signOutOthers: 'Sign out other devices',
     signedOutOthers: 'Other devices signed out.',
     signOutOthersFailed: "Other devices weren't signed out. Try again with signal.",
-    deletion: (contact: string) => `To delete your account, write to ${contact}`,
+    /** Settings' one Account row, and the page it opens (2026-11-28). */
+    title: 'Account',
+    /**
+     * The deletion contact, on the Account page (FR-046; India's DPDP Act wants a clear way to
+     * ask): a mailto: row, its address on the line under it.
+     */
+    deleteTitle: 'Request account deletion',
+    deleteLine: (contact: string) => `Email ${contact}`,
+    deleteSubject: 'Delete my carnatic.live account',
+    deleteBody: (who: string | null) =>
+      who
+        ? `Please delete my carnatic.live account, ${who}, and everything in it.`
+        : 'Please delete my carnatic.live account and everything in it.',
   },
   /** The full sentences, for screen readers; the rows show the short labels below. */
   saveFailed: 'Not saved on this phone.',

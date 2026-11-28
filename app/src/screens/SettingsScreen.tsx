@@ -1,15 +1,14 @@
-// Settings (DESIGN.md "Settings", laid out 2026-11-03 for Phase 4): the season first, as three
-// icon-led rows whose words are their accessible names, amber when something is wrong: offline
-// readiness, persisted storage, and Export with the day of the last one. Then the theme, then
-// the Maintainer's link, then the app and catalog versions, small and muted. A pushed page since
-// 2026-11-11, opened from the hub's Settings mark, which is amber while a row here is. Export lives here
-// alone before sync (the safety rows keep their own); Settings can always be reached, offline
-// too (FR-019). With a server (Phase 7, T082): the season's panel adds its backup, and an
-// Account group after the theme holds who is signed in, "Sign out other devices", the deletion
-// contact, and a Privacy row to a page of its own with both consents (changeable at any time,
-// kept on the phone at once and sent at once; the Maintainer, 2026-11-25: not on Settings'
-// first view) (FR-021, FR-042, FR-046, FR-049). "Send feedback" (2026-11-28), a mailto: row on its
-// own panel above the Maintainer's link.
+// Settings (DESIGN.md "Settings", laid out 2026-11-03 for Phase 4; a tab since 2026-11-13). With
+// a server, it opens on one Account row: who is signed in, with a chevron to the Account page
+// (the Maintainer, 2026-11-28: no deletion contact or "Sign out other devices" on the first
+// view). Then the season, as icon-led rows whose words are their accessible names, amber when
+// something is wrong: offline readiness, persisted storage, the backup (with a server), and
+// Export with the day of the last one. Then the theme; then "Send feedback" (a mailto: row) and
+// the Maintainer's link on one panel; then the app and catalog versions, small and muted.
+// Settings can always be reached, offline too (FR-019). The Account page holds who is signed in,
+// "Sign out other devices" (FR-021), Privacy, a page of its own with both consents (changeable at
+// any time, kept on the phone at once and sent at once; FR-042, FR-049), and the deletion contact
+// as a mailto: row (FR-046).
 
 import {
   IconAlertCircle,
@@ -18,11 +17,12 @@ import {
   IconDevicesX,
   IconLoader2,
   IconLock,
-  IconMail,
   IconMessageCircle,
+  IconTool,
   IconPlaneTilt,
   IconShieldCheck,
   IconShieldExclamation,
+  IconTrash,
   IconUserCircle,
 } from '@tabler/icons-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
@@ -332,41 +332,111 @@ function SignOutOthersRow({ config }: { config: NonNullable<typeof AUTH_CONFIG> 
   );
 }
 
-function AccountSection({ config }: { config: NonNullable<typeof AUTH_CONFIG> }) {
-  const identity = useMeta<Identity>(IDENTITY_KEY);
-  const account = useMeta<MeResponse>(ACCOUNT_KEY);
+/** Whether the server has ended this phone's session (signed out elsewhere, or another account). */
+function useSessionEnded(): boolean {
   const status = useSyncStatus();
+  return (
+    status.state === 'stopped' &&
+    (status.failure.kind === 'signed_out' || status.failure.kind === 'other_account')
+  );
+}
+
+/**
+ * Settings' one Account row (2026-11-28): who is signed in, with a chevron to the Account page,
+ * where the rest of the account lives. Signed out, it says so and opens nothing.
+ */
+function AccountRow() {
+  const identity = useMeta<Identity>(IDENTITY_KEY);
+  const ended = useSessionEnded();
   useEffect(() => {
     void refreshAccount();
   }, []);
-  const ended =
-    status.state === 'stopped' &&
-    (status.failure.kind === 'signed_out' || status.failure.kind === 'other_account');
-  const who = identity ? (identity.email ?? identity.name) : null;
+  if (!identity) {
+    return (
+      <li className={ROW}>
+        <ListRowBody
+          mark={<IconUserCircle aria-hidden className={ICON} />}
+          title={MESSAGES.account.notSignedIn}
+        />
+      </li>
+    );
+  }
   return (
-    <>
-      <Panel className="mt-8">
+    <li>
+      <Link href={ACCOUNT_PATH} className={ROW_SHAPE}>
+        <WhoBody identity={identity} ended={ended} chevron />
+      </Link>
+    </li>
+  );
+}
+
+/**
+ * Who is signed in: Google's name with the email under it, or the email alone; once the session
+ * has ended, "Sign in again…" in place of the email.
+ */
+function WhoBody({
+  identity,
+  ended,
+  chevron,
+}: {
+  identity: Identity;
+  ended: boolean;
+  /** Settings' row: a chevron, and a long email cut to one line so the chevron stays. */
+  chevron?: boolean;
+}) {
+  const email = identity.name ? identity.email : null;
+  const emailLine = email && (
+    <span className={chevron ? 'block truncate' : 'break-all'}>{email}</span>
+  );
+  return (
+    <ListRowBody
+      mark={<IconUserCircle aria-hidden className={ICON} />}
+      title={
+        // A name breaks between words; an email alone anywhere.
+        <span className={identity.name ? undefined : 'break-all'}>
+          {identity.name ?? identity.email ?? MESSAGES.account.title}
+        </span>
+      }
+      line={ended ? MESSAGES.sessionEnded : emailLine}
+      chevron={chevron}
+    />
+  );
+}
+
+/** The Account page, pushed from Settings' Account row. */
+export const ACCOUNT_PATH = '/settings/account';
+
+/**
+ * Account (2026-11-28; FR-021, FR-042, FR-046, FR-049): who is signed in and "Sign out other
+ * devices", then Privacy with both consents, then the deletion contact as a mailto: row, one tap
+ * from Settings.
+ */
+export function AccountScreen() {
+  const identity = useMeta<Identity>(IDENTITY_KEY);
+  const account = useMeta<MeResponse>(ACCOUNT_KEY);
+  const ended = useSessionEnded();
+  useEffect(() => {
+    void refreshAccount();
+  }, []);
+  return (
+    <Screen>
+      <TopBar back={{ href: '/settings', label: MESSAGES.tabs.settings }} />
+      <h1 className="pt-2 pb-2 text-heading font-bold">{MESSAGES.account.title}</h1>
+      <Panel className="mt-4">
         <li className={ROW}>
-          <ListRowBody
-            mark={<IconUserCircle aria-hidden className={ICON} />}
-            title={who ? MESSAGES.account.signedInAs(who) : MESSAGES.account.notSignedIn}
-            line={identity && ended ? MESSAGES.sessionEnded : undefined}
-          />
-        </li>
-        {identity && <SignOutOthersRow config={config} />}
-        {account?.deletionContact && (
-          <li className={ROW}>
+          {identity ? (
+            <WhoBody identity={identity} ended={ended} />
+          ) : (
             <ListRowBody
-              mark={<IconMail aria-hidden className={ICON} />}
-              title={
-                <span className="break-all">
-                  {MESSAGES.account.deletion(account.deletionContact)}
-                </span>
-              }
+              mark={<IconUserCircle aria-hidden className={ICON} />}
+              title={MESSAGES.account.notSignedIn}
             />
-          </li>
-        )}
-        {identity && (
+          )}
+        </li>
+        {identity && AUTH_CONFIG && <SignOutOthersRow config={AUTH_CONFIG} />}
+      </Panel>
+      {identity && (
+        <Panel className="mt-8">
           <li>
             <Link href={PRIVACY_PATH} className={ROW_SHAPE}>
               <ListRowBody
@@ -376,14 +446,45 @@ function AccountSection({ config }: { config: NonNullable<typeof AUTH_CONFIG> })
               />
             </Link>
           </li>
-        )}
-      </Panel>
-    </>
+        </Panel>
+      )}
+      {account?.deletionContact && (
+        // A mailto: link, so no chevron (it opens the mail app, not a page), with the address
+        // under it for a browser that has no mail app.
+        <Panel className="mt-8">
+          <li>
+            <a
+              href={deletionMailto(account.deletionContact, identity?.email ?? null)}
+              className={ROW_SHAPE}
+            >
+              <ListRowBody
+                mark={<IconTrash aria-hidden className={ICON} />}
+                title={MESSAGES.account.deleteTitle}
+                line={
+                  <span className="break-all">
+                    {MESSAGES.account.deleteLine(account.deletionContact)}
+                  </span>
+                }
+              />
+            </a>
+          </li>
+        </Panel>
+      )}
+    </Screen>
   );
 }
 
-/** The page with both consent questions, under Settings. */
-export const PRIVACY_PATH = '/settings/privacy';
+/** A mail to the deletion contact, its subject and a line naming the account filled in. */
+function deletionMailto(contact: string, email: string | null): string {
+  return (
+    `mailto:${contact}` +
+    `?subject=${encodeURIComponent(MESSAGES.account.deleteSubject)}` +
+    `&body=${encodeURIComponent(MESSAGES.account.deleteBody(email))}`
+  );
+}
+
+/** The page with both consent questions, under Account. */
+export const PRIVACY_PATH = '/settings/account/privacy';
 
 /**
  * Privacy (FR-042, FR-049): both questions as on first launch, each with its reason, changeable
@@ -397,7 +498,7 @@ export function PrivacyScreen() {
   }, []);
   return (
     <Screen>
-      <TopBar back={{ href: '/settings', label: MESSAGES.tabs.settings }} />
+      <TopBar back={{ href: ACCOUNT_PATH, label: MESSAGES.account.title }} />
       <h1 className="pt-2 pb-2 text-heading font-bold">{MESSAGES.account.privacy}</h1>
       <div className="mt-4 flex flex-col gap-8">
         <ConsentChoice
@@ -432,7 +533,14 @@ function SettingsView() {
     <>
       {/* A tab since 2026-11-13 (the Maintainer): a plain header, with no way back to give. */}
       <TabHeader title={MESSAGES.tabs.settings} />
-      {/* Each group on its panel, 32px apart (foundations, 2026-11-16). */}
+      {/* Who is signed in first, one row to the Account page (the Maintainer, 2026-11-28, B of
+          three); then the season's rows. Each group on its panel, 32px apart (foundations,
+          2026-11-16). */}
+      {AUTH_CONFIG && (
+        <Panel className="mb-8">
+          <AccountRow />
+        </Panel>
+      )}
       <Panel>
         <OfflineRow />
         <StorageRow />
@@ -450,11 +558,11 @@ function SettingsView() {
           onChoose={setTheme}
         />
       </div>
-      {AUTH_CONFIG && <AccountSection config={AUTH_CONFIG} />}
-      {/* Feedback on its own panel: a mailto: link, so no chevron (it opens the mail app, not a
-          page), with the inbox under it for a browser that has no mail app. */}
+      {/* Feedback and the Maintainer's link on one panel. Feedback is a mailto: link, so no
+          chevron (it opens the mail app, not a page), with the inbox under it for a browser that
+          has no mail app; the Maintainer's opens a page. The versions close the page. */}
       <Panel className="mt-8">
-        <li>
+        <li className="hairline-b">
           <a
             href={feedbackMailto(APP_VERSION, describeDevice(currentDeviceFacts()))}
             className={ROW_SHAPE}
@@ -466,13 +574,13 @@ function SettingsView() {
             />
           </a>
         </li>
-      </Panel>
-      {/* A List row on its own panel, with a chevron, as it opens a page; the versions close
-          the page. */}
-      <Panel className="mt-8">
         <li>
           <Link href="/admin" className={ROW_SHAPE}>
-            <ListRowBody title="Maintainer" chevron />
+            <ListRowBody
+              mark={<IconTool aria-hidden className={ICON} />}
+              title="Maintainer"
+              chevron
+            />
           </Link>
         </li>
       </Panel>

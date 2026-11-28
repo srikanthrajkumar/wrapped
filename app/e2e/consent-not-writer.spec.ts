@@ -97,11 +97,13 @@ test('a phone that is no longer the writer still turns consent off, at once or w
     'Your season is now being logged on another phone.',
   );
 
-  // From Settings' Privacy page (not on Settings' first view), "No" to season reports reaches
-  // the server at once.
+  // From the Privacy page under Account (not on Settings' first view), "No" to season reports
+  // reaches the server at once.
   await openSettings(page);
   await expect(page.getByRole('radiogroup', { name: REPORTS })).toHaveCount(0);
-  await page.getByRole('link', { name: 'Privacy' }).click();
+  await page.getByRole('link', { name: email }).click();
+  await expect(page.getByRole('heading', { name: 'Account', exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'Privacy', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Privacy', exact: true })).toBeVisible();
   const reports = page.getByRole('radiogroup', { name: REPORTS });
   await reports.getByRole('radio', { name: 'No' }).click();
